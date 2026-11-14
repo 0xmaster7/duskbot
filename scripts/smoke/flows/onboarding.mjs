@@ -1,17 +1,49 @@
-// Onboarding as a brand-new person: a fresh profile and a fresh dusk bot account on preview, the app's account gate,
-// then the welcome funnel down one path: this Mac (the free model, bringing notes from another AI, the first bot), dusk
-// cloud (the buying sheet opens over the funnel) or your own server (the install line). Nothing is bought or installed
-// here: buy-cloud.mjs and add-server.mjs do those for real.
+// Onboarding as a brand-new person: a fresh profile and a fresh dusk bot account on preview (a *@qa.dusk.test sink
+// address), the app's account gate, then the welcome funnel down one path, end to end:
+//   mac:    this Mac's sheet, an AI (the free model), notes from another AI, then the first bot's first reply
+//   cloud:  dusk cloud goes straight to the browser (the account intent's one-time handoff to the plans page), a plan,
+//           Dodo's TEST-mode checkout paid with the test card, the app noticing by itself, the AI while the cloud is
+//           made, the cloud's chat and a bot's reply on it. The trial's renewal is cancelled at the end (--keep skips it).
+//   server: the install line (add-server.mjs runs a real server)
+// Every funnel screen is shot at the app's normal window (1040x760) and its minimum (768x520) into <out>/steps/.
+// With --root pointing at an older checkout the same script shoots that checkout's funnel ("before" shots); a path the
+// older funnel doesn't have stops with a note.
 //
-//   node scripts/smoke/flows/onboarding.mjs [--path mac|cloud|server] [--out DIR] [--profile DIR] [--email ADDRESS]
+//   node scripts/smoke/flows/onboarding.mjs [--path mac|cloud|server] [--out DIR] [--profile DIR] [--email ADDRESS] [--keep] [--no-pay]
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { until } from "../app.mjs";
+import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
+import { launchBrowser } from "./browser.mjs";
 import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
 
-const { option, root, out, profile, email } = flowArgs("onb");
+const { option, flag, root, out, profile, email } = flowArgs("onb");
 const path = option("--path", "mac");
 if (!["mac", "cloud", "server"].includes(path)) throw new Error("--path is mac, cloud or server");
 const flow = createFlow({ name: `onboarding-${path}`, title: `onboarding (${path === "mac" ? "this Mac" : path === "cloud" ? "dusk cloud" : "own server"})`, root, out, profile, email });
+
+/** the app's main window sizes (electron/window-state.cjs): the default and the smallest it can be */
+const SIZES = [["normal", 1040, 760], ["min", 768, 520]];
+const stepsDir = join(out, "steps");
+mkdirSync(stepsDir, { recursive: true });
+let shotCount = 0;
+/** the screen at both window sizes, as steps/NN-<label>-<size>.png; back at the normal size after */
+async function shots(label) {
+  const n = String(++shotCount).padStart(2, "0"), files = [];
+  for (const [size, width, height] of SIZES) {
+    await flow.viewport(width, height);
+    await sleep(450);
+    const file = join(stepsDir, `${n}-${label}-${size}.png`);
+    try { await flow.app.screenshot(file); files.push(file); } catch {}
+    const overflow = await flow.evaluate(`document.documentElement.scrollWidth > window.innerWidth + 1`).catch(() => false);
+    if (overflow) flow.friction("broken", label, `the page scrolls sideways at ${width}x${height}`);
+  }
+  await flow.viewport(SIZES[0][1], SIZES[0][2]);
+  flow.facts.shots = [...(flow.facts.shots ?? []), ...files.map((file) => file.split("/").pop())];
+  return files;
+}
+const at = () => flow.evaluate(`document.querySelector("[data-welcome]")?.dataset.welcome ?? null`);
+const funnelText = () => flow.evaluate(`(() => { const all = [...document.querySelectorAll("h1,h2")].filter((h) => h.getClientRects().length).map((h) => h.innerText.trim()); return all.join(" / "); })()`);
 
 /** the notes another AI writes when the funnel's prompt is pasted there, as dusk-bot-notes.json in Downloads */
 const NOTES = {
@@ -22,73 +54,174 @@ const NOTES = {
   bots: [{ name: "Ledger", description: "Tracks wholesale invoices", instructions: "You track Forno's wholesale invoices. Remind Sam on Fridays to send them.", knowledge_files: [], memories: ["40 cafe goal"], skills: [], routines: [], apps: [] }],
 };
 
-const funnelText = () => flow.evaluate(`(() => { const all = [...document.querySelectorAll("h1,h2")].filter((h) => h.getClientRects().length).map((h) => h.innerText.trim()); return all.join(" / "); })()`);
+/** sends a line in the open chat and waits for a bot's "ok" after it: the first useful reply */
+async function firstReply(where) {
+  const marker = `smoke ${Date.now().toString(36)}`;
+  await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the chat box", 60_000);
+  await flow.evaluate(`document.querySelector('textarea[aria-label^="Message"]').focus(); true`);
+  await flow.type(`Reply with just the word ok. (${marker})`);
+  await flow.press("Enter", "Enter", 13);
+  const started = Date.now();
+  const outcome = await flow.waitFor(`(() => {
+    const rows = document.querySelector("[data-simple-rows]")?.innerText ?? document.body.innerText;
+    const at = rows.lastIndexOf(${JSON.stringify(marker)});
+    if (at < 0) return false;
+    const after = rows.slice(at + ${JSON.stringify(marker).length - 1}).replace(/\\b\\d{1,2}:\\d{2}\\b/g, "").trim();
+    if (/failed|went wrong|couldn.t/i.test(after)) return "error:" + after.slice(0, 160);
+    return /\\bok\\b/i.test(after) ? "reply:" + after.slice(0, 80) : false;
+  })()`, "the bot's reply", 180_000);
+  flow.facts.replySeconds = Math.round((Date.now() - started) / 1000);
+  if (outcome.startsWith("error:")) throw new Error(`the bot answered with an error on ${where}: ${outcome.slice(6)}`);
+  return `replied "${outcome.slice(6).replace(/\s+/g, " ")}" in ${flow.facts.replySeconds}s`;
+}
 
 await runFlow(flow, async () => {
+  const funnelStarted = { at: 0 };
   await flow.step("launch", "a fresh app starts at the account gate", async () => {
     await flow.launch();
-    await flow.waitText(/sign in to dusk bot/i, "the account gate", 120_000);
+    await flow.viewport(SIZES[0][1], SIZES[0][2]);
+    await flow.waitText(/sign in to dusk bot/i, "the account gate", { timeout: 120_000 });
+    await shots("account-gate");
     const providers = await flow.evaluate(`[...document.querySelectorAll("button")].map((b) => b.innerText.trim()).filter((t) => /^continue with/i.test(t))`);
     flow.facts.gateProviders = providers;
-    if (!providers.some((p) => /apple/i.test(p))) flow.friction("confusing", "account gate", `no Apple sign-in on a Mac (offered: ${providers.join(", ") || "email only"})`);
     return providers.join(", ");
   }, { critical: true });
 
-  await flow.step("sign-in", "signs in with an emailed code", () => flow.signInAtGate(), { critical: true });
+  await flow.step("sign-in", "signs in with an emailed code (sink address)", () => flow.signInAtGate(), { critical: true });
 
-  await flow.step("welcome", "the welcome screen", async () => {
-    await flow.waitText(/meet dusk bot|where should your bots live/i, "the welcome", 60_000);
-    const behind = await flow.evaluate(`document.querySelectorAll('[data-chat-message], [data-message-id]').length`);
-    if (behind) flow.friction("confusing", "welcome", "the chief's greeting is already playing in the chat behind the welcome before the person has picked anything");
-    await flow.click("get started", { timeout: 10_000 }).catch(() => {});
+  await flow.step("place", "the first screen asks where the bots live", async () => {
+    await flow.waitText(/meet dusk bot|where should your bots live/i, "the welcome", { timeout: 60_000 });
+    funnelStarted.at = Date.now();
+    if (await flow.evaluate(`Boolean([...document.querySelectorAll("button")].find((b) => /^get started$/i.test(b.innerText.trim()) && b.getClientRects().length))`)) {
+      flow.facts.helloScreen = true;
+      await shots("welcome");
+      await flow.click("get started");
+    }
     await flow.waitText(/where should your bots live/i, "where should your bots live");
-    return await funnelText();
+    await shots("place");
+    const tile = await flow.evaluate(`document.querySelector("[data-funnel-place=cloud]")?.innerText.replace(/\\s+/g, " ") ?? ""`);
+    flow.facts.cloudTile = tile;
+    if (!/\$|free/i.test(tile)) flow.friction("confusing", "place", "dusk cloud's tile says no price or trial");
+    return `${await funnelText()} | cloud tile: ${tile}`;
   }, { critical: true });
-
-  if (path === "cloud") {
-    await flow.step("pick-cloud", "dusk cloud opens the buying sheet over the funnel", async () => {
-      await flow.click("dusk cloud", { contains: true });
-      await sleep(2500);
-      const shown = await flow.text("[role=dialog]");
-      if (!/\$|plan|month/i.test(shown)) throw new Error(`no plans in the sheet: ${shown.slice(0, 200)}`);
-      flow.facts.cloudSheet = shown.replace(/\s+/g, " ").slice(0, 400);
-      return shown.replace(/\s+/g, " ").slice(0, 160);
-    });
-    return;
-  }
 
   if (path === "server") {
     await flow.step("pick-server", "your own server shows the install line", async () => {
       await flow.click("use your own server", { contains: true });
       const line = await flow.waitText(/\(curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \|\| echo '[^']*'\) \| sh/, "the install line", { timeout: 45_000 });
       flow.facts.installLine = line.replace(/\/i\/[a-z0-9-]+/, "/i/<code>");
+      await shots("server-line");
       return "the one line is ready";
     });
     return;
   }
 
-  await flow.step("pick-mac", "this Mac goes on to connect an AI", async () => {
-    await flow.click("this Mac", { contains: true });
-    // the owner's "this Mac" sheet offers dusk cloud once; the person keeps this Mac
-    await flow.click("continue with this mac", { timeout: 8_000 }).catch(() => {});
-    await flow.waitText(/connect an AI/i, "connect an AI");
-  });
+  if (path === "cloud") {
+    let handoff = null;
+    await flow.step("pick-cloud", "dusk cloud goes straight to the browser and waits calmly beside it", async () => {
+      const since = Date.now();
+      await flow.clickSelector("[data-funnel-place=cloud]");
+      await sleep(2500);
+      if ((await at()) !== "checkout") {
+        // an older funnel: its own buying sheet over the funnel
+        await shots("cloud-sheet");
+        flow.facts.cloudSheet = (await flow.text("[role=dialog]")).replace(/\s+/g, " ").slice(0, 300);
+        throw flow.skip(`this checkout's funnel opens a sheet instead of the browser: ${flow.facts.cloudSheet.slice(0, 120)}`);
+      }
+      handoff = await until(() => flow.opened(since).find((url) => url.startsWith("https://")) ?? null, { timeout: 30_000, what: "the browser to open" });
+      flow.facts.browserOpened = handoff.replace(/#.*$/, "#<token>");
+      await shots("checkout-waiting");
+      flow.facts.waitingScreen = (await flow.text("[data-welcome]")).replace(/\s+/g, " ").slice(0, 300);
+      return `opened ${new URL(handoff).host}${new URL(handoff).pathname}; the app says: ${flow.facts.waitingScreen.slice(0, 140)}`;
+    }, { critical: true });
+    if (!handoff) return;
 
-  await flow.step("ai-claude", "Claude's sign-in opens on claude.com", async () => {
-    const since = Date.now();
-    await flow.click("Claude");
-    await sleep(3000);
-    const opened = flow.opened(since);
-    const claude = opened.find((url) => /^https:\/\/(claude\.com|claude\.ai|console\.anthropic\.com)\//.test(url));
-    if (!claude) throw new Error(`nothing opened on claude.com (${opened.join(", ") || "nothing"})`);
-    const paste = await flow.evaluate(`Boolean([...document.querySelectorAll("input,textarea")].find((e) => /code/i.test(e.placeholder || "")))`);
-    if (paste && !/browser|opened/i.test(await flow.text())) flow.friction("confusing", "connect an AI", "after picking Claude only a 'paste the code' field appears; nothing says the browser opened or where the code comes from");
-    return "the provider page opened; a real Claude sign-in needs a person and is not done here";
-  });
+    let checkoutUrl = null;
+    await flow.step("plans", "the browser lands on the plans signed in; a plan opens Dodo's test checkout", async () => {
+      const browser = await launchBrowser({ width: 1280, height: 860 });
+      try {
+        await browser.goto(handoff).catch(() => {});
+        await until(async () => /\/billing/.test(await browser.url()) && /get |checkout|plan/i.test(await browser.text()), { timeout: 60_000, what: "the plans page" });
+        await browser.screenshot(join(out, "browser-1-plans.png"));
+        flow.facts.landedOn = new URL(await browser.url()).pathname + new URL(await browser.url()).search;
+        // the plan the page itself recommends first, else the first one to get
+        await browser.click("get ");
+        await until(() => browser.evaluate(`Boolean([...document.querySelectorAll("button")].find((b) => /^checkout$/i.test(b.innerText.trim()) && !b.disabled))`), { timeout: 30_000, what: "the plan sheet's checkout" });
+        await browser.screenshot(join(out, "browser-2-plan-sheet.png"));
+        await browser.click("checkout");
+        checkoutUrl = await until(async () => { const url = await browser.url().catch(() => ""); return /checkout\.dodopayments\.com/.test(url) ? url : false; }, { timeout: 60_000, what: "Dodo's checkout" });
+      } finally { await browser.close(); }
+      if (!checkoutUrl.startsWith("https://test.")) throw new Error("the checkout is not in test mode; refusing to pay");
+      return `landed on ${flow.facts.landedOn}; checkout on ${new URL(checkoutUrl).host}`;
+    }, { critical: true });
+
+    if (flag("--no-pay")) return;
+    await flow.step("pay", "pays with the test card", async () => {
+      let n = 0;
+      const result = await payDodoTestCheckout(checkoutUrl, { log: flow.log, shot: (label) => join(out, `pay-${++n}-${label}.png`) });
+      flow.atClose(async () => {
+        if (flag("--keep")) return;
+        // the trial's renewal off, so the test cloud ends with its trial (the local page's bridge, while it is there)
+        const answer = await flow.evaluate(`window.duskDesktop?.cloudAccount?.cancelPlan?.(null).then((r) => r.outcome)`).catch(() => null);
+        flow.log(`cancel the trial's renewal: ${answer ?? "not reachable from this page"}`);
+      });
+      return `paid; ended at ${new URL(result.url).pathname}`;
+    }, { critical: true });
+
+    await flow.step("noticed", "the app notices the payment by itself and goes on to the AI", async () => {
+      const started = Date.now();
+      await flow.waitFor(`document.querySelector("[data-welcome]")?.dataset.welcome === "ai"`, "the AI step after paying", 5 * 60_000);
+      flow.facts.noticedSeconds = Math.round((Date.now() - started) / 1000);
+      if (flow.facts.noticedSeconds > 30) flow.friction("slow", "after paying", `the app took ${flow.facts.noticedSeconds}s to notice the payment`);
+      await shots("ai-while-cloud");
+      await flow.click("start with the free model", { timeout: 10_000 }).catch(() => flow.click("set up later"));
+      return `${flow.facts.noticedSeconds}s after paying`;
+    }, { critical: true });
+
+    await flow.step("making", "the cloud being made, then its chat by itself", async () => {
+      await flow.waitFor(`document.querySelector("[data-welcome]")?.dataset.welcome === "making" || !document.querySelector("[data-welcome]")`, "the cloud being made", 30_000);
+      if (await at()) await shots("making");
+      const cloud = await until(() => flow.evaluate(`window.duskDesktop?.cloudAccount?.state().then((s) => (s.clouds ?? []).find((c) => c.status === "ready") ?? false)`).catch(() => false), { timeout: 15 * 60_000, every: 5000, what: "the cloud to be ready" });
+      const host = new URL(cloud.origin).host;
+      const started = Date.now();
+      for (;;) {
+        const where = await flow.evaluate(`location.host`).catch(() => "");
+        if (where === host) { await flow.app.reattach(`https://${host}`).catch(() => {}); }
+        const chat = await flow.evaluate(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`).catch(() => false);
+        const welcome = await flow.evaluate(`/welcome to dusk cloud/i.test(document.body.innerText)`).catch(() => false);
+        if (where === host && chat && !welcome) break;
+        const pressed = await flow.evaluate(`(() => {
+          const shown = (sel) => [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length && !e.disabled);
+          const move = shown("[data-cloud-move-accept]")[0]; if (move) { move.click(); return "move"; }
+          for (const word of ["start chatting", "open dusk cloud", "open chat", "start with the free model", "continue"]) { const b = shown("button").find((e) => e.innerText.trim().toLowerCase() === word); if (b) { b.click(); return word; } }
+          return null; })()`).catch(() => null);
+        if (pressed) flow.facts.pressedOnCloud = [...(flow.facts.pressedOnCloud ?? []), pressed];
+        if (Date.now() - started > 10 * 60_000) throw new Error(`not on the cloud's chat after 10 minutes (window at ${where})`);
+        await sleep(3000);
+      }
+      flow.facts.funnelSeconds = Math.round((Date.now() - funnelStarted.at) / 1000);
+      await shots("cloud-chat");
+      return `on ${host}; pressed ${JSON.stringify(flow.facts.pressedOnCloud ?? [])}`;
+    }, { critical: true });
+
+    await flow.step("first-reply", "a bot on the new cloud answers", () => firstReply("the cloud"));
+    return;
+  }
+
+  await flow.step("pick-mac", "this Mac shows the owner's sheet, then goes on to connect an AI", async () => {
+    await flow.clickSelector("[data-funnel-place=mac]");
+    await flow.waitFor(`Boolean(document.querySelector("[data-panel-modal=mac-pick]"))`, "this Mac's sheet", 8_000);
+    await shots("mac-sheet");
+    await flow.click("continue with this mac");
+    await flow.waitText(/connect an AI/i, "connect an AI");
+    await shots("ai");
+    return await funnelText();
+  }, { critical: true });
 
   await flow.step("ai-free", "starts with the free model", async () => {
     await flow.click("start with the free model");
     await flow.waitText(/bring what you already use|bring your bots/i, "the import step", { timeout: 30_000 });
+    await shots("bring");
     return await funnelText();
   });
 
@@ -117,6 +250,8 @@ await runFlow(flow, async () => {
 
   await flow.step("first-bot", "lands in the app with the imported bot", async () => {
     await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the chat", 60_000);
+    flow.facts.funnelSeconds = Math.round((Date.now() - funnelStarted.at) / 1000);
+    await shots("chat");
     const started = Date.now();
     // the dev app's server is not the desktop's own child, so it refuses to read Downloads (a packaged build does);
     // there the person pastes the other AI's answer into the chat instead, which is what happens here
@@ -130,15 +265,17 @@ await runFlow(flow, async () => {
     } else flow.facts.notesVia = "Downloads";
     const names = await flow.waitFor(`fetch("/api/bots").then((r) => r.json()).then((j) => { const names = (j.bots ?? j).map((b) => b.name); return names.includes("Ledger") ? names : false; })`, "the imported bot Ledger", 120_000)
       .catch(async () => {
-        const look = await flow.evaluate(`fetch("/api/setup-import/notes?since=1").then(async (r) => r.status + " " + (await r.text()).slice(0, 160)).catch((e) => String(e))`);
-        const line = await flow.evaluate(`document.querySelector("[data-notes-waiting]")?.innerText ?? document.body.innerText.match(/[^\\n]*notes[^\\n]*/i)?.[0] ?? ""`);
-        throw new Error(`no imported bot after 2 minutes (bots: ${JSON.stringify(await flow.evaluate(`fetch("/api/bots").then((r) => r.json()).then((j) => (j.bots ?? j).map((b) => b.name))`))}; Downloads look: ${look}; on screen: ${line})`);
+        throw new Error(`no imported bot after 2 minutes (bots: ${JSON.stringify(await flow.evaluate(`fetch("/api/bots").then((r) => r.json()).then((j) => (j.bots ?? j).map((b) => b.name))`))})`);
       });
     flow.facts.importSeconds = Math.round((Date.now() - started) / 1000);
     if (flow.facts.importSeconds > 20) flow.friction("slow", "import", `the notes took ${flow.facts.importSeconds}s to show up after the funnel ended`);
-    await flow.click("Ledger", { contains: true, scope: "nav, aside, body" }).catch(() => {});
-    await sleep(1500);
     return `bots: ${names.join(", ")}`;
+  });
+
+  await flow.step("first-reply", "the first bot answers on this Mac", async () => {
+    await flow.click("Dusk", { contains: true, scope: "nav, aside, body" }).catch(() => {});
+    await sleep(1000);
+    return firstReply("this Mac");
   });
 
   await flow.step("account-menu", "the account menu knows who is signed in", async () => {
