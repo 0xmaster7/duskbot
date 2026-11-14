@@ -159,6 +159,8 @@ export function createProductEvents({ origin, token = () => null, platform, vers
     },
     flush,
     size: () => queue.length,
+    /** the page's install id while it sends events (usage analytics on), else null */
+    install: () => rider?.install ?? null,
     /** One last try at up to four batches, without retries. */
     async close() {
       if (closed) return;

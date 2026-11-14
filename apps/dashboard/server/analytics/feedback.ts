@@ -41,7 +41,7 @@ export function whereWord(ran: UsageRan): string {
 }
 
 export function feedbackNote(record: UsageRecord): FeedbackNote | null {
-  const own = { person: record.accountId, ...(record.ran ? { where: whereWord(record.ran), ...(record.ran.version ? { version: record.ran.version } : {}) } : {}) };
+  const own = { ...(record.accountId ? { person: record.accountId } : {}), ...(record.ran ? { where: whereWord(record.ran), ...(record.ran.version ? { version: record.ran.version } : {}) } : {}) };
   if (record.kind === "frustration") {
     const f = record.data as UsageFrustration;
     return { id: record.id, kind: "bad", at: record.at, text: f.summary ?? null, engine: f.engine, category: f.category, tools: f.tools, apps: f.apps, signals: f.signals, retries: f.retries, ...own };

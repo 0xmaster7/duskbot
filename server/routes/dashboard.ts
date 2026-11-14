@@ -12,6 +12,8 @@ export interface DashboardRouteDeps {
   usageSignals?: { choice(): { enabled: boolean }; set(next: { enabled: boolean }): void };
   /** called after the person changes the switch, so the account hears of it at once */
   onUsageChoice?(): void;
+  /** the usage outbox's waiting notes (usage-signals.ts) */
+  usageNotes?: { notes(): object | null; sent(ids: readonly string[]): void };
   env?: NodeJS.ProcessEnv;
   fetch?: typeof fetch;
 }
@@ -36,6 +38,16 @@ export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
         deps.onUsageChoice?.();
       }
       return json(res, 200, deps.usageSignals.choice());
+    }
+    if (path === "/api/dashboard/usage-notes" && deps.usageNotes && (method === "GET" || method === "POST")) {
+      res.setHeader("cache-control", "no-store");
+      if (!ownerOrAdmin(auth)) return json(res, 403, { error: "Only the owner or an admin can read usage notes." });
+      if (method === "GET") return json(res, 200, { notes: deps.reporter.status().connected ? null : deps.usageNotes.notes() });
+      const body = await readBody(req) as { sent?: unknown } | null;
+      const ids = body && typeof body === "object" && Array.isArray(body.sent) ? body.sent.filter((id): id is string => typeof id === "string" && id.length <= 64).slice(0, 100) : null;
+      if (!ids) return json(res, 400, { error: "Expected { sent: string[] }." });
+      deps.usageNotes.sent(ids);
+      return json(res, 200, { ok: true });
     }
     if (path !== "/api/dashboard/link" || !["GET", "POST", "DELETE"].includes(method)) return PASS;
     res.setHeader("cache-control", "no-store");

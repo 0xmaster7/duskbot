@@ -2,6 +2,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { EVENTS, isEventName, routeOf, type EventName, type Props } from "./events.ts";
 import { deviceOf, geoOf, referrerHost, touchContext, type EventContext } from "./context.ts";
 import type { Present } from "./presence.ts";
+import type { UsageRan } from "./usage.ts";
+import { MAX_REPORT_FRUSTRATIONS, MAX_REPORT_SESSIONS, cleanUsageDigest, cleanUsageFrustration, cleanUsageSession, type UsageDigest, type UsageFrustration, type UsageReport, type UsageSession } from "../../../../shared/usage-signals.ts";
 
 export const TRACK_PATH = "/v1/t";
 export const APP_EVENTS_PATH = "/v1/app/events";
@@ -141,5 +143,41 @@ export async function handleAppEvents(req: IncomingMessage, res: ServerResponse,
       ? { screen: routeOf(String((event.props as Record<string, unknown>).screen ?? "")) ?? "" } : event.props;
     deps.track(event.name, { accountId, props: props as Props, at, ctx: { ...ctx, ...(event.name === "app_screen" && typeof (props as Props).screen === "string" ? { page: (props as Props).screen as string } : {}) } });
   }
+  return done(res);
+}
+
+export const APP_NOTES_PATH = "/v1/app/notes";
+export const MAX_NOTES_BYTES = 131_072;
+type Notes = Pick<UsageReport, "frustrations" | "sessions" | "digests">;
+export interface NotesDeps {
+  now(): number;
+  readBody(req: IncomingMessage, max: number): Promise<Buffer>;
+  rate(req: IncomingMessage, kind: string, max: number): void;
+  appAccount(req: IncomingMessage): string | null;
+  save(accountId: string | null, workspaceId: string, notes: Notes, ran: UsageRan): Promise<unknown>;
+}
+const OS: Record<string, string> = { darwin: "mac", win32: "windows", linux: "linux" };
+/** notes from a desktop app whose workspace no account dashboard hears from. Security: open to anyone, like the app
+ * events; every note goes through the same cleaning as a workspace report's and the install is only a key, never shown */
+export async function handleAppNotes(req: IncomingMessage, res: ServerResponse, deps: NotesDeps) {
+  if (req.method !== "POST") return done(res, 405);
+  deps.rate(req, "app-notes", 300);
+  let raw: Buffer;
+  try { raw = await deps.readBody(req, MAX_NOTES_BYTES); } catch { return done(res, 413); }
+  let body: Record<string, unknown>;
+  try { body = JSON.parse(raw.toString("utf8")) as Record<string, unknown>; } catch { return done(res, 400); }
+  const install = typeof body?.install === "string" && INSTALL.test(body.install) ? body.install : null;
+  if (!install) return done(res, 400);
+  deps.rate(req, `app-notes:${install}`, 60);
+  const time = deps.now(), list = (value: unknown, max: number) => Array.isArray(value) ? value.slice(0, max) : [];
+  const notes: Notes = {
+    frustrations: list(body.frustrations, MAX_REPORT_FRUSTRATIONS).map(item => cleanUsageFrustration(item, time)).filter((item): item is UsageFrustration => !!item),
+    sessions: list(body.sessions, MAX_REPORT_SESSIONS).map(item => cleanUsageSession(item, time)).filter((item): item is UsageSession => !!item),
+    digests: list(body.digests, 2).map(item => cleanUsageDigest(item, time)).filter((item): item is UsageDigest => !!item),
+  };
+  const platform = text(body.platform, 20), version = text(body.version, 20);
+  const os = OS[platform ?? ""];
+  const ran: UsageRan = { place: "desktop", ...(os ? { os } : {}), ...(version && /^[\w.+-]{1,20}$/.test(version) ? { version } : {}) };
+  await deps.save(deps.appAccount(req), `app:${install}`, notes, ran);
   return done(res);
 }

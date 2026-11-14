@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { feedbackAnswer, whereWord } from "./feedback.ts";
-import { memoryUsageStore, type UsageRecord } from "./usage.ts";
+import { Readable } from "node:stream";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { handleAppNotes } from "./ingest.ts";
+import { createUsage, memoryUsageStore, type UsageRecord } from "./usage.ts";
 
 const NOW = Date.UTC(2026, 10, 13, 12);
 const base = { accountId: "acct_a", workspaceId: "ws_1" };
@@ -46,5 +49,25 @@ describe("feedback view", () => {
     const more = await feedbackAnswer(store, { now: NOW, kind: "big", before: big.next, limit: 1 });
     expect(more.notes.map(note => note.id)).toEqual(["session001"]);
     expect(more.next).toBeNull();
+  });
+  it("shows notes from a signed-out app and from a workspace no account owns, without a person link", async () => {
+    const store = memoryUsageStore(() => NOW), usage = createUsage({ store, now: () => NOW, optedOut: () => false });
+    const post = async (body: unknown, account: string | null = null) => {
+      const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), { method: "POST", headers: {} }) as unknown as IncomingMessage;
+      let status = 0;
+      const res = { writableEnded: false, writeHead(code: number) { status = code; }, end() {} } as unknown as ServerResponse;
+      await handleAppNotes(req, res, { now: () => NOW, readBody: async r => Buffer.concat(await (r as unknown as Readable).toArray()), rate() {}, appAccount: () => account,
+        save: (accountId, workspaceId, notes, ran) => usage.ingestNotes(accountId, workspaceId, notes, ran) });
+      return status;
+    };
+    const note = { id: "frust00009", at: NOW - 100, engine: "claude", category: "email", tools: ["app"], apps: ["gmail"], signals: ["retried"], retries: 2, summary: "gmail would not connect." };
+    expect(await post({ install: "install_abcdefghijkl", platform: "darwin", version: "0.2.11", frustrations: [note] })).toBe(204);
+    expect(await post({ install: "install_abcdefghijkl", frustrations: [note] })).toBe(204);
+    expect(await post({ install: "bad", frustrations: [note] })).toBe(400);
+    await usage.ingest(null, "ws_unowned", { turns: [], runs: [], digests: [{ id: "digest0009", at: NOW - 50, turns: 40, days: 4, summary: "mostly email." }] });
+    const answer = await feedbackAnswer(store, { now: NOW, kind: null, before: null });
+    expect(answer.notes.map(one => one.id)).toEqual(["digest0009", "frust00009"]);
+    expect(answer.notes[1]).toMatchObject({ kind: "bad", text: "gmail would not connect.", where: "mac", version: "0.2.11" });
+    expect(answer.notes.every(one => one.person === undefined)).toBe(true);
   });
 });

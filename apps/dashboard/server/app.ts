@@ -32,8 +32,8 @@ import { clientIp, rateIp } from "./client-ip.ts";
 import { stateBackend } from "./persistence/backend.ts";
 import type { ErrorReporter } from "../../../electron/error-report.mjs";
 import type { EdgeSocketFactory } from "./slack-edge/service.ts";
-import { createAnalytics } from "./analytics/index.ts";
-import { APP_EVENTS_PATH, TRACK_PATH } from "./analytics/ingest.ts";
+import { createAnalytics, readLimited } from "./analytics/index.ts";
+import { APP_EVENTS_PATH, APP_NOTES_PATH, TRACK_PATH, handleAppNotes } from "./analytics/ingest.ts";
 import { memorySink, type AnalyticsSink } from "./analytics/sink.ts";
 import { createUsage, memoryUsageStore, type UsageStore } from "./analytics/usage.ts";
 import { createInfraCollector, memoryInfraStore, type InfraStore } from "./admin/infra.ts";
@@ -709,6 +709,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (!minted) fail(503, "turn_off", "TURN is not available right now.");
       return json(res, 200, minted);
     }
+    if (path === APP_NOTES_PATH) return handleAppNotes(req, res, { now, readBody: readLimited, rate, appAccount: request => auth.appSession(request)?.account.id ?? null,
+      save: (accountId, workspaceId, notes, ran) => usage.ingestNotes(accountId, workspaceId, notes, ran) });
     if (await analytics.handle(req, res, url, { readBody, bodyObject, json, rate, appAccount: request => auth.appSession(request)?.account.id ?? null,
       isOwner: isAdminRequest, account: (request, strict) => {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }

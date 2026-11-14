@@ -412,3 +412,18 @@ describe("notes survive quitting the app", () => {
     expect(sessions[0]!.turns).toBe(BIG_SESSION_TURNS);
   });
 });
+
+describe("usage outbox notes for an app with no dashboard", () => {
+  it("lists waiting notes without taking them and drops only the ones sent", () => {
+    let on = true;
+    const outbox = createUsageOutbox({ now: () => Date.now(), enabled: () => on });
+    const at = Date.now();
+    outbox.digest({ id: "digest0001", at, turns: 40, days: 4, summary: "mostly email." });
+    outbox.digest({ id: "digest0002", at, turns: 41, days: 4, summary: "mostly research." });
+    expect(outbox.notes()?.digests?.map(note => note.id)).toEqual(["digest0001", "digest0002"]);
+    outbox.sent(["digest0001"]);
+    expect(outbox.notes()?.digests?.map(note => note.id)).toEqual(["digest0002"]);
+    on = false;
+    expect(outbox.notes()).toBeNull();
+  });
+});

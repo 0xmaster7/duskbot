@@ -116,6 +116,17 @@ export function createUsageOutbox(options: { now?: () => number; snapshot?: () =
       signals = cap([...(report.signals ?? []), ...signals], OUTBOX_RUNS);
       if (report.frustrations || report.sessions || report.digests) persist();
     },
+    /** the notes waiting, left in place: a workspace with no account dashboard sends them through the app (usage-notes.mjs)
+     * and calls `sent` once they landed, so a failed send keeps them for the next try */
+    notes(): Pick<UsageReport, "frustrations" | "sessions" | "digests"> | null {
+      if (!on() || !(frustrations.length || sessions.length || digests.length)) return null;
+      return { ...(frustrations.length ? { frustrations } : {}), ...(sessions.length ? { sessions } : {}), ...(digests.length ? { digests } : {}) };
+    },
+    sent(ids: readonly string[]) {
+      const gone = new Set(ids), before = frustrations.length + sessions.length + digests.length;
+      frustrations = frustrations.filter(item => !gone.has(item.id)); sessions = sessions.filter(item => !gone.has(item.id)); digests = digests.filter(item => !gone.has(item.id));
+      if (frustrations.length + sessions.length + digests.length !== before) persist();
+    },
     size: () => ({ turns: turns.length, runs: runs.length, frustrations: frustrations.length, sessions: sessions.length, digests: digests.length, signals: signals.length }),
     /** this week's turns so far by category and tool, for the digest's prompt */
     mix(): { categories: string[]; tools: string[] } {

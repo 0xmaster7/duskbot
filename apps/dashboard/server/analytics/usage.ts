@@ -210,8 +210,29 @@ export function createUsage(options: {
   const { store } = options, now = options.now ?? Date.now;
   const stats = { written: 0, failed: 0, dropped: 0 };
   /** a workspace's report section; never throws and never delays the report */
+  /** the notes alone (a bad chat, a big session, the weekly one), from a workspace or app install no account owns, or
+   * an account's app sending them itself; stored under `workspaceId` with an empty account when there is none */
+  async function ingestNotes(accountId: string | null, workspaceId: string, notes: Pick<UsageReport, "frustrations" | "sessions" | "digests">, ran?: UsageRan) {
+    if (accountId && options.optedOut(accountId)) { stats.dropped++; return 0; }
+    const owner = accountId ?? "", with_ = ran ? { ran } : {};
+    const records: UsageRecord[] = [
+      ...(notes.frustrations ?? []).map(data => ({ id: data.id, kind: "frustration" as const, at: data.at, accountId: owner, workspaceId, ...with_, data })),
+      ...(notes.sessions ?? []).map(data => ({ id: data.id, kind: "session" as const, at: data.at, accountId: owner, workspaceId, ...with_, data })),
+      ...(notes.digests ?? []).map(data => ({ id: data.id, kind: "digest" as const, at: data.at, accountId: owner, workspaceId, ...with_, data })),
+    ];
+    if (!records.length) return 0;
+    const fresh = await store.insert(records);
+    await Promise.all([...rollup(fresh)].map(([day, inc]) => store.bump(day, inc)));
+    for (const record of fresh) if (record.kind === "frustration" && options.newProblem) {
+      const f = record.data as UsageFrustration, key = problemKey(f);
+      if (await store.once(`problem|${key}`)) options.newProblem({ key, example: f.summary ?? null, count: 1 });
+    }
+    stats.written += fresh.length;
+    return fresh.length;
+  }
   async function ingest(accountId: string | null, workspaceId: string, report: UsageReport, from?: { kind?: string; version?: string }) {
-    if (!accountId || options.optedOut(accountId)) { stats.dropped++; return; }
+    if (!accountId) { try { await ingestNotes(null, workspaceId, report, ranOf(report, from)); } catch { stats.failed++; } return; }
+    if (options.optedOut(accountId)) { stats.dropped++; return; }
     try {
       const ran = ranOf(report, from);
       const records: UsageRecord[] = [
@@ -252,7 +273,7 @@ export function createUsage(options: {
       stats.written += fresh.length;
     } catch { stats.failed++; }
   }
-  return { store, stats, ingest, forget: (accountId: string) => store.forget(accountId).catch(() => { stats.failed++; }),
+  return { store, stats, ingest, ingestNotes, forget: (accountId: string) => store.forget(accountId).catch(() => { stats.failed++; }),
     forgetWorkspace: (workspaceId: string) => store.forgetWorkspace(workspaceId).catch(() => { stats.failed++; }) };
 }
 export type Usage = ReturnType<typeof createUsage>;

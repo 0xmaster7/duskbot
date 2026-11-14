@@ -40,7 +40,7 @@ export const visitorCookie = (req: IncomingMessage) => {
   const value = req.headers.cookie?.split(";").map(item => item.trim()).find(item => item.startsWith("dusk_vid="))?.slice(9);
   return value && VISITOR.test(value) ? value : null;
 };
-async function readLimited(req: IncomingMessage, max: number) {
+export async function readLimited(req: IncomingMessage, max: number) {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
