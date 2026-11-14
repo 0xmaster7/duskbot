@@ -148,7 +148,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
     if (locating || closed || Date.now() - lastLocate < 10_000) return locating ?? Promise.resolve();
     lastLocate = Date.now();
     locating = (async () => {
-      for (const at of [...new Set([root.origin, ...known])]) {
+      for (const at of new Set([root.origin, ...known])) {
         try {
           const response = await postFetch(`${at}/v1/channels/${channel}/node`, { headers: { Authorization: `Bearer ${token}` }, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(8000) });
           if (response.status === 404 && at === root.origin) { gone = true; return; }
@@ -216,7 +216,7 @@ export function open(base: string, channel: string, token: string, key: Uint8Arr
             // the server's link process started again (its replies say since when): what went through the one before
             // (a live stream) is gone
             if (frame.t === "head" && typeof frame.since === "number") {
-              if (agentSince !== null && frame.since > agentSince) for (const [id, one] of [...pending]) if (id !== frame.r && one.at < frame.since - 1000) one.fail(new Error("relay restarted"));
+              if (agentSince !== null && frame.since > agentSince) for (const [id, one] of pending) if (id !== frame.r && one.at < frame.since - 1000) one.fail(new Error("relay restarted"));
               agentSince = Math.max(agentSince ?? 0, frame.since);
             }
             const request = pending.get(frame.r);

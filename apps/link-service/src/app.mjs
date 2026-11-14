@@ -202,7 +202,7 @@ function frameQueue(onPush = () => {}, memory = { bytes: 0 }, now = Date.now, on
   const waiters = new Set();
   const order = { epoch: null, next: 0, held: new Map(), retired: [] };
   function unhold(at) { const list = order.held.get(at); if (!list) return; order.held.delete(at); memory.bytes -= sizeOf(list); }
-  function dropHeld() { for (const at of [...order.held.keys()]) unhold(at); }
+  function dropHeld() { for (const at of order.held.keys()) unhold(at); }
   function drainHeld() {
     while (order.held.has(order.next) && queue.push(order.held.get(order.next))) { unhold(order.next); order.next += 1; order.fresh = false; }
     if (!order.held.size) { clearTimeout(gap); gap = null; }
@@ -384,7 +384,7 @@ export function createLinkService({ base, dataDir = null, scriptPath, uninstallP
     usage: () => accountMonths.own(), onUsage: (peer, value) => accountMonths.merge(peer, value),
     onRemoved: (kind, record) => {
       if (kind === "channel") { clearChannel(record); return; }
-      for (const channel of [...store.channels.values()]) if (channel.tunnel === record.id) { store.channels.delete(channel.id); clearChannel(channel); }
+      for (const channel of store.channels.values()) if (channel.tunnel === record.id) { store.channels.delete(channel.id); clearChannel(channel); }
       dropTunnelState(record.id);
     } }) : null;
   const sweepStore = store.sweep;

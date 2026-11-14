@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { FAIR_USE_DEFAULTS, FAIR_USE_RANGES } from "./fair-use.mjs";
 
-const KiB = 1024, MiB = 1024 ** 2, GiB = 1024 ** 3, TiB = 1024 ** 4;
+const KiB = 1024, MiB = 1024 ** 2, GiB = 1024 ** 3;
 
 /**
  * sized for the contabo box (upload measured 120 to 850 mbit/s; 32 tb a month, throttled to 100 mbit/s past a 10 day
@@ -36,16 +36,16 @@ export const DEFAULT_LIMITS = Object.freeze({
 export const LIMIT_RANGES = Object.freeze({
   perTunnelBytesPerSec: [64 * KiB, GiB],
   burstBytes: [MiB, 4 * GiB],
-  perTunnelDailyBytes: [100 * MiB, 10 * TiB],
   tunnelsPerAccount: [1, 1000],
   globalCeilingBytesPerSec: [256 * KiB, 10 * GiB],
   maxTunnels: [1, 20000],
   maxConnected: [1, 50000],
   maxServers: [1, 100000],
   ...FAIR_USE_RANGES,
-  // a relay-limits.json from before the monthly account curve may still carry it; it is read and ignored
-  perTunnelDailyBytes: [0, 10 * TiB],
 });
+/** limits that are gone (the per tunnel day cap, replaced by the monthly account curve): a relay-limits.json or an ops
+ * post from before may still carry them; they are skipped, never kept, and do not make the rest unreadable */
+export const RETIRED_LIMITS = Object.freeze(new Set(["perTunnelDailyBytes"]));
 /** contabo's monthly outgoing allowance */
 export const MONTH_ALLOWANCE_BYTES = 32 * 1000 ** 4;
 /** a tunnel that relayed a byte this recently is in use (maxConnected) */
@@ -66,6 +66,7 @@ export function validateLimits(input, current = DEFAULT_LIMITS) {
       next.paused = value;
       continue;
     }
+    if (RETIRED_LIMITS.has(key)) continue;
     const range = LIMIT_RANGES[key];
     if (!range) return { error: `unknown limit ${key.slice(0, 40)}` };
     if (!Number.isSafeInteger(value) || value < range[0] || value > range[1]) return { error: `${key} must be a whole number from ${range[0]} to ${range[1]}` };

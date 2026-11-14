@@ -1,7 +1,7 @@
 // two link service nodes: the directory copied between them, where a server is placed and found, failing over when its
 // node dies, deletes that stay deleted, and turn credentials
 import { createHmac } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { FAIR_USE_DEFAULTS, fairRate } from "../src/fair-use.mjs";
 import { FRAME_TTL_MS, LANE_BURST_BYTES, LANE_BYTES_PER_SECOND, MAX_HOLD_MS, TUNNELS_PER_ACCOUNT, TUNNEL_BURST_BYTES, TUNNEL_BYTES_PER_SECOND, createLinkService, sha256hex } from "../src/app.mjs";
-import { ACTIVE_MS, DEFAULT_LIMITS, MONTH_ALLOWANCE_BYTES } from "../src/relay-limits.mjs";
+import { ACTIVE_MS, DEFAULT_LIMITS, LIMIT_RANGES, MONTH_ALLOWANCE_BYTES, loadLimits, saveLimits, validateLimits } from "../src/relay-limits.mjs";
 import { TUNNEL_IDLE_MS } from "../src/store.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -456,5 +456,19 @@ describe("per-address limits", () => {
     await Promise.all(held);
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect((await request("/healthz")).status).toBe(200);
+  });
+});
+
+describe("retired limits", () => {
+  it("the old per tunnel day cap in a saved file or a post is skipped, and the rest of the file still counts", () => {
+    expect(LIMIT_RANGES.perTunnelDailyBytes).toBeUndefined();
+    expect(validateLimits({ perTunnelDailyBytes: 5, maxTunnels: 90 })).toEqual({ limits: { ...DEFAULT_LIMITS, maxTunnels: 90 } });
+    const dir = mkdtempSync(join(tmpdir(), "limits-"));
+    try {
+      saveLimits(dir, { ...DEFAULT_LIMITS, perTunnelDailyBytes: 25e9, maxTunnels: 110 });
+      const loaded = loadLimits(dir);
+      expect(loaded.maxTunnels).toBe(110);
+      expect("perTunnelDailyBytes" in loaded).toBe(false);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });

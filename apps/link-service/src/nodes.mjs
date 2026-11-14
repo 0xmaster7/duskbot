@@ -11,7 +11,6 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const NODE_ID = /^[a-z][a-z0-9-]{1,30}$/;
-const REGION = /^[a-z]{2,12}$/;
 /** a peer that has not answered a sync for this long is down: nothing is placed there and its servers move on reconnect */
 export const PEER_DOWN_MS = 30_000;
 export const SYNC_EVERY_MS = 5_000;
