@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
 import { parseCloudOffer, parseCloudSummary, parsePairingGrant, parsePublicOffer } from "../../../../electron/cloud-home.mjs";
 import { otherOwnClouds, parseCloudList, parseCloudRenewal } from "../../../../electron/cloud-list.mjs";
+import { oneHomeCloud } from "../../../../electron/one-home-main.mjs";
 import { createBilling } from "./index.ts";
 import { createDashboardApp } from "../app.ts";
 import { memoryMailer } from "../auth/mail.ts";
@@ -122,8 +123,12 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   const checkout = await f.complete();
   await f.client.refresh();
   expect(f.client.state()).toMatchObject({ status: "connected", entitlement: { plan: "pro", tier: "starter", status: "active" }, machine: { status: "provisioning" } });
+  // a cloud still setting up takes no move yet
+  expect(oneHomeCloud(f.client.state())).toMatchObject({ ready: false, moves: false });
   await f.reconcile(); await f.client.refresh();
   expect(f.client.state()).toMatchObject({ machine: { status: "ready", origin: expect.stringMatching(/^https:\/\//) }, clouds: [{ id: checkout.cloudId, primary: true }] });
+  // once ready, the app's move (this computer's, or a server's bought from its page) starts by itself
+  expect(oneHomeCloud(f.client.state())).toMatchObject({ ready: true, moves: true, origin: f.client.state().machine.origin });
   fields = await f.session();
   expect(parseCloudSummary(fields.cloud)).toMatchObject({ status: "ready", disk: { gb: 20, maxGb: 20 } });
   expect(parseCloudList(fields.clouds)).toHaveLength(1); expect(parseCloudRenewal(fields.clouds)).toMatchObject({ cancelled: false, trial: false, keptDays: 30 });

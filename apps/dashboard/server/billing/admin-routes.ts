@@ -85,7 +85,8 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (c && c.status !== "checkout") {
       const view = clouds.view(c), power = managedPower(c);
       const state = power ? "ready" : view.status === "provisioning" ? "setting_up" : view.status === "running" ? "ready" : view.status === "payment_problem" ? "payment_problem" : view.status === "error" ? "failed" : "stopped";
-      summary = { state, ...(state === "ready" ? { origin: c.origin } : {}), ...(power ? { power } : {}), ...(state === "setting_up" ? { setup: { step: c.setupStep ?? "reserving" } } : {}),
+      // `moves`: the app may move this computer's (or a server's) bots into this ready Cloud by itself (electron/one-home.mjs)
+      summary = { state, ...(state === "ready" ? { origin: c.origin, moves: true } : {}), ...(power ? { power } : {}), ...(state === "setting_up" ? { setup: { step: c.setupStep ?? "reserving" } } : {}),
         disk: { gb: c.spec.diskGb, maxGb: c.placement === "dedicated" ? config.dedicated.diskGb.max : c.spec.diskGb } };
     }
     const openPlan = open?.cart ? service.quote(open.cart).bundle : null;

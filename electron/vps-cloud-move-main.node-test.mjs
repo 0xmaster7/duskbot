@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { parseCloudSummary } from "./cloud-home.mjs";
+import { oneHomeCloud } from "./one-home-main.mjs";
 import { installVpsCloudMoveMain } from "./vps-cloud-move-main.mjs";
 
 const VPS = { id: "place-1", kind: "remote", name: "Hetzner box", origin: "https://box.example.test" };
 const ENV_ID = "0d9e8f7a-6b5c-4d3e-9f8a-7b6c5d4e3f2a";
 
-function setup({ handoff = async () => ({ opened: true }), state = null, account = null, continueInBrowser = null } = {}) {
+function setup({ handoff = async () => ({ opened: true }), state = null, cloud = () => state, account = null, continueInBrowser = null } = {}) {
   const handlers = new Map(), files = new Map(), told = [], tracked = [], asked = [];
   const json = (body) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
   const fetch = async (url) => {
@@ -20,7 +22,7 @@ function setup({ handoff = async () => ({ opened: true }), state = null, account
     localPage: (event) => event.local === true,
     environments: () => [VPS, { id: "cloud", kind: "remote", name: "My Cloud", origin: "https://cloud.example.test", cloud: { id: "c" } }],
     fetch,
-    cloud: () => state,
+    cloud,
     home: () => null,
     cloudRead: async () => new Response("{}", { status: 503 }),
     file: (name) => ({ read: () => files.get(name) ?? null, write: (value) => files.set(name, value) }),
@@ -53,6 +55,22 @@ test("buy first: the checkout opens signed in, as the computer move's checkout, 
   assert.equal(files.get("vps-cloud-choice.json").route, "direct");
   assert.deepEqual(tracked.map((entry) => [entry.name, entry.props.step]), [["vps_cloud_move", "buy"]]);
   assert.equal(call("vps-cloud-move:cancel", { origin: VPS.origin }).stage, "none", "nothing ran, so it can be let go of");
+});
+
+test("bought: the move leaves waiting once the account service's session says the ready Cloud takes moves", async () => {
+  // the session as apps/dashboard/server/billing/admin-routes.ts sessionFields sends it for a managed cloud
+  const origin = "https://c1.dusk.test";
+  let summary = null;
+  const session = () => ({ status: "connected", account: { id: "acct" }, entitlement: { plan: "pro", status: "active", expiresAt: null, version: 2 }, machine: summary ? parseCloudSummary(summary) : undefined });
+  const { call } = setup({ cloud: () => oneHomeCloud(session()) });
+  assert.equal((await call("vps-cloud-move:buy", { origin: VPS.origin }, "plus")).stage, "buying");
+  summary = { state: "setting_up", setup: { step: "starting" }, disk: { gb: 20, maxGb: 20 } };
+  assert.equal(call("vps-cloud-move:view", { origin: VPS.origin }).stage, "buying", "no origin while it sets up");
+  const ready = { state: "ready", origin, power: { state: "awake", since: 1, sleeps: true }, disk: { gb: 20, maxGb: 20 } };
+  summary = ready;
+  assert.equal(call("vps-cloud-move:view", { origin: VPS.origin }).stage, "waiting", "ready without the service's word on moves never starts");
+  summary = { ...ready, moves: true };
+  assert.deepEqual(call("vps-cloud-move:view", { origin: VPS.origin }), { place: VPS.name, route: "direct", stage: "moving", phase: "copy" });
 });
 
 test("signed out, the buy says so and the page goes to sign-in", async () => {

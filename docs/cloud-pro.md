@@ -1193,6 +1193,10 @@ without them works as before; a malformed one is dropped, never the machine):
   `storage`, `starting` or `checking`): the app shows the same four steps as
   the Cloud page, and says when setup is slow.
 - `cloud.retryAt` (ms) when `failed`: the time of the next automatic try.
+- `cloud.moves: true` while `ready`: the Admin lets this account move its bots
+  into the Cloud. Without it the app never starts a move (this computer's, or a
+  server's from its page) and a move under way stops before its switch. The
+  account service sends it with every ready Cloud.
 - `cloud.unreachable: {cause, since}` while `ready`: the Admin's health checks
   can't reach the Cloud. `cause` is `host` (the server it runs on is being
   restarted by the hosting provider; it comes back by itself) or `no_answer`
