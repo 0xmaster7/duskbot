@@ -115,8 +115,10 @@ export function dismissPlace(key: string): void {
 /** The dev button's stand-in: a fresh install whose account already set up dusk bot on a VPS. */
 export const SIMULATED_FRESH_INSTALL: ElsewhereView = { places: [], known: { kind: "server", name: "My VPS" } };
 
-/** Dev builds, or any build with localStorage "dusk-dev-tools" set to "1". */
+/** Dev builds, or any build with localStorage "dusk-dev-tools" set to "1"; never a test preview, which renders the app as it
+ * ships (VITE_DUSK_DEV_TOOLS=0, scripts/testing/preview-fixture.ts). */
 export function devToolsShown(): boolean {
+  if (import.meta.env.VITE_DUSK_DEV_TOOLS === "0") return false;
   if (import.meta.env.DEV) return true;
   try { return localStorage.getItem("dusk-dev-tools") === "1"; } catch { return false; }
 }

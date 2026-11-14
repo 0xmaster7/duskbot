@@ -66,6 +66,8 @@ export async function mountPreview(
     cacheDir: join(REPO_ROOT, ".dusk-scratch", "vite-previews", createHash("sha256").update(entry).digest("hex").slice(0, 16)),
     optimizeDeps: { entries: [join(REPO_ROOT, entry.replace(/^\/+/, ""))] },
     ...(logLevel ? { logLevel } : {}),
+    // the app as it ships: no developer-only controls floating over the page (devToolsShown)
+    define: { "import.meta.env.VITE_DUSK_DEV_TOOLS": JSON.stringify("0") },
     // A worktree's node_modules may be a link to another checkout's: its files (the fonts) are served from there.
     server: { host: "127.0.0.1", port: 0, ...(options.hmr === false ? { hmr: false } : {}), fs: { allow: [REPO_ROOT, realpathSync(join(REPO_ROOT, "node_modules"))] }, proxy: {
       "/api": { target: fixture.info.url, ws: true, ...(proxyHeaders ? { headers: proxyHeaders } : {}) },
