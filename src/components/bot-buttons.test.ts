@@ -13,7 +13,7 @@ const fixture = vi.hoisted(() => {
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => true }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/state/store")>()),
-  useStore: () => ({ state: {}, dispatch: fixture.dispatch }),
+  useStore: () => ({ state: { computerControl: {} }, dispatch: fixture.dispatch }),
 }));
 
 const { BOT_BUTTON } = await import("@/lib/bot-button");
@@ -106,7 +106,7 @@ describe("a bot's cards answer in grok's ink", () => {
     };
     // grok's connector card keeps its action in ink whatever the bot's colour
     for (const color of ["silver", undefined] as const) {
-      const action = button(renderToStaticMarkup(createElement(ConnectorCard, { botId: "scout", color, threadId: "t", message: connector })), t("connectors.action.connect"));
+      const action = button(renderToStaticMarkup(createElement(ConnectorCard, { botId: "scout", color, threadId: "t", message: connector })), t("connectors.card.connect"));
       expectPlain(action);
       expect(classes(action)).toContain("bg-ink");
     }

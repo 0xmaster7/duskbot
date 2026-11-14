@@ -171,18 +171,18 @@ describe("the chat card a bot-made automation leaves", () => {
 
 describe("the chat card a wait with a follow-up leaves", () => {
   const waiting = card({ tool: "wait_until", requestId: "wait-1", waitRequest: { waitId: "wait-1", label: "the build", followUp: "Deploy it." } });
-  const cancelShown = () => [...document.querySelectorAll("button")].some((button) => button.textContent?.trim() === "cancel");
+  const cancelShown = () => [...document.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Cancel");
 
   it("cancels through the undo route, and says what to do next when that fails", async () => {
     fixture.api.mockRejectedValueOnce(new ApiError("disk full", 500));
-    click(waiting, "cancel");
+    click(waiting, "Cancel");
     expect(fixture.api).toHaveBeenCalledWith("/api/threads/thread-1/undo", { method: "POST", body: JSON.stringify({ requestId: "wait-1" }) });
     await vi.waitFor(() => expect(document.querySelector("[role=alert]")?.textContent).toBe("Couldn't cancel the wait. Try again, or ask Scout to stop it."));
   });
 
   it("shows no error when the wait had already ended: its card says how it ended", async () => {
     fixture.api.mockRejectedValueOnce(new ApiError("this wait has already ended.", 409));
-    click(waiting, "cancel");
+    click(waiting, "Cancel");
     await vi.waitFor(() => expect(cancelShown()).toBe(true));
     expect(document.querySelector("[role=alert]")).toBeNull();
   });
