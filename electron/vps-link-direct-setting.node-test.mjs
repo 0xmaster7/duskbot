@@ -14,21 +14,22 @@ const until = async (check, ms = 2000) => {
   }
 };
 
-function setup({ direct = true, controlFails = new Set(), extra = {}, deps = {} } = {}) {
+function setup({ direct = true, controlFails = new Set(), extra = {}, deps = {}, caps = ["direct-ssh"], cfUrl = () => null } = {}) {
   let value = { v: 1, current: "cccccccccc", links: [{ id: "cccccccccc", base: "http://relay.invalid", name: "box", mode: "relay", origin: ORIGIN, port: 5555, envId: "env-1", keyP: "p:k", tokenP: "p:t", ...extra }] };
   const store = { read: () => value, write: (next) => { value = JSON.parse(JSON.stringify(next)); } };
-  const controls = [], uses = [], hellos = [];
+  const controls = [], uses = [], hellos = [], specs = [];
   const proxy = {
     start: async () => ORIGIN,
     close: async () => {},
     control: async (op) => {
-      if (op === "hello") { hellos.push(op); if (controlFails.has(op)) throw new Error("Your server did not answer. Is it on?"); return { protocol: 2, caps: ["direct-ssh"] }; }
+      if (op === "hello") { hellos.push(op); if (controlFails.has(op)) throw new Error("Your server did not answer. Is it on?"); return { protocol: 2, caps }; }
       controls.push(op);
       if (controlFails.has(op)) throw new Error("Your server did not answer. Is it on?");
+      if (op === "direct-cf") return { url: cfUrl() };
       if (op === "direct-key") return { v: 1, host: "203.0.113.9", port: 22, user: "maus", hostKeys: [HOST_KEY] };
       return { ok: true };
     },
-    useDirect: (spec) => uses.push(spec ? "on" : "off"),
+    useDirect: (spec) => { uses.push(spec ? "on" : "off"); specs.push(spec); },
     transport: () => "relay",
   };
   const link = createVpsLink({
@@ -43,7 +44,7 @@ function setup({ direct = true, controlFails = new Set(), extra = {}, deps = {} 
     ...deps,
     ...(direct ? { direct: { newKey: () => ({ privateKey: "private", publicKey: `ssh-ed25519 ${"B".repeat(68)}` }), connector: () => async () => ({}) } } : {}),
   });
-  return { link, controls, uses, hellos, stored: () => value.links[0] };
+  return { link, controls, uses, hellos, specs, stored: () => value.links[0] };
 }
 
 test("the direct path comes up by itself once the tunnel is open", async () => {
@@ -135,5 +136,20 @@ test("a server not reachable when the app opens (a captive portal) gets its dire
   controlFails.clear();
   await until(() => uses.includes("on"));
   assert.ok(controls.includes("direct-key"));
+  await link.close();
+});
+
+test("a cloudflare address that is not there yet joins the running direct path later, without dropping it", async () => {
+  let url = null;
+  const dialled = [];
+  const direct = { newKey: () => ({ privateKey: "private", publicKey: `ssh-ed25519 ${"B".repeat(68)}` }), connector: () => async () => { dialled.push("ssh"); throw new Error("no"); }, wssConnector: ({ via }) => async () => { dialled.push(via); throw new Error("no"); } };
+  const { link, uses, specs } = setup({ direct: false, caps: ["direct-ssh", "direct-cf"], cfUrl: () => url, deps: { setupAgainMs: [20], direct } });
+  await link.resume();
+  await until(() => uses.includes("on"));
+  url = "wss://abc-def.trycloudflare.com/link";
+  await new Promise((resolve) => setTimeout(resolve, 120));
+  assert.deepEqual(uses, ["on"], "the direct path is set up once");
+  await specs[0].connect().catch(() => {});
+  assert.deepEqual(dialled.sort(), ["cf", "ssh"]);
   await link.close();
 });

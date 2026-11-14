@@ -46,13 +46,21 @@ async function setup() {
     const connect = rtcConnector({ ndc, signal: (offer) => proxy.control("direct-rtc", { offer }, 15_000), stun: config.stun ?? [], turn: async () => config.turn ?? [] });
     ways.push({ name: "rtc", connect: async () => { const opened = await connect(); log(`rtc ${opened.path} ${opened.pair}`); say({ rtc: opened.pair, rtcPath: opened.path }); return opened; } });
   }
-  if (!config.skip?.includes("cf") && caps.includes("direct-cf")) {
+  const wantCf = !config.skip?.includes("cf") && caps.includes("direct-cf");
+  const askCf = async () => {
     const url = await proxy.control("direct-cf", {}, 10_000).then((answer) => answer?.url, () => null);
     if (url) ways.push({ name: "cf", connect: wssConnector({ url, spki: null, via: "cf", proxy: config.proxy ? () => config.proxy : null }) });
-  }
+    return Boolean(url);
+  };
+  if (wantCf) await askCf();
   say({ ways: ways.map((way) => way.name), setupMs: Date.now() - t0 });
   if (ways.length) proxy.useDirect({ connect: orderedConnect(ways, { log }), pingMs: 5000 });
-  if (!hello || !ways.length) setTimeout(setup, 15_000).unref();
+  if (!hello || !ways.length) { setTimeout(setup, 15_000).unref(); return; }
+  // a tunnel still starting: its address joins the running list later (orderedConnect reads it on every dial)
+  if (wantCf && !ways.some((way) => way.name === "cf")) {
+    const again = async () => { if (await askCf()) say({ ways: ways.map((way) => way.name) }); else setTimeout(again, 15_000).unref(); };
+    setTimeout(again, 15_000).unref();
+  }
 }
 void setup();
 

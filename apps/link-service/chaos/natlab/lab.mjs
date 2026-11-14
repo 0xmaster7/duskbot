@@ -124,7 +124,7 @@ async function scenario(spec, dir) {
   await until(() => events.some((one) => one.phase === "ready"), 150_000);
   const row = { name: spec.name, title: spec.title };
   const connected = events.find((one) => one.phase === "connected"), work = events.find((one) => one.phase === "workload");
-  Object.assign(row, { ways: events.find((one) => one.ways)?.ways ?? [], path: connected?.direct ? connected.via : "relay", connectMs: connected?.ms ?? null, rtcPair: events.findLast((one) => one.rtc)?.rtc ?? null,
+  Object.assign(row, { ways: events.findLast((one) => one.ways)?.ways ?? [], path: connected?.direct ? connected.via : "relay", connectMs: connected?.ms ?? null, rtcPair: events.findLast((one) => one.rtc)?.rtc ?? null,
     requestsOk: work?.ok ?? 0, download: work?.big ?? false, relayBytes: work?.relayBytes ?? null });
   if (spec.roam) {
     roam({ nat: "restricted" });

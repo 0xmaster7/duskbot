@@ -638,18 +638,33 @@ export function createVpsLink(deps) {
 
   const SETUP_AGAIN_MS = deps.setupAgainMs ?? [15_000, 30_000, 60_000, 2 * 60_000, 5 * 60_000];
   const setupTries = new Map();
-  function setupAgain(link, proxy) {
+  /** setup that came back short is asked again (SETUP_AGAIN_MS): with no ways yet, all of it; with ways up already, only
+   * the hello and the cloudflare address, which join the running list (orderedConnect reads it on every dial) so the
+   * live direct path is not dropped for it */
+  function setupAgain(link, proxy, ways = null) {
     const was = setupTries.get(link.id);
     if (was?.timer || closed) return;
     const tries = was?.tries ?? 0;
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       setupTries.set(link.id, { tries: tries + 1 });
       if (closed || proxies.get(link.id) !== proxy) return;
-      void (peers.has(link.id) ? Promise.resolve() : handshake(link, proxy)).finally(() => directFor(link, proxy));
+      if (!peers.has(link.id)) await handshake(link, proxy).catch(() => {});
+      if (closed || proxies.get(link.id) !== proxy) return;
+      if (!ways?.length) { void directFor(link, proxy); return; }
+      const cf = ways.some((one) => one.name === "cf") ? null : await cfFor(link, proxy);
+      if (closed || proxies.get(link.id) !== proxy) return;
+      if (cf) {
+        const at = ways.findIndex((one) => one.name === "cloud");
+        ways.splice(at < 0 ? ways.length : at, 0, cf);
+      }
+      if (cfPending(link, ways)) setupAgain(link, proxy, ways);
+      else setupTries.delete(link.id);
     }, SETUP_AGAIN_MS[Math.min(tries, SETUP_AGAIN_MS.length - 1)]);
     timer.unref?.();
     setupTries.set(link.id, { tries, timer });
   }
+  /** a server that has (or may have, its hello not heard yet) a cloudflare backup whose address is not known yet */
+  const cfPending = (link, ways) => !ways.some((one) => one.name === "cf") && Boolean(deps.direct?.wssConnector) && (!peers.has(link.id) || Boolean(peers.get(link.id)?.caps?.includes("direct-cf")));
 
   /** the ways to the server: ssh, https on 443, webrtc, then the cloudflare backup, then the cloud relay; the link service relay stays underneath them */
   async function directFor(link, proxy) {
@@ -673,13 +688,15 @@ export function createVpsLink(deps) {
     const cloud = await cloudFor(link, proxy);
     if (closed || proxies.get(link.id) !== proxy) return;
     if (cloud) ways.push(cloud);
-    // nothing to dial yet (the hello or the key exchange failed, say behind a captive portal): set up again soon
-    if (!peers.has(link.id) || (!ways.length && !link.directOff)) setupAgain(link, proxy);
+    // nothing to dial yet (the hello or the key exchange failed, say behind a captive portal), or no cloudflare address
+    // yet (a tunnel still starting): asked again soon
+    const pending = cfPending(link, ways);
+    if (!ways.length ? !link.directOff || !peers.has(link.id) : pending) setupAgain(link, proxy, ways.length ? ways : null);
     else setupTries.delete(link.id);
     if (!ways.length) return;
     const registered = link.cloud;
     proxy.useDirect({
-      connect: ways.length === 1 ? ways[0].connect : orderedConnect(ways, { log }),
+      connect: ways.length === 1 && !pending ? ways[0].connect : orderedConnect(ways, { log }),
       pingMs: (via) => (via === "cloud" || via === "cf" ? 20_000 : 5000),
       // the key was removed, the server was reinstalled or its https key changed: ask again over the sealed tunnel, at most once an hour
       onFailure: (error) => {
