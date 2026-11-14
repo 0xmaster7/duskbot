@@ -70,7 +70,7 @@ describe("origin and cookies", () => {
       expect(requestOrigin(front({ host: "box.tail1.ts.net", "x-forwarded-host": "box.tail1.ts.net", "x-forwarded-proto": "https", "x-forwarded-for": "100.64.0.2" }))).toBe("https://box.tail1.ts.net");
       expect(requestOrigin(front({ host: "box.example.com:443", "x-forwarded-proto": "https", "x-forwarded-for": "1.2.3.4" }))).toBe("https://box.example.com");
       // dusk cloud: Host is the public name even when the provider's proxy left its own name in X-Forwarded-Host
-      expect(requestOrigin(front({ host: "home.dusk.bot", "x-forwarded-host": "m-1.instabox.dev", "x-forwarded-proto": "https" }))).toBe("https://home.dusk.bot");
+      expect(requestOrigin(front({ host: "home.dusk.bot", "x-forwarded-host": "m-1.machines.example", "x-forwarded-proto": "https" }))).toBe("https://home.dusk.bot");
       // nginx or cloudflared httpHostHeader: Host is the upstream, X-Forwarded-Host the name the browser used
       const rewritten = { host: "127.0.0.1:8799", "x-forwarded-host": "bots.example.com", "x-forwarded-proto": "https", "x-forwarded-for": "1.2.3.4" };
       expect(requestOrigin(front(rewritten))).toBe("https://bots.example.com");
