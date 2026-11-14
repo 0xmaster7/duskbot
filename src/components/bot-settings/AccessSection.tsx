@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { browserUnavailableReason } from "@/lib/feature-flags";
+import { browserUnavailableReason, phoneAppEnabled } from "@/lib/feature-flags";
 import { ChevronDown, ChevronRight, FolderOpen, Plus } from "../../icons";
 
 import { api, useStore, type Bot } from "@/state/store";
@@ -745,7 +745,7 @@ export function AccessSection({
         )}
       </div>}
 
-      {shows("phone") && <PhoneAppsCard bot={bot} patch={patch} />}
+      {shows("phone") && phoneAppEnabled() && <PhoneAppsCard bot={bot} patch={patch} />}
       {!draft && shows("phone") && <MacAccessCard bot={bot} patch={patch} />}
       {shows("mcp") && <McpServersCard bot={bot} patch={patch} />}
       {shows("tools") && <ToolSelectionCard key={bot.id} bot={bot} engineKind={derived.engine?.driverKind} />}

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { builtInBrowserEnabled, llmThreadTitlesEnabled, parseSkillReviewSteps, roomMemoryCaptureEnabled, shareLearnedSkillsMode, showToolCallsEnabled, skillAuthoringEnabled, skillReviewEnabled, skillReviewSteps, skillReviewUnavailableEngines } from "./feature-flags";
+import { builtInBrowserEnabled, llmThreadTitlesEnabled, parseSkillReviewSteps, phoneAppEnabled, roomMemoryCaptureEnabled, shareLearnedSkillsMode, showToolCallsEnabled, skillAuthoringEnabled, skillReviewEnabled, skillReviewSteps, skillReviewUnavailableEngines } from "./feature-flags";
 
 describe("experimental feature flags", () => {
   it("keeps skill authoring on by default, before and after the config arrives", () => {
@@ -42,6 +42,14 @@ describe("experimental feature flags", () => {
     expect(skillReviewSteps({ features: { skillReviewSteps: 500 } })).toBe(100);
     expect(parseSkillReviewSteps(" 12 ")).toBe(12);
     for (const bad of ["", "2", "101", "4.5", "-5", "ten"]) expect(parseSkillReviewSteps(bad)).toBeNull();
+  });
+
+  it("hides the phone app until a build switches it on", () => {
+    vi.stubEnv("VITE_DUSK_PHONE_APP", "");
+    expect(phoneAppEnabled()).toBe(false);
+    vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
+    expect(phoneAppEnabled()).toBe(true);
+    vi.unstubAllEnvs();
   });
 
   it("keeps the experimental browser off until explicitly enabled", () => {

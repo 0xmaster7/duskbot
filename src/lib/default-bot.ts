@@ -91,6 +91,8 @@ export interface IntroFacts {
   /** Known to have a connected app or a paired phone; unknown counts as not yet. */
   appsConnected?: boolean;
   phonePaired?: boolean;
+  /** The phone app is offered (phoneAppEnabled); without it there is no phone chip. */
+  phoneApp?: boolean;
   /** This computer has skills or MCP servers from another AI tool to bring in. */
   importFound?: boolean;
 }
@@ -107,7 +109,7 @@ export function introChips(input: IntroFacts): IntroChip[] {
     ...(input.aiReady ? [] : ["ai" as const]),
     ...(fresh && !input.appsConnected ? ["apps" as const] : []),
     ...(fresh && input.importFound ? ["import" as const] : []),
-    ...(fresh && !input.phonePaired ? ["phone" as const] : []),
+    ...(fresh && input.phoneApp && !input.phonePaired ? ["phone" as const] : []),
     ...(fresh && !input.onCloud && !input.remote ? ["cloud" as const] : []),
   ];
 }

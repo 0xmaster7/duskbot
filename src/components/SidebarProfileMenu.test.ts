@@ -525,6 +525,12 @@ describe("grok's profile menu", () => {
     expect(onNeedsYou).toHaveBeenCalledOnce();
   });
 
+  it("has no phone row while the phone app is hidden, and still sets the needs-you row apart", () => {
+    const items = grokProfileMenuItems({ ...base, onGetApp: undefined, onNeedsYou: vi.fn() });
+    expect(items.map((item) => item.key)).toEqual(["needs-you", "support", "settings", "sign-in"]);
+    expect(items[1]).toMatchObject({ key: "support", separatorBefore: true });
+  });
+
   it("keeps grok's own rows alone while nothing needs the person", () => {
     const items = grokProfileMenuItems(base);
     expect(items.map((item) => item.key)).toEqual(["mobile", "support", "settings", "sign-in"]);

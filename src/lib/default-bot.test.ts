@@ -44,7 +44,11 @@ describe("Dusk's identity is its mark, never its name", () => {
 });
 
 describe("what Dusk offers to set up", () => {
-  const fresh = { aiReady: false, ownBots: 0, onCloud: false, team: false, remote: false };
+  const fresh = { aiReady: false, ownBots: 0, onCloud: false, team: false, remote: false, phoneApp: true };
+
+  it("never offers the phone while the phone app is hidden", () => {
+    expect(introChips({ ...fresh, phoneApp: false })).toEqual(["ai", "apps", "cloud"]);
+  });
 
   it("chips for only what its look around found missing, in order: AI, apps, skills, phone, Cloud", () => {
     expect(introChips(fresh)).toEqual(["ai", "apps", "phone", "cloud"]);

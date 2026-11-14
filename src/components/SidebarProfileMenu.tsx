@@ -60,6 +60,7 @@ import {
   type PhoneDestination,
   type PhonePairingAccess,
 } from "@/lib/phone-pairing";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 
 export function profileInitials(profile?: { name?: string; email?: string }): string {
   const name = profile?.name?.trim();
@@ -173,9 +174,10 @@ export function useServerUpdateItem(enabled: boolean): UpdateEntry | null {
 
 function useConnectPhoneEntry(cloudHome: boolean): ConnectPhoneEntry | null {
   const target = currentPhonePairingTarget(cloudHome);
+  const offered = phoneAppEnabled();
   const [access, setAccess] = useState<PhonePairingAccess | null>(null);
   useEffect(() => {
-    if (target === "computer") return;
+    if (!offered || target === "computer") return;
     let alive = true;
     void loadPhonePairingAccess().then((next) => {
       if (alive) setAccess(next);
@@ -183,8 +185,8 @@ function useConnectPhoneEntry(cloudHome: boolean): ConnectPhoneEntry | null {
     return () => {
       alive = false;
     };
-  }, [target]);
-  return connectPhoneEntry(target, access);
+  }, [offered, target]);
+  return offered ? connectPhoneEntry(target, access) : null;
 }
 
 export function useCloudPhoneDestination(enabled: boolean): { cloud: CloudPhoneDestination; bridge?: CloudAccountBridge } {
@@ -428,7 +430,8 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
   onDashboard?: () => void;
   /** the avatar's red dot for an automation that needs the person: a first row that opens it in its bot's panel */
   onNeedsYou?: () => void;
-  onGetApp: () => void;
+  /** absent while the phone app is hidden (phoneAppEnabled) */
+  onGetApp?: () => void;
   onHelp: () => void;
   onShortcuts: () => void;
   onFeedback: () => void;
@@ -446,9 +449,8 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
     : accounts.openSheet ? [{ key: "accounts-sheet", label: t("accounts.manage"), icon: icon("person"), onSelect: accounts.openSheet }]
       // nobody signed in here: Sign in, at the account button where a person looks for it; this app's own page signs in right there
       : [{ key: "sign-in", label: t("accounts.signIn"), icon: icon("person"), onSelect: accounts.view ? () => accounts.add() : onAddAccount }];
-  return [
-    ...(onNeedsYou ? [{ key: "needs-you", label: t("sidebar.account.automationsNeedYou"), icon: icon("alarm-clock"), attention: true, attentionTone: "danger", onSelect: onNeedsYou } satisfies SidebarMenuItem] : []),
-    { key: "mobile", label: t("sidebar.menu.connectPhone"), icon: icon("device-mobile"), onSelect: onGetApp, ...(onNeedsYou ? { separatorBefore: true } : {}) },
+  const menu: SidebarMenuItem[] = [
+    ...(onGetApp ? [{ key: "mobile", label: t("sidebar.menu.connectPhone"), icon: icon("device-mobile"), onSelect: onGetApp } satisfies SidebarMenuItem] : []),
     ...(onDashboard ? [{ key: "dashboard", label: t("sidebar.menu.accountDashboard"), icon: icon("chart-bars"), onSelect: onDashboard } satisfies SidebarMenuItem] : []),
     { key: "support", label: t("sidebar.grok.support"), icon: icon("book"), onSelect: () => {}, submenu: [
       { key: "help", label: t("sidebar.menu.help"), icon: icon("question-circle"), onSelect: onHelp },
@@ -458,6 +460,10 @@ export function grokProfileMenuItems({ onGetApp, onHelp, onShortcuts, onFeedback
       { key: "about", label: t("sidebar.menu.about"), icon: icon("info"), onSelect: onAbout },
     ] },
     { key: "settings", label: t("sidebar.menu.settings"), icon: icon("gear"), onSelect: onSettings },
+  ];
+  return [
+    ...(onNeedsYou ? [{ key: "needs-you", label: t("sidebar.account.automationsNeedYou"), icon: icon("alarm-clock"), attention: true, attentionTone: "danger", onSelect: onNeedsYou } satisfies SidebarMenuItem] : []),
+    ...menu.map((item, index) => (index === 0 && onNeedsYou ? { ...item, separatorBefore: true } : item)),
     ...account.map((item, index) => (index === 0 ? { ...item, separatorBefore: true } : item)),
   ];
 }
@@ -519,7 +525,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const remote = window.duskDesktop?.remoteClient?.active === true;
   const cloudAccount = !remote && Boolean(window.duskDesktop?.cloudAccount || (window.duskDesktop?.cloudPlan && state.config?.cloudHome === true));
   const openCloudAccount = () => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
-  const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: () => dispatch(phonePairingSettingsAction()) });
+  const phoneApp = phoneAppEnabled();
+  const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: phoneApp ? () => dispatch(phonePairingSettingsAction()) : undefined });
   const accounts = useAccounts();
 
   // one place to connect the phone to opens its pairing at once; only a choice of places asks where
@@ -529,7 +536,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     else dispatch(phonePairingSettingsAction());
   };
   const grokItems = simple ? grokProfileMenuItems({
-    onGetApp: getApp,
+    onGetApp: phoneApp ? getApp : undefined,
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
     onShortcuts: () => {
       triggerRef.current?.closest("button")?.focus();
@@ -547,7 +554,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     accounts,
   }) : null;
   const items = grokItems ?? profileMenuItems({
-    phone: simple
+    phone: !phoneApp ? []
+      : simple
       ? simplePhoneItems({ connected: phone.kind === "connected", onGetApp: getApp })
       : phoneMenuItems({
         destinations,

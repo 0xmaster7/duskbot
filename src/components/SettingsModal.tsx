@@ -10,6 +10,7 @@ import { REDUCED, WIPE } from "@/lib/motion-presets";
 import { MotionDiv, useMotionReduced } from "./ui/SheetMotion";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { currentPhonePairingTarget, phonePairingSettingsAction } from "@/lib/phone-pairing";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 import { AdminOnly } from "./AdminOnly";
 import { SlackWorkspaceCard } from "./slack/SlackWorkspaceCard";
 import { KeysPage } from "./keys/KeysPage";
@@ -114,7 +115,7 @@ export function SettingsModal() {
   offered.permissions = offered.botAccess || offered.activity;
   const has = (id: AppSettingsSection) => offered[id] && (!remoteActive || REMOTE_SECTIONS.includes(id));
 
-  const paneShown = (pane: SettingsPane) => !remoteActive || pane === "general" || pane === "texting" || pane === "computer";
+  const paneShown = (pane: SettingsPane) => (pane !== "texting" || phoneAppEnabled()) && (!remoteActive || pane === "general" || pane === "texting" || pane === "computer");
   const panes = SETTINGS_PANES.filter((pane) => paneShown(pane.id) && pane.sections.some(has));
   const railPanes = panes.filter((pane) => pane.rail !== false);
   const advancedPages = ADVANCED_PAGES.filter((page) => page.sections.some(has)).map((page) => page.id);
@@ -241,7 +242,7 @@ export function SettingsModal() {
   };
   const cloudAccount = has("cloudAccount") && !remoteActive
     ? <CloudAccountSettings linkRequest={state.appSettingsCloudLink} cloudHome={cloudHome} teamHome={state.config?.team}
-      onConnectPhone={() => dispatch(phonePairingSettingsAction())}
+      onConnectPhone={phoneAppEnabled() ? () => dispatch(phonePairingSettingsAction()) : undefined}
       onSignIn={() => dispatch({ type: "openCloudAdd", source: "app_settings", signIn: true })} />
     : null;
 

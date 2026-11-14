@@ -79,6 +79,8 @@ const tick = async (ms: number) => {
 };
 
 beforeEach(() => {
+  // these runs offer the phone app; the hidden phone has its own case below
+  vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
   setLocale("en");
   f.dispatch.mockReset();
   f.detect.mockReset();
@@ -105,6 +107,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   host.remove();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe("what Dusk says first", () => {
@@ -153,6 +156,13 @@ describe("in the chat (Simple mode)", () => {
     expect(chips()).toEqual(["apps", "phone", "cloud"]);
     expect([...host.querySelectorAll("[data-helper-step]")].map((node) => node.textContent)).toEqual(["Connect email & calendar", "Connect your phone", "Try cloud"]);
     expect(f.followups, "only a first run asks for a follow-up").toEqual([]);
+  });
+
+  it("offers no phone while the phone app is hidden", async () => {
+    vi.stubEnv("VITE_DUSK_PHONE_APP", "");
+    f.services = { gmail: { connected: false } };
+    await show(false, saved({ ai: "own", apps: [], bots: 0, routines: 0 }));
+    expect(chips()).toEqual(["apps", "cloud"]);
   });
 
   it("tells a User the team's owner connects the AI, even under a follow-up written before it knew to", async () => {

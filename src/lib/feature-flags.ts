@@ -5,6 +5,12 @@ export interface FeatureFlagConfig {
   browserEngine?: { kind: "engine" | "unavailable"; reason?: string; installable?: boolean; installing?: boolean; installError?: string };
 }
 
+/** The phone app, off until it ships: the first run's phone step, Settings → phone, "connect your phone" and every pairing
+ * prompt in the desktop app follow this one switch. A build with `VITE_DUSK_PHONE_APP=1` brings them all back. */
+export function phoneAppEnabled(): boolean {
+  return import.meta.env?.VITE_DUSK_PHONE_APP === "1";
+}
+
 export function browserAvailable(config: FeatureFlagConfig | null | undefined): boolean {
   return config?.browserEngine?.kind === "engine";
 }

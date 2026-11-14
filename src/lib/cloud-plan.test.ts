@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CloudAccountState, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import { CHECKOUT_SOURCES } from "../../electron/cloud-account.mjs";
 import type { CloudOffer, CloudOfferPlan, CloudTeam, CloudTrial } from "../../electron/cloud-home.mjs";
@@ -283,10 +283,13 @@ describe("what is for sale, as the Admin says", () => {
 
   it("the card after the update needs a trial, and says only the Admin's numbers: never a launch price or a later one", () => {
     expect(cloudIntroView(OFFER)).toEqual({ badge: "Free for 7 days",
-      points: ["Routines run on time, day and night", "Reach your bots from your phone, even with this computer off"],
+      points: ["Routines run on time, day and night"],
       price: "Then from $15/month + tax. Cancel any time.", moneyBack: "14-day money-back on every plan." });
     const bare = cloudIntroView({ ...OFFER, refundDays: undefined })!;
-    expect(bare.points).toEqual(["Routines run on time, day and night", "Reach your bots from your phone, even with this computer off"]); expect(bare.moneyBack).toBeNull();
+    expect(bare.points).toEqual(["Routines run on time, day and night"]); expect(bare.moneyBack).toBeNull();
+    vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
+    expect(cloudIntroView(OFFER)!.points, "the phone only while its app is offered").toEqual(["Routines run on time, day and night", "Reach your bots from your phone, even with this computer off"]);
+    vi.unstubAllEnvs();
     expect(cloudIntroView(noTrial(OFFER))).toBeNull(); expect(cloudIntroView(null)).toBeNull(); expect(cloudIntroView(undefined)).toBeNull();
     expect(JSON.stringify(cloudIntroView(OFFER))).not.toMatch(/launch|\$89|first 100/i);
     const partial: CloudOffer = { ...OFFER, plans: OFFER.plans.map(plan => plan.tier === "starter" ? { ...plan, trialDays: undefined } : plan) };

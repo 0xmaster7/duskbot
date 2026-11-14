@@ -65,6 +65,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   setLocale("en");
 });
 
@@ -76,9 +77,9 @@ const markers = (html: string) => [...html.matchAll(/MARKER:([^;]+);/g)].map((ma
 const title = (html: string) => html.match(/<h2 id="[^"]*" class="settings-pane-title[^"]*">([^<]+)<\/h2>/)?.[1];
 
 describe("Settings, drawn as Grok Bot's", () => {
-  it("rails Grok's panes with Phone and Models, then Advanced features last, and no Bots pane beside the bot panel", () => {
+  it("rails Grok's panes with Models, then Advanced features last, and no Bots pane beside the bot panel", () => {
     const html = open("general");
-    expect(panes(html)).toEqual(["general", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
+    expect(panes(html)).toEqual(["general", "computer", "vault", "models", "usage", "updates", "advanced"]);
     expect(html).toContain('data-icon-name="vault"');
     expect(html).toContain('data-icon-name="chart-bars"');
     expect(html).toContain('data-icon-name="settings-gear"');
@@ -166,7 +167,17 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(bots).not.toContain('data-settings-block="profile"');
   });
 
+  it("hides Phone while the phone app is hidden, and a link to the phone lands on General", () => {
+    expect(panes(open("companion"))).not.toContain("texting");
+    expect(current(open("companion"))).toBe("general");
+    expect(current(open("texting"))).toBe("general");
+    expect(markers(open("companion"))).not.toContain("pairing");
+    vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
+    expect(panes(open("general"))).toEqual(["general", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
+  });
+
   it("puts the phone on Phone, the bots' computer and servers on Computer, and logins in the Vault", () => {
+    vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
     expect(markers(open("companion"))).toEqual(["pairing", "companion"]);
     expect(current(open("companion"))).toBe("texting");
     expect(open("computer")).toContain('data-panel-page="computers"');
@@ -194,9 +205,9 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(panes(open("general"))).toContain("permissions");
   });
 
-  it("shows a paired remote client General, Texting and Computer, with its look in General", () => {
+  it("shows a paired remote client General and Computer (Texting while the phone app is offered), with its look in General", () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), duskDesktop: { remoteClient: { active: true }, environments: {} } });
-    expect(panes(open("general"))).toEqual(["general", "texting", "computer"]);
+    expect(panes(open("general"))).toEqual(["general", "computer"]);
     expect(groups(open("general"))).toEqual(["how it looks", "notifications"]);
     expect(current(open("looks"))).toBe("general");
     expect(current(open("engines"))).toBe("general");

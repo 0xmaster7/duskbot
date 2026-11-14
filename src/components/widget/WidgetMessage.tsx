@@ -3,6 +3,7 @@ import { CircleAlert, X } from "../../icons";
 import { useStore, type Message } from "@/state/store";
 import { usePageOpener } from "@/lib/page-open";
 import { phonePairingSettingsAction } from "@/lib/phone-pairing";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 import { resolvedThreadTarget } from "@/lib/thread-target";
 import { openThread } from "@/state/thread-navigation";
 import { cn } from "@/lib/cn";
@@ -117,7 +118,7 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
     const entry = actions.get(ref);
     if (!entry || sendingNow.current || pending !== undefined) return;
     if (entry.client) {
-      if (entry.action.type === PHONE_PAIRING_ACTION) dispatch(phonePairingSettingsAction());
+      if (entry.action.type === PHONE_PAIRING_ACTION && phoneAppEnabled()) dispatch(phonePairingSettingsAction());
       const url = widgetActionUrl(entry);
       if (url) openPage(url);
       const target = resolvedThreadTarget(widgetThreadTarget(entry), state);

@@ -8,6 +8,7 @@ import { track } from "@/lib/analytics";
 import { CLOUD_SETUP_MOVE_SKIPPED, CLOUD_WELCOME_DONE, CLOUD_WELCOME_SHOWN, WELCOME_STEPS, welcomeStepHint } from "@/lib/cloud-setup";
 import { endWelcomeHere, markWelcomeSeen, saveWelcomeHints, stepAsideWelcome, takeWelcomeRequest, useCloudWelcome, withEarlyHints } from "@/lib/cloud-welcome";
 import { t } from "@/lib/i18n";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 import { hintSeen } from "@/lib/onboarding";
 import type { CloudSendNotice } from "../../../electron/cloud-send.mjs";
 import { openBot, useStore } from "@/state/store";
@@ -32,7 +33,7 @@ export function sentHere(notice: CloudSendNotice | null | undefined): { state: "
   return null;
 }
 
-const LINES: Array<{ icon: GlyphIcon; key: "cloudWelcome.v2.always" | "cloudWelcome.v2.phone" | "cloudWelcome.v2.routines" }> = [
+const ALL_LINES: Array<{ icon: GlyphIcon; key: "cloudWelcome.v2.always" | "cloudWelcome.v2.phone" | "cloudWelcome.v2.routines" }> = [
   { icon: Moon, key: "cloudWelcome.v2.always" },
   { icon: Smartphone, key: "cloudWelcome.v2.phone" },
   { icon: Clock, key: "cloudWelcome.v2.routines" },
@@ -99,7 +100,7 @@ export function CloudWelcome() {
         {t(sent.state === "sending" ? "cloudWelcome.v2.arriving" : "cloudWelcome.v2.arrived")}
       </p>}
       <ul className="mt-6 flex w-full flex-col gap-3 text-left">
-        {LINES.map(({ icon: Icon, key }) => <li key={key} className="flex items-center gap-3 text-[15px] font-medium leading-6 text-ink">
+        {ALL_LINES.filter(({ key }) => key !== "cloudWelcome.v2.phone" || phoneAppEnabled()).map(({ icon: Icon, key }) => <li key={key} className="flex items-center gap-3 text-[15px] font-medium leading-6 text-ink">
           <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-accent/12 text-accent-text"><Icon size={16} /></span>
           {t(key)}
         </li>)}

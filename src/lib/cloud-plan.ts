@@ -2,6 +2,7 @@ import type { CloudAccountState, CloudPlanSnapshot } from "../../electron/cloud-
 import type { CloudOffer, CloudOfferPlan, CloudPlanAllowances, CloudSetupStep, CloudTrial, CloudTrialState } from "../../electron/cloud-home.mjs";
 import { planTeam, teamPlan } from "../../electron/cloud-team-plan.mjs";
 import { activeLocale, t } from "@/lib/i18n";
+import { phoneAppEnabled } from "@/lib/feature-flags";
 import type { LocaleKey } from "@/locales";
 
 const PLAN_LABEL: Record<string, string> = { starter: "Starter", personal: "Personal", pro: "Pro", max: "Max" };
@@ -244,7 +245,7 @@ export function cloudIntroView(offer: CloudOffer | null | undefined): { badge: s
   const cheapest = Math.min(...offer.plans.filter(plan => plan.trialDays).map(plan => plan.amount));
   return {
     badge: days === 1 ? t("cloudIntro.badge.one") : t("cloudIntro.badge.many", { days }),
-    points: [t("cloudIntro.routines"), t("cloudIntro.phone")],
+    points: [t("cloudIntro.routines"), ...(phoneAppEnabled() ? [t("cloudIntro.phone")] : [])],
     price: t("cloudIntro.price", { price: usd(cheapest / 100) }),
     moneyBack: moneyBackLine(offer),
   };

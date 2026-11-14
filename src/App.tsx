@@ -72,7 +72,7 @@ import { TitleTooltips } from "@/components/TitleTooltips";
 import { botCycleStep, shouldOpenKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
 import { effectiveLanguage, useLanguageChoice, usePageLanguage } from "@/lib/language-preference";
 import { botUnreadCount, showBrowserUnread } from "@/lib/bot-unread";
-import { phonePairingSettingsAction, takePhonePairingRequest } from "@/lib/phone-pairing"; import { takeConnectRequest } from "@/lib/connect-link";
+import { phonePairingSettingsAction, takePhonePairingRequest } from "@/lib/phone-pairing"; import { phoneAppEnabled } from "@/lib/feature-flags"; import { takeConnectRequest } from "@/lib/connect-link";
 import { useDesktopNotificationOpens, useExternalChatLinks } from "@/hooks/use-external-chat-links"; import { useNotesFromDownloads, useNotesReminder } from "@/components/NotesWaiting"; import { useSlackOAuthLinks } from "@/lib/slack-oauth-link";
 import { useReadShownChatOnFocus } from "@/hooks/use-read-shown-chat";
 import { usePresence } from "@/hooks/use-presence";
@@ -135,7 +135,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     const rest = takePhonePairingRequest(window.location.href);
     if (rest === null) return;
     window.history.replaceState(null, "", rest);
-    dispatch(phonePairingSettingsAction());
+    if (phoneAppEnabled()) dispatch(phonePairingSettingsAction());
   }, [dispatch]);
   useEffect(() => { // A bot's link to a connection that needs the person on My Cloud opens the page that connects it.
     const request = takeConnectRequest(window.location.href);
