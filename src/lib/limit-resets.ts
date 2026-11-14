@@ -23,10 +23,16 @@ export function engineName(engine: string): string {
   return names.get(engine) ?? (engine.charAt(0).toUpperCase() + engine.slice(1));
 }
 
+// a server that sends an engine's id as its name ("opencodeGo") reads as the product's own name
+const KNOWN: Record<string, string> = { opencodeGo: "OpenCode Go", opencode: "OpenCode" };
+function displayName(engine: string, name: string | undefined): string {
+  return KNOWN[engine] && (!name || name === engine) ? KNOWN[engine] : name || engine;
+}
+
 /** A server that predates limit resets answers without engines: that reads as none. */
 export function rememberLimits(next: Partial<EngineLimitsReport> | null | undefined): void {
   report = { checkedAt: next?.checkedAt ?? 0, engines: Array.isArray(next?.engines) ? next.engines : [] };
-  for (const limit of report.engines) names.set(limit.engine, limit.name);
+  for (const limit of report.engines) { limit.name = displayName(limit.engine, limit.name); names.set(limit.engine, limit.name); }
   for (const listener of listeners) listener(report);
 }
 

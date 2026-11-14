@@ -1410,8 +1410,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           <JumpToLatestButton onClick={jumpToLatest} className="pointer-events-auto bottom-2" />
         </div>
       )}
-      {/* grok's usage warning rides just above the composer, near or at a limit; a failed turn that already says so wins */}
-      {canWrite !== false && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
+      {/* grok's usage warning rides just above the composer, near or at a limit; a failed reply's card already says so, so it wins */}
+      {canWrite !== false && !trailing?.failures.length && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
         <div className="pointer-events-auto px-5 pb-2">
           <WeeklyLimitLine onSeeUsage={() => dispatch(openSettings("usage"))} error={state.error} clearError={clearLimitError} />
           <UsageBanner engine={bot.modelSelection?.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
