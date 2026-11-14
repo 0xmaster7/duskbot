@@ -93,7 +93,7 @@ describe("bringing notes in", () => {
     const dispatch = vi.fn();
     const outcome = await importNotes(`Here you go:\n${notes()}`, { bots: [], aboutMe: "I bake.", team: false, firstBotId: "dusk", dispatch });
     const about = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/config")![1].body).profile.aboutMe;
-    expect(about).toContain("I bake.\n\nFrom Claude:\n- Name is Sam.");
+    expect(about).toMatch(/^I bake\.\n\n- \d{4}-\d{2}-\d{2} · learned by Claude · Name is Sam\./);
     expect(about).toContain("Be brief.");
     const memory = JSON.parse(f.api.mock.calls.find(([path, init]) => path === "/api/bots/dusk/memory/file" && init?.method === "PUT")![1].body);
     expect(memory.path).toBe("memory/notes-from-claude.md");

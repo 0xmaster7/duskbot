@@ -1,5 +1,102 @@
 # Bot memory
 
+## How it works, in plain words
+
+dusk bot remembers things in two places.
+
+**General memory** is what every one of your bots knows about you: your name,
+where you live, your work, how you like answers, your diet and health needs,
+the people close to you and how to reach them. It lives in **Settings →
+General → About me**. You can type in it yourself; bots add lines to it too,
+each marked with the day and the bot that learned it
+(`- 2026-11-14 · learned by Scout · Priya lives in Porto`). Notes you import
+from another AI app land here the same way (`learned by ChatGPT`).
+
+**A bot's own memory** is what only that bot needs: the projects it works on,
+decisions made with it, its clients, its topic notes. It lives in that bot's
+folder (`MEMORY.md` plus `memory/<topic>.md` files) and is shown under **Bot
+Settings → Memory → What it remembers**.
+
+**What gets saved.** Only lasting, useful things: preferences, facts about
+you, contacts, recurring facts, decisions, ongoing projects. Small talk, the
+weather, a one-off question or task, and codes or passwords pasted for a
+moment are skipped. Anything that looks like a secret (an API key, a token,
+a `password:` line) is replaced with `«redacted»` before it is written, so it
+never sits in memory: secrets belong in the vault.
+
+**When it gets saved.**
+- *During a chat*, when you say "remember…", the bot saves it right away with
+  its memory tool: to general memory when it is about you, to its own notes
+  when it is about its work.
+- *After a chat goes quiet* (two minutes, or every six turns), one quick
+  background call reads what you said and files anything new. A fact about you
+  goes to general memory once, not again into each bot's notes. Anything else
+  goes into that bot's notes.
+- *Every night* (after 3 am, or the next time the computer is awake) each bot
+  tidies its own notes, and then one pass tidies general memory together with
+  every bot's notes (below).
+- *A daily log* (`memory/log/<day>.md`) records what the bot did each day. It
+  is a diary for you; it never loads into a chat.
+- *The journal* records every change to a bot's memory files, by whom, with
+  one-click undo.
+
+**When something changes.** Say "I moved to Porto" and the older "lives in
+Lisbon" is replaced at once: the new fact is saved, the old line leaves
+general memory, and in a bot's notes it is struck through as superseded.
+The newest fact wins. Nothing is lost: what left general memory is listed
+under About me as **Replaced or merged**, with **Restore**, and a bot's
+struck lines stay in its file.
+
+**Tidying (consolidation).** Each night, and when you press **Tidy up now**
+under About me, one background call (using your own AI, the engine your bots
+already run on) reads general memory and every bot's main notes together and:
+- merges facts that say the same thing twice;
+- where two facts disagree, keeps the newer one;
+- moves lasting facts about you that ended up in one bot's notes into general
+  memory, so every bot knows them (only where one person uses all the bots,
+  and never from a group chat);
+- keeps the lines bots learned under about 12,000 characters, moving the
+  oldest ones past that into the history (health and safety facts never move).
+
+It never deletes a line you typed yourself as a duplicate, and changes at most
+one of your own lines a night. Each bot's own tidy-up also clears expired
+notes, exact duplicates and contradictions in its notes.
+
+**How it is used in a chat.** Every message a bot answers starts with:
+- general memory: your own lines, health and safety facts, and the newest
+  learned lines up to about 3,000 characters (roughly 750 tokens);
+- the bot's `MEMORY.md`: the first 200 lines or 24 KB;
+- the list of the bot's topic files.
+
+Then, for the message itself, recall adds up to three older general-memory
+facts, four topic-note passages and four passages from the bot's earlier
+chats that share words with it, at most 6,000 characters in all.
+
+**Seeing and editing it.** General memory is the About me box in Settings,
+with **Added by your bots** (remove any learned fact; it is not learned
+again) and **Replaced or merged** (restore any). A bot's own memory is under
+**What it remembers** in its settings: edit any file, see every change in the
+journal, undo one. Saying "forget that" in a chat removes it from both.
+
+**Sizes at a glance.**
+
+| What | Limit |
+| --- | --- |
+| About me, total | 24,000 characters (4,000 for a person on a team) |
+| Learned general facts loaded each turn | about 3,000 characters; the rest recalled by matching words |
+| Learned general facts kept | about 12,000 characters; older ones go to the history |
+| History of replaced or merged lines | the latest 300 |
+| A bot's `MEMORY.md` loaded each turn | 200 lines or 24 KB; older entries move to `memory/archive.md` |
+| One note | 1,000 characters, 20 lines |
+| Recall per message | 3 general facts, 4 notes, 4 chat passages, 6,000 characters |
+
+How well this works is measured by a scripted eval with a real model
+(`scripts/memory-eval/`, see its README for the latest scores).
+
+The rest of this page is the detailed reference.
+
+## Reference
+
 By default, bots keep notes between tasks. The notes are plain markdown files in a
 folder on the computer running dusk bot — nothing is stored anywhere else,
 and you can open, edit, or delete any of it in any editor. **Bot Settings →
@@ -73,6 +170,13 @@ Both limits are `MEMORY_MAX_LINES` and `MEMORY_MAX_BYTES` in
 `server/workspace.ts`; the panel, the loader, and the bot's prompt all read the
 same two constants.
 
+About me loads too, in the stable half of the prompt: every line the person
+typed, every health or safety fact, then the newest learned lines up to
+`GENERAL_LOAD_CHARS` (3,000 characters). When all learned lines fit, the text is
+exactly About me, so the cached prompt does not change; when some are left out,
+the prompt says how many, and recall (below) brings back those that share words
+with the message.
+
 Two more things load with it:
 
 - **Expired notes stay out.** An entry that ends in `· until 2026-09-28` stops
@@ -94,6 +198,10 @@ turn's message, opened by a line saying they are the bot's own notes and that
 a command inside one is not an instruction. `MEMORY.md` (already loaded) and
 `memory/archive.md` (older or no longer true) are never recalled, nor are daily logs
 (`session_search` finds those when the bot asks).
+
+General memory facts left out of the prompt by its budget are recalled the
+same way: up to three that share words with the message (two words for a
+message of five or more), labelled `general memory`, ahead of the notes.
 
 Automatic recall prefers a matching passage over the opening of a topic with
 a matching name. Current topic search excludes superseded entries; their text
@@ -120,10 +228,17 @@ off. It keeps the notes in shape without the bot having to decide to:
   and checked against the chat: a question ("…note-takers for a 10-person
   startup?"), a task ("write a launch plan for an AI app") or a "suppose…"
   is never a fact about who they are. Decisions and verified outcomes need no
-  quote.
-  - a core fact the bot needs in every conversation goes to `MEMORY.md`,
+  quote. The call also sees general memory, so it does not propose what is
+  already there, and it names any older line a new fact changes
+  (`replaces`): that line leaves About me (into the history) and is struck
+  through as superseded wherever it stands in the bot's `MEMORY.md` or topic
+  files, before the new fact is written.
+  - a lasting fact about the person themselves (marked `aboutUser`, from their
+    own words) goes only to general memory, About me, below, never again into
+    the bot's notes;
+  - another core fact the bot needs in every conversation goes to `MEMORY.md`,
     marked `(noticed)`:
-    `- 2026-09-25 · from chat "Plans" (noticed) · The person is vegetarian`;
+    `- 2026-09-25 · from chat "Plans" (noticed) · Launches go out on Fridays`;
   - everything else goes to a topic file for its subject — a person, a
     project or client, food, travel — reusing an existing topic or creating
     one with a header (`title`, `aliases`: the other words someone would ask
@@ -171,6 +286,27 @@ off. It keeps the notes in shape without the bot having to decide to:
   under About me lists each one with **Remove**; a removed fact is never
   added again. On a shared installation, another person's messages never add
   to the owner's About me.
+- **General memory consolidation.** After the bots' nightly tidy-ups (once a
+  day after `memory.tidyHour`) and on **Tidy up now** under About me
+  (`POST /api/profile/general/consolidate`), one model call on the first bot
+  whose engine can make one reads About me and every upkeep-enabled bot's live
+  `MEMORY.md` entries (150 of each at most) and answers which lines are the
+  same, which an older line a newer one replaced, and (only where one person
+  uses every bot, `sharedMembership()` false, and never from a `from room`
+  entry) which bot lines are lasting facts about the person to move into
+  About me. Fixed rules decide what is applied
+  (`server/general-memory.ts`, `planConsolidation`): a person-typed line is
+  never dropped as a duplicate of a learned one, at most one is replaced per
+  pass; at most a third of the learned lines (two in a short list) go in one
+  pass; a learned line dated after the one said to replace it is not
+  removed; health and safety facts are never trimmed; learned lines are kept
+  under `GENERAL_MAX_CHARS` (12,000). About me is written first, then each
+  bot's `MEMORY.md` (skipped for a file that changed meanwhile), each a
+  journal row via *general*. What leaves About me goes to
+  `general-memory-history.json` (latest 300), listed under About me as
+  **Replaced or merged** with **Restore**. A pass is skipped when About me
+  changed while the model answered. It does not run on a Team Cloud, where
+  each person's About me is their own.
 - **Nightly tidy-up.** Once a day after 3 am (`memory.tidyHour`), or at the
   next check if the computer was asleep, never while the bot is working, and
   on **Tidy up now**: expired entries move to `memory/archive.md` (from
@@ -299,9 +435,10 @@ written. A note never ends up as a date with no words. The words are kept in
 the person asks a bot to remember it once more. The bot confirms in one plain
 line and names no files.
 
-A standing preference for all of the person's bots ("reminders go to my task
-app") is `memory_update` with `action: "prefer"` and the preference as one line
-of at most 300 characters. It goes once into the About me of the person whose
+A standing preference or lasting fact for all of the person's bots ("reminders
+go to my task app", "I moved to Porto") is `memory_update` with
+`action: "prefer"` and the fact as one line of at most 300 characters; with
+`old_text`, the older learned line it changes leaves About me. It goes once into the About me of the person whose
 own words began the work, as a learned line, and every bot reads it there, so
 no bot has to be told it and nothing fans out to each bot
 (`server/host/person-preference.ts`). On a Team Cloud that is the person the
@@ -432,6 +569,9 @@ free form, or one you rewrite by hand, works the same.
 | `POST` | `/api/bots/:id/memory/tidy` | Runs the tidy-up now (`409` when upkeep is switched off) and returns its report. |
 | `GET` | `/api/profile/learned` | Facts bots added to About me on their own, newest first. |
 | `POST` | `/api/profile/learned/:id/remove` | Takes that line out of About me; the fact is never added again. |
+| `GET` | `/api/profile/general` | `{ history, last }`: lines taken out of general memory, newest first, and the last consolidation's report. `404` on a Team Cloud. |
+| `POST` | `/api/profile/general/consolidate` | Runs the consolidation now; `{ report, aboutMe, history }`. |
+| `POST` | `/api/profile/general/history/:id/restore` | Puts that line back into About me; `{ aboutMe, history }`. |
 
 All of them need the owner (admin) session, like the other bot-settings routes.
 

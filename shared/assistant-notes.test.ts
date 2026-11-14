@@ -150,8 +150,9 @@ describe("closing a cut-off block", () => {
 describe("where notes land", () => {
   const notes = parseNotes(block());
   it("adds new facts and instructions to About me under the app's name, and nothing twice", () => {
-    const first = aboutMeWithNotes("I run a bakery.", notes)!;
-    expect(first.text).toContain("I run a bakery.\n\nFrom ChatGPT:\n- Name is Sam.");
+    const first = aboutMeWithNotes("I run a bakery.", notes, "2026-11-14")!;
+    // learned lines, so general memory's consolidation treats them like what a bot learned
+    expect(first.text).toContain("I run a bakery.\n\n- 2026-11-14 · learned by ChatGPT · Name is Sam.");
     expect(first.text).toContain("How I like answers (from ChatGPT):\nShort answers. No emoji.");
     expect(first.added).toBe(3);
     expect(aboutMeWithNotes(first.text, notes), "a second paste adds nothing").toBeNull();

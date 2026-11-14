@@ -138,7 +138,8 @@ export const ABOUT_ME_MOVE_CAP = 40;
 export const NOTES_ABOUT_CAP = 80;
 export const NOTES_MEMORY_CAP = 200;
 
-const aboutLines = (text: string) => text.split("\n").map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s+/, "").trim()).filter(Boolean);
+// a learned line is compared by its fact, not its date and source
+const aboutLines = (text: string) => text.split("\n").map((line) => line.replace(/^\s*-\s*\d{4}-\d{2}-\d{2} · learned by [^·\n]* · /, "").replace(/^\s*(?:[-*]|\d+[.)])\s+/, "").trim()).filter(Boolean);
 
 export interface NotesContext {
   bots: readonly Bot[];

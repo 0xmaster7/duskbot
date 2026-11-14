@@ -115,7 +115,7 @@ describe("bringing in what other AIs and agent apps hold, on a real server", () 
     expect(await persona(tutor.id), "what the tutor knew about her").toMatch(/\bwa\b.{0,12}\bga\b/);
 
     const about = await aboutMe();
-    expect(about).toContain("From ChatGPT:");
+    expect(about).toMatch(/- \d{4}-\d{2}-\d{2} · learned by ChatGPT · /);
     expect(about).toMatch(/Lumen Health/);
     expect(about).toMatch(/Daniel Reyes/);
     expect(about, "custom instructions, word for word").toContain("Never use the word 'delve'");

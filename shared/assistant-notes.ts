@@ -377,13 +377,25 @@ export const ABOUT_ME_LIMIT = 24_000;
 
 /** About me with the person's facts and their standing instructions added under a heading for the app, lines it already
  * has left out; null when nothing is new. What doesn't fit the limit is left out from the end. */
-export function aboutMeWithNotes(current: string, notes: Pick<AssistantNotes, "from" | "aboutMe" | "instructions">): { text: string; added: number } | null {
-  const have = new Set(current.split("\n").map((line) => line.replace(BULLET, "").replace(/\s+/g, " ").trim().toLowerCase()).filter(Boolean));
-  const facts = notes.aboutMe.map((line) => line.replace(/\s*\n\s*/g, " ")).filter((line) => !have.has(line.replace(/\s+/g, " ").toLowerCase()));
+const LEARNED_PREFIX = /^\s*-\s*\d{4}-\d{2}-\d{2} · learned by [^·\n]* · /;
+
+function localDay(now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/** Imported facts join the general memory as learned lines (`- date · learned by ChatGPT · fact`), so the nightly
+ * consolidation merges them with what bots learn, lets a newer fact replace one, and keeps them within its budget;
+ * the custom instructions stay the person's own words. */
+export function aboutMeWithNotes(current: string, notes: Pick<AssistantNotes, "from" | "aboutMe" | "instructions">, today = localDay()): { text: string; added: number } | null {
+  const fold = (line: string) => line.replace(LEARNED_PREFIX, "").replace(BULLET, "").replace(/\s+/g, " ").trim().toLowerCase();
+  const have = new Set(current.split("\n").map(fold).filter(Boolean));
+  const facts = notes.aboutMe.map((line) => line.replace(/\s*\n\s*/g, " ").trim()).filter((line) => line && !have.has(fold(line)));
   const instructions = notes.instructions && !current.includes(notes.instructions.trim()) ? notes.instructions.trim() : "";
   if (!facts.length && !instructions) return null;
+  const source = notes.from.name.replace(/·/g, "-").replace(/\s+/g, " ").trim().slice(0, 60) || "import";
   const parts = [
-    ...(facts.length ? [`From ${notes.from.name}:\n${facts.map((line) => `- ${line}`).join("\n")}`] : []),
+    ...(facts.length ? [facts.map((line) => `- ${today} · learned by ${source} · ${line}`).join("\n")] : []),
     ...(instructions ? [`How I like answers (from ${notes.from.name}):\n${instructions}`] : []),
   ];
   const lead = current.trimEnd();
