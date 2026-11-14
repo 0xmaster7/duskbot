@@ -9,7 +9,7 @@ import { setLocale } from "@/lib/i18n";
 import { NOTES_FORMAT } from "../../shared/assistant-notes";
 import { GrokImportError } from "../../shared/grok-import";
 import {
-  copyNotesPrompt, importNotes, notesErrorLine, notesInFiles, notesOutcomeLine, notesWaiting, notesWatch, REMIND_AFTER_MS, scheduleNotesReminder, stopWaiting,
+  copyNotesPrompt, importNotes, looksLikeNotes, notesErrorLine, notesInFiles, notesOutcomeLine, notesWaiting, notesWatch, REMIND_AFTER_MS, scheduleNotesReminder, stopWaiting,
   takeNotesFromDownloads, WATCH_FOR_MS,
 } from "./assistant-notes";
 
@@ -177,6 +177,10 @@ describe("bringing notes in", () => {
     expect(await notesInFiles([file("photo.png", notes()), file("readme.md", "# hi {"), file("claude-notes.json", notes())]))
       .toEqual({ names: ["claude-notes.json"], text: notes() });
     expect(await notesInFiles([file("readme.md", "plain")])).toBeNull();
+    // the file the prompt asks for now: markdown with front matter, dropped or picked into any chat
+    const md = "---\nformat: dusk-bot-notes\nversion: 3\nfrom: Grok\n---\n\n# Memories\n- Likes tea\n\nEND OF DUSK BOT NOTES\n";
+    expect(looksLikeNotes(md)).toBe(true);
+    expect(await notesInFiles([file("notes.md", "# my notes\n- nothing here"), file("dusk-bot-notes.md", md)])).toEqual({ names: ["dusk-bot-notes.md"], text: md });
   });
 });
 
