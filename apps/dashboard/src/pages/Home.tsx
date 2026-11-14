@@ -10,6 +10,7 @@ import { useNow } from "../lib/now";
 import { Link } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Card, cx, Skeleton } from "../ui/kit";
+import { dailyLine } from "../lib/fun";
 import { BotMascot, Mascot } from "../ui/Mascot";
 import { cheerOnce } from "../lib/cheer";
 import { CloudCard, MoveGuide } from "./cloud-card";
@@ -111,9 +112,10 @@ function Recent({ rows: all }: { rows: BotRow[] }) {
 
 export function HomePage() {
   const { account, detail } = useSession();
-  const { clouds, error, refresh } = useCloud();
+  const { account: profile, clouds, error, refresh } = useCloud();
   const { bots, loading } = useAccountUsage();
   const now = useNow(60_000);
+  const name = profile?.profile.name || account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
   const cloudDetail = useWorkspaceDetail(cloud?.workspaceId ?? null);
   useEffect(() => { if (bots.length) cheerOnce(account?.id, "first-bot", "your first bot is here. say hi in the app."); }, [bots.length > 0, account?.id]);
@@ -121,7 +123,11 @@ export function HomePage() {
   const crew = cloud ? null : bots.length ? <Crew rows={bots} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : <CrewEmpty />;
   return (
     <div>
-      <h1 className="sr-only">home</h1>
+      {/* the greeting is for someone who bought dusk cloud; everyone else starts on the offer */}
+      {cloud ? <div className="enter mb-8 max-sm:mb-6">
+        <h1 className="t-title">hi {name}.</h1>
+        <p className="mt-2 text-15 text-ink-3">{dailyLine(now)}</p>
+      </div> : <h1 className="sr-only">home</h1>}
       <div className="flex flex-col gap-4">
         {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudCard cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
         {clouds !== null && <>
