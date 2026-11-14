@@ -90,7 +90,7 @@ export function CloudAddPanel({ view, ui, actions }: { view: CloudAddView; ui: C
   }
 }
 
-const WIDTH: Partial<Record<CloudAddView["kind"], string>> = { offer: "max-w-[920px]", starting: "max-w-[720px]", ready: "max-w-[720px]" };
+const WIDTH: Partial<Record<CloudAddView["kind"], string>> = { offer: "max-w-[580px]", starting: "max-w-[720px]", ready: "max-w-[720px]" };
 /** Mid sign-in, checkout or setup a stray click beside the sheet (say, back from paying in the browser) must not lose it: there only Close and Esc do. */
 const HELD: ReadonlySet<CloudAddView["kind"]> = new Set(["sign-in", "signing-in", "waiting", "starting", "team-starting"]);
 

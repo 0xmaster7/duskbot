@@ -163,6 +163,8 @@ export interface CloudPlanCardRow { key: "power" | "machine" | "storage" | "back
 export interface CloudPlanCard {
   tier: string; name: string; price: string; popular: boolean; current: boolean; promise: string | null;
   action: string | null; terms: string | null; rows: CloudPlanCardRow[]; points: CloudPlanPoint[];
+  /** Its machine and how it wakes in one small line, for the plan picked: "4 vCPU, 8 GB RAM, 60 GB disk · Always available, priority wake". */
+  spec: string | null; trialDays: number | null;
 }
 const PROMISE: Record<string, LocaleKey> = { starter: "cloudBuy.promise.starter", pro: "cloudBuy.promise.pro", max: "cloudBuy.promise.max" };
 const amount = (value: number) => new Intl.NumberFormat(activeLocale(), { maximumFractionDigits: 1 }).format(value);
@@ -208,7 +210,17 @@ function planCard(plan: CloudOfferPlan, recommended: string, current: string | n
     promise: Object.hasOwn(PROMISE, plan.tier) ? t(PROMISE[plan.tier]!) : plan.allowances?.seats ? t("cloudBuy.promise.team", { seats: plan.allowances.seats }) : null,
     action: mine ? null : plan.trialDays ? t("cloudBuy.card.startTrial") : t("cloudBuy.card.get", { plan: name }),
     terms: mine ? null : plan.trialDays ? trialTerms(plan.trialDays, price) : t("cloudBuy.card.paid", { price }),
-    rows: plan.allowances ? planCardRows(plan.allowances) : [], points: planPoints(plan) };
+    rows: plan.allowances ? planCardRows(plan.allowances) : [], points: planPoints(plan),
+    spec: plan.allowances ? `${machineText(plan.allowances)} · ${t(plan.allowances.sleeps ? "cloudBuy.sleeps" : "cloudBuy.row.alwaysOn")}` : null,
+    trialDays: mine ? null : plan.trialDays ?? null };
+}
+/** What every plan on sale does, said once above the plans. */
+export function sharedPerks(offer: CloudOffer): Array<{ key: "routines" | "anywhere" | "backups"; text: string }> {
+  return [
+    { key: "routines", text: t("cloudBuy.perk.routines") },
+    { key: "anywhere", text: t(phoneAppEnabled() ? "cloudBuy.perk.anywhere" : "cloudBuy.perk.anywhereNoPhone") },
+    ...(offer.plans.every(plan => plan.allowances?.snapshotDays) ? [{ key: "backups" as const, text: t("cloudBuy.perk.backups") }] : []),
+  ];
 }
 /** The plans on sale as cards, in the Admin's order. `current` is the person's own tier; `own` is that plan when it is not
  * on sale (a Personal subscriber's), listed where its price falls and only for them. */

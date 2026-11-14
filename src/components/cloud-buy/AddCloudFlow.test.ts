@@ -124,6 +124,7 @@ it("the Cloud bought is ready: open opens it and closes the sheet", async () => 
 it("the Admin refusing to add (its cap) is the calm one-Cloud word; no Cloud of their own yet is this computer's own sheet", async () => {
   bridge.start.mockResolvedValueOnce({ outcome: "blocked", blocked: "cap" } as never);
   await mount();
+  await click(host.querySelector("[data-plan-pick='starter']"));
   await click(host.querySelector("[data-plan-buy='starter']"));
   await click(buttonNamed("Continue to checkout"));
   expect(host.querySelector("[data-cloud-add='extra-one']")?.textContent).toContain("One cloud per account for now");
