@@ -38,7 +38,7 @@ describe("Settings → Connections", () => {
     const opencode = html.indexOf('data-api-key-row="opencodeGo"');
     expect(opencode).toBeGreaterThan(0);
     expect(html.indexOf('data-key-row="opencodeProviders"')).toBeGreaterThan(opencode);
-    expect(html).toContain("keys for other OpenCode providers");
+    expect(html).toContain("Keys for other OpenCode providers");
   });
 
   it("sends nobody on a Cloud to a terminal, only to the keys for other providers", async () => {
@@ -57,7 +57,7 @@ describe("Settings → Connections", () => {
     expect(html).toContain("OpenCode API key");
     expect(html).not.toContain("opencode auth login");
     expect(html).not.toContain("More providers for OpenCode bots");
-    expect(html).toContain("keys for other OpenCode providers");
+    expect(html).toContain("Keys for other OpenCode providers");
     const { OpenCodeProviderKeys } = await import("./keys/KeyPanels");
     const panel = renderToStaticMarkup(createElement(OpenCodeProviderKeys));
     expect(panel).toContain("data-opencode-provider-keys");

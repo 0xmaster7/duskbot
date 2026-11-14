@@ -36,17 +36,17 @@ describe("GoalRunCard", () => {
     expect(markup).toContain("Working");
     expect(markup).toContain("Luna is reviewing the second draft.");
     expect(markup).toContain("Sprout coordinating · Turn 3 of 12");
-    expect(markup).toContain('aria-label="goal: Working"');
+    expect(markup).toContain('aria-label="Goal: Working"');
     expect(markup).not.toMatch(/accent|shadow|border-/);
   });
 
   it.each([
-    ["completed", "completed"],
-    ["needs-input", "needs your input"],
-    ["blocked", "blocked"],
-    ["limit-reached", "turn limit reached"],
-    ["stopped", "stopped"],
-    ["failed", "failed"],
+    ["completed", "Completed"],
+    ["needs-input", "Needs your input"],
+    ["blocked", "Blocked"],
+    ["limit-reached", "Turn limit reached"],
+    ["stopped", "Stopped"],
+    ["failed", "Failed"],
   ] as const)("renders the %s terminal status", (status, label) => {
     const markup = renderToStaticMarkup(createElement(GoalRunCard, { message: message(status) }));
     expect(markup).toContain(label);

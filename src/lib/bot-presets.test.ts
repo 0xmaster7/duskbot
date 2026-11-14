@@ -29,8 +29,8 @@ describe("presets in New bot", () => {
       preset({ id: "f1" }),
     ]);
     expect(groups.map((group) => [group.label, group.presets.map((entry) => entry.id)])).toEqual([
-      ["from Acme Partners", ["o1", "o2"]],
-      ["imported presets", ["f1"]],
+      ["From Acme Partners", ["o1", "o2"]],
+      ["Imported presets", ["f1"]],
     ]);
   });
 
@@ -52,11 +52,11 @@ describe("presets in New bot", () => {
 
   it("says where a preset came from and what it adds, switched on only from the organization", () => {
     expect(presetSummaryLines(preset())).toEqual([
-      "from Sales skills 2.0.1", "Kind and precise.", "skills, added switched off: objection-handling",
-      "starter notes: MEMORY.md", "playbooks: Qualify a lead", "The model, where it works, approval level and connected apps stay as set here.",
+      "From Sales skills 2.0.1", "Kind and precise.", "Skills, added switched off: objection-handling",
+      "Starter notes: MEMORY.md", "Playbooks: Qualify a lead", "The model, where it works, approval level and connected apps stay as set here.",
     ]);
     expect(presetSummaryLines(preset({ source: "org", publisherName: "Acme Partners", skillsEnabled: true })).slice(0, 3)).toEqual([
-      "from Sales skills 2.0.1 · Acme Partners", "Kind and precise.", "skills, added switched on: objection-handling",
+      "From Sales skills 2.0.1 · Acme Partners", "Kind and precise.", "Skills, added switched on: objection-handling",
     ]);
   });
 
@@ -108,9 +108,9 @@ describe("sharing with a preset", () => {
         presets: [{ key: "new-bot-defaults", name: "Support agent", bot: { soul: "x" } }],
       },
     });
-    expect(describePart("presets[new-bot-defaults].bot.soul", document)).toBe("Support agent · standing instructions");
-    expect(describePart("presets[new-bot-defaults].skills[follow-up]", document)).toBe("Support agent · skill · follow-up");
-    expect(describePart("presets[new-bot-defaults].seed.memory[\"MEMORY.md\"]", document)).toBe("Support agent · starter notes · MEMORY.md");
-    expect(describeSkip({ part: "presets[new-bot-defaults]", reason: "preset_empty" })).toBe("new bot defaults preset (empty: give your new bot defaults a name, instructions, skills or notes first)");
+    expect(describePart("presets[new-bot-defaults].bot.soul", document)).toBe("Support agent · Standing instructions");
+    expect(describePart("presets[new-bot-defaults].skills[follow-up]", document)).toBe("Support agent · Skill · follow-up");
+    expect(describePart("presets[new-bot-defaults].seed.memory[\"MEMORY.md\"]", document)).toBe("Support agent · Starter notes · MEMORY.md");
+    expect(describeSkip({ part: "presets[new-bot-defaults]", reason: "preset_empty" })).toBe("New bot defaults preset (empty: give your new bot defaults a name, instructions, skills or notes first)");
   });
 });

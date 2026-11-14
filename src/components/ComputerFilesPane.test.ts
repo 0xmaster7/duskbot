@@ -169,7 +169,7 @@ describe("recent file actions", () => {
     expect(saveButton("data.csv")).not.toBeNull();
     expect(container.querySelector('button[aria-label="Preview table: data.csv"]')).not.toBeNull();
     expect(saveButton("unshared.txt")).toBeNull();
-    expect(container.textContent).toContain("not shared");
+    expect(container.textContent).toContain("Not shared");
     expect(container.querySelector('[title="Ask the bot to share a file link in this chat to save a copy."]')).not.toBeNull();
     expect(fetch).not.toHaveBeenCalled();
   });

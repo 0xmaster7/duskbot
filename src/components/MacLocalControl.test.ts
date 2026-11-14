@@ -19,9 +19,9 @@ describe("Mac local computer status", () => {
   it("shows the recorded Accessibility failure and its matching recovery actions", () => {
     const markup = renderToStaticMarkup(createElement(MacLocalControl));
     expect(markup).toContain("Accessibility is required for dusk bot");
-    expect(markup).toContain("open Accessibility settings");
+    expect(markup).toContain("Open Accessibility settings");
     expect(markup).toContain("relaunch dusk bot");
-    expect(markup).not.toContain("open Screen Recording settings");
+    expect(markup).not.toContain("Open Screen Recording settings");
     expect(markup, "the driver detail shows inline, not folded").not.toContain("<details");
   });
 

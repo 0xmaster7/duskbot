@@ -146,7 +146,7 @@ describe("composer call button", () => {
     expect(button.props["aria-label"]).toBe("Set up a voice in an agent profile to make calls");
     expect(button.props["aria-controls"]).toBeTruthy();
     expect(html).toContain("Call unavailable");
-    expect(html).toContain("set up voice");
+    expect(html).toContain("Set up voice");
     expect(html).not.toContain("open agent settings");
     expect(html).toMatch(/role="group" aria-label="Call unavailable" class="[^"]*\bbottom-full\b/);
     button.props.onClick!();

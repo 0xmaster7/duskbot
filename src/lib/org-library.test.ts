@@ -51,20 +51,20 @@ describe("the shelf card", () => {
   });
 
   it("names the publisher, the Recommended badge, a waiting release and a withdrawal", () => {
-    expect(orgPublisherLine(entry())).toBe("from Acme Partners");
-    expect(orgPublisherLine(entry({ publisher: { organizationId: "x", name: "Customer Co", self: true } }))).toBe("your organization");
+    expect(orgPublisherLine(entry())).toBe("From Acme Partners");
+    expect(orgPublisherLine(entry({ publisher: { organizationId: "x", name: "Customer Co", self: true } }))).toBe("Your organization");
     expect(orgModeBadge(entry())).toBeNull();
-    expect(orgModeBadge(entry({ mode: "required" }))).toBe("recommended by Acme Partners");
+    expect(orgModeBadge(entry({ mode: "required" }))).toBe("Recommended by Acme Partners");
     expect(orgCardNotes(entry({ installed: { installId: "b".repeat(32), release: "1.2.0", status: "installed" } }))).toEqual([
       "Version 1.3.0 available. It comes over on its own once it's downloaded, and keeps your changes.",
     ]);
     expect(orgCardNotes(entry({ release: null, installed: { installId: "b".repeat(32), release: "1.3.0", status: "withdrawn" } }))).toEqual([
-      "withdrawn by Acme Partners",
+      "Withdrawn by Acme Partners",
     ]);
     // A withdrawn install isn't updated, so it isn't told a newer release is coming.
-    expect(orgCardNotes(entry({ installed: { installId: "b".repeat(32), release: "1.2.0", status: "withdrawn" } }))).toEqual(["withdrawn by Acme Partners"]);
-    expect(orgContentsLine(entry().contents)).toBe("bots: 3 · skills: 3 · preset bots: 1 · group chats: 1 · routines: 2 · connections: 1");
-    expect(orgContentsLine({ bots: 0, skills: 2, presets: 0, rooms: 0, routines: 0, connections: 0, botNames: [] })).toBe("skills: 2");
+    expect(orgCardNotes(entry({ installed: { installId: "b".repeat(32), release: "1.2.0", status: "withdrawn" } }))).toEqual(["Withdrawn by Acme Partners"]);
+    expect(orgContentsLine(entry().contents)).toBe("Bots: 3 · Skills: 3 · Preset bots: 1 · Group chats: 1 · Routines: 2 · Connections: 1");
+    expect(orgContentsLine({ bots: 0, skills: 2, presets: 0, rooms: 0, routines: 0, connections: 0, botNames: [] })).toBe("Skills: 2");
   });
 
   it("renders cards with Add, Added and update text, and no confirm step", () => {
@@ -81,12 +81,12 @@ describe("the shelf card", () => {
       busy: null, notice: "", error: "", onAdd, onDetails: vi.fn(),
     }));
     const shown = text(markup);
-    for (const line of ["Packages Customer Co shares with you", "Sales desk", "recommended by Acme Partners", "from Acme Partners", "added", "update dusk bot to add this"]) {
+    for (const line of ["Packages Customer Co shares with you", "Sales desk", "Recommended by Acme Partners", "From Acme Partners", "Added", "Update dusk bot to add this"]) {
       expect(shown).toContain(line);
     }
-    expect(markup).toContain('aria-label="add Sales desk"');
-    expect(markup).not.toContain('aria-label="add Support desk"');
-    expect(markup).not.toContain('aria-label="add Future desk"');
+    expect(markup).toContain('aria-label="Add Sales desk"');
+    expect(markup).not.toContain('aria-label="Add Support desk"');
+    expect(markup).not.toContain('aria-label="Add Future desk"');
     expect(onAdd).not.toHaveBeenCalled();
     expect(text(renderToStaticMarkup(createElement(OrgLibraryTab, {
       listing: { organization: { id: "o", name: "Customer Co" }, packages: [] }, busy: null, notice: "", error: "", onAdd, onDetails: vi.fn(),
@@ -100,7 +100,7 @@ describe("the preview and the provenance line", () => {
     const preview = orgPackagePreview(team);
     expect(preview).toMatchObject({ kind: "package", version: 2, name: "Sales desk", members: expect.arrayContaining([{ name: "Scout", title: "Prospect researcher" }]) });
     const shown = text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: preview, importedNames: preview.members.map((member) => member.name), org: true })));
-    expect(shown).toContain("included skills (switched on)");
+    expect(shown).toContain("Included skills (switched on)");
     expect(shown).toContain("Skills arrive switched on and routines paused");
     expect(shown).not.toContain("added switched off");
 
@@ -108,7 +108,7 @@ describe("the preview and the provenance line", () => {
     expect(library).toMatchObject({ name: "Sales skills", members: [], offeredSkills: ["objection-handling", "follow-up"], presets: ["Support agent"] });
     const libraryShown = text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: library, importedNames: [], org: true })));
     expect(libraryShown).toContain("Nothing is added to your bots yet");
-    expect(libraryShown).not.toContain("team members");
+    expect(libraryShown).not.toContain("Team members");
   });
 
   it("says where a bot came from, and when its release was withdrawn", () => {
@@ -117,8 +117,8 @@ describe("the preview and the provenance line", () => {
     expect(packageProvenance({ id: "sales-desk", name: "Sales desk", release: "1.3.0", requiredApps: [], source: "file", installId: "f".repeat(32) })).toBeNull();
     const stamp = { id: "sales-desk", name: "Sales desk", release: "1.3.0", requiredApps: [], source: "org" as const, installId: "d".repeat(32),
       publisher: { organizationId: "p", slug: "acme", name: "Acme Partners" } };
-    expect(packageProvenance(stamp)).toEqual({ line: "from Sales desk 1.3.0 · Acme Partners", withdrawn: null });
+    expect(packageProvenance(stamp)).toEqual({ line: "From Sales desk 1.3.0 · Acme Partners", withdrawn: null });
     expect(packageProvenance(stamp, [{ installId: "d".repeat(32), packageId: "x", name: "Sales desk", release: "1.3.0", status: "withdrawn", publisher: "Acme Partners" }]))
-      .toEqual({ line: "from Sales desk 1.3.0 · Acme Partners", withdrawn: "withdrawn by Acme Partners" });
+      .toEqual({ line: "From Sales desk 1.3.0 · Acme Partners", withdrawn: "Withdrawn by Acme Partners" });
   });
 });

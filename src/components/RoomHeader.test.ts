@@ -52,14 +52,14 @@ const header = (markup: string) => /<div[^>]*data-roomhead-row[\s\S]*?(?=<div[^>
 
 // Every control the header shows today, by what marks it in the markup.
 const CONTROLS = {
-  threads: 'aria-label="all threads"',
+  threads: 'aria-label="All threads"',
   find: 'aria-label="Find in conversation"',
   export: 'aria-label="Export conversation"',
   turnLimit: 'data-testid="conversation-turn-limit"',
   usage: 'data-testid="group-usage-chip"',
   folder: 'title="group working folder"',
-  responder: 'aria-label="default responder"',
-  members: 'aria-label="manage members: 9 bots in this group"',
+  responder: 'aria-label="Default responder"',
+  members: 'aria-label="Manage members: 9 bots in this group"',
 };
 const shown = (markup: string) => Object.entries(CONTROLS).filter(([, mark]) => markup.includes(mark)).map(([name]) => name);
 const BULLETIN = "Desk HQ: the recruiting desk&#x27;s room.";

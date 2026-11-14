@@ -29,11 +29,11 @@ describe("an empty key row", () => {
     expect(html).toContain("Anthropic API key");
     expect(html).toContain("Claude models, billed per token");
     expect(html).toMatch(/<input[^>]*type="password"[^>]*placeholder="sk-ant-…"[^>]*aria-label="Anthropic API key"[^>]*value=""/);
-    expect(html).toContain('aria-label="show key"');
+    expect(html).toContain('aria-label="Show key"');
     expect(html.match(/data-key-save=/g)).toHaveLength(1);
     expect(html).toMatch(/data-key-save="true"[^>]*disabled=""/);
-    expect(html).toMatch(/<a href="https:\/\/console\.anthropic\.com\/settings\/keys"[^>]*>get a key/);
-    expect(html).not.toContain("connected");
+    expect(html).toMatch(/<a href="https:\/\/console\.anthropic\.com\/settings\/keys"[^>]*>Get a key/);
+    expect(html).not.toContain("Connected");
     expect(html).not.toContain("data-key-masked");
   });
 
@@ -48,7 +48,7 @@ describe("a saved key", () => {
     const html = render({ id: "anthropic" });
     expect(html).toContain("••••••••a1b2");
     expect(html).toContain("Anthropic API key is saved and ends in a1b2");
-    expect(html).toContain(">connected<");
+    expect(html).toContain(">Connected<");
     expect(html).toContain("data-key-replace");
     expect(html).toContain("data-key-remove");
     expect(html).not.toContain("<input");
@@ -58,8 +58,8 @@ describe("a saved key", () => {
   it("says Saved, not Connected, for a key nothing can test", () => {
     fixture.config = { deepseek: { configured: true, last4: "9z9z" } };
     const html = render({ id: "deepseek" });
-    expect(html).toContain(">saved<");
-    expect(html).not.toContain(">connected<");
+    expect(html).toContain(">Saved<");
+    expect(html).not.toContain(">Connected<");
     expect(html).toContain("••••••••9z9z");
   });
 
@@ -82,7 +82,7 @@ describe("a saved key", () => {
     fixture.instances = [{ instanceId: "openai", driverKind: "openai-compat", displayName: "OpenAI", access: "api",
       snapshot: { state: "available", authenticated: false }, models: { default: "m", options: [] } } as unknown as InstanceInfo];
     const html = render({ id: "openai" });
-    expect(html).toContain(">didn&#x27;t work<");
+    expect(html).toContain(">Didn&#x27;t work<");
     expect(html).toContain("Didn&#x27;t work: The provider rejected this key.");
     expect(html).toContain("••••••••a1b2");
     expect(html).toContain("data-key-replace");
@@ -95,7 +95,7 @@ describe("a saved key", () => {
     fixture.instances = [deepseek("unavailable")];
     const html = render({ id: "deepseek" });
     expect(html).toContain("data-key-engine-missing");
-    expect(html).toContain("saved, but DeepSeek Harness can&#x27;t run on this computer yet");
+    expect(html).toContain("Saved, but DeepSeek Harness can&#x27;t run on this computer yet");
     expect(html).toContain("npm install -g @deepseek-ai/dsh");
     expect(html).toContain("data-key-engine-check");
     expect(html).toContain("••••••••9z9z");
@@ -117,7 +117,7 @@ describe("a saved key", () => {
     // An unavailable engine with nothing to install doesn't hide one that has a command.
     fixture.config = { deepseek: { configured: true, last4: "9z9z" } };
     fixture.instances = [{ ...deepseek("unavailable"), displayName: "Other", install: undefined }, deepseek("unavailable")];
-    expect(render({ id: "deepseek" })).toContain("saved, but DeepSeek Harness can&#x27;t run on this computer yet");
+    expect(render({ id: "deepseek" })).toContain("Saved, but DeepSeek Harness can&#x27;t run on this computer yet");
     fixture.config = {};
     fixture.instances = [deepseek("unavailable")];
     expect(render({ id: "deepseek" })).not.toContain("data-key-engine-missing");
@@ -128,8 +128,8 @@ describe("a key that comes with the Cloud plan", () => {
   it("says it is included and offers the person's own key only on request", () => {
     fixture.config = { composio: { configured: true, mode: "managed" } };
     const html = render({ id: "composio" });
-    expect(html).toContain("included with your cloud plan");
-    expect(html).toContain("use your own key");
+    expect(html).toContain("Included with your cloud plan");
+    expect(html).toContain("Use your own key");
     expect(html).not.toContain("<input");
     expect(html).not.toContain("data-key-remove");
   });
@@ -142,7 +142,7 @@ describe("a row that uses another row's key", () => {
     expect(html).toContain('data-key-row="liveCalls"');
     expect(html).not.toContain("data-api-key-row");
     expect(html).toContain("OpenAI key");
-    expect(html).toContain("live calls use the same key as OpenAI&#x27;s models");
+    expect(html).toContain("Live calls use the same key as OpenAI&#x27;s models");
     expect(html).toContain("••••••••a1b2");
     expect(html).toContain("data-key-replace");
     expect(html).not.toContain("data-key-remove");
@@ -163,8 +163,8 @@ describe("what a pasted key goes through", () => {
   });
 
   it("says treg is working with the balance, or names the exact problem", () => {
-    expect(tregVerdict({ ok: true, check: "treg", balanceUsd: 4.25 } as never)).toBe("treg is working ✓ balance: $4.25.");
-    expect(tregVerdict({ ok: true })).toBe("treg is working ✓");
+    expect(tregVerdict({ ok: true, check: "treg", balanceUsd: 4.25 } as never)).toBe("Treg is working ✓ Balance: $4.25.");
+    expect(tregVerdict({ ok: true })).toBe("Treg is working ✓");
     expect(tregVerdict({ ok: false, message: "treg rejected this key. Copy it again from treg.to." })).toBe("treg rejected this key. Copy it again from treg.to.");
   });
 });

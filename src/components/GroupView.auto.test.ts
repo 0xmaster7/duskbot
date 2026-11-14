@@ -40,14 +40,14 @@ beforeEach(() => {
 describe("room responder selector", () => {
   it("offers Auto (Jev) and shows it selected on an Auto room", () => {
     const markup = renderToStaticMarkup(createElement(DefaultResponderSelect, { group: room({ kind: "auto" }), members }));
-    expect(markup).toContain('<option value="auto" selected="">auto (Jev)</option>');
+    expect(markup).toContain('<option value="auto" selected="">Auto (Jev)</option>');
     expect(markup).toContain("Jev picks who answers each plain message");
   });
 
   it("reads plain Auto, and names who answers, while Jev is off", () => {
     fixture.config = jev(false);
     const markup = renderToStaticMarkup(createElement(DefaultResponderSelect, { group: room({ kind: "auto", fallbackBotId: "theo" }), members }));
-    expect(markup).toContain('<option value="auto" selected="">auto</option>');
+    expect(markup).toContain('<option value="auto" selected="">Auto</option>');
     expect(markup).toContain("Jev is off, so plain messages go to Theo");
   });
 
@@ -61,11 +61,11 @@ describe("room responder selector", () => {
 
 describe("routed-by line", () => {
   it("says Jev picked the speaker, with how sure it was", () => {
-    expect(renderToStaticMarkup(createElement(RoutedByLine, { routedBy: { provider: "jev", probability: 0.94 } }))).toContain("picked by Jev · 94%");
+    expect(renderToStaticMarkup(createElement(RoutedByLine, { routedBy: { provider: "jev", probability: 0.94 } }))).toContain("Picked by Jev · 94%");
   });
 
   it("names OpenRouter when that provider picked the speaker", () => {
-    expect(renderToStaticMarkup(createElement(RoutedByLine, { routedBy: { provider: "openrouter", probability: 0.81 } }))).toContain("picked by OpenRouter · 81%");
+    expect(renderToStaticMarkup(createElement(RoutedByLine, { routedBy: { provider: "openrouter", probability: 0.81 } }))).toContain("Picked by OpenRouter · 81%");
   });
 
   it("stays out of the room's view: who routed a reply is no part of the conversation", () => {

@@ -10,7 +10,7 @@ const memory = () => {
 
 describe("who can see a team's private chat", () => {
   it("says it in the header of every private chat", () => {
-    expect(renderToStaticMarkup(createElement(TeamPrivateHeader))).toContain("private · only you");
+    expect(renderToStaticMarkup(createElement(TeamPrivateHeader))).toContain("Private · only you");
     expect(renderToStaticMarkup(createElement(TeamPrivateHeader))).not.toContain("admins");
   });
 
@@ -20,12 +20,12 @@ describe("who can see a team's private chat", () => {
   });
 
   it("says, in a team bot's shared chats, that everyone in the team can see them", () => {
-    expect(renderToStaticMarkup(createElement(TeamSharedHeader, { team: { name: "Acme" } }))).toContain("shared · everyone in Acme can see");
+    expect(renderToStaticMarkup(createElement(TeamSharedHeader, { team: { name: "Acme" } }))).toContain("Shared · everyone in Acme can see");
   });
 
   it("says only the people added can see them when the bot is shared that way, never everyone", () => {
     const html = renderToStaticMarkup(createElement(TeamSharedHeader, { team: { name: "Acme" }, onlyPeopleAdded: true }));
-    expect(html).toContain("shared · only people added and admins can see");
+    expect(html).toContain("Shared · only people added and admins can see");
     expect(html).not.toContain("everyone");
   });
 
@@ -44,6 +44,6 @@ describe("who can see a team's private chat", () => {
     expect(teamPrivateChatsLineDue("beta", storage)).toBe(true);
     // Storage that cannot be read: say it rather than never.
     expect(teamPrivateChatsLineDue("acme", null)).toBe(true);
-    expect(teamPrivateChatsLineDue("acme", { getItem: () => { throw new Error("blocked"); }, setItem: () => {} })).toBe(true);
+    expect(teamPrivateChatsLineDue("acme", { getItem: () => { throw new Error("Blocked"); }, setItem: () => {} })).toBe(true);
   });
 });

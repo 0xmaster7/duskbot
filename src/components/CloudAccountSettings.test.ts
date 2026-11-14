@@ -41,17 +41,17 @@ async function ready(state: CloudAccountState = { status: "signed-out" }) { vi.m
 it("loads optional account state without enrollment/network and delegates sign-in without arguments", async () => {
   await ready(); expect(bridge.begin).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
   expect(render().html).not.toContain("Free local use"); expect(render().html).not.toContain("separate from organization sign-in");
-  click("sign in to your cloud plan"); await flush(); expect(bridge.begin).toHaveBeenCalledExactlyOnceWith();
+  click("Sign in to your cloud plan"); await flush(); expect(bridge.begin).toHaveBeenCalledExactlyOnceWith();
 });
 it("signed out, sign in continues in the browser for its context (the account context redirect), never Settings", async () => {
   vi.stubGlobal("window", { duskDesktop: { cloudAccount: { ...bridge, continueInBrowser: vi.fn() } } });
   await ready(); signIn.open.mockClear();
-  click("sign in to your cloud plan"); await flush();
+  click("Sign in to your cloud plan"); await flush();
   expect(signIn.open).toHaveBeenCalledTimes(1); expect(bridge.begin).not.toHaveBeenCalled();
 });
 it("a free account starts in the Add a Cloud dialog, but only a verified native update displays Pro; unavailable/revoked states remove it", async () => {
   const onAddCloud = vi.fn();
-  await ready(free); render({ onAddCloud }).nodes.find(node => node.type === "button" && node.props.children === "add a cloud")!.props.onClick!();
+  await ready(free); render({ onAddCloud }).nodes.find(node => node.type === "button" && node.props.children === "Add a cloud")!.props.onClick!();
   expect(onAddCloud).toHaveBeenCalledOnce(); expect(bridge.openDashboard).not.toHaveBeenCalled();
   expect(render().html).not.toContain("Pro active");
   push({ ...free, entitlement: { plan: "pro", status: "active", expiresAt: null, version: 1 } }); expect(render().html).toContain("Pro active");
@@ -62,21 +62,21 @@ it("names the verified tier; no tier is today's Pro, and a tier newer than the a
   await ready(free);
   for (const [tier, text] of [[undefined, "Pro active"], ["personal", "Personal active"], ["pro", "Pro active"], ["max", "Max active"], ["team", "Cloud active"], ["constructor", "Cloud active"]] as const) {
     push({ ...free, entitlement: { plan: "pro", ...(tier ? { tier } : {}), status: "active", expiresAt: 1_900_000_000_000, version: 3 } });
-    expect(render().html).toContain(`${text} · verified by dusk cloud`); expect(render().html).toContain("manage cloud subscription");
+    expect(render().html).toContain(`${text} · verified by dusk cloud`); expect(render().html).toContain("Manage cloud subscription");
   }
   push({ ...free, entitlement: { plan: "pro", tier: "max", status: "inactive", expiresAt: null, version: 4 } });
   expect(render().html).toContain("Max · not active right now"); expect(render().html).not.toContain("Max active");
-  expect(render().html).not.toContain("no plan yet"); expect(render().html).not.toContain("add a cloud");
+  expect(render().html).not.toContain("No plan yet"); expect(render().html).not.toContain("Add a cloud");
   expect(cloudPlanLabel()).toBe("Pro"); expect(cloudPlanLabel("toString")).toBe("Cloud");
 });
 it("sign-out requires confirmation and preserves local and organization wording", async () => {
   const ask = () => render().nodes.find(node => node.type === CloudSignOutConfirm)!.props as unknown as { open: boolean; onCancel(): void; onConfirm(): void };
   await ready(free); expect(ask().open).toBe(false);
-  click("sign out of dusk cloud"); expect(bridge.signOut).not.toHaveBeenCalled(); expect(ask().open).toBe(true);
+  click("Sign out of dusk cloud"); expect(bridge.signOut).not.toHaveBeenCalled(); expect(ask().open).toBe(true);
   ask().onCancel(); expect(ask().open).toBe(false); expect(bridge.signOut).not.toHaveBeenCalled();
   // asked once: the dialog's own confirm signs out, with no second step on the page
-  click("sign out of dusk cloud"); ask().onConfirm(); await flush(); expect(bridge.signOut).toHaveBeenCalledExactlyOnceWith();
-  expect(render().html).toContain("sign in to your cloud plan"); expect(fetch).not.toHaveBeenCalled();
+  click("Sign out of dusk cloud"); ask().onConfirm(); await flush(); expect(bridge.signOut).toHaveBeenCalledExactlyOnceWith();
+  expect(render().html).toContain("Sign in to your cloud plan"); expect(fetch).not.toHaveBeenCalled();
 });
 it("never accesses account bridge from remote companion pages", async () => {
   vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge, remoteClient: { active: true } } }); render(); f.effects[0](); await flush();
@@ -89,7 +89,7 @@ it("a late initial snapshot cannot replace a newer revoked state", async () => {
 
 const all = (html: string, texts: string[]) => texts.forEach(text => expect(html).toContain(text));
 const none = (html: string, texts: string[]) => texts.forEach(text => expect(html).not.toContain(text));
-const BUY = ["start free trial", "add a cloud", "Get Pro", "no plan yet"];
+const BUY = ["Start free trial", "Add a cloud", "Get Pro", "No plan yet"];
 const ALARM = ["cannot currently be verified", "unavailable until", "expired or was revoked"];
 const button = (label: string) => render().nodes.find(node => node.type === "button" && node.props.children === label);
 
@@ -97,16 +97,16 @@ it("a failed re-check keeps the plan, Cloud and Connect, and only says it is che
   const machine = { status: "ready" as const, origin: "https://home-7f3k2.fly.dev" };
   await ready({ ...free, entitlement: { plan: "pro", tier: "max", status: "active", expiresAt: 1_900_000_000_000, version: 3 }, machine, checking: true });
   const { html } = render();
-  all(html, ["Max active · verified by dusk cloud", "checking with dusk cloud…", "open the cloud", "manage cloud subscription"]);
+  all(html, ["Max active · verified by dusk cloud", "Checking with dusk cloud…", "Open the cloud", "Manage cloud subscription"]);
   none(html, [...BUY, ...ALARM]);
 });
 it("dusk cloud out of reach: the plan last verified stays named, calmly, with no offer to buy", async () => {
   await ready({ status: "unavailable", message: "unreachable", account: { id: "fixture", email: "person@example.test" }, lastPlan: { tier: "personal", active: true } });
   let html = render().html;
-  all(html, ["Personal · checking with dusk cloud…", "be reached right now, so this app", "Nothing has changed with your plan", "manage cloud subscription"]);
+  all(html, ["Personal · checking with dusk cloud…", "be reached right now, so this app", "Nothing has changed with your plan", "Manage cloud subscription"]);
   none(html, [...BUY, ...ALARM]);
   push({ status: "unavailable", message: "unreachable", account: { id: "fixture", email: "person@example.test" } });
-  html = render().html; expect(html).toContain("open your plan page"); none(html, [...BUY, ...ALARM]);
+  html = render().html; expect(html).toContain("Open your plan page"); none(html, [...BUY, ...ALARM]);
 });
 it("a saved sign-in that couldn't be cleared names the Sign out button on the card", async () => {
   for (const platform of ["darwin", "win32"] as const) {
@@ -115,7 +115,7 @@ it("a saved sign-in that couldn't be cleared names the Sign out button on the ca
     const { html } = render();
     all(html, ["could not be read or cleared", "Choose sign out of dusk cloud, then sign in again."]);
     none(html, ["keychain"]);
-    expect(button("sign out of dusk cloud")).toBeTruthy();
+    expect(button("Sign out of dusk cloud")).toBeTruthy();
   }
 });
 const statusText = () => render().nodes.filter(node => node.type === "p" && (node.props as { role?: string }).role === "status")
@@ -134,21 +134,21 @@ it("a saved sign-in that may only be locked says the app tries again, with this 
 it("a sign-in that ended asks to sign in again, keeps the plan, and offers nothing to buy", async () => {
   await ready({ status: "reauth-required", message: "expired", account: { id: "fixture", email: "person@example.test" }, lastPlan: { tier: "max", active: true } });
   const { html } = render();
-  all(html, ["Max plan", "Your sign-in on this computer has ended", "Your plan is not affected", "sign in again"]);
-  none(html, [...BUY, ...ALARM, "manage cloud subscription"]);
-  expect(button("refresh")).toBeUndefined();
-  button("sign in again")!.props.onClick!(); await flush();
+  all(html, ["Max plan", "Your sign-in on this computer has ended", "Your plan is not affected", "Sign in again"]);
+  none(html, [...BUY, ...ALARM, "Manage cloud subscription"]);
+  expect(button("Refresh")).toBeUndefined();
+  button("Sign in again")!.props.onClick!(); await flush();
   expect(bridge.signInAgain).toHaveBeenCalledExactlyOnceWith(); expect(bridge.signOut).not.toHaveBeenCalled(); expect(bridge.begin).not.toHaveBeenCalled();
   push({ status: "reauth-required", message: "access-ended", account: { id: "fixture", email: "person@example.test" } });
-  all(render().html, ["no longer signed in to dusk cloud", "sign in again"]); none(render().html, BUY);
+  all(render().html, ["no longer signed in to dusk cloud", "Sign in again"]); none(render().html, BUY);
 });
 it("a payment problem or a stopped Cloud is never 'Free account' with a plan to choose", async () => {
   const origin = "https://home-7f3k2.fly.dev";
   await ready({ ...free, machine: { status: "payment-problem", origin } });
   let html = render().html;
-  all(html, ["dusk cloud · not active right now", "problem with your payment", "update payment in your browser"]); none(html, BUY);
+  all(html, ["dusk cloud · not active right now", "problem with your payment", "Update payment in your browser"]); none(html, BUY);
   push({ ...free, machine: { status: "stopped", origin } });
-  html = render().html; all(html, ["Subscribe again on your plan page", "open your plan page"]); none(html, BUY);
+  html = render().html; all(html, ["Subscribe again on your plan page", "Open your plan page"]); none(html, BUY);
   expect(html).not.toContain("shows why and how to fix it");
   push({ ...free, entitlement: { plan: "pro", tier: "pro", status: "inactive", expiresAt: null, version: 4 } });
   all(render().html, ["Pro · not active right now", "shows why and how to fix it"]);
@@ -156,38 +156,38 @@ it("a payment problem or a stopped Cloud is never 'Free account' with a plan to 
 it("a payment being linked says so, with its date, and asks nobody to pay again", async () => {
   await ready({ ...free, purchase: { state: "confirming", tier: "personal", paidAt: Date.UTC(2026, 9, 2, 12) } });
   const html = render().html;
-  all(html, ["Personal · payment received", "Received Oct 2, 2026", "no need to pay again", "open your plan page"]); none(html, BUY);
+  all(html, ["Personal · payment received", "Received Oct 2, 2026", "no need to pay again", "Open your plan page"]); none(html, BUY);
   push({ ...free, purchase: { state: "held" } });
   all(render().html, ["dusk cloud · payment received", "linking your payment"]); none(render().html, BUY);
 });
 it("where this app can keep another account beside this one, the other email is added, with nothing signed out", async () => {
   vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge, accounts: { addCancel: vi.fn(), list: vi.fn(), onChanged: vi.fn() } } });
   await ready(free);
-  none(render({ onAddCloud: vi.fn() }).html, ["sign out and use that email"]);
+  none(render({ onAddCloud: vi.fn() }).html, ["Sign out and use that email"]);
   all(render({ onAddCloud: vi.fn() }).html, ["Bought a plan or joined a team with a different email?"]);
-  button("add that email")!.props.onClick!();
+  button("Add that email")!.props.onClick!();
   all(render({ onAddCloud: vi.fn() }).html, ["data-accounts-sheet", "cloud-add-email"]);
   expect(bridge.signOut).not.toHaveBeenCalled();
 });
 it("a free account may add a Cloud, and is told what to do if it bought with another email", async () => {
   await ready(free);
-  all(render({ onAddCloud: vi.fn() }).html, ["no plan yet", ">add a cloud<", "Bought a plan with a different email?"]);
+  all(render({ onAddCloud: vi.fn() }).html, ["No plan yet", ">Add a cloud<", "Bought a plan with a different email?"]);
   none(render({ onAddCloud: vi.fn() }).html, ["Choose a Cloud plan", "Free account", "a checkout return alone"]);
-  button("sign out and use that email")!.props.onClick!();
+  button("Sign out and use that email")!.props.onClick!();
   expect((render().nodes.find(node => node.type === CloudSignOutConfirm)!.props as { open?: boolean }).open).toBe(true); expect(bridge.signOut).not.toHaveBeenCalled();
 });
 it("shows the sign-in code plainly, with how long it works", async () => {
   await ready({ status: "connecting", enrollment: { userCode: "ABCDE-FGHJK", expiresAt: Date.UTC(2026, 9, 2, 12, 15) } });
   const html = render().html;
-  all(html, ["check that your browser shows this code:", "ABCDE-FGHJK", "The code works until"]);
-  expect(html).not.toContain("<details"); expect(html).not.toContain("security details");
+  all(html, ["Check that your browser shows this code:", "ABCDE-FGHJK", "The code works until"]);
+  expect(html).not.toContain("<details"); expect(html).not.toContain("Security details");
   push({ status: "signed-out", message: "enrollment-expired" });
-  all(render().html, ["The sign-in code expired. Choose sign in to your cloud plan to get a new one.", ">sign in to your cloud plan<"]);
+  all(render().html, ["The sign-in code expired. Choose sign in to your cloud plan to get a new one.", ">Sign in to your cloud plan<"]);
 });
 it("while a saved sign-in is read, nothing is offered and the Cloud link waits", async () => {
   await ready({ status: "signed-out", message: "restoring" });
   const html = render().html;
-  expect(html).toContain("loading cloud account"); none(html, ["sign in to your cloud plan", "could not be completed", ...BUY]);
+  expect(html).toContain("Loading cloud account"); none(html, ["Sign in to your cloud plan", "could not be completed", ...BUY]);
   expect(cloudLinkAction({ status: "signed-out", message: "restoring" }, { arrived: true, connected: false })).toBeNull();
   render({ linkRequest: 1 }); f.effects[1](); await flush(); expect(bridge.begin).not.toHaveBeenCalled();
 });
@@ -196,14 +196,14 @@ it("a saved sign-in that could not be read was removed: one line says so, and Si
   const html = render().html;
   expect(html).toContain("cloud sign-in couldn&#x27;t be read, so it was removed. Sign in again.");
   none(html, ["could not be completed", "Unlock your system keychain"]);
-  expect(button("sign in to your cloud plan")).toBeTruthy();
+  expect(button("Sign in to your cloud plan")).toBeTruthy();
   none(render({ onAddCloud: vi.fn() }).html, BUY);
 });
 it("a saved sign-in that can't be read right now says the app tries again by itself, and asks for no sign-out", async () => {
   await ready({ status: "unavailable", message: "restore-failed" });
   const html = render().html;
   expect(html).toContain("This computer couldn&#x27;t open its saved cloud sign-in. Unlock your keychain, and the app tries again by itself.");
-  none(html, ["could not be read or cleared", "sign out again", "sign out of dusk cloud, then"]);
+  none(html, ["could not be read or cleared", "sign out again", "Sign out of dusk cloud, then"]);
 });
 it("a sign-out that could not clear the saved sign-in still asks for it", async () => {
   await ready({ status: "unavailable", message: "signout-storage-failed" });
@@ -217,8 +217,8 @@ it("setting up shows the Cloud page's steps, a slow setup and a failed setup's n
   expect(render().html).toContain('data-cloud-home="provisioning"');
   push({ ...paid, machine: { status: "provisioning", setup: { step: "starting" } } });
   let html = render().html;
-  all(html, ['data-cloud-setup="starting"', "reserving your machine", "preparing storage", "starting the cloud", "checking it", 'aria-current="step"']);
-  expect(html.indexOf('aria-current="step"')).toBeGreaterThan(html.indexOf("preparing storage"));
+  all(html, ['data-cloud-setup="starting"', "Reserving your machine", "Preparing storage", "Starting the cloud", "Checking it", 'aria-current="step"']);
+  expect(html.indexOf('aria-current="step"')).toBeGreaterThan(html.indexOf("Preparing storage"));
   push({ ...paid, machine: { status: "provisioning", setup: { step: "starting", slow: true } } });
   expect(render().html).toContain("taking longer than usual");
   push({ ...paid, machine: { status: "failed", retryAt: Date.UTC(2026, 9, 2, 12, 30) } });
@@ -228,25 +228,25 @@ it("on the person's own Cloud, Settings shows the plan read only, with Manage, a
   const plan = { state: vi.fn().mockResolvedValue({ status: "paid", tier: "max" }), manage: vi.fn().mockResolvedValue(undefined), signIn: vi.fn().mockResolvedValue(undefined) };
   vi.stubGlobal("window", { duskDesktop: { cloudPlan: plan } });
   const settings = render({ cloudHome: true }).html; expect(settings).not.toContain("local desktop app");
-  expect(render().html).toContain("local desktop app"); expect(render().html).not.toContain("manage in your browser");
+  expect(render().html).toContain("local desktop app"); expect(render().html).not.toContain("Manage in your browser");
   const view = () => { f.index = 0; f.effects = []; let tree: ReactNode; function Capture() { tree = CloudPlanOnCloud({ bridge: plan }); return tree; }
     return { html: renderToStaticMarkup(createElement(Capture)), nodes: nodes(tree) }; };
   view(); f.effects[0](); await flush();
-  all(view().html, ["Max active · verified by dusk cloud", "manage in your browser"]); none(view().html, [...BUY, "switch to this computer", "sign in again"]);
-  view().nodes.find(node => node.type === "button" && node.props.children === "manage in your browser")!.props.onClick!();
+  all(view().html, ["Max active · verified by dusk cloud", "Manage in your browser"]); none(view().html, [...BUY, "switch to this computer", "Sign in again"]);
+  view().nodes.find(node => node.type === "button" && node.props.children === "Manage in your browser")!.props.onClick!();
   await flush(); expect(plan.manage).toHaveBeenCalledExactlyOnceWith();
   plan.state.mockResolvedValueOnce({ status: "checking", tier: "pro" }); f.values = []; view(); f.effects[0](); await flush();
   expect(view().html).toContain("Pro · checking with dusk cloud…");
   plan.state.mockResolvedValueOnce({ status: "signin", tier: "max" }); f.values = []; view(); f.effects[0](); await flush();
   all(view().html, ["Max plan", "This computer needs to sign in to dusk cloud again"]); none(view().html, [...BUY, "could not complete", "switch to this computer"]);
-  expect(view().nodes.filter(node => node.type === "button" && node.props.children === "sign in again")).toHaveLength(1);
-  view().nodes.find(node => node.type === "button" && node.props.children === "sign in again")!.props.onClick!();
+  expect(view().nodes.filter(node => node.type === "button" && node.props.children === "Sign in again")).toHaveLength(1);
+  view().nodes.find(node => node.type === "button" && node.props.children === "Sign in again")!.props.onClick!();
   await flush(); expect(plan.signIn).toHaveBeenCalledExactlyOnceWith();
   plan.state.mockRejectedValueOnce(new Error("cloud-plan:state is only available in this app's window")); f.values = []; view(); f.effects[0](); await flush();
   const refused = view();
   expect(refused.html).toContain("Your plan is managed in the dusk bot app on your computer.");
   expect(refused.nodes.some(node => node.type === "button")).toBe(false);
-  none(refused.html, ["could not complete", 'role="alert"', "loading"]);
+  none(refused.html, ["could not complete", 'role="alert"', "Loading"]);
 });
 
 it("on My Cloud once it is home, Settings is that app's own: the plan is managed on the Plan page, never in another app", async () => {
@@ -254,10 +254,10 @@ it("on My Cloud once it is home, Settings is that app's own: the plan is managed
   const view = () => { f.index = 0; f.effects = []; let tree: ReactNode; function Capture() { tree = CloudPlanOnCloud({ bridge: plan }); return tree; }
     return { html: renderToStaticMarkup(createElement(Capture)), nodes: nodes(tree) }; };
   view(); f.effects[0](); await flush();
-  all(view().html, ["Your plan is managed on your plan page.", "Your plan, as dusk cloud verified it.", "manage in your browser"]);
-  none(view().html, ["dusk bot app", "on your computer"]);
+  all(view().html, ["Your plan is managed on your plan page.", "Your plan, as dusk cloud verified it.", "Manage in your browser"]);
+  none(view().html, ["dusk bot app", "On your computer"]);
   plan.state.mockResolvedValueOnce({ status: "paid", tier: "pro", home: true }); f.values = []; view(); f.effects[0](); await flush();
-  all(view().html, ["Pro active · verified by dusk cloud", "Your plan, as dusk cloud verified it."]); none(view().html, ["on your computer"]);
+  all(view().html, ["Pro active · verified by dusk cloud", "Your plan, as dusk cloud verified it."]); none(view().html, ["On your computer"]);
   plan.state.mockResolvedValueOnce({ status: "none" }); f.values = []; view(); f.effects[0](); await flush();
   all(view().html, ["Your plan is managed in the dusk bot app on your computer.", "verified it for the app on your computer"]);
 });
@@ -268,8 +268,8 @@ it("stays exactly as before when the account has no Cloud machine", async () => 
   await ready(free);
   expect(render().html).not.toContain("My Cloud");
   expect(render().html, "chats do go to the Cloud by themselves now").not.toContain("does not upload your chat history");
-  expect(render().html).not.toContain(">open the cloud</button>");
-  push(pro); expect(render().html).not.toContain(">open the cloud</button>");
+  expect(render().html).not.toContain(">Open the cloud</button>");
+  push(pro); expect(render().html).not.toContain(">Open the cloud</button>");
 });
 it.each([
   ["provisioning", "Setting up the cloud", false],
@@ -282,7 +282,7 @@ it.each([
   const html = render().html;
   expect(html).toContain(`data-cloud-home="${status}"`);
   expect(html).toContain(text);
-  expect(html.includes(">open the cloud</button>")).toBe(connectable);
+  expect(html.includes(">Open the cloud</button>")).toBe(connectable);
   expect(html).not.toContain("Could not complete this cloud action");
 });
 it("while the bots move to My Cloud, says how the move goes, with nothing to open or switch back to; Open the Cloud comes back after", async () => {
@@ -290,14 +290,14 @@ it("while the bots move to My Cloud, says how the move goes, with nothing to ope
   vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge, cloudSendPage: { notice: vi.fn(async () => ({ ready: true, bots: [], move })), onNotice: vi.fn(() => () => {}), dismiss: vi.fn() } } });
   const moving = async () => { await ready({ ...pro, machine: { status: "ready", origin } }); f.effects[2](); await flush(); return render(); };
   let view = await moving();
-  all(view.html, ["moving your bots to dusk cloud…", "data-cloud-moving"]);
-  none(view.html, [">open the cloud</button>", "Switch back to this computer", "The cloud is ready"]);
+  all(view.html, ["Moving your bots to dusk cloud…", "data-cloud-moving"]);
+  none(view.html, [">Open the cloud</button>", "Switch back to this computer", "The cloud is ready"]);
   move = { phase: "finishing" };
   f.values = []; view = await moving();
-  all(view.html, ["moving your bots to dusk cloud… almost there"]); none(view.html, [">open the cloud</button>", "Switch back to this computer"]);
+  all(view.html, ["Moving your bots to dusk cloud… almost there"]); none(view.html, [">Open the cloud</button>", "Switch back to this computer"]);
   move = undefined;
   f.values = []; view = await moving();
-  all(view.html, [">open the cloud</button>", "Switch back to this computer", "The cloud is ready"]); none(view.html, ["data-cloud-moving", "moving"]);
+  all(view.html, [">Open the cloud</button>", "Switch back to this computer", "The cloud is ready"]); none(view.html, ["data-cloud-moving", "Moving"]);
 });
 it("says why a ready Cloud can't be reached when the Admin knows, with no button that can't reach it", async () => {
   const since = Date.UTC(2026, 9, 16, 9);
@@ -305,17 +305,17 @@ it("says why a ready Cloud can't be reached when the Admin knows, with no button
   let html = render().html;
   expect(html).toContain('data-cloud-unreachable="host"');
   expect(html).toContain("Our hosting provider is restarting the machine the cloud runs on. The cloud and its files are safe, and it comes back on its own, usually within about 20 minutes.");
-  expect(html).not.toContain(">open the cloud</button>");
+  expect(html).not.toContain(">Open the cloud</button>");
   expect(html).not.toContain("The cloud is ready");
   push({ ...pro, machine: { status: "ready", origin, unreachable: { cause: "no_answer", since } } });
   html = render().html;
   expect(html).toContain("The cloud hasn&#x27;t answered for a few minutes. Nothing was lost, and we&#x27;ve been told.");
-  expect(html).not.toContain(">open the cloud</button>");
+  expect(html).not.toContain(">Open the cloud</button>");
   // The Cloud link opens nothing while it can't be reached, and does once it answers again.
   render({ linkRequest: 1 }); f.effects[1](); await flush();
   expect(bridge.connectHome).not.toHaveBeenCalled();
   push({ ...pro, machine: { status: "ready", origin } });
-  expect(render().html).toContain(">open the cloud</button>");
+  expect(render().html).toContain(">Open the cloud</button>");
   render({ linkRequest: 1 }); f.effects[1](); await flush();
   expect(bridge.connectHome).toHaveBeenCalledExactlyOnceWith();
 });
@@ -327,7 +327,7 @@ it("promises no included AI: the person signs in with their own account there", 
 });
 it("connects with one click, sending nothing from the page", async () => {
   await ready({ ...pro, machine: { status: "ready", origin } });
-  click("open the cloud"); await flush();
+  click("Open the cloud"); await flush();
   expect(bridge.connectHome).toHaveBeenCalledExactlyOnceWith();
 });
 it("reports a failed connection as its own message", async () => {
@@ -335,7 +335,7 @@ it("reports a failed connection as its own message", async () => {
   const state = { ...pro, machine: { status: "ready" as const, origin } };
   vi.mocked(bridge.state).mockResolvedValue(state);
   await ready(state);
-  click("open the cloud"); await flush();
+  click("Open the cloud"); await flush();
   expect(render().html).toContain("Could not open the cloud");
   expect(render().html).not.toContain("Could not complete this cloud action");
 });
@@ -379,7 +379,7 @@ it("only shows the status of a Cloud that is not Ready, and a later sign-out sta
     expect(render().html).toContain(`data-cloud-home="${machine.status}"`);
   }
   push({ status: "signed-out" }); linked(); await flush();
-  expect(render().html).toContain("sign in to your cloud plan");
+  expect(render().html).toContain("Sign in to your cloud plan");
   expect(bridge.connectHome).not.toHaveBeenCalled();
   expect(bridge.begin).not.toHaveBeenCalled();
 });
@@ -389,7 +389,7 @@ it("a normal visit never signs in or connects by itself", async () => {
   expect(bridge.begin).not.toHaveBeenCalled();
   push(readyCloud); visit(); await flush();
   expect(bridge.connectHome).not.toHaveBeenCalled();
-  expect(render().html).toContain("open the cloud");
+  expect(render().html).toContain("Open the cloud");
 });
 it("a failed automatic connection waits for the next link; a normal visit in between stops it", async () => {
   vi.mocked(bridge.connectHome).mockRejectedValueOnce(new Error("offline"));
@@ -417,7 +417,7 @@ it("decides from the first snapshot after the link, and connects to a Ready Clou
   }
 });
 
-const PHONE = "use the cloud on your phone";
+const PHONE = "Use the cloud on your phone";
 const STEPS = ["server menu → my cloud", "choose connect your phone"];
 it("a paid plan with a Ready Cloud opens it on its phone pairing with one click, sending nothing from the page", async () => {
   await ready(readyCloud);
@@ -448,7 +448,7 @@ it("a switch that failed says so, with the two steps, and can be tried again", a
   await ready(readyCloud);
   click(PHONE); await flush();
   const html = render().html;
-  all(html, ["Could not open the cloud.", "you can also do it in two steps", ...STEPS]);
+  all(html, ["Could not open the cloud.", "You can also do it in two steps", ...STEPS]);
   expect(html).not.toContain("Could not complete this cloud action");
   click(PHONE); await flush();
   expect(bridge.connectHomeForPhone).toHaveBeenCalledTimes(2);
@@ -488,7 +488,7 @@ it("on a Team Cloud, sends people to the Plan page for its people and plan, neve
   const card = onTeam.find(node => node.type === TeamPeopleCard) as unknown as ReactElement<{ team: typeof team }>;
   expect(card.props.team).toBe(team);
   const html = renderToStaticMarkup(createElement(TeamPeopleCard, { team }));
-  all(html, ["people and plan", "Invite people to Acme, change their roles and manage its plan on your plan page.", 'href="https://cloud.example.com/cloud"', "open your plan page"]);
+  all(html, ["People and plan", "Invite people to Acme, change their roles and manage its plan on your plan page.", 'href="https://cloud.example.com/cloud"', "Open your plan page"]);
   none(html, ["managed in the dusk bot app on your computer"]);
   expect(renderToStaticMarkup(createElement(TeamPeopleCard, { team: { name: "Acme" } }))).not.toContain("href=");
   // My Cloud's own page is unchanged.
@@ -503,22 +503,22 @@ it("a free trial says what happens and when, in the notice's words, with its nex
   await ready({ ...pro, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: ENDS + 3 * DAY, version: 3 }, machine,
     trial: onTrial("ending", { deleteAt: ENDS + 3 * DAY, keep: "portal" }) });
   const html = render().html;
-  all(html, ["Pro free trial · verified by dusk cloud", "your free trial ends on Oct 15", "Renewal is off, so the cloud stops then and its files are deleted on Oct 18.",
+  all(html, ["Pro free trial · verified by dusk cloud", "Your free trial ends on Oct 15", "Renewal is off, so the cloud stops then and its files are deleted on Oct 18.",
     'data-cloud-trial="ending"']);
-  none(html, ["Pro active", "manage cloud subscription", ...BUY]);
-  click("subscribe to keep it"); await flush(); expect(bridge.openDashboard).toHaveBeenCalledExactlyOnceWith();
+  none(html, ["Pro active", "Manage cloud subscription", ...BUY]);
+  click("Subscribe to keep it"); await flush(); expect(bridge.openDashboard).toHaveBeenCalledExactlyOnceWith();
   push({ ...pro, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: ENDS + 3 * DAY, version: 4 }, machine, trial: onTrial("active", { chargeAt: ENDS }) });
-  expect(render().html).toContain("To cancel, choose manage subscription before then."); expect(button("manage subscription")).toBeTruthy();
+  expect(render().html).toContain("To cancel, choose Manage subscription before then."); expect(button("Manage subscription")).toBeTruthy();
   push({ ...pro, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: ENDS + 3 * DAY, version: 5 }, machine, trial: onTrial("processing") });
-  expect(render().html).toContain("your first payment is processing"); expect(button("manage cloud subscription")).toBeTruthy();
+  expect(render().html).toContain("Your first payment is processing"); expect(button("Manage cloud subscription")).toBeTruthy();
 });
 it("an ended trial is one message: what happens to the files, and Subscribe to keep it; the stopped Cloud only says it is stopped", async () => {
   await ready({ ...free, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 6 }, machine: { status: "stopped", origin },
     trial: onTrial("ended", { deleteAt: ENDS + 3 * DAY, keep: "checkout" }) });
   const html = render().html;
-  all(html, ["your free trial has ended", "The cloud is stopped. Its files are kept until Oct 18, then deleted.", 'data-cloud-home="stopped"', ">The cloud is stopped.</p>"]);
+  all(html, ["Your free trial has ended", "The cloud is stopped. Its files are kept until Oct 18, then deleted.", 'data-cloud-home="stopped"', ">The cloud is stopped.</p>"]);
   none(html, ["Subscribe again on your plan page", "Your plan is not active right now", ...BUY]);
-  expect(button("subscribe to keep it")).toBeTruthy();
+  expect(button("Subscribe to keep it")).toBeTruthy();
 });
 it("signed out or with no plan, the Add a Cloud button names the trial only when the Admin offers one, with its money-back", async () => {
   const onAddCloud = vi.fn();
@@ -528,14 +528,14 @@ it("signed out or with no plan, the Add a Cloud button names the trial only when
   render({ onAddCloud }); f.effects.at(-1)!(); await flush();
   expect(offer).toHaveBeenCalledExactlyOnceWith();
   let html = render({ onAddCloud }).html;
-  all(html, [">start free trial<", "14-day money-back on every plan.", "sign in to your cloud plan"]);
-  expect(html.indexOf("start free trial")).toBeLessThan(html.indexOf("sign in to your cloud plan"));
-  render({ onAddCloud }).nodes.find(node => node.type === "button" && node.props.children === "start free trial")!.props.onClick!();
+  all(html, [">Start free trial<", "14-day money-back on every plan.", "Sign in to your cloud plan"]);
+  expect(html.indexOf("Start free trial")).toBeLessThan(html.indexOf("Sign in to your cloud plan"));
+  render({ onAddCloud }).nodes.find(node => node.type === "button" && node.props.children === "Start free trial")!.props.onClick!();
   expect(onAddCloud).toHaveBeenCalledOnce();
   offer.mockResolvedValue({ plans: [{ tier: "pro", amount: 4900 }], recommended: "pro" });
   push(free); render({ onAddCloud }); f.effects.at(-1)!(); await flush();
   html = render({ onAddCloud }).html;
-  expect(html).toContain(">add a cloud<"); none(html, ["free trial", "money-back"]);
+  expect(html).toContain(">Add a cloud<"); none(html, ["free trial", "money-back"]);
   offer.mockClear(); push(pro); render({ onAddCloud }); f.effects.at(-1)!(); await flush();
   expect(offer).not.toHaveBeenCalled(); none(render({ onAddCloud }).html, BUY);
 });
@@ -545,22 +545,22 @@ it("on My Cloud, Settings shows the trial, and its button names the trial's next
   const view = () => { f.index = 0; f.effects = []; let tree: ReactNode; function Capture() { tree = CloudPlanOnCloud({ bridge: plan }); return tree; }
     return { html: renderToStaticMarkup(createElement(Capture)), nodes: nodes(tree) }; };
   view(); f.effects[0](); await flush();
-  all(view().html, ["Pro free trial · verified by dusk cloud", "your free trial ends on Oct 15", "Then Pro is $49/month plus tax, charged on Oct 15."]);
-  view().nodes.find(node => node.type === "button" && node.props.children === "manage subscription")!.props.onClick!();
+  all(view().html, ["Pro free trial · verified by dusk cloud", "Your free trial ends on Oct 15", "Then Pro is $49/month plus tax, charged on Oct 15."]);
+  view().nodes.find(node => node.type === "button" && node.props.children === "Manage subscription")!.props.onClick!();
   await flush(); expect(plan.manage).toHaveBeenCalledExactlyOnceWith();
   plan.state.mockResolvedValueOnce({ status: "paid", tier: "pro" }); f.values = []; view(); f.effects[0](); await flush();
-  all(view().html, ["Pro active · verified by dusk cloud", "manage in your browser"]); none(view().html, ["free trial", "Claude credit"]);
+  all(view().html, ["Pro active · verified by dusk cloud", "Manage in your browser"]); none(view().html, ["free trial", "Claude credit"]);
 });
 it("Sign in is the sheet's email code when Settings hands it over; the staging Admin is marked plainly", async () => {
   const onSignIn = vi.fn();
   await ready();
-  render({ onSignIn }).nodes.find(node => node.type === "button" && node.props.children === "sign in to your cloud plan")!.props.onClick!();
+  render({ onSignIn }).nodes.find(node => node.type === "button" && node.props.children === "Sign in to your cloud plan")!.props.onClick!();
   await flush();
   expect(onSignIn).toHaveBeenCalledOnce(); expect(bridge.begin).not.toHaveBeenCalled();
   expect(render().html).not.toContain("data-cloud-staging");
   push({ ...free, staging: true });
   const staging = render().html;
-  expect(staging).toContain("data-cloud-staging"); expect(staging).toContain(">staging<");
+  expect(staging).toContain("data-cloud-staging"); expect(staging).toContain(">Staging<");
 });
 it("a Team plan has no Cloud of its own: the team's Cloud under its name, Open {team}, its own setup meanwhile, and no phone card for a Cloud that never comes", async () => {
   type Machine = NonNullable<CloudAccountState["teams"]>[number]["machine"];
@@ -569,13 +569,13 @@ it("a Team plan has no Cloud of its own: the team's Cloud under its name, Open {
   bridge.openTeam = vi.fn().mockResolvedValue(undefined);
   await ready(onTeam({ status: "ready", origin: "https://dusk-t-2.fly.dev" }));
   let html = render().html;
-  all(html, ['data-cloud-team="true"', "Acme is ready. It keeps your team&#x27;s bots running, even", "open Acme"]);
-  none(html, ["setting up", "reserving your machine", "open the cloud", PHONE, "is not ready yet"]);
-  click("open Acme"); await flush();
+  all(html, ['data-cloud-team="true"', "Acme is ready. It keeps your team&#x27;s bots running, even", "Open Acme"]);
+  none(html, ["Setting up", "Reserving your machine", "Open the cloud", PHONE, "is not ready yet"]);
+  click("Open Acme"); await flush();
   expect(bridge.openTeam).toHaveBeenCalledExactlyOnceWith("team-acme"); expect(bridge.connectHome).not.toHaveBeenCalled();
   push(onTeam({ status: "provisioning", setup: { step: "storage" } }));
   html = render().html;
-  all(html, ["Setting up your team&#x27;s cloud", 'data-cloud-setup="storage"', "reserving your machine"]); none(html, ["open Acme", PHONE]);
+  all(html, ["Setting up your team&#x27;s cloud", 'data-cloud-setup="storage"', "Reserving your machine"]); none(html, ["Open Acme", PHONE]);
   push({ ...onTeam(null), teams: undefined });
   all(render().html, ["your team&#x27;s cloud", "Setting up your team&#x27;s cloud"]);
   push({ ...onTeam({ status: "ready", origin: "https://dusk-t-2.fly.dev" }), entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: 1_900_000_000_000, version: 3 } });

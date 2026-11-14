@@ -58,12 +58,12 @@ describe("where Connect your phone pairs", () => {
 
 describe("connect your phone in the account menu", () => {
   it("on this computer: always there, to this computer, without asking the server", () => {
-    expect(subtitle(connectPhoneEntry("computer", null))).toBe("to this computer");
+    expect(subtitle(connectPhoneEntry("computer", null))).toBe("To this computer");
     expect(connectPhoneEntry("computer", access(chatOnly, false))?.target).toBe("computer");
   });
 
   it("on the person's own Cloud: to the Cloud, for the owner's session", () => {
-    expect(subtitle(connectPhoneEntry("cloud", access(admin)))).toBe("to the cloud");
+    expect(subtitle(connectPhoneEntry("cloud", access(admin)))).toBe("To the cloud");
     expect(connectPhoneEntry("cloud", access(chatOnly))).toBeNull();
   });
 
@@ -71,13 +71,13 @@ describe("connect your phone in the account menu", () => {
     const member = { kind: "session" as const, id: "s", label: "Desktop", scopes: ["client"], expiresAt: 1, team: { id: "team-acme-1", name: "Acme", role: "member" } };
     const entry = connectPhoneEntry("cloud", access(member, false));
     expect(entry).toMatchObject({ target: "cloud", team: "Acme" });
-    expect(t("sidebar.menu.connectPhone.team", { team: entry!.team! })).toBe("to Acme");
+    expect(t("sidebar.menu.connectPhone.team", { team: entry!.team! })).toBe("To Acme");
     expect(phoneDestinations(entry, null)).toEqual([{ ...entry, id: "here" }]);
   });
 
   it("on another server: to the bots here, only for a session that may make a pairing code", () => {
-    expect(subtitle(connectPhoneEntry("server", access(admin)))).toBe("to the bots here");
-    expect(subtitle(connectPhoneEntry("server", access(owner)))).toBe("to the bots here");
+    expect(subtitle(connectPhoneEntry("server", access(admin)))).toBe("To the bots here");
+    expect(subtitle(connectPhoneEntry("server", access(owner)))).toBe("To the bots here");
     expect(connectPhoneEntry("server", access(chatOnly))).toBeNull();
     expect(connectPhoneEntry("server", access({ kind: "loopback", trust: "service" }))).toBeNull();
     expect(connectPhoneEntry("server", access({ kind: "unauthenticated", error: "pair" }))).toBeNull();
@@ -216,14 +216,14 @@ describe("the person's Cloud as a destination on this computer", () => {
   it("joins this computer's line, first, and only on this computer", () => {
     const here = connectPhoneEntry("computer", null);
     expect(phoneDestinations(here, "ready").map((d) => [d.id, d.target, t(d.subtitleKey)])).toEqual([
-      ["cloud", "cloud", "to the cloud (always available)"],
-      ["here", "computer", "to this computer"],
+      ["cloud", "cloud", "To the cloud (always available)"],
+      ["here", "computer", "To this computer"],
     ]);
     expect(phoneDestinations(here, "not-ready").map((d) => [d.id, d.noteKey && t(d.noteKey)])).toEqual([["here", "The cloud shows here once it's ready."]]);
     expect(phoneDestinations(here, null).map((d) => [d.id, d.noteKey])).toEqual([["here", undefined]]);
     const cloud = connectPhoneEntry("cloud", access(admin));
     for (const state of ["ready", "not-ready", null] as const) {
-      expect(phoneDestinations(cloud, state).map((d) => [d.id, t(d.subtitleKey), d.noteKey])).toEqual([["here", "to the cloud", undefined]]);
+      expect(phoneDestinations(cloud, state).map((d) => [d.id, t(d.subtitleKey), d.noteKey])).toEqual([["here", "To the cloud", undefined]]);
       expect(phoneDestinations(connectPhoneEntry("server", access(admin)), state).map((d) => d.id)).toEqual(["here"]);
       expect(phoneDestinations(null, state)).toEqual([]);
     }

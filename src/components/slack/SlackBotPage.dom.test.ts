@@ -58,23 +58,23 @@ describe("a bot's Slack setup", () => {
     workspace.state = "not_connected";
     await mount();
     expect(host.textContent).toContain("Connect a Slack workspace first.");
-    await click("open connections");
+    await click("Open connections");
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "connections" });
-    expect(button("add to Slack")).toBeUndefined();
+    expect(button("Add to Slack")).toBeUndefined();
   });
 
   it("provisions the bot, opens Slack, then offers the fallback link inline", async () => {
     await mount();
     expect(host.textContent).toContain("Scout gets its own Slack app, name and DMs.");
-    await click("add to Slack");
+    await click("Add to Slack");
     expect(fixture.api).toHaveBeenCalledWith("/api/slack/bots/b1/provision", { method: "POST" });
     expect(window.open).toHaveBeenCalledWith(authorizeUrl, "_blank", "noopener,noreferrer");
-    expect(host.textContent).toContain("waiting for Slack…");
+    expect(host.textContent).toContain("Waiting for Slack…");
     expect(host.textContent).toContain("paste the link from the Slack page here");
-    expect(button("continue").disabled).toBe(true);
+    expect(button("Continue").disabled).toBe(true);
     const state = "a".repeat(64);
-    write("link from Slack", `duskbot://slack/oauth?code=fixture-code&state=${state}`);
-    await click("continue");
+    write("Link from Slack", `duskbot://slack/oauth?code=fixture-code&state=${state}`);
+    await click("Continue");
     expect(fixture.api).toHaveBeenCalledWith("/api/slack/oauth", expect.objectContaining({ method: "POST", body: JSON.stringify({ code: "fixture-code", state }) }));
     expect(host.textContent).toContain("One more step.");
   });
@@ -82,8 +82,8 @@ describe("a bot's Slack setup", () => {
   it("shows a provisioned bot's waiting state on reopening", async () => {
     status.state = "provisioned";
     await mount();
-    expect(host.textContent).toContain("waiting for Slack…");
-    expect(button("add to Slack")).toBeTruthy();
+    expect(host.textContent).toContain("Waiting for Slack…");
+    expect(button("Add to Slack")).toBeTruthy();
   });
 
   it("guides the app token step and saves the pasted token", async () => {
@@ -92,20 +92,20 @@ describe("a bot's Slack setup", () => {
     expect(host.textContent).toContain("One more step. Slack has no way to do this for us.");
     expect(host.querySelector("a")?.getAttribute("href")).toBe(status.appTokenUrl);
     expect(host.textContent).toContain("connections:write");
-    expect(button("save").disabled).toBe(true);
-    write("app token", "xapp-fixture");
-    await click("save");
+    expect(button("Save").disabled).toBe(true);
+    write("App token", "xapp-fixture");
+    await click("Save");
     expect(fixture.api).toHaveBeenCalledWith("/api/slack/bots/b1/app-token", { method: "POST", body: JSON.stringify({ token: "xapp-fixture" }) });
-    expect(host.textContent).toContain("online as @scout in Acme");
+    expect(host.textContent).toContain("Online as @scout in Acme");
     expect(host.innerHTML).not.toContain("xapp-fixture");
   });
 
   it("shows online identity, a Slack link and the channel invitation", async () => {
     status.state = "online";
     await mount();
-    expect(host.textContent).toContain("online as @scout in Acme");
+    expect(host.textContent).toContain("Online as @scout in Acme");
     expect(host.textContent).toContain("/invite @scout in each channel Scout should read");
-    await click("open in Slack");
+    await click("Open in Slack");
     expect(window.open).toHaveBeenCalledWith(status.openUrl, "_blank", "noopener,noreferrer");
   });
 
@@ -113,15 +113,15 @@ describe("a bot's Slack setup", () => {
     status.state = "online";
     status.openUrl = "javascript:alert(1)";
     await mount();
-    expect(button("open in Slack")).toBeUndefined();
+    expect(button("Open in Slack")).toBeUndefined();
   });
 
   it("shows offline status and reconnecting copy", async () => {
     status.state = "offline";
     await mount();
-    expect(host.textContent).toContain("offline");
-    expect(host.textContent).toContain("reconnecting to Slack…");
-    expect(button("remove from Slack")).toBeTruthy();
+    expect(host.textContent).toContain("Offline");
+    expect(host.textContent).toContain("Reconnecting to Slack…");
+    expect(button("Remove from Slack")).toBeTruthy();
   });
 
   it("shows the Slack error with a replacement token field and Remove", async () => {
@@ -130,22 +130,22 @@ describe("a bot's Slack setup", () => {
     await mount();
     expect(host.querySelector('[role="alert"]')?.textContent).toBe(status.error);
     expect(host.querySelector('input[type="password"]')).toBeTruthy();
-    expect(button("remove from Slack")).toBeTruthy();
+    expect(button("Remove from Slack")).toBeTruthy();
   });
 
   it("confirms removal inline, can cancel, and only then deletes the app", async () => {
     status.state = "online";
     await mount();
-    await click("remove from Slack");
+    await click("Remove from Slack");
     expect(host.textContent).toContain("Remove Scout from Slack? Its Slack app is deleted.");
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     expect(fixture.api.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
-    await click("cancel");
-    expect(button("remove from Slack")).toBeTruthy();
-    await click("remove from Slack");
-    await click("remove");
+    await click("Cancel");
+    expect(button("Remove from Slack")).toBeTruthy();
+    await click("Remove from Slack");
+    await click("Remove");
     expect(fixture.api).toHaveBeenCalledWith("/api/slack/bots/b1", { method: "DELETE" });
-    expect(button("add to Slack")).toBeTruthy();
+    expect(button("Add to Slack")).toBeTruthy();
   });
 
   it("reloads on an OAuth result for this bot and ignores another bot", async () => {
@@ -165,7 +165,7 @@ describe("a bot's Slack setup", () => {
   it("shows server errors from failed actions", async () => {
     await mount();
     fixture.api.mockRejectedValueOnce(new ApiError("Refused", 422, { error: "Workspace needs reconnecting" }));
-    await click("add to Slack");
+    await click("Add to Slack");
     expect(host.querySelector('[role="alert"]')?.textContent).toBe("Workspace needs reconnecting");
     expect(window.open).not.toHaveBeenCalled();
   });
@@ -186,7 +186,7 @@ describe("a bot's Slack setup", () => {
   it("polls after Add to Slack and stops at installed", async () => {
     await mount();
     vi.useFakeTimers();
-    flushSync(() => button("add to Slack").click());
+    flushSync(() => button("Add to Slack").click());
     await microtasks();
     const before = reads();
     await vi.advanceTimersByTimeAsync(4000);
@@ -245,8 +245,8 @@ describe("a bot's Slack setup", () => {
     await mount();
     const implementation = fixture.api.getMockImplementation()!;
     fixture.api.mockImplementation((path: string, init?: RequestInit) => path === "/api/slack/oauth" ? Promise.reject(new Error("private diagnostic")) : implementation(path, init));
-    write("link from Slack", `duskbot://slack/oauth?code=fixture-code&state=${"a".repeat(64)}`);
-    await click("continue");
+    write("Link from Slack", `duskbot://slack/oauth?code=fixture-code&state=${"a".repeat(64)}`);
+    await click("Continue");
     expect(host.querySelector('[role="alert"]')?.textContent).toBe("Could not update Slack. Try again.");
     expect(host.textContent).not.toContain("private diagnostic");
   });

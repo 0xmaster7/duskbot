@@ -24,7 +24,7 @@ describe("Plan usage presentation", () => {
     const html = renderToStaticMarkup(createElement(PlanUsage));
     expect(html).toContain("68% left");
     expect(html).toContain("70% used");
-    expect(html).toContain("not reported by this plan");
+    expect(html).toContain("Not reported by this plan");
     expect(html).not.toContain("100% left");
     expect(html).toContain('aria-valuenow="32"');
     expect(html).toContain('aria-valuenow="70"');
@@ -42,7 +42,7 @@ describe("Plan usage presentation", () => {
       }],
     };
     const html = renderToStaticMarkup(createElement(PlanUsage));
-    expect(html).toContain("monthly spend");
+    expect(html).toContain("Monthly spend");
     expect(html).toContain("9% used");
     expect(html).toContain("$46.31 of $500.00 spent");
     expect(html).toContain('aria-valuenow="9"');

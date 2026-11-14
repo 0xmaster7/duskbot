@@ -50,17 +50,17 @@ describe("ready-made bots gallery", () => {
   it("shows every ready-made bot with its own Add button", () => {
     render();
     expect(cards()).toEqual(READY_BOTS.map((bot) => bot.id));
-    const labels = [...host.querySelectorAll("button[aria-label^='add ']")].map((add) => add.getAttribute("aria-label"));
+    const labels = [...host.querySelectorAll("button[aria-label^='Add ']")].map((add) => add.getAttribute("aria-label"));
     expect(new Set(labels).size).toBe(READY_BOTS.length);
     expect(host.querySelector(`[data-ready-bot="${READY_BOTS[0]!.id}"]`)?.getAttribute("title")).toBe(READY_BOTS[0]!.description);
   });
 
   it("narrows to a category and back to all", () => {
     render();
-    flushSync(() => button("design").click());
+    flushSync(() => button("Design").click());
     expect(cards()).toEqual(["design-critic"]);
-    expect(button("design").getAttribute("aria-pressed")).toBe("true");
-    flushSync(() => button("all").click());
+    expect(button("Design").getAttribute("aria-pressed")).toBe("true");
+    flushSync(() => button("All").click());
     expect(cards()).toHaveLength(READY_BOTS.length);
   });
 
@@ -73,7 +73,7 @@ describe("ready-made bots gallery", () => {
 
   it("makes the chosen bot in one click, filled in from it", async () => {
     render();
-    flushSync(() => button("add Ledger, Bookkeeper").click());
+    flushSync(() => button("Add Ledger, Bookkeeper").click());
     await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith({ id: "new-bot", name: "Ledger" }));
     expect(opened.props).toBeNull();
     expect(onDialog).not.toHaveBeenCalled();
@@ -84,7 +84,7 @@ describe("ready-made bots gallery", () => {
   it("asks in place before a bot that would approve its own work on this computer, then makes it with that yes", async () => {
     made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
     render();
-    flushSync(() => button("add Ledger, Bookkeeper").click());
+    flushSync(() => button("Add Ledger, Bookkeeper").click());
     await vi.waitFor(() => expect(opened.props?.open).toBe(true));
     expect(made.create).not.toHaveBeenCalled();
     expect(onDialog).toHaveBeenLastCalledWith(true);
@@ -97,7 +97,7 @@ describe("ready-made bots gallery", () => {
   it("on a paired device, which cannot read the host's defaults, makes the bot at once", () => {
     vi.stubGlobal("duskDesktop", { remoteClient: { active: true } });
     render();
-    flushSync(() => button("add Ledger, Bookkeeper").click());
+    flushSync(() => button("Add Ledger, Bookkeeper").click());
     expect(opened.props).toBeNull();
     expect(opened.dispatch).toHaveBeenCalledWith({ type: "newBot", onCreated: onAdded });
   });
@@ -105,7 +105,7 @@ describe("ready-made bots gallery", () => {
   it("gives Templates its keys back when the question is declined, and makes nothing", async () => {
     made.defaults = { profile: { approvalMode: "auto", computer: "local" }, memory: {}, skills: [], routines: [] };
     render();
-    flushSync(() => button("add Quill, Writer and editor").click());
+    flushSync(() => button("Add Quill, Writer and editor").click());
     await vi.waitFor(() => expect(opened.props).not.toBeNull());
     flushSync(() => opened.props!.onCancel());
     expect(onDialog).toHaveBeenLastCalledWith(false);
@@ -118,7 +118,7 @@ describe("ready-made bots gallery", () => {
     const { botLimitShown, closeBotLimit } = await import("@/lib/bot-limit");
     opened.state = { config: { botLimit: 5 }, bots: Array.from({ length: 5 }, () => ({})) };
     render();
-    flushSync(() => button("add Ledger, Bookkeeper").click());
+    flushSync(() => button("Add Ledger, Bookkeeper").click());
     expect(opened.props).toBeNull();
     expect(made.create).not.toHaveBeenCalled();
     expect(botLimitShown()).toBe(true);

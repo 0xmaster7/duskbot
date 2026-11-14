@@ -55,8 +55,8 @@ describe("usage chip", () => {
     expect(usageDetail(usage)).toContain("saída");
     expect(usageChip(usage)).toBe("$0.02");
     expect(usageChip({ ...usage, costUsd: null })).toContain("entrada");
-    expect(costCaption("subscription")).toBe("equivalente — está na sua assinatura, não é cobrado");
-    expect(costCaption(undefined)).toBe("conforme informado pelo provedor");
+    expect(costCaption("subscription")).toBe("Equivalente — está na sua assinatura, não é cobrado");
+    expect(costCaption(undefined)).toBe("Conforme informado pelo provedor");
   });
 });
 
@@ -66,6 +66,6 @@ describe("reply quote", () => {
     const fromUser = { id: "m", at: 1, role: "user", kind: "text" } as Message;
     expect(replyAuthor(fromUser)).toBe("Você");
     expect(replyAuthor({ ...fromUser, role: "bot" } as Message)).toBe("Assistente");
-    expect(replySnippet('<attached-image path="/tmp/a.png" />')).toBe("[imagem]");
+    expect(replySnippet('<attached-image path="/tmp/a.png" />')).toBe("[Imagem]");
   });
 });

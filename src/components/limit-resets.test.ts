@@ -104,7 +104,7 @@ describe("the words", () => {
     const automation = { kind: "schedule" as const, name: "Report", instructions: "Finish the report.", schedule: { type: "limit_reset" as const, engine: "claude", repeat: "once" as const, at: null } };
     expect(automationSentence(automation, "Scout")).toBe("When your Claude limit resets, Scout finishes the report");
     expect(automationSentence({ ...automation, schedule: { ...automation.schedule, repeat: "every_reset" } }, "Scout")).toBe("Each time your Claude limit resets, Scout finishes the report");
-    expect(statusLine({ ...automation, id: "r", botId: "scout", enabled: true, nextRunAt: null, runs: [] }, NOW)).toContain("runs when the limit resets (time not known yet)");
+    expect(statusLine({ ...automation, id: "r", botId: "scout", enabled: true, nextRunAt: null, runs: [] }, NOW)).toContain("Runs when the limit resets (time not known yet)");
     expect(isDone({ schedule: { ...automation.schedule, at: NOW - 1 } }, NOW)).toBe(true);
     expect(isDone({ schedule: { ...automation.schedule, at: null } }, NOW)).toBe(false);
   });
@@ -191,8 +191,8 @@ describe("the bars", () => {
     hover(spot, "mouse");
     await wait(HOVER_MS);
     const card = document.querySelector<HTMLElement>("[data-usage-card]")!;
-    expect([...card.querySelectorAll("[data-usage-row]")].map((row) => row.textContent)).toEqual(["5-hour62% leftResets 3:40 PM", "weekly20% leftResets Mon 9:00 AM"]);
-    expect(card.textContent).not.toContain("check again");
+    expect([...card.querySelectorAll("[data-usage-row]")].map((row) => row.textContent)).toEqual(["5-hour62% leftResets 3:40 PM", "Weekly20% leftResets Mon 9:00 AM"]);
+    expect(card.textContent).not.toContain("Check again");
     leave(spot);
     await wait(HOVER_MS);
     expect(document.querySelector("[data-usage-card]")).toBeNull();

@@ -66,27 +66,27 @@ const textButton = (label: string) => render().nodes.filter(n => n.type === "but
 type Dialog = ReactElement<{ children?: ReactNode; onSave?: () => unknown; onClose?: () => void; "data-panel-modal"?: string }>;
 const dialog = (id: string) => render().nodes.find(n => (n as unknown as Dialog).props["data-panel-modal"] === id) as unknown as Dialog | undefined;
 const navRow = (title: string) => render().nodes.find(n => (n.props as { title?: unknown }).title === title && typeof n.props.onClick === "function");
-const openCreate = async () => { navRow("new environment")!.props.onClick!(); await mount(); };
+const openCreate = async () => { navRow("New environment")!.props.onClick!(); await mount(); };
 const envFormFields = () => nodes(dialog("new-environment")!.props.children).filter(n => n.type === "input");
 const submitCreate = () => dialog("new-environment")!.props.onSave!();
-const switchRow = () => render().nodes.find(n => (n.props as { title?: unknown }).title === "also delete this folder") as unknown as ReactElement<{ onChange: () => void }> | undefined;
+const switchRow = () => render().nodes.find(n => (n.props as { title?: unknown }).title === "Also delete this folder") as unknown as ReactElement<{ onChange: () => void }> | undefined;
 
 it("lists local environments with their folders above the servers, marking a missing one", async () => {
   await stubEnvironments(); await mount();
   const { html } = render();
-  expect(html).toContain("environments on this computer");
-  expect(html).toContain("your servers");
-  expect(html.indexOf("environments on this computer")).toBeLessThan(html.indexOf("your servers"));
+  expect(html).toContain("Environments on this computer");
+  expect(html).toContain("Your servers");
+  expect(html.indexOf("Environments on this computer")).toBeLessThan(html.indexOf("Your servers"));
   expect(html).toContain("/home/me/.duskbot-work");
-  expect(html.match(/>missing</g)).toHaveLength(1);
+  expect(html.match(/>Missing</g)).toHaveLength(1);
   expect(html).toContain("https://bots.example.test");
 });
 
 it("hides local environments and the create form in a dev build", async () => {
   await stubEnvironments({ packaged: false }); await mount();
   const { html } = render();
-  expect(html).not.toContain("environments on this computer");
-  expect(html).not.toContain("new environment");
+  expect(html).not.toContain("Environments on this computer");
+  expect(html).not.toContain("New environment");
   expect(html).not.toContain("/home/me/.duskbot-work");
 });
 
@@ -117,11 +117,11 @@ it("creates an environment with the chosen folder, and without one when the fiel
   expect((dialog("new-environment")!.props as { error?: unknown }).error).toBe("Couldn't create the environment. Check the data folder, then try again.");
 });
 
-it('"choose…" fills the folder field from the native picker', async () => {
+it('"Choose…" fills the folder field from the native picker', async () => {
   stubEnvironments({}, { pickDir: vi.fn().mockResolvedValue({ ok: true, path: "/picked/dir" }) });
   await mount();
   await openCreate();
-  textButton("choose…")!.props.onClick!();
+  textButton("Choose…")!.props.onClick!();
   await flush();
   expect(envFormFields()[1]!.props.value).toBe("/picked/dir");
 });
@@ -129,19 +129,19 @@ it('"choose…" fills the folder field from the native picker', async () => {
 it("asks what to do with the folder when forgetting a local environment, and deletes only when asked", async () => {
   const environments = stubEnvironments();
   await mount();
-  rowButton("forget Old")!.props.onClick!();
+  rowButton("Forget Old")!.props.onClick!();
   await mount();
   expect(switchRow()).toBeDefined();
   dialog("forget-environment")!.props.onClose!();
   await mount();
   expect(switchRow()).toBeUndefined();
   expect(environments.forget).not.toHaveBeenCalled();
-  rowButton("forget Work")!.props.onClick!();
+  rowButton("Forget Work")!.props.onClick!();
   await mount();
   dialog("forget-environment")!.props.onSave!();
   await flush();
   expect(environments.forget.mock.calls).toEqual([["env-1"]]);
-  rowButton("forget Old")!.props.onClick!();
+  rowButton("Forget Old")!.props.onClick!();
   await mount();
   switchRow()!.props.onChange();
   await mount();
@@ -155,17 +155,17 @@ it("confirms before switching to a local environment, and a failed switch says o
   asked.confirm = confirm;
   const environments = stubEnvironments({}, { switch: vi.fn().mockResolvedValue({ ok: true }) });
   await mount();
-  rowButton("switch to Work")!.props.onClick!();
+  rowButton("Switch to Work")!.props.onClick!();
   await flush();
   expect(confirm).toHaveBeenCalled();
-  expect(confirm.mock.calls[0][0]).toMatchObject({ title: "switch to Work?", body: "The app restarts there. Running turns stop.", confirmLabel: "switch" });
+  expect(confirm.mock.calls[0][0]).toMatchObject({ title: "Switch to Work?", body: "The app restarts there. Running turns stop.", confirmLabel: "Switch" });
   expect(environments.switch).not.toHaveBeenCalled();
   confirm.mockResolvedValue(true);
-  rowButton("switch to Work")!.props.onClick!();
+  rowButton("Switch to Work")!.props.onClick!();
   await flush();
   expect(environments.switch).toHaveBeenCalledWith("env-1");
   environments.switch.mockResolvedValueOnce({ ok: false, error: "busy" });
-  rowButton("switch to Old")!.props.onClick!();
+  rowButton("Switch to Old")!.props.onClick!();
   await flush();
   expect(environments.switch).toHaveBeenCalledWith("env-2");
   expect(render().html).toContain("Couldn't switch environments. Try again.");
@@ -174,7 +174,7 @@ it("confirms before switching to a local environment, and a failed switch says o
 it("a failed forget keeps the panel honest: one generic error, no crash", async () => {
   const environments = stubEnvironments({}, { forget: vi.fn().mockResolvedValue({ ok: false, error: "purge" }) });
   await mount();
-  rowButton("forget Work")!.props.onClick!();
+  rowButton("Forget Work")!.props.onClick!();
   await mount();
   dialog("forget-environment")!.props.onSave!();
   await flush();
@@ -186,8 +186,8 @@ it("a failed forget keeps the panel honest: one generic error, no crash", async 
 it("offers no Forget for the environment this app is on", async () => {
   await stubEnvironments({ activeId: "env-1" }); await mount();
   const { html } = render();
-  expect(html).not.toContain('aria-label="forget Work"');
-  expect(html).toContain('aria-label="forget Old"');
+  expect(html).not.toContain('aria-label="Forget Work"');
+  expect(html).toContain('aria-label="Forget Old"');
 });
 
 it("shows local environment controls in Simplified Chinese", async () => {

@@ -52,59 +52,59 @@ afterEach(() => { act(() => root.unmount()); host.remove(); document.body.replac
 describe("shared with the cloud", () => {
   it("says what sharing does, shows nothing shared yet, and always offers Add a folder", async () => {
     await mount();
-    expect(page()).toContain("shared with the cloud");
+    expect(page()).toContain("Shared with the cloud");
     expect(page()).toContain("Cloud bots can use these folders, even when this computer is off. They change files here only in folders you let them edit.");
     expect(page()).toContain("Nothing shared yet.");
-    expect(button("add a folder")).toBeTruthy();
+    expect(button("Add a folder")).toBeTruthy();
     expect(page()).not.toMatch(/sync/i);
   });
 
   it("gives each folder one status line, with the next step only where one is needed", async () => {
     await mount({ ...base, shared: [folder("synced"), folder("copying"), folder("waiting"), folder("confirm-deletes"), folder("missing"), folder("problem", { problem: "My Cloud's disk had an error." })] });
-    expect(row("synced").textContent).toContain("up to date");
-    expect(row("copying").textContent).toContain("copying… 400 of 1,200");
-    expect(row("waiting").textContent).toContain("waiting for room in the cloud");
+    expect(row("synced").textContent).toContain("Up to date");
+    expect(row("copying").textContent).toContain("Copying… 400 of 1,200");
+    expect(row("waiting").textContent).toContain("Waiting for room in the cloud");
     expect(row("confirm-deletes").textContent).toContain("3 files were removed from this folder here. Remove them from the cloud too?");
     expect(row("missing").textContent).toContain("Can't find this folder. Was it moved?");
     expect(row("problem").textContent).toContain("My Cloud's disk had an error.");
-    for (const status of ["synced", "copying", "problem"]) expect(buttons(row(status)).map((node) => node.getAttribute("aria-label"))).toEqual([`more for Folder ${status}`]);
-    await click("get more space", row("waiting"));
+    for (const status of ["synced", "copying", "problem"]) expect(buttons(row(status)).map((node) => node.getAttribute("aria-label"))).toEqual([`More for Folder ${status}`]);
+    await click("Get more space", row("waiting"));
     expect(bridge.moreSpace).toHaveBeenCalledOnce();
-    await click("keep them", row("confirm-deletes"));
+    await click("Keep them", row("confirm-deletes"));
     expect(bridge.answerDeletes).toHaveBeenLastCalledWith("f-confirm-deletes", false);
     await mount({ ...base, shared: [folder("confirm-deletes", { pendingDeletes: 1 }), folder("missing")] });
     expect(row("confirm-deletes").textContent).toContain("1 file was removed from this folder here. Remove it from the cloud too?");
-    await click("remove from the cloud", row("confirm-deletes"));
+    await click("Remove from the cloud", row("confirm-deletes"));
     expect(bridge.answerDeletes).toHaveBeenLastCalledWith("f-confirm-deletes", true);
   });
 
   it("finds a moved folder, or stops sharing it after saying what that does", async () => {
     bridge.locate.mockResolvedValue({ ...base, shared: [folder("missing")] });
     await mount({ ...base, shared: [folder("missing")] });
-    await click("find it", row("missing"));
+    await click("Find it", row("missing"));
     expect(bridge.locate).toHaveBeenCalledWith("f-missing");
-    await click("stop sharing", row("missing"));
-    expect(dialog()?.textContent).toContain("stop sharing “Folder missing”?");
+    await click("Stop sharing", row("missing"));
+    expect(dialog()?.textContent).toContain("Stop sharing “Folder missing”?");
     expect(dialog()?.textContent).toContain("The cloud's copy goes to its trash for 30 days.");
-    await click("cancel", dialog()!);
+    await click("Cancel", dialog()!);
     expect(dialog()).toBeNull();
     expect(bridge.stopSharing).not.toHaveBeenCalled();
-    await click("stop sharing", row("missing"));
-    await click("stop sharing", dialog()!);
+    await click("Stop sharing", row("missing"));
+    await click("Stop sharing", dialog()!);
     expect(bridge.stopSharing).toHaveBeenCalledExactlyOnceWith("f-missing");
     expect(page()).toContain("Nothing shared yet.");
   });
 
   it("the ⋯ menu opens the folder here or stops sharing it", async () => {
     await mount({ ...base, shared: [folder("synced")] });
-    await click("more for Folder synced");
-    expect(Array.from(document.querySelectorAll('[role="menuitem"]')).map((node) => node.textContent)).toEqual(["open on this computer", "stop sharing"]);
-    await click("open on this computer");
+    await click("More for Folder synced");
+    expect(Array.from(document.querySelectorAll('[role="menuitem"]')).map((node) => node.textContent)).toEqual(["Open on this computer", "Stop sharing"]);
+    await click("Open on this computer");
     expect(bridge.open).toHaveBeenCalledWith({ folderId: "f-synced" });
     expect(document.querySelector('[role="menu"]')).toBeNull();
-    await click("more for Folder synced");
+    await click("More for Folder synced");
     await act(async () => (document.querySelector('[role="menuitem"]:last-child') as HTMLElement).click());
-    expect(dialog()?.textContent).toContain("stop sharing “Folder synced”?");
+    expect(dialog()?.textContent).toContain("Stop sharing “Folder synced”?");
   });
 
   it("shows how full My Cloud is, and offers more space when it is almost full", async () => {
@@ -115,7 +115,7 @@ describe("shared with the cloud", () => {
     await act(async () => emit({ ...base, disk: { ...disk, usedBytes: 9 * GB, freeBytes: GB, warn: true } }));
     expect(page()).toContain("9 GB of 10 GB used in the cloud");
     expect(page()).toContain("The cloud is almost full.");
-    await click("get more space");
+    await click("Get more space");
     expect(bridge.moreSpace).toHaveBeenCalledOnce();
   });
 });
@@ -124,7 +124,7 @@ describe("add a folder", () => {
   it("does nothing when the picker is cancelled", async () => {
     bridge.pickFolder.mockResolvedValue(null);
     await mount();
-    await click("add a folder");
+    await click("Add a folder");
     expect(bridge.pickFolder).toHaveBeenCalledOnce();
     expect(dialog()).toBeNull();
     expect(bridge.share).not.toHaveBeenCalled();
@@ -134,15 +134,15 @@ describe("add a folder", () => {
     bridge.pickFolder.mockResolvedValue(check("Plans"));
     bridge.share.mockResolvedValue({ ...base, shared: [folder("copying", { name: "Plans" })] });
     await mount();
-    await click("add a folder");
-    expect(dialog()?.textContent).toContain("share “Plans” with the cloud?");
+    await click("Add a folder");
+    expect(dialog()?.textContent).toContain("Share “Plans” with the cloud?");
     expect(dialog()?.textContent).toContain("120 files · 3 MB. The cloud keeps a synced copy its bots can read.");
-    await click("cancel", dialog()!);
+    await click("Cancel", dialog()!);
     expect(bridge.share).not.toHaveBeenCalled();
     bridge.pickFolder.mockResolvedValue(check("Plans", { files: 50_000, partial: true }));
-    await click("add a folder");
+    await click("Add a folder");
     expect(dialog()?.textContent).toContain("more than 50,000 files · 3 MB.");
-    await click("share", dialog()!);
+    await click("Share", dialog()!);
     expect(bridge.share).toHaveBeenCalledExactlyOnceWith("t-Plans");
     expect(dialog()).toBeNull();
     expect(row("copying").textContent).toContain("Plans");
@@ -157,7 +157,7 @@ describe("add a folder", () => {
   ] as const)("a refused folder (%s) gets one plain sentence and only OK", async (refusal, sentence) => {
     bridge.pickFolder.mockResolvedValue(check("Home", { refusal: refusal as FolderCheck["refusal"] }));
     await mount();
-    await click("add a folder");
+    await click("Add a folder");
     expect(dialog()?.textContent).toBe(`${sentence}OK`);
     expect(buttons(dialog()!).map((node) => node.textContent)).toEqual(["OK"]);
     await click("OK", dialog()!);
@@ -169,11 +169,11 @@ describe("add a folder", () => {
     bridge.pickFolder.mockResolvedValue(check("Plans"));
     bridge.share.mockRejectedValue(new Error("Error invoking remote method 'files:share': Error: My Cloud is full.\n    at share (cloud-sync.mjs:1:1)"));
     await mount();
-    await click("add a folder");
-    await click("share", dialog()!);
-    expect(document.querySelector('[role="alert"]')?.textContent).toBe("that didn't work: My Cloud is full.");
+    await click("Add a folder");
+    await click("Share", dialog()!);
+    expect(document.querySelector('[role="alert"]')?.textContent).toBe("That didn't work: My Cloud is full.");
     bridge.pickFolder.mockRejectedValue(new Error(""));
-    await click("add a folder");
+    await click("Add a folder");
     expect(document.querySelector('[role="alert"]')?.textContent).toBe("That didn't work. Try again.");
   });
 });
@@ -182,15 +182,15 @@ describe("your bots' work", () => {
   it("switches saving what Cloud bots make, says where it goes, and opens that folder", async () => {
     bridge.setOutputs.mockResolvedValue({ ...base, outputs: { ...base.outputs, enabled: true } });
     await mount();
-    expect(page()).toContain("save what cloud bots make to this computer");
+    expect(page()).toContain("Save what cloud bots make to this computer");
     expect(page()).toContain("In documents › dusk, one folder for each bot.");
-    expect(button("open folder")).toBeUndefined();
+    expect(button("Open folder")).toBeUndefined();
     const toggle = document.querySelector<HTMLButtonElement>('[role="switch"]')!;
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     await act(async () => toggle.click());
     expect(bridge.setOutputs).toHaveBeenCalledWith(true);
     expect(document.querySelector('[role="switch"]')!.getAttribute("aria-checked")).toBe("true");
-    await click("open folder");
+    await click("Open folder");
     expect(bridge.open).toHaveBeenCalledWith({ outputs: true });
     await act(async () => emit({ ...base, outputs: { ...base.outputs, enabled: true, problem: "Documents › Dusk is full." } }));
     expect(page()).toContain("Documents › Dusk is full.");

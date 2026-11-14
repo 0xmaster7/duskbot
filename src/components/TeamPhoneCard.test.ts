@@ -40,22 +40,22 @@ afterEach(() => {
   host.remove();
 });
 
-describe("open on your phone, on a Team Cloud: the phones it opened", () => {
+describe("Open on your phone, on a Team Cloud: the phones it opened", () => {
   it("lists the paired phone under the code as its device and its member, with Remove", async () => {
     flushSync(() => root.render(createElement(TeamPhoneCard, { team: "Acme" })));
     await vi.waitFor(() => expect(rows()).toHaveLength(1));
     expect(fixture.api).toHaveBeenCalledWith("/api/team/phones");
     expect(rows()[0]).toContain("Ada's iPhone · ada@acme.test");
-    expect(rows()[0]).toContain("seen 3 min ago");
-    expect(host.textContent).toContain("paired devices");
-    expect(removeButtons().map((button) => button.textContent)).toEqual(["remove"]);
+    expect(rows()[0]).toContain("Seen 3 min ago");
+    expect(host.textContent).toContain("Paired devices");
+    expect(removeButtons().map((button) => button.textContent)).toEqual(["Remove"]);
   });
 
   it("shows every phone the server lists for an admin, each with Remove, and removing one signs it out and drops it", async () => {
     fixture.phones = [phone("ph-ada", "Ada's iPhone", "ada@acme.test"), phone("ph-cleo", "Cleo's Pixel", "cleo@acme.test")];
     flushSync(() => root.render(createElement(TeamPhoneCard, { team: "Acme" })));
     await vi.waitFor(() => expect(rows()).toHaveLength(2));
-    expect(rows().map((row) => row.split(" · seen")[0])).toEqual(["Ada's iPhone · ada@acme.test", "Cleo's Pixel · cleo@acme.test"]);
+    expect(rows().map((row) => row.split(" · Seen")[0])).toEqual(["Ada's iPhone · ada@acme.test", "Cleo's Pixel · cleo@acme.test"]);
     flushSync(() => removeButtons()[1]!.click());
     await vi.waitFor(() => expect(rows()).toHaveLength(1));
     expect(fixture.api).toHaveBeenCalledWith("/api/team/phones/ph-cleo", { method: "DELETE" });
@@ -66,7 +66,7 @@ describe("open on your phone, on a Team Cloud: the phones it opened", () => {
     fixture.current = "ph-ada";
     flushSync(() => root.render(createElement(TeamPhoneCard, { team: "Acme" })));
     await vi.waitFor(() => expect(rows()).toHaveLength(1));
-    expect(rows()[0]).toContain("this browser");
+    expect(rows()[0]).toContain("This browser");
     expect(removeButtons()).toEqual([]);
   });
 

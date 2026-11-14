@@ -58,7 +58,7 @@ it("one round button like search and +: the place's icon, an online dot, and its
   expect(control.className).toContain("rounded-full");
   expect(control.className).toContain("size-9");
   expect(control.getAttribute("aria-haspopup")).toBe("menu");
-  expect(control.getAttribute("aria-label")).toBe("switch server: This computer · online");
+  expect(control.getAttribute("aria-label")).toBe("Switch server: This computer · Online");
   expect(control.querySelector("[data-icon-name]")?.getAttribute("data-icon-name")).toBe("laptop");
   expect(control.querySelector("[data-place-dot]")?.className).toContain("bg-success");
 });
@@ -76,14 +76,14 @@ it("a server connected by hand shows the server icon and its address in the tool
   await mount();
   expect(button()!.getAttribute("data-place-kind")).toBe("server");
   expect(button()!.querySelector("[data-icon-name]")?.getAttribute("data-icon-name")).toBe("server");
-  expect(button()!.title).toBe("Office · online · https://office.example.test");
+  expect(button()!.title).toBe("Office · Online · https://office.example.test");
 });
 
 it("offline once the network goes, said in words as well as the dot", async () => {
   await mount();
   await act(async () => { window.dispatchEvent(new Event("offline")); });
   expect(button()!.getAttribute("data-place-status")).toBe("offline");
-  expect(button()!.getAttribute("aria-label")).toBe("switch server: This computer · offline");
+  expect(button()!.getAttribute("aria-label")).toBe("Switch server: This computer · Offline");
   expect(button()!.querySelector("[data-place-dot]")?.className).toContain("bg-danger");
   await act(async () => { window.dispatchEvent(new Event("online")); });
   expect(button()!.getAttribute("data-place-status")).toBe("online");
@@ -120,7 +120,7 @@ it("⌘K finds it as switch place, or by typing workspace, and opens the same na
   const input = host.querySelector<HTMLInputElement>("input")!;
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
   await act(async () => { setter.call(input, "workspace"); input.dispatchEvent(new Event("input", { bubbles: true })); });
-  const row = [...host.querySelectorAll("button")].find((entry) => entry.textContent?.includes("switch place"));
+  const row = [...host.querySelectorAll("button")].find((entry) => entry.textContent?.includes("Switch place"));
   expect(row).toBeTruthy();
   await act(async () => { row!.click(); await Promise.resolve(); });
   expect(workspaces.menu).toHaveBeenCalledTimes(1);

@@ -42,7 +42,7 @@ describe("call capability guidance", () => {
       reasonCode: "remote-server",
     }), false, false);
     expect(help).toEqual({
-      label: "calls where you take turns work with bots on this Mac",
+      label: "Calls where you take turns work with bots on this Mac",
       reason: "They listen with your Mac's own speech recognition, which only bots on this Mac can use.",
     });
     expect(help).not.toHaveProperty("action");
@@ -56,7 +56,7 @@ describe("call capability guidance", () => {
       reasonCode: "remote-server",
     }, platform), false, false);
     expect(help).toEqual({
-      label: "calls where you take turns work with bots on this computer",
+      label: "Calls where you take turns work with bots on this computer",
       reason: "They listen from this computer's own window, so only bots on this computer can use them.",
     });
   });
@@ -69,7 +69,7 @@ describe("call capability guidance", () => {
       reasonCode: "desktop-app-required",
     }, "other"), false, false);
     expect(help).toEqual({
-      label: "calls where you take turns need the desktop app",
+      label: "Calls where you take turns need the desktop app",
       reason: "They listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.",
     });
   });
@@ -81,14 +81,14 @@ describe("call capability guidance", () => {
       onDevice: false,
       reasonCode: "unsupported-platform",
     }, "win32"), false, false);
-    expect(help?.label).toBe("calls where you take turns need the desktop app");
+    expect(help?.label).toBe("Calls where you take turns need the desktop app");
     expect(help).not.toHaveProperty("action");
   });
 
   it("keeps Take turns off on Windows until a Fish Audio key is saved, and says where to add one", () => {
     const fish = capabilities({ available: true, engine: "fish-audio", onDevice: false }, "win32");
     expect(callCapabilityHelp(fish, true, false)).toEqual({
-      label: "add a Fish Audio key to take turns on calls",
+      label: "Add a Fish Audio key to take turns on calls",
       reason: "On this computer, take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in settings → API keys.",
     });
     expect(callCapabilityHelp(fish, true, true)).toBeNull();
@@ -100,7 +100,7 @@ describe("call capability guidance", () => {
       engine: "apple-speech",
       onDevice: true,
     }), false, false)).toEqual({
-      label: "calls aren't available right now",
+      label: "Calls aren't available right now",
       reason: "The speech service is unavailable in this app build. Restart or update dusk bot.",
     });
   });

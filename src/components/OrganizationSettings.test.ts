@@ -105,7 +105,7 @@ describe("optional desktop Organisation settings", () => {
   it("keeps the panel usable if its native destination acknowledgment fails", async () => {
     vi.mocked(bridge.settingsOpened!).mockRejectedValueOnce(new Error("fixture write failure"));
     await ready();
-    expect(render().html).toContain("sign in with your organization");
+    expect(render().html).toContain("Sign in with your organization");
     expect(bridge.begin).not.toHaveBeenCalled();
   });
 
@@ -113,15 +113,15 @@ describe("optional desktop Organisation settings", () => {
     await ready();
     let view = render();
     expect(view.html).toContain("https://dusk.bot");
-    expect(view.html).toContain("sign in with your organization");
+    expect(view.html).toContain("Sign in with your organization");
     // a custom portal is its own row, its address only in that row's dialog
     expect(view.html).toContain('data-settings-open="organization-custom"');
-    expect(view.html).toContain("advanced");
+    expect(view.html).toContain("Advanced");
     expect(view.html).not.toContain("<input");
     expect(view.html).toContain("personal and local models");
     expect(view.html).toContain("does not upload your chat history");
     expect(bridge.begin).not.toHaveBeenCalled();
-    const signIn = () => view.nodes.find(node => node.type === "button" && node.props.children === "sign in with your organization")!.props.onClick!();
+    const signIn = () => view.nodes.find(node => node.type === "button" && node.props.children === "Sign in with your organization")!.props.onClick!();
     signIn(); signIn(); await flush();
     expect(bridge.begin).toHaveBeenCalledExactlyOnceWith({ portalOrigin: "https://dusk.bot" });
     expect(fetch).not.toHaveBeenCalled();
@@ -129,13 +129,13 @@ describe("optional desktop Organisation settings", () => {
     expect(progress).toContain("Finish signing in through your browser");
     expect(progress).toContain("connect automatically");
     // the verification code waits behind Security details
-    expect(progress).toContain("security details");
+    expect(progress).toContain("Security details");
     expect(progress).not.toContain("ABCDE-FGHIJ");
     expect(progress).not.toContain("admin.example.test/enroll");
     const opener = (id: string) => render().nodes.find(node => (node.props as Record<string, unknown>)["data-settings-open"] === id)!;
     opener("organization-security").props.onClick!();
     expect(render().html).toContain("ABCDE-FGHIJ");
-    button("cancel sign-in").props.onClick!(); await flush();
+    button("Cancel sign-in").props.onClick!(); await flush();
     expect(bridge.cancelEnrollment).toHaveBeenCalledOnce();
     opener("organization-custom").props.onClick!();
     view = render();
@@ -149,34 +149,34 @@ describe("optional desktop Organisation settings", () => {
     await ready(connected);
     const html = render().html;
     expect(html).toContain("Fixture Company"); expect(html).toContain("employee@example.test");
-    expect(html).toContain("approved models: 2"); expect(html).toContain("not configured");
-    button("refresh").props.onClick!(); await flush(); expect(bridge.refresh).toHaveBeenCalledOnce();
-    button("disconnect…").props.onClick!();
+    expect(html).toContain("Approved models: 2"); expect(html).toContain("Not configured");
+    button("Refresh").props.onClick!(); await flush(); expect(bridge.refresh).toHaveBeenCalledOnce();
+    button("Disconnect…").props.onClick!();
     expect(bridge.disconnect).not.toHaveBeenCalled();
     expect(render().html).toContain("stops running company turns");
     expect(render().html).toContain("will not switch to personal billing");
-    button("keep connection").props.onClick!(); expect(bridge.disconnect).not.toHaveBeenCalled();
-    button("disconnect…").props.onClick!();
-    button("disconnect from organization").props.onClick!(); await flush();
+    button("Keep connection").props.onClick!(); expect(bridge.disconnect).not.toHaveBeenCalled();
+    button("Disconnect…").props.onClick!();
+    button("Disconnect from organization").props.onClick!(); await flush();
     expect(bridge.disconnect).toHaveBeenCalledOnce();
-    expect(render().html).toContain("sign in with your organization");
+    expect(render().html).toContain("Sign in with your organization");
   });
 
   it("requires disconnect before reconnecting revoked access and does not promise cloud backups", async () => {
     await ready({ ...connected, status: "reauth-required", cloudBackups: true });
     const html = render().html;
     expect(html).toContain("Disconnect below, then sign in again");
-    expect(html).not.toContain("sign in with your organization");
-    expect(html).not.toContain("approved models:");
+    expect(html).not.toContain("Sign in with your organization");
+    expect(html).not.toContain("Approved models:");
     expect(html).not.toContain("backup");
-    expect(button("refresh")).toBeUndefined();
-    button("disconnect…").props.onClick!(); button("disconnect from organization").props.onClick!(); await flush();
-    expect(render().html).toContain("sign in with your organization");
+    expect(button("Refresh")).toBeUndefined();
+    button("Disconnect…").props.onClick!(); button("Disconnect from organization").props.onClick!(); await flush();
+    expect(render().html).toContain("Sign in with your organization");
   });
 
   it("reopens only the pending sign-in page, with nothing supplied by the panel", async () => {
     await ready(connecting);
-    const reopen = () => button("open the sign-in page again");
+    const reopen = () => button("Open the sign-in page again");
     reopen().props.onClick!(); reopen().props.onClick!(); await flush();
     expect(bridge.reopen).toHaveBeenCalledOnce();
     expect(bridge.reopen).toHaveBeenCalledWith();
@@ -184,7 +184,7 @@ describe("optional desktop Organisation settings", () => {
     expect(render().html).toContain("Finish signing in through your browser");
     delete bridge.reopen;
     expect(reopen()).toBeUndefined();
-    expect(button("cancel sign-in")).toBeDefined();
+    expect(button("Cancel sign-in")).toBeDefined();
   });
 
   it("switches only bots that cannot run, and disconnecting leaves personal selections untouched", async () => {
@@ -198,9 +198,9 @@ describe("optional desktop Organisation settings", () => {
     fixture.store.bots = [bot("personal-bot", "personal"), bot("stuck-bot", "missing")];
     await ready(connected);
     expect(fixture.store.dispatch).not.toHaveBeenCalled();
-    button("use Company · Fixture Company · Claude for 1 bot that can’t run").props.onClick!(); await flush();
+    button("Use Company · Fixture Company · Claude for 1 bot that can’t run").props.onClick!(); await flush();
     expect(fixture.store.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "setModel", botId: "stuck-bot", selection: { instanceId: "company.fixture.anthropic", model: "model-a" } });
-    button("disconnect…").props.onClick!(); button("disconnect from organization").props.onClick!(); await flush();
+    button("Disconnect…").props.onClick!(); button("Disconnect from organization").props.onClick!(); await flush();
     expect(bridge.disconnect).toHaveBeenCalledOnce();
     expect(fixture.store.dispatch).toHaveBeenCalledOnce();
     expect(fixture.store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ botId: "personal-bot" }));
@@ -211,17 +211,17 @@ describe("optional desktop Organisation settings", () => {
     const html = render().html;
     expect(html).toContain("Your organization&#x27;s dusk bot admin license has expired. Contact your admin.");
     expect(html).not.toContain("Disconnect below, then sign in again");
-    expect(html).not.toContain("sign in with your organization");
-    expect(html).toContain("unavailable until the licence is renewed");
-    expect(html).not.toContain("approved models:");
-    expect(button("refresh")).toBeDefined(); expect(button("disconnect…")).toBeDefined();
+    expect(html).not.toContain("Sign in with your organization");
+    expect(html).toContain("Unavailable until the licence is renewed");
+    expect(html).not.toContain("Approved models:");
+    expect(button("Refresh")).toBeDefined(); expect(button("Disconnect…")).toBeDefined();
   });
 
   it("says so when a sign-in finds the Admin licence expired", async () => {
     await ready({ status: "signed-out", notice: "license-expired" });
     const html = render().html;
     expect(html).toContain("license has expired. Contact your admin.");
-    expect(html).toContain("sign in with your organization");
+    expect(html).toContain("Sign in with your organization");
   });
 
   it("keeps newer broadcast state when an initial snapshot or action resolves late", async () => {
@@ -232,7 +232,7 @@ describe("optional desktop Organisation settings", () => {
     expect(render().html).toContain("Fixture Company");
     let resolveRefresh!: (state: ManagedDesktopState) => void;
     vi.mocked(bridge.refresh).mockImplementation(() => new Promise(resolve => { resolveRefresh = resolve; }));
-    button("refresh").props.onClick!();
+    button("Refresh").props.onClick!();
     push({ ...connected, status: "reauth-required" }); resolveRefresh(connected); await flush();
     expect(render().html).toContain("Disconnect below, then sign in again");
   });
@@ -241,7 +241,7 @@ describe("optional desktop Organisation settings", () => {
     const cleanup = await ready();
     let resolveBegin!: (state: ManagedDesktopState) => void;
     vi.mocked(bridge.begin).mockImplementation(() => new Promise(resolve => { resolveBegin = resolve; }));
-    button("sign in with your organization").props.onClick!();
+    button("Sign in with your organization").props.onClick!();
     if (typeof cleanup === "function") cleanup();
     push(connected); resolveBegin(connecting); await flush();
     expect(unsubscribe).toHaveBeenCalledOnce();
@@ -270,7 +270,7 @@ describe("optional desktop Organisation settings", () => {
   it("keeps an action error across same-status heartbeats and clears it after a real status change", async () => {
     await ready(connected);
     vi.mocked(bridge.refresh).mockRejectedValueOnce(new Error("Fixture refresh failure"));
-    button("refresh").props.onClick!(); await flush();
+    button("Refresh").props.onClick!(); await flush();
     expect(render().html).toContain("Could not complete this action");
 
     expect(() => push({ ...connected, providers: [] })).not.toThrow();
@@ -283,17 +283,17 @@ describe("optional desktop Organisation settings", () => {
 
   it("can clear an unavailable saved connection instead of trapping the user behind retry", async () => {
     await ready({ ...connected, status: "unavailable" });
-    expect(render().html).not.toContain("approved models:");
-    expect(button("refresh")).toBeDefined();
-    button("disconnect…").props.onClick!(); button("disconnect from organization").props.onClick!(); await flush();
+    expect(render().html).not.toContain("Approved models:");
+    expect(button("Refresh")).toBeDefined();
+    button("Disconnect…").props.onClick!(); button("Disconnect from organization").props.onClick!(); await flush();
     expect(bridge.disconnect).toHaveBeenCalledOnce();
-    expect(render().html).toContain("sign in with your organization");
+    expect(render().html).toContain("Sign in with your organization");
   });
 
   it.each([{}, { duskDesktop: { remoteClient: { active: true } } }])("has no sign-in controls without the local desktop bridge", (windowState) => {
     vi.stubGlobal("window", windowState);
     expect(render().html).toContain("desktop app on this computer");
-    expect(render().html).not.toContain("sign in with your organization");
+    expect(render().html).not.toContain("Sign in with your organization");
     expect(bridge.state).not.toHaveBeenCalled();
   });
 });

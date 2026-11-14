@@ -159,16 +159,16 @@ describe("pictures", () => {
 
 describe("part names", () => {
   it("turns part paths into words and never shows a value", () => {
-    expect(describePart("agents[scout].soul", document)).toBe("Scout · standing instructions");
-    expect(describePart('agents[scout].seed.memory["memory/pricing.md"]', document)).toBe("Scout · starter notes · memory/pricing.md");
-    expect(describePart("connections[crm].mcp.url", document)).toBe("CRM · address");
-    expect(describePart("team.brief", document)).toBe("shared instructions");
+    expect(describePart("agents[scout].soul", document)).toBe("Scout · Standing instructions");
+    expect(describePart('agents[scout].seed.memory["memory/pricing.md"]', document)).toBe("Scout · Starter notes · memory/pricing.md");
+    expect(describePart("connections[crm].mcp.url", document)).toBe("CRM · Address");
+    expect(describePart("team.brief", document)).toBe("Shared instructions");
     expect(describePart("package.summary", document)).toBe("summary");
-    expect(describeSkip({ part: "connections[local]", reason: "stdio_server" }, document)).toBe("local · connection (runs a command on this computer, so it is not shared)");
-    expect(describeSkip({ part: "agents[scout].appearance.avatar", reason: "something_new" }, document)).toBe("Scout · picture (something_new)");
+    expect(describeSkip({ part: "connections[local]", reason: "stdio_server" }, document)).toBe("local · Connection (runs a command on this computer, so it is not shared)");
+    expect(describeSkip({ part: "agents[scout].appearance.avatar", reason: "something_new" }, document)).toBe("Scout · Picture (something_new)");
     expect(describeSkip({ part: "agents[scout].skills[step-31]", reason: "bot_skill_limit" }, document))
-      .toBe("Scout · skill · step-31 (a bot can share at most 30 skills (switched-on skills go first))");
-    expect(describeSkip({ part: "skills[pricing]", reason: "skill_conflict" }, document)).toBe("pricing · skill (two bots have different skills with this name)");
-    expect(describeSkip({ part: "skills[extra]", reason: "team_skill_limit" }, document)).toBe("extra · skill (a department can share at most 60 skills)");
+      .toBe("Scout · Skill · step-31 (a bot can share at most 30 skills (switched-on skills go first))");
+    expect(describeSkip({ part: "skills[pricing]", reason: "skill_conflict" }, document)).toBe("pricing · Skill (two bots have different skills with this name)");
+    expect(describeSkip({ part: "skills[extra]", reason: "team_skill_limit" }, document)).toBe("extra · Skill (a department can share at most 60 skills)");
   });
 });

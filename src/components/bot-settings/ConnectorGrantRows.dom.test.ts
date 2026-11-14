@@ -34,13 +34,13 @@ describe("per-app tools as rows", () => {
     const patch = vi.fn();
     const { host, open } = mount(createElement(ConnectorGrantRows, { bot: bot({ gmail: { tools: ["GMAIL_SEND_EMAIL"] } } as Bot["connectorTools"]), patch, slugs: ["gmail", "slack"] }));
     expect(rows(host)).toEqual(["grant:gmail", "grant:slack", "grants-reset"]);
-    expect(host.textContent).toContain("tools: 1");
-    expect(host.textContent).toContain("no tools");
+    expect(host.textContent).toContain("Tools: 1");
+    expect(host.textContent).toContain("No tools");
     host.querySelector<HTMLButtonElement>('[data-sheet-row="grant:gmail"]')!.click();
     expect(open).toHaveBeenCalledWith("grant:gmail", "gmail");
     host.querySelector<HTMLButtonElement>('[data-sheet-row="grants-reset"]')!.click();
     expect(patch).toHaveBeenCalledWith({ connectorTools: null });
-    expect(host.querySelector("details, input[type=checkbox]")).toBeNull();
+    expect(host.querySelector("Details, input[type=checkbox]")).toBeNull();
   });
 
   it("says so when no app is connected, and offers no reset without a grants record", () => {

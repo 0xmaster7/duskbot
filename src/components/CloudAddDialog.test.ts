@@ -77,41 +77,41 @@ afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); })
 describe("each screen of the sheet says one thing and offers one next step", () => {
   it("choose: dusk cloud in a line, then one card per plan with only what sets it apart and its own button; Most popular on the Admin's recommended plan; the money and what every plan includes once", () => {
     const { html, tree, handlers } = panel({ kind: "offer", offer: TRIAL, signedOut: true, notice: null });
-    const card = (max: number, cpus: number, swap: number) => [`${cpus} vCPU · ${cpus} GB RAM`, `plus ${swap} GB of swap`, `10 GB disk, grows to ${max} GB`,
-      "always available, priority wake", "daily backups, kept 14 days", "start free trial"];
-    inOrder(text(html), ["dusk cloud", "your bots, always available.", "Runs your bots in the cloud, even when this computer is off.", "compare plans", "choose your plan",
+    const card = (max: number, cpus: number, swap: number) => [`${cpus} vCPU · ${cpus} GB RAM`, `Plus ${swap} GB of swap`, `10 GB disk, grows to ${max} GB`,
+      "Always available, priority wake", "Daily backups, kept 14 days", "Start free trial"];
+    inOrder(text(html), ["dusk cloud", "Your bots, always available.", "Runs your bots in the cloud, even when this computer is off.", "Compare plans", "Choose your plan",
       "Starter", "$15", "/month", "Your bots keep working with your laptop closed, at the lowest price.", ...card(20, 2, 3),
-      "free for 7 days, then $15/month + tax",
-      "Pro", "most popular", "$49", "/month", "A bigger machine with priority wake, and a work license for one person.", ...card(100, 4, 4),
-      "free for 7 days, then $49/month + tax",
+      "Free for 7 days, then $15/month + tax",
+      "Pro", "Most popular", "$49", "/month", "A bigger machine with priority wake, and a work license for one person.", ...card(100, 4, 4),
+      "Free for 7 days, then $49/month + tax",
       "Max", "$99", "/month", "The biggest cloud machine, for bots that use computers all day.", ...card(100, 8, 4),
-      "free for 7 days, then $99/month + tax",
-      "today", "trial starts", "Oct 13", "reminder email", "Oct 15", "first payment",
+      "Free for 7 days, then $99/month + tax",
+      "Today", "Trial starts", "Oct 13", "Reminder email", "Oct 15", "First payment",
       "Card needed, nothing charged until your trial ends. Cancel in the app any time.", "14-day money-back",
-      "every plan includes", "works while you're away", "Routines, long jobs and replies keep going while you're away.", "private to you", "reach it from anywhere",
-      "a real browser and desktop", "bring everything over", "Your bots, chats and memory move across in about a minute.",
-      "secure checkout in your browser", "Apple Pay", "G Pay", "card", "cancel in two clicks", "already have a plan? sign in"]);
-    expect(html, "the night card holds the title, the line and Compare plans").toMatch(/<div data-night-card=""><h2 id="cloud-add-title"[^]*compare plans[^]*<\/div><\/div><section/);
+      "Every plan includes", "Works while you're away", "Routines, long jobs and replies keep going while you're away.", "Private to you", "Reach it from anywhere",
+      "A real browser and desktop", "Bring everything over", "Your bots, chats and memory move across in about a minute.",
+      "Secure checkout in your browser", "Apple Pay", "G Pay", "Card", "Cancel in two clicks", "Already have a plan? Sign in"]);
+    expect(html, "the night card holds the title, the line and Compare plans").toMatch(/<div data-night-card=""><h2 id="cloud-add-title"[^]*Compare plans[^]*<\/div><\/div><section/);
     expect(html.match(/data-plan-row="(machine|storage)"/g), "what sets the cards apart, two rows on each").toHaveLength(6);
     expect(tree.filter(node => node.props.id?.startsWith?.("cloud-plan-details-")).map(node => node.props.hidden), "the rest waits for Compare plans").toEqual([true, true, true]);
     expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props.className.includes("ui-button-primary")), "one primary action, on the recommended plan")
       .toEqual([false, true, false]);
-    expect(html.match(/most popular/g)).toHaveLength(1);
+    expect(html.match(/Most popular/g)).toHaveLength(1);
     expect(html.match(/data-plan-popular/g)).toHaveLength(1);
     expect(html.indexOf("data-plan-popular")).toBeGreaterThan(html.indexOf('data-plan="pro"'));
     expect(html.indexOf("data-plan-popular")).toBeLessThan(html.indexOf('data-plan="max"'));
     expect(html.match(/data-plan-buy=/g), "one button per card").toHaveLength(3);
     expect(html).not.toContain("data-plan-mine");
-    for (const gone of ["launch", "$89", "recommended", "AI credit", "this Mac", "a day", "computers at once", "hours a month", "shared", "24/7", "always on", "Personal", "$29", "Sleeps", "Everything in",
+    for (const gone of ["launch", "$89", "Recommended", "AI credit", "This Mac", "A day", "computers at once", "hours a month", "shared", "24/7", "always on", "Personal", "$29", "Sleeps", "Everything in",
       "What Pro gives you", "Due today", "Gmail"]) {
       expect(text(html)).not.toContain(gone);
     }
     tree.find(node => node.props["data-plan-buy"] === "max")!.props.onClick(); expect(handlers.start).toHaveBeenCalledExactlyOnceWith("max");
     tree.find(node => node.props["data-plan-buy"] === "starter")!.props.onClick(); expect(handlers.start).toHaveBeenLastCalledWith("starter");
-    button(tree, "already have a plan? sign in")!.props.onClick(); expect(handlers.signIn).toHaveBeenCalledOnce();
+    button(tree, "Already have a plan? Sign in")!.props.onClick(); expect(handlers.signIn).toHaveBeenCalledOnce();
     const maxFirst = panel({ kind: "offer", offer: { ...TRIAL, recommended: "max" }, signedOut: false, notice: null }).html;
-    expect(maxFirst.indexOf("most popular"), "the Admin's recommended plan, not Pro by itself").toBeGreaterThan(maxFirst.indexOf('data-plan="max"'));
-    expect(maxFirst.match(/most popular/g)).toHaveLength(1);
+    expect(maxFirst.indexOf("Most popular"), "the Admin's recommended plan, not Pro by itself").toBeGreaterThan(maxFirst.indexOf('data-plan="max"'));
+    expect(maxFirst.match(/Most popular/g)).toHaveLength(1);
   });
 
   it("Choose for someone on a plan: their card says Your plan instead of a button, and a Personal subscriber's own card is theirs alone", () => {
@@ -120,18 +120,18 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(html.indexOf("data-plan-mine")).toBeGreaterThan(html.indexOf('data-plan="pro"'));
     expect(html.indexOf("data-plan-mine")).toBeLessThan(html.indexOf('data-plan="max"'));
     expect(tree.filter(node => node.props["data-plan-buy"]).map(node => node.props["data-plan-buy"])).toEqual(["starter", "max"]);
-    inOrder(text(html), ["Pro", "most popular", "$49", "4 vCPU · 4 GB RAM", "always available, priority wake", "your plan", "Max"]);
-    expect(text(html)).not.toContain("free for 7 days, then $49/month + tax");
+    inOrder(text(html), ["Pro", "Most popular", "$49", "4 vCPU · 4 GB RAM", "Always available, priority wake", "Your plan", "Max"]);
+    expect(text(html)).not.toContain("Free for 7 days, then $49/month + tax");
     const personal = { ...PLANS[0]!, tier: "personal", label: "Personal", amount: 2900 };
     const mine = renderToStaticMarkup(createElement(ChooseScreen, { offer: TRIAL, current: "personal", own: personal, now: NOW, busy: false, signedOut: false, notice: null,
       onStart: vi.fn(), onSignIn: vi.fn() }));
-    inOrder(text(mine), ["Starter", "$15", "start free trial", "Personal", "$29", "/month", "2 vCPU · 2 GB RAM", "your plan", "Pro", "most popular", "$49", "start free trial", "Max"]);
+    inOrder(text(mine), ["Starter", "$15", "Start free trial", "Personal", "$29", "/month", "2 vCPU · 2 GB RAM", "Your plan", "Pro", "Most popular", "$49", "Start free trial", "Max"]);
     expect(mine.match(/data-plan-mine/g)).toHaveLength(1);
     expect(mine.match(/data-plan-buy=/g)).toHaveLength(3);
     const theirs = renderToStaticMarkup(createElement(ChooseScreen, { offer: TRIAL, current: null, own: personal, now: NOW, busy: false, signedOut: false, notice: null,
       onStart: vi.fn(), onSignIn: vi.fn() }));
     for (const gone of ["Personal", "$29"]) expect(text(theirs)).not.toContain(gone);
-    expect(text(theirs)).not.toMatch(/(?<!choose )your plan/);
+    expect(text(theirs)).not.toMatch(/(?<!Choose )[Yy]our plan/);
   });
 
   it("Choose from an Admin that still sells Personal: no Personal card, Pro is Most popular, and every card keeps the same rows", () => {
@@ -143,20 +143,20 @@ describe("each screen of the sheet says one thing and offers one next step", () 
       const why = `recommended ${recommended}`;
       for (const gone of ["Personal", "$29", 'data-plan="personal"']) expect(html, why).not.toContain(gone);
       expect(html.match(/data-plan-buy="[a-z]+"/g), why).toEqual(['data-plan-buy="starter"', 'data-plan-buy="pro"', 'data-plan-buy="max"']);
-      expect(html.match(/most popular/g), why).toHaveLength(1);
+      expect(html.match(/Most popular/g), why).toHaveLength(1);
       expect(html.indexOf("data-plan-popular"), why).toBeGreaterThan(html.indexOf('data-plan="pro"'));
       expect(html.match(/data-plan-row="machine"/g), why).toHaveLength(3);
-      inOrder(text(html), ["Starter", "$15", "2 vCPU · 2 GB RAM", "Pro", "most popular", "$49", "4 vCPU · 4 GB RAM", "Max", "$99", "8 vCPU · 8 GB RAM"]);
+      inOrder(text(html), ["Starter", "$15", "2 vCPU · 2 GB RAM", "Pro", "Most popular", "$49", "4 vCPU · 4 GB RAM", "Max", "$99", "8 vCPU · 8 GB RAM"]);
     }
   });
 
   it("Choose without a trial: each card's button gets that plan at its price, due today, with no card line or timeline; no Sign in once signed in", () => {
     const { html, tree, handlers } = panel({ kind: "offer", offer: PLAIN, signedOut: false, notice: null }, { offerShown: PLAIN });
     const plain = text(html);
-    inOrder(plain, ["Starter", "get Starter", "$15 + tax today, then each month", "Pro", "get Pro", "$49 + tax today, then each month", "Max", "get Max", "$99 + tax today, then each month",
+    inOrder(plain, ["Starter", "Get Starter", "$15 + tax today, then each month", "Pro", "Get Pro", "$49 + tax today, then each month", "Max", "Get Max", "$99 + tax today, then each month",
       "14-day money-back"]);
-    for (const gone of ["Card needed", "trial starts", "reminder email", "first payment", "already have a plan", "Claude credit", "start free trial"]) expect(plain).not.toContain(gone);
-    button(tree, "get Pro")!.props.onClick(); expect(handlers.start).toHaveBeenCalledExactlyOnceWith("pro");
+    for (const gone of ["Card needed", "Trial starts", "Reminder email", "First payment", "Already have a plan", "Claude credit", "Start free trial"]) expect(plain).not.toContain(gone);
+    button(tree, "Get Pro")!.props.onClick(); expect(handlers.start).toHaveBeenCalledExactlyOnceWith("pro");
     expect(text(panel({ kind: "offer", offer: { ...PLAIN, refundDays: undefined }, signedOut: false, notice: null }).html)).not.toContain("money-back");
     expect(text(panel({ kind: "offer", offer: TRIAL, signedOut: true, notice: "code-expired" }).html)).toContain("The sign-in code expired, so nothing changed.");
     expect(panel({ kind: "offer", offer: TRIAL, signedOut: true, notice: null }, { busy: true }).tree.filter(node => node.props["data-plan-buy"]).every(node => node.props.disabled),
@@ -164,35 +164,35 @@ describe("each screen of the sheet says one thing and offers one next step", () 
   });
 
   it("checking, Cloud out of reach and a checkout that did not open each say so, with Try again", () => {
-    expect(text(panel({ kind: "checking" }).html)).toContain("checking with dusk cloud…");
+    expect(text(panel({ kind: "checking" }).html)).toContain("Checking with dusk cloud…");
     const unreachable = panel({ kind: "unreachable" });
     expect(text(unreachable.html)).toContain("Can't reach dusk cloud right now. Check your connection and try again.");
-    button(unreachable.tree, "try again")!.props.onClick(); expect(unreachable.handlers.retry).toHaveBeenCalledOnce();
+    button(unreachable.tree, "Try again")!.props.onClick(); expect(unreachable.handlers.retry).toHaveBeenCalledOnce();
     expect(text(panel({ kind: "error", reason: "failed" }).html)).toContain("Checkout couldn't open. Nothing was charged. Try again.");
     expect(text(panel({ kind: "error", reason: "rate-limited" }).html)).toContain("You've opened several checkouts in the last hour.");
   });
 
   it("Sign in, email: create the account with a code, the profile's email filled in, and single sign-on in the browser", () => {
     const { html, tree, handlers } = panel({ kind: "sign-in", phase: { step: "email", intent: true, problem: null } });
-    inOrder(text(html), ["plans", "create your dusk bot account", "We'll email you a code. No password to remember.", "email", "send code",
-      "Uses the email from your profile. You can change it.", "work account with single sign-on? continue in browser"]);
+    inOrder(text(html), ["Plans", "Create your dusk bot account", "We'll email you a code. No password to remember.", "Email", "Send code",
+      "Uses the email from your profile. You can change it.", "Work account with single sign-on? Continue in browser"]);
     const field = tree.find(node => node.props.id === "cloud-add-email")!;
     expect([field.props.value, field.props.type, field.props.autoComplete]).toEqual([EMAIL, "email", "email"]);
     field.props.onChange({ target: { value: "other@example.test" } }); expect(handlers.email).toHaveBeenCalledWith("other@example.test");
     tree.find(node => node.type === "form")!.props.onSubmit({ preventDefault() {} }); expect(handlers.sendCode).toHaveBeenCalledOnce();
-    button(tree, "plans")!.props.onClick(); expect(handlers.back).toHaveBeenCalledOnce();
-    button(tree, "continue in browser")!.props.onClick(); expect(handlers.browser).toHaveBeenCalledOnce();
+    button(tree, "Plans")!.props.onClick(); expect(handlers.back).toHaveBeenCalledOnce();
+    button(tree, "Continue in browser")!.props.onClick(); expect(handlers.browser).toHaveBeenCalledOnce();
     expect(text(panel({ kind: "sign-in", phase: { step: "email", intent: false, problem: null } }, { email: "else@example.test" }).html))
-      .toMatch(/^plans sign in to dusk cloud(?!.*from your profile)/);
+      .toMatch(/^Plans Sign in to dusk cloud(?!.*from your profile)/);
     expect(text(panel({ kind: "sign-in", phase: { step: "email", intent: true, problem: null } }, { profileEmail: null }).html)).not.toContain("from your profile");
   });
 
   it("Sign in, code: eight boxes, the address with Change, resend after 30 s; typing, pasting and backspace move along the boxes", () => {
     const view: CloudAddView = { kind: "sign-in", phase: { step: "code", intent: true, email: EMAIL, resendAt: NOW + 21_000, problem: null, triesLeft: null } };
     const { html, tree, handlers } = panel(view, { code: "4820" });
-    inOrder(text(html), [`enter the 8-digit code sent to ${EMAIL} · change`, "resend code in 0:21"]);
+    inOrder(text(html), [`Enter the 8-digit code sent to ${EMAIL} · Change`, "Resend code in 0:21"]);
     const boxes = tree.filter(node => node.type === "input");
-    expect(boxes.map(box => box.props["aria-label"])).toEqual(Array.from({ length: 8 }, (_, i) => `digit ${i + 1} of 8`));
+    expect(boxes.map(box => box.props["aria-label"])).toEqual(Array.from({ length: 8 }, (_, i) => `Digit ${i + 1} of 8`));
     expect(boxes.map(box => box.props.value)).toEqual(["4", "8", "2", "0", "", "", "", ""]);
     expect([boxes[0]!.props.autoComplete, boxes[0]!.props.inputMode]).toEqual(["one-time-code", "numeric"]);
     expect(boxes.findIndex(box => box.props["data-autofocus"]), "the next empty box takes focus").toBe(4);
@@ -204,10 +204,10 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     const prevent = vi.fn();
     boxes[4]!.props.onKeyDown({ key: "Backspace", preventDefault: prevent, currentTarget: { parentElement: parent } });
     expect(handlers.code).toHaveBeenLastCalledWith("482"); expect(prevent).toHaveBeenCalledOnce();
-    button(tree, "change")!.props.onClick(); expect(handlers.changeEmail).toHaveBeenCalledOnce();
+    button(tree, "Change")!.props.onClick(); expect(handlers.changeEmail).toHaveBeenCalledOnce();
     const later = panel(view, { now: NOW + 21_000 });
-    button(later.tree, "didn't get it? resend code")!.props.onClick(); expect(later.handlers.resend).toHaveBeenCalledOnce();
-    expect(text(panel(view, { busy: true }).html)).toContain("checking the code…");
+    button(later.tree, "Didn't get it? Resend code")!.props.onClick(); expect(later.handlers.resend).toHaveBeenCalledOnce();
+    expect(text(panel(view, { busy: true }).html)).toContain("Checking the code…");
   });
 
   it("Sign in, code: with new accounts closed it says a code comes only to an email that already has one", () => {
@@ -216,105 +216,105 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     expect(text(panel({ kind: "sign-in", phase }).html)).not.toContain("aren't open yet");
   });
 
-  it("sign in: the Admin's answers in plain words, with the one way on", () => {
+  it("Sign in: the Admin's answers in plain words, with the one way on", () => {
     const code = (problem: any, triesLeft: number | null = null): CloudAddView => ({ kind: "sign-in", phase: { step: "code", intent: true, email: EMAIL, resendAt: NOW - 1, problem, triesLeft } });
     expect(text(panel(code("wrong-code", 3)).html)).toContain("That code isn't right. 3 tries left.");
     expect(text(panel(code("wrong-code", 1)).html)).toContain("That code isn't right. 1 try left.");
     const expired = panel(code("expired"));
     expect(text(expired.html)).toContain("That code can't be used any more. Send a new one.");
-    button(expired.tree, "send a new code")!.props.onClick(); expect(expired.handlers.resend).toHaveBeenCalledOnce();
+    button(expired.tree, "Send a new code")!.props.onClick(); expect(expired.handlers.resend).toHaveBeenCalledOnce();
     for (const [problem, line] of [["signup-closed", "New cloud accounts aren't available yet."], ["device-limit", "Sign one out on your plan page"],
       ["rate-limited", "Too many codes were asked for just now."], ["failed", "Couldn't reach dusk cloud."]] as const) expect(text(panel(code(problem)).html)).toContain(line);
     const sso = panel({ kind: "sign-in", phase: { step: "email", intent: true, problem: "sso" } });
-    expect(text(sso.html)).toContain("Your organization uses single sign-on. continue in browser");
-    expect(text(sso.html)).not.toContain("work account with single sign-on?");
-    expect(sso.tree.find(node => node.type === "button" && label(node) === "continue in browser")!.props.className).toContain("ui-button-primary");
-    expect(text(panel(code("two-factor")).html)).toContain("This account uses two-step verification, so it signs in through your browser. continue in browser");
+    expect(text(sso.html)).toContain("Your organization uses single sign-on. Continue in browser");
+    expect(text(sso.html)).not.toContain("Work account with single sign-on?");
+    expect(sso.tree.find(node => node.type === "button" && label(node) === "Continue in browser")!.props.className).toContain("ui-button-primary");
+    expect(text(panel(code("two-factor")).html)).toContain("This account uses two-step verification, so it signs in through your browser. Continue in browser");
     expect(text(panel({ kind: "sign-in", phase: { step: "email", intent: true, problem: "invalid-email" } }).html)).toContain("Enter an email address like name@example.com.");
-    expect(text(panel({ kind: "sign-in", phase: { step: "done", intent: true } }).html)).toContain("signed in. opening secure checkout…");
+    expect(text(panel({ kind: "sign-in", phase: { step: "done", intent: true } }).html)).toContain("Signed in. Opening secure checkout…");
   });
 
   it("the browser approval (single sign-on): the code to check, Reopen browser and Cancel", () => {
     const { html, tree, handlers } = panel({ kind: "signing-in", code: "ABCDE-FGHJK", checkout: true });
-    expect(text(html)).toContain("finish in your browser Sign in with your email. check that your browser shows this code: ABCDE-FGHJK Connect this app, then start your free trial.");
-    button(tree, "reopen browser")!.props.onClick(); expect(handlers.reopenBrowser).toHaveBeenCalledOnce();
-    button(tree, "cancel")!.props.onClick(); expect(handlers.cancelSignIn).toHaveBeenCalledOnce();
+    expect(text(html)).toContain("Finish in your browser Sign in with your email. Check that your browser shows this code: ABCDE-FGHJK Connect this app, then start your free trial.");
+    button(tree, "Reopen browser")!.props.onClick(); expect(handlers.reopenBrowser).toHaveBeenCalledOnce();
+    button(tree, "Cancel")!.props.onClick(); expect(handlers.cancelSignIn).toHaveBeenCalledOnce();
   });
 
-  it("Pay: the checklist (signed in, waiting for the payment, setup next), Reopen checkout, Copy link and Change plan; late after 30 minutes", () => {
+  it("Pay: the checklist (Signed in, waiting for the payment, setup next), Reopen checkout, Copy link and Change plan; late after 30 minutes", () => {
     const waiting: CloudAddView = { kind: "waiting", plan: "pro", browser: "checkout", late: false, link: true, email: EMAIL };
     const { html, tree, handlers } = panel(waiting);
-    inOrder(text(html), ["finish in your browser", "Checkout opened in your browser. Pay there and this window moves on by itself.",
-      "signed in", EMAIL, "waiting for your payment", "Pro · free for 7 days · $0.00 today", "set up your new cloud", "about 2 minutes, all automatic",
-      "reopen checkout", "copy link", "change plan"]);
+    inOrder(text(html), ["Finish in your browser", "Checkout opened in your browser. Pay there and this window moves on by itself.",
+      "Signed in", EMAIL, "Waiting for your payment", "Pro · free for 7 days · $0.00 today", "Set up your new cloud", "About 2 minutes, all automatic",
+      "Reopen checkout", "Copy link", "Change plan"]);
     expect(html).toContain('aria-current="step"');
-    button(tree, "reopen checkout")!.props.onClick(); expect(handlers.reopenCheckout).toHaveBeenCalledOnce();
-    button(tree, "copy link")!.props.onClick(); expect(handlers.copyLink).toHaveBeenCalledOnce();
-    button(tree, "change plan")!.props.onClick(); expect(handlers.changePlan).toHaveBeenCalledOnce();
-    expect(text(panel(waiting, { copied: true }).html)).toContain("link copied");
+    button(tree, "Reopen checkout")!.props.onClick(); expect(handlers.reopenCheckout).toHaveBeenCalledOnce();
+    button(tree, "Copy link")!.props.onClick(); expect(handlers.copyLink).toHaveBeenCalledOnce();
+    button(tree, "Change plan")!.props.onClick(); expect(handlers.changePlan).toHaveBeenCalledOnce();
+    expect(text(panel(waiting, { copied: true }).html)).toContain("Link copied");
     expect(text(panel(waiting, { payFailed: true }).html)).toContain("Checkout couldn't open again. Nothing was charged.");
-    expect(text(panel({ ...waiting, link: false }).html)).not.toContain("copy link");
+    expect(text(panel({ ...waiting, link: false }).html)).not.toContain("Copy link");
     expect(text(panel({ ...waiting, plan: "max" }, { offerShown: PLAIN }).html)).toContain("Max · $99/month + tax");
     const late = text(panel({ ...waiting, late: true }).html);
-    inOrder(late, ["we haven't seen a payment yet.", "If you paid, it shows up here within a few minutes.", "reopen checkout", "change plan"]);
+    inOrder(late, ["We haven't seen a payment yet.", "If you paid, it shows up here within a few minutes.", "Reopen checkout", "Change plan"]);
     expect(text(panel({ ...waiting, browser: "signin", link: false }).html)).toContain("Your browser shows the next step.");
   });
 
-  it("setting up: the badge (trial or paid), the Admin's steps, a name, a colour and the switcher preview; Open waits for ready", () => {
+  it("Setting up: the badge (trial or paid), the Admin's steps, a name, a colour and the switcher preview; Open waits for ready", () => {
     const starting: CloudAddView = { kind: "starting", tier: "pro", trial: trial(), step: "storage", slow: false, received: false };
     const { html, tree, handlers } = panel(starting);
-    inOrder(text(html), ["Pro trial started", "setting up your new cloud", "About 2 minutes. Keep working if you like, it opens when it's ready.",
-      "reserving your machine", "preparing storage", "starting Studio", "checking it's ready", "name it", "pick a colour", "in your switcher", "Studio", "Pro · always available", "open Studio"]);
+    inOrder(text(html), ["Pro trial started", "Setting up your new cloud", "About 2 minutes. Keep working if you like, it opens when it's ready.",
+      "Reserving your machine", "Preparing storage", "Starting Studio", "Checking it's ready", "Name it", "Pick a colour", "In your switcher", "Studio", "Pro · always available", "Open Studio"]);
     expect(html).toContain('aria-valuenow="25"');
-    expect(button(tree, "open Studio")!.props.disabled).toBe(true);
+    expect(button(tree, "Open Studio")!.props.disabled).toBe(true);
     const name = tree.find(node => node.props.id === "cloud-add-name")!;
-    expect([name.props.value, name.props.maxLength, name.props.placeholder]).toEqual(["Studio", 28, "my cloud"]);
+    expect([name.props.value, name.props.maxLength, name.props.placeholder]).toEqual(["Studio", 28, "My cloud"]);
     name.props.onChange({ target: { value: "Work" } }); expect(handlers.name).toHaveBeenCalledWith("Work");
     const swatches = tree.filter(node => node.props.role === "radio" && node.props["data-color"]);
     expect(swatches.map(node => [node.props["data-color"], node.props["aria-label"], node.props["aria-checked"]])).toEqual([
-      ["blue", "blue", false], ["teal", "teal", true], ["purple", "purple", false], ["orange", "orange", false], ["red", "red", false], ["yellow", "yellow", false]]);
+      ["blue", "Blue", false], ["teal", "Teal", true], ["purple", "Purple", false], ["orange", "Orange", false], ["red", "Red", false], ["yellow", "Yellow", false]]);
     swatches[4]!.props.onClick(); expect(handlers.color).toHaveBeenCalledWith("red");
     expect(swatches[0]!.props.style.background).toBe("var(--identity-blue)");
     expect(text(panel({ ...starting, trial: null }).html)).toContain("Pro started");
     const received = text(panel({ ...starting, trial: null, received: true, step: null }).html);
-    inOrder(received, ["payment received", "setting up your new cloud", "We're linking your payment to this account"]);
+    inOrder(received, ["Payment received", "Setting up your new cloud", "We're linking your payment to this account"]);
     expect(text(panel({ ...starting, slow: true }).html)).toContain("This is taking longer than usual.");
   });
 
-  it("ready: it opens by itself in 3 seconds unless Not now; otherwise Open {name}", () => {
+  it("Ready: it opens by itself in 3 seconds unless Not now; otherwise Open {name}", () => {
     const view: CloudAddView = { kind: "ready", tier: "pro", trial: trial() };
     const { html, tree, handlers } = panel(view, { counting: 3 });
-    inOrder(text(html), ["Studio is ready", "It keeps your bots running, even when this computer is off.", "opening in 3…", "Not now", "open Studio"]);
+    inOrder(text(html), ["Studio is ready", "It keeps your bots running, even when this computer is off.", "Opening in 3…", "Not now", "Open Studio"]);
     expect(html).toContain('aria-valuenow="100"');
     button(tree, "Not now")!.props.onClick(); expect(handlers.notNow).toHaveBeenCalledOnce();
-    button(tree, "open Studio")!.props.onClick(); expect(handlers.openCloud).toHaveBeenCalledOnce();
+    button(tree, "Open Studio")!.props.onClick(); expect(handlers.openCloud).toHaveBeenCalledOnce();
     const still = text(panel(view).html);
-    expect(still).toContain("Switch between this computer and Studio from the menu at the top of the sidebar."); expect(still).not.toContain("opening in");
+    expect(still).toContain("Switch between this computer and Studio from the menu at the top of the sidebar."); expect(still).not.toContain("Opening in");
     expect(text(panel(view, { openFailed: true }).html)).toContain("Studio didn't open. Try again in a minute.");
   });
 
   it("Add a Cloud… with a Cloud: one Cloud per account for now, Email me and Open {name}, never an error", () => {
     const { html, tree, handlers } = panel({ kind: "has-cloud" });
-    inOrder(text(html), ["one cloud per account for now", "You have Studio. More than one cloud per account is coming.", "email me when i can add another", "open Studio"]);
-    button(tree, "email me when i can add another")!.props.onClick(); expect(handlers.interest).toHaveBeenCalledOnce();
-    button(tree, "open Studio")!.props.onClick(); expect(handlers.openCloud).toHaveBeenCalledOnce();
+    inOrder(text(html), ["One cloud per account for now", "You have Studio. More than one cloud per account is coming.", "Email me when I can add another", "Open Studio"]);
+    button(tree, "Email me when I can add another")!.props.onClick(); expect(handlers.interest).toHaveBeenCalledOnce();
+    button(tree, "Open Studio")!.props.onClick(); expect(handlers.openCloud).toHaveBeenCalledOnce();
     const sent = text(panel({ kind: "has-cloud" }, { interest: "sent" }).html);
-    expect(sent).toContain("Thanks. We'll email you when you can add another cloud."); expect(sent).not.toContain("email me");
+    expect(sent).toContain("Thanks. We'll email you when you can add another cloud."); expect(sent).not.toContain("Email me");
     expect(text(panel({ kind: "has-cloud" }, { interest: "failed" }).html)).toContain("Couldn't reach dusk cloud, so nothing was saved.");
-    for (const word of ["error", "Error", "already have"]) expect(text(html)).not.toContain(word);
+    for (const word of ["error", "Error", "Already have"]) expect(text(html)).not.toContain(word);
   });
 
   it("a Team plan's Cloud: the team's own setup steps, then ready to open under the team's name, with no name or colour to choose", () => {
     const starting = text(panel({ kind: "team-starting", team: "Acme", step: "storage", slow: false }).html);
-    inOrder(starting, ["setting up your team's cloud", "About 2 minutes.", "reserving your machine", "preparing storage", "starting Acme", "checking it's ready"]);
+    inOrder(starting, ["Setting up your team's cloud", "About 2 minutes.", "Reserving your machine", "Preparing storage", "Starting Acme", "Checking it's ready"]);
     expect(panel({ kind: "team-starting", team: "Acme", step: "storage", slow: false }).html).toContain('aria-valuenow="25"');
-    for (const word of ["name it", "pick a colour", "open Acme", "My Cloud"]) expect(starting).not.toContain(word);
+    for (const word of ["Name it", "Pick a colour", "Open Acme", "My Cloud"]) expect(starting).not.toContain(word);
     const unnamed = text(panel({ kind: "team-starting", team: null, step: null, slow: true }).html);
-    inOrder(unnamed, ["reserving your machine", "starting your team's cloud", "This is taking longer than usual."]);
+    inOrder(unnamed, ["Reserving your machine", "Starting your team's cloud", "This is taking longer than usual."]);
     const { html, tree, handlers } = panel({ kind: "team-ready", team: { id: "team-acme", name: "Acme" } });
-    inOrder(text(html), ["your team's cloud is ready", "Acme keeps your team's bots running, even when this computer is off.",
-      "Switch between this computer and Acme from the menu at the top of the sidebar.", "open Acme"]);
-    button(tree, "open Acme")!.props.onClick();
+    inOrder(text(html), ["Your team's cloud is ready", "Acme keeps your team's bots running, even when this computer is off.",
+      "Switch between this computer and Acme from the menu at the top of the sidebar.", "Open Acme"]);
+    button(tree, "Open Acme")!.props.onClick();
     expect(handlers.openTeam).toHaveBeenCalledExactlyOnceWith("team-acme"); expect(handlers.openCloud).not.toHaveBeenCalled();
     expect(text(panel({ kind: "team-ready", team: { id: "team-acme", name: "Acme" } }, { openFailed: true }).html)).toContain("Acme didn't open. Try again in a minute.");
   });
@@ -322,11 +322,11 @@ describe("each screen of the sheet says one thing and offers one next step", () 
   it("the sheet's frame: one width per screen, Close, and a Staging mark only on the staging Admin", () => {
     const sheet = (kind: CloudAddView["kind"], staging = false) => renderToStaticMarkup(createElement(CloudAddSheet, { kind, staging, onClose: vi.fn(), children: "x" }));
     expect(sheet("offer")).toContain("max-w-[920px]"); expect(sheet("starting")).toContain("max-w-[720px]"); expect(sheet("waiting")).toContain("max-w-[540px]");
-    expect(sheet("offer")).toContain('aria-label="close"');
+    expect(sheet("offer")).toContain('aria-label="Close"');
     expect(sheet("offer"), "over a night card the close button takes the card's light ink").toContain("group-has-[[data-night-card]]/sheet:text-(--cloud-night-ink-quiet)");
     expect(sheet("offer"), "above Settings, the welcome flow (z-50) and the full-screen places picker (z-60), which it opens over").toContain("fixed inset-0 z-[61]");
     expect(sheet("offer")).not.toContain("data-cloud-staging");
-    expect(text(sheet("offer", true))).toMatch(/staging ?: This app uses the staging dusk cloud: test payments and test clouds, not real ones\./);
+    expect(text(sheet("offer", true))).toMatch(/Staging ?: This app uses the staging dusk cloud: test payments and test clouds, not real ones\./);
   });
 
   it("a click beside the sheet closes it while choosing, never mid sign-in, checkout or setup", () => {
@@ -378,22 +378,22 @@ describe("the sheet", () => {
   });
 
   it("signed out, Start free trial signs in inside the sheet: the code, then straight to checkout, with no browser until payment", async () => {
-    expect(await settle()).toContain("your bots, always available.");
+    expect(await settle()).toContain("Your bots, always available.");
     expect(track).toHaveBeenCalledWith("cloud_dialog_shown", { source: "app_menu", view: "offer" });
     expect(bridge.sheet).toHaveBeenCalledWith(true);
-    expect(await buy("max")).toContain("create your dusk bot account");
+    expect(await buy("max")).toContain("Create your dusk bot account");
     expect(bridge.checkout).not.toHaveBeenCalled(); expect(bridge.begin).not.toHaveBeenCalled();
     expect(tree().find(node => node.props.id === "cloud-add-email")!.props.value, "the profile's email").toBe(EMAIL);
     tree().find(node => node.type === "form")!.props.onSubmit({ preventDefault() {} }); await flush();
     expect(bridge.signInStart).toHaveBeenCalledExactlyOnceWith(EMAIL);
-    expect(await settle()).toContain(`enter the 8-digit code sent to ${EMAIL}`);
+    expect(await settle()).toContain(`Enter the 8-digit code sent to ${EMAIL}`);
     const parent = { querySelectorAll: () => [] };
     tree().filter(node => node.type === "input")[0]!.props.onChange({ target: { value: "48201937" }, currentTarget: { parentElement: parent } });
     await flush(); await flush();
     expect(bridge.signInVerify).toHaveBeenCalledExactlyOnceWith("48201937");
     expect(bridge.checkout).toHaveBeenCalledExactlyOnceWith("max", "app_menu");
     account = { ...free, checkout: { plan: "max", startedAt: NOW, link: true } };
-    expect(await settle()).toContain("waiting for your payment");
+    expect(await settle()).toContain("Waiting for your payment");
     expect(track).toHaveBeenCalledWith("cloud_signin", { step: "signed_in", source: "app_menu" });
     expect(track).toHaveBeenCalledWith("cloud_checkout_opened", { plan: "max", trial: true, source: "app_menu" });
   });
@@ -402,7 +402,7 @@ describe("the sheet", () => {
     await settle();
     const compare = () => tree().find(node => node.type === "button" && typeof node.props["aria-expanded"] === "boolean")!;
     const hidden = () => tree().filter(node => node.props.id?.startsWith?.("cloud-plan-details-")).map(node => node.props.hidden);
-    expect([label(compare()), compare().props["aria-expanded"], hidden()]).toEqual(["compare plans", false, [true, true, true]]);
+    expect([label(compare()), compare().props["aria-expanded"], hidden()]).toEqual(["Compare plans", false, [true, true, true]]);
     expect(compare().props["aria-controls"]).toBe("cloud-plan-details-starter cloud-plan-details-pro cloud-plan-details-max");
     compare().props.onClick();
     expect([compare().props["aria-expanded"], hidden()]).toEqual([true, [false, false, false]]);
@@ -439,8 +439,8 @@ describe("the sheet", () => {
     push({ ...free, offer: own });
     const html = await settle();
     expect(html).toContain("You're signed in. These are the plans for your account");
-    expect(html).toContain("$49 + tax today, then each month"); expect(html).not.toContain("free for");
-    await press("get Pro");
+    expect(html).toContain("$49 + tax today, then each month"); expect(html).not.toContain("Free for");
+    await press("Get Pro");
     expect(bridge.checkout).toHaveBeenCalledExactlyOnceWith("pro", "app_menu");
   });
 
@@ -454,27 +454,27 @@ describe("the sheet", () => {
     expect(tree().filter(node => node.type === "input").map(box => box.props.value).join("")).toBe("");
     expect(bridge.checkout).not.toHaveBeenCalled();
     bridge.signInStart.mockResolvedValueOnce({ outcome: "sso" });
-    await press("change");
+    await press("Change");
     tree().find(node => node.type === "form")!.props.onSubmit({ preventDefault() {} }); await flush();
     expect(await settle()).toContain("Your organization uses single sign-on.");
-    await press("continue in browser");
+    await press("Continue in browser");
     expect(bridge.signInCancel).toHaveBeenCalled();
     expect(bridge.checkout).toHaveBeenCalledExactlyOnceWith("pro", "app_menu");
   });
 
-  it("signed in, a card's button is the checkout of that plan; Reopen uses main's kept page and Copy link copies it there", async () => {
+  it("Signed in, a card's button is the checkout of that plan; Reopen uses main's kept page and Copy link copies it there", async () => {
     account = free;
     await settle();
     await buy("pro");
     expect(bridge.checkout).toHaveBeenCalledExactlyOnceWith("pro", "app_menu");
     expect(bridge.signInStart).not.toHaveBeenCalled();
     account = { ...free, checkout: { plan: "pro", startedAt: NOW, link: true } };
-    expect(await settle()).toContain("finish in your browser");
-    await press("reopen checkout");
+    expect(await settle()).toContain("Finish in your browser");
+    await press("Reopen checkout");
     expect(bridge.reopenCheckout).toHaveBeenCalledExactlyOnceWith("pro", "app_menu"); expect(bridge.checkout).toHaveBeenCalledOnce();
-    expect(await press("copy link")).toContain("link copied");
+    expect(await press("Copy link")).toContain("Link copied");
     expect(bridge.copyCheckoutLink).toHaveBeenCalledOnce();
-    expect(await press("change plan")).toContain("choose your plan");
+    expect(await press("Change plan")).toContain("Choose your plan");
     await buy("starter");
     expect(bridge.checkout).toHaveBeenLastCalledWith("starter", "app_menu");
   });
@@ -485,10 +485,10 @@ describe("the sheet", () => {
     vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge }, addEventListener: vi.fn((name: string, listener: () => void) => listeners.set(name, listener)),
       removeEventListener: vi.fn((name: string) => listeners.delete(name)) });
     account = paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
-    expect(await settle()).toContain("opening in 3…");
+    expect(await settle()).toContain("Opening in 3…");
     listeners.get("blur")!();
     const away = await settle();
-    expect(away).not.toContain("opening in"); expect(away).toContain("open My Cloud");
+    expect(away).not.toContain("Opening in"); expect(away).toContain("Open My Cloud");
     vi.advanceTimersByTime(5000); await settle();
     expect(bridge.connectHome).not.toHaveBeenCalled();
     expect(listeners.has("blur"), "not listening once it stopped").toBe(false);
@@ -497,13 +497,13 @@ describe("the sheet", () => {
   it("ready shown ends the purchase for main; a later Add a Cloud… (bought, opened or told) is one Cloud for now, with no countdown", async () => {
     vi.useFakeTimers();
     account = paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
-    expect(await settle()).toContain("opening in 3…");
+    expect(await settle()).toContain("Opening in 3…");
     expect(bridge.readySeen).toHaveBeenCalledOnce();
     await press("Not now");
     f.values = []; f.ran = []; bridge.readySeen.mockClear();
     account = paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true, done: true } });
     const again = await settle();
-    expect(again).toContain("one cloud per account for now"); expect(again).not.toContain("opening in");
+    expect(again).toContain("One cloud per account for now"); expect(again).not.toContain("Opening in");
     vi.advanceTimersByTime(5000); await settle();
     expect(bridge.connectHome).not.toHaveBeenCalled();
   });
@@ -511,20 +511,20 @@ describe("the sheet", () => {
   it("ready while open in the focused window: opening in 3…, then the Cloud opens; Not now stops it; unfocused, Open {name}", async () => {
     vi.useFakeTimers();
     account = paid({ trial: trial(), machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
-    expect(await settle()).toContain("opening in 3…");
+    expect(await settle()).toContain("Opening in 3…");
     expect(bridge.look).toHaveBeenCalled();
-    expect(await settle()).toContain("open My Cloud");
-    vi.advanceTimersByTime(1000); expect(await settle()).toContain("opening in 2…");
+    expect(await settle()).toContain("Open My Cloud");
+    vi.advanceTimersByTime(1000); expect(await settle()).toContain("Opening in 2…");
     vi.advanceTimersByTime(1000); await settle(); vi.advanceTimersByTime(1000); await settle();
     expect(bridge.connectHome).toHaveBeenCalledOnce();
     f.values = []; f.ran = []; bridge.connectHome.mockClear();
     await settle();
-    expect(await press("Not now")).not.toContain("opening in");
+    expect(await press("Not now")).not.toContain("Opening in");
     vi.advanceTimersByTime(5000); await settle();
     expect(bridge.connectHome).not.toHaveBeenCalled();
     f.values = []; f.ran = []; focused = false;
     const away = await settle();
-    expect(away).not.toContain("opening in"); expect(away).toContain("Switch between this computer and My Cloud");
+    expect(away).not.toContain("Opening in"); expect(away).toContain("Switch between this computer and My Cloud");
     vi.advanceTimersByTime(5000); await settle();
     expect(bridge.connectHome).not.toHaveBeenCalled();
   });
@@ -532,12 +532,12 @@ describe("the sheet", () => {
   it("after a restart mid-checkout: Pay from the Admin's open checkout, then setup, then ready is theirs to open, not one Cloud for now", async () => {
     focused = false;
     account = free; offer = { ...TRIAL, checkout: { plan: "pro", openUntil: NOW + 3600_000 } };
-    expect(await settle()).toContain("waiting for your payment");
+    expect(await settle()).toContain("Waiting for your payment");
     push(paid({ trial: trial(), machine: { status: "provisioning", setup: { step: "storage" } } }));
-    expect(await settle()).toContain("setting up your new cloud");
+    expect(await settle()).toContain("Setting up your new cloud");
     push(paid({ trial: trial(), machine: ready }));
     const html = await settle();
-    expect(html).toContain("My Cloud is ready"); expect(html).not.toContain("one cloud per account");
+    expect(html).toContain("My Cloud is ready"); expect(html).not.toContain("One cloud per account");
   });
 
   it("over the welcome flow a ready Cloud never switches the window: no countdown, main hears no sheet in front, Open {name} stays", async () => {
@@ -547,11 +547,11 @@ describe("the sheet", () => {
       f.state = { cloudAdd: { source: "app_onboarding" }, config: {} };
       account = paid({ trial: trial(), machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000, link: true } });
       const html = await settle();
-      expect(html).toContain("My Cloud is ready"); expect(html).toContain("open My Cloud"); expect(html).not.toContain("opening in");
+      expect(html).toContain("My Cloud is ready"); expect(html).toContain("Open My Cloud"); expect(html).not.toContain("Opening in");
       vi.advanceTimersByTime(10_000); await settle();
       expect(bridge.connectHome).not.toHaveBeenCalled();
       expect(bridge.sheet, "main notifies instead, as for a closed sheet").not.toHaveBeenCalledWith(true);
-      await press("open My Cloud");
+      await press("Open My Cloud");
       expect(bridge.connectHome, "only when the person asks").toHaveBeenCalledOnce();
     } finally { hide(); }
   });
@@ -559,22 +559,22 @@ describe("the sheet", () => {
   it("the name and colour go to main as they are chosen (after a pause), and the last ones before the Cloud opens", async () => {
     vi.useFakeTimers();
     account = paid({ machine: { status: "provisioning", setup: { step: "starting" } } });
-    expect(await settle()).toContain("setting up your new cloud");
+    expect(await settle()).toContain("Setting up your new cloud");
     vi.advanceTimersByTime(400); await flush();
     expect(bridge.setLook).toHaveBeenCalledExactlyOnceWith("My Cloud", "blue");
     bridge.setLook.mockClear();
     tree().find(node => node.props.id === "cloud-add-name")!.props.onChange({ target: { value: "Studio" } });
     tree().find(node => node.props["data-color"] === "purple")!.props.onClick();
-    expect(await settle()).toContain("starting Studio");
+    expect(await settle()).toContain("Starting Studio");
     expect(bridge.setLook).not.toHaveBeenCalled();
     vi.advanceTimersByTime(400); await flush();
     expect(bridge.setLook).toHaveBeenCalledWith("Studio", "purple");
     tree().find(node => node.props.id === "cloud-add-name")!.props.onChange({ target: { value: "   " } });
-    expect(await settle()).toContain("starting my cloud");
+    expect(await settle()).toContain("Starting My cloud");
     account = paid({ machine: ready, checkout: { plan: "pro", startedAt: NOW - 120_000 } }); focused = false;
     await settle();
     tree().find(node => node.props.id === "cloud-add-name")!.props.onChange({ target: { value: "Lab" } }); await settle();
-    await press("open Lab");
+    await press("Open Lab");
     expect(bridge.setLook).toHaveBeenLastCalledWith("Lab", "purple");
     expect(bridge.connectHome).toHaveBeenCalledOnce();
     expect(f.dispatch).toHaveBeenCalledWith({ type: "closeCloudAdd" });
@@ -584,21 +584,21 @@ describe("the sheet", () => {
     vi.useFakeTimers();
     account = paid({ machine: ready });
     bridge.look.mockResolvedValue({ name: "Studio", color: "teal" });
-    expect(await settle()).toContain("one cloud per account for now");
+    expect(await settle()).toContain("One cloud per account for now");
     expect(await settle()).toContain("You have Studio.");
     vi.advanceTimersByTime(1000); await flush();
     expect(bridge.setLook, "an existing Cloud is never recoloured by opening the sheet").not.toHaveBeenCalled();
-    expect(await press("email me when i can add another")).toContain("Thanks. We'll email you");
+    expect(await press("Email me when I can add another")).toContain("Thanks. We'll email you");
     expect(bridge.interest).toHaveBeenCalledOnce();
-    await press("open Studio"); expect(bridge.connectHome).toHaveBeenCalledOnce();
+    await press("Open Studio"); expect(bridge.connectHome).toHaveBeenCalledOnce();
     f.values = []; f.ran = [];
     account = paid({ machine: { status: "provisioning" } });
-    expect(await settle()).toContain("setting up your new cloud");
+    expect(await settle()).toContain("Setting up your new cloud");
   });
 
   it("closing gives focus back to what opened it, and tells main the sheet is closed", async () => {
     await settle();
-    await press("close");
+    await press("Close");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "closeCloudAdd" });
     f.state = { cloudAdd: null };
     expect(await settle()).toBe("");
@@ -608,7 +608,7 @@ describe("the sheet", () => {
 
   it("opened at Sign in (the card, Settings): the sign-in first, without a plan; signed in, a ready Cloud is theirs to open", async () => {
     f.state = { cloudAdd: { source: "app_settings", signIn: true }, config: {} };
-    expect(await settle()).toContain("sign in to dusk cloud");
+    expect(await settle()).toContain("Sign in to dusk cloud");
     bridge.signInVerify.mockResolvedValueOnce({ outcome: "signed-in", state: paid({ machine: ready }) });
     tree().find(node => node.props.id === "cloud-add-email")!.props.onChange({ target: { value: "me@example.test" } });
     await settle();
@@ -622,7 +622,7 @@ describe("the sheet", () => {
 
   it("signed in here to a Team plan: the team's Cloud is ready to open, never a My Cloud being set up; Open opens the team and closes", async () => {
     f.state = { cloudAdd: { source: "app_settings", signIn: true }, config: {} };
-    expect(await settle()).toContain("sign in to dusk cloud");
+    expect(await settle()).toContain("Sign in to dusk cloud");
     bridge.signInVerify.mockResolvedValueOnce({ outcome: "signed-in", state: onTeam() });
     tree().find(node => node.props.id === "cloud-add-email")!.props.onChange({ target: { value: "me@example.test" } });
     await settle();
@@ -631,10 +631,10 @@ describe("the sheet", () => {
     await flush(); await flush();
     account = onTeam();
     const shown = await settle();
-    inOrder(shown, ["your team's cloud is ready", "open Acme"]);
-    for (const word of ["reserving your machine", "setting up your new cloud", "My Cloud"]) expect(shown).not.toContain(word);
+    inOrder(shown, ["Your team's cloud is ready", "Open Acme"]);
+    for (const word of ["Reserving your machine", "Setting up your new cloud", "My Cloud"]) expect(shown).not.toContain(word);
     expect(bridge.readySeen, "the purchase is over for main").toHaveBeenCalled();
-    await press("open Acme");
+    await press("Open Acme");
     expect(bridge.openTeam).toHaveBeenCalledExactlyOnceWith("team-acme");
     expect(bridge.connectHome).not.toHaveBeenCalled(); expect(bridge.checkout).not.toHaveBeenCalled();
     expect(f.dispatch).toHaveBeenCalledWith({ type: "closeCloudAdd" });
@@ -642,18 +642,18 @@ describe("the sheet", () => {
 
   it("a Team plan whose Cloud is still being set up shows the team's steps, then the team's Cloud once it is ready", async () => {
     account = onTeam({ status: "provisioning", setup: { step: "starting" } });
-    inOrder(await settle(), ["setting up your team's cloud", "reserving your machine", "preparing storage", "starting Acme"]);
+    inOrder(await settle(), ["Setting up your team's cloud", "Reserving your machine", "Preparing storage", "Starting Acme"]);
     push(onTeam());
-    expect(await settle()).toContain("your team's cloud is ready");
+    expect(await settle()).toContain("Your team's cloud is ready");
     bridge.openTeam.mockRejectedValueOnce(new Error("Acme isn't running right now."));
-    expect(await press("open Acme")).toContain("Acme didn't open. Try again in a minute.");
+    expect(await press("Open Acme")).toContain("Acme didn't open. Try again in a minute.");
     expect(f.dispatch).not.toHaveBeenCalledWith({ type: "closeCloudAdd" });
   });
 
   it("Settings' Sign in after a saved sign-in was removed signs in here, instead of handing back to Settings at once", async () => {
     f.state = { cloudAdd: { source: "app_settings", signIn: true }, config: {} };
     account = { status: "signed-out", message: "restore-removed" }; offer = null;
-    expect(await settle()).toContain("sign in to dusk cloud");
+    expect(await settle()).toContain("Sign in to dusk cloud");
     expect(f.dispatch).not.toHaveBeenCalledWith({ type: "closeCloudAdd" });
     tree().find(node => node.props.id === "cloud-add-email")!.props.onChange({ target: { value: EMAIL } }); await settle();
     tree().find(node => node.type === "form")!.props.onSubmit({ preventDefault() {} }); await flush();
@@ -665,10 +665,10 @@ describe("the sheet", () => {
     await settle();
     bridge.checkout.mockResolvedValueOnce({ outcome: "rate-limited", state: account });
     expect(await buy("pro")).toContain("You've opened several checkouts in the last hour.");
-    expect(await press("try again")).toContain("start free trial");
+    expect(await press("Try again")).toContain("Start free trial");
     bridge.checkout.mockRejectedValueOnce(new Error("Choose a plan to continue."));
     expect(await buy("pro")).toContain("Checkout couldn't open. Nothing was charged.");
-    await press("try again");
+    await press("Try again");
     bridge.checkout.mockResolvedValueOnce({ outcome: "conflict", state: free });
     expect(await buy("pro")).toContain("A checkout is already being prepared. Try again in a moment.");
   });

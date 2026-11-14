@@ -60,7 +60,7 @@ afterEach(() => {
 describe("Full access in bot settings", () => {
   it.each([false, true])("applies to the bot and every thread at once, with no dialog (desktop bridge: %s)", (bridge) => {
     render(base, bridge);
-    choose("full access");
+    choose("Full access");
     expect(dialogs()).toBe(0);
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({
       type: "updateBot", botId: "pepper", patch: { approvalMode: "full", applyToAllThreads: true },
@@ -69,7 +69,7 @@ describe("Full access in bot settings", () => {
 
   it("re-applies Full to every thread from its button, with no dialog and no desktop bridge", () => {
     render({ ...base, approvalMode: "full" });
-    const button = [...host.querySelectorAll("button")].find((candidate) => candidate.textContent === "apply full access to all threads");
+    const button = [...host.querySelectorAll("button")].find((candidate) => candidate.textContent === "Apply full access to all threads");
     expect(button).toBeDefined();
     flushSync(() => button!.click());
     expect(dialogs()).toBe(0);
@@ -80,7 +80,7 @@ describe("Full access in bot settings", () => {
 
   it("still warns before Auto on this computer", () => {
     render({ ...base, computer: "local" });
-    choose("approve for me");
+    choose("Approve for me");
     expect(dispatch).not.toHaveBeenCalled();
     expect(dialogs()).toBe(1);
   });
@@ -112,13 +112,13 @@ describe("PermissionsSection parts", () => {
         flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
       children: createElement(PermissionsSection, { bot: base, derived, parts: ["approval", "outbound"] }),
     })));
-    expect(host.textContent).toContain("approval level");
-    expect(host.textContent).toContain("sending on your behalf");
-    expect(host.textContent).not.toContain("chief of staff");
-    expect(host.textContent).not.toContain("ask me before contacting other bots");
+    expect(host.textContent).toContain("Approval level");
+    expect(host.textContent).toContain("Sending on your behalf");
+    expect(host.textContent).not.toContain("Chief of staff");
+    expect(host.textContent).not.toContain("Ask me before contacting other bots");
     render(base);
-    expect(host.textContent).toContain("chief of staff");
-    expect(host.textContent).toContain("ask me before contacting other bots");
+    expect(host.textContent).toContain("Chief of staff");
+    expect(host.textContent).toContain("Ask me before contacting other bots");
   });
 });
 
@@ -144,7 +144,7 @@ describe("sending on the person's behalf", () => {
 
 describe("who a bot talks to", () => {
   const quill: Bot = { ...base, id: "quill", name: "Quill", threadId: "quill-main", tasks: [] };
-  const button = () => [...host.querySelectorAll("button")].find((candidate) => candidate.textContent === "let it talk to every bot");
+  const button = () => [...host.querySelectorAll("button")].find((candidate) => candidate.textContent === "Let it talk to every bot");
 
   it("says nothing more for a bot that talks to every bot, the default", () => {
     render(base, false, [quill]);

@@ -10,11 +10,11 @@ beforeEach(() => setLocale("en"));
 it("names a team's Cloud on every screen that waits on it, and keeps My Cloud's own words otherwise", () => {
   expect(homeScreenText({ screen: "offline", name: "Acme" }).title).toBe("Can't reach Acme right now.");
   expect(homeScreenText({ screen: "offline" }).title).toBe("Can't reach my cloud right now.");
-  expect(homeScreenText({ screen: "opening", name: "Acme" }).title).toBe("opening Acme…");
-  expect(homeScreenText({ screen: "opening" }).title).toBe("opening my cloud…");
-  expect(homeScreenText({ screen: "signin", name: "Acme" })).toMatchObject({ title: "sign in to open Acme", action: "sign-in" });
+  expect(homeScreenText({ screen: "opening", name: "Acme" }).title).toBe("Opening Acme…");
+  expect(homeScreenText({ screen: "opening" }).title).toBe("Opening my cloud…");
+  expect(homeScreenText({ screen: "signin", name: "Acme" })).toMatchObject({ title: "Sign in to open Acme", action: "sign-in" });
   expect(homeScreenText({ screen: "plan", machine: "stopped", name: "Acme" })).toMatchObject({ title: "Acme isn't running", action: "manage" });
-  expect(homeScreenText({ screen: "plan", machine: "stopped" }).title).toBe("my cloud isn't running");
+  expect(homeScreenText({ screen: "plan", machine: "stopped" }).title).toBe("My cloud isn't running");
   for (const machine of ["stopped", "payment-problem"] as const) {
     const told = homeScreenText({ screen: "plan", machine, name: "Acme", member: true });
     expect(told, "a team's User asks its owner, and has nothing to press").toMatchObject({ title: "Acme isn't running", body: "Ask its owner to start it again. Its files are kept for a while.", action: null });
@@ -22,20 +22,20 @@ it("names a team's Cloud on every screen that waits on it, and keeps My Cloud's 
   expect(homeScreenText({ screen: "plan", machine: "stopped", name: "Acme" }).body, "whoever pays is told how").toContain("Subscribe again on your plan page");
   expect(homeScreenText({ screen: "plan", machine: "payment-problem", name: "Acme" }).action).toBe("manage");
   expect(homeScreenText({ screen: "plan", machine: "failed", name: "Acme", member: true }).body, "a failed machine isn't anyone's plan").not.toContain("owner");
-  expect(homeScreenText({ screen: "waking", name: "Acme" }).title, "only My Cloud is woken").toBe("waking my cloud…");
-  expect(homeScreenText(null).title).toBe("opening my cloud…");
-  expect(homeScreenText({ screen: "moving" }).title).toBe("moving to my cloud… almost done");
-  expect(homeScreenText({ screen: "moving", name: "Garage server" })).toMatchObject({ title: "moving to Garage server… almost done", action: null, busy: true });
+  expect(homeScreenText({ screen: "waking", name: "Acme" }).title, "only My Cloud is woken").toBe("Waking my cloud…");
+  expect(homeScreenText(null).title).toBe("Opening my cloud…");
+  expect(homeScreenText({ screen: "moving" }).title).toBe("Moving to my cloud… almost done");
+  expect(homeScreenText({ screen: "moving", name: "Garage server" })).toMatchObject({ title: "Moving to Garage server… almost done", action: null, busy: true });
 });
 
 it("while the Admin sets My Cloud up, the screen says so plainly, with its step, and never asks the person to do anything", () => {
   const setup = homeScreenText({ screen: "setup", step: "storage" });
-  expect(setup).toEqual({ title: "setting up my cloud…", body: "This takes about a minute. It opens by itself when it's ready.", reason: null, action: null, busy: true });
-  expect(homeScreenText({ screen: "setup", name: "Acme" }).title).toBe("setting up Acme…");
+  expect(setup).toEqual({ title: "Setting up my cloud…", body: "This takes about a minute. It opens by itself when it's ready.", reason: null, action: null, busy: true });
+  expect(homeScreenText({ screen: "setup", name: "Acme" }).title).toBe("Setting up Acme…");
   expect(homeScreenText({ screen: "setup", step: "starting", slow: true }).body).toMatch(/taking longer than usual/);
   const steps = renderToStaticMarkup(createElement(CloudSetupSteps, { step: "checking" }));
   expect(steps).toContain('data-cloud-setup="checking"');
-  expect(steps).toMatch(/aria-current="step"[^>]*>checking it&#x27;s ready</);
+  expect(steps).toMatch(/aria-current="step"[^>]*>Checking it&#x27;s ready</);
   for (const words of Object.values(setup)) expect(String(words)).not.toMatch(/Server menu|choose it again|DNS|resolv|ERR_/i);
 });
 

@@ -54,20 +54,20 @@ describe("J11: a failed place's row", () => {
     expect(html).toContain(en["place.view.ccNeedsKey.line"]);
     expect(buttons).toHaveLength(1);
     expect(buttons[0]).toContain(en["place.action.addVps"]);
-    expect(html).not.toContain("retry");
+    expect(html).not.toContain("Retry");
     expect(html).not.toContain("<details");
   });
 
   it("offers Try again only where the conversation can retry", () => {
     const passing = stored({ state: "cc-unavailable", params: { bot: "Scout" }, source: "works-on" });
     expect(show(passing, vi.fn()).buttons).toHaveLength(1);
-    expect(show(passing, vi.fn()).buttons[0]).toContain("try again");
+    expect(show(passing, vi.fn()).buttons[0]).toContain("Try again");
     expect(show(passing).buttons).toHaveLength(0);
   });
 
   it("leads a person's pin back to the grid's choice", () => {
     const pinned = stored({ state: "cc-no-start", params: { bot: "Scout" }, source: "pin" });
-    expect(show(pinned).buttons[0]).toContain("use cloud desktop");
+    expect(show(pinned).buttons[0]).toContain("Use cloud desktop");
   });
 
   it("gives a User no button that changes a setting, and says who can", () => {

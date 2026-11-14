@@ -21,8 +21,8 @@ describe("Codex device sign-in UI", () => {
     expect(html).toContain("ABCD-12345");
     expect(html).toContain('href="https://auth.openai.com/codex/device"');
     expect(html).toContain('rel="noopener noreferrer"');
-    expect(html).toContain("copy sign-in code");
-    expect(html).toContain("waiting for you");
+    expect(html).toContain("Copy sign-in code");
+    expect(html).toContain("Waiting for you");
     expect(html).not.toContain("codex login");
   });
 
@@ -80,10 +80,10 @@ describe("ChatGPT plan browser sign-in", () => {
   it("uses the official browser flow without a device code or terminal command", () => {
     expect(chatgptPlanLink(authorizationUrl)).toBe(authorizationUrl);
     const html = renderBrowser({ ...waiting, authorizationUrl, userCode: undefined });
-    expect(html).toContain("continue with ChatGPT");
+    expect(html).toContain("Continue with ChatGPT");
     expect(html).toContain('rel="noopener noreferrer"');
-    expect(html).toContain("waiting for you");
-    expect(html).not.toContain("copy sign-in code");
+    expect(html).toContain("Waiting for you");
+    expect(html).not.toContain("Copy sign-in code");
     expect(html).not.toContain("codex login");
   });
 
@@ -119,8 +119,8 @@ describe("Grok Build device sign-in UI", () => {
     expect(html).toContain("WDJB-MJHT");
     expect(html).toContain('href="https://accounts.x.ai/device"');
     expect(html).toContain('rel="noopener noreferrer"');
-    expect(html).toContain("enter this one-time code on xAI&#x27;s sign-in page");
-    expect(html).toContain("open Grok sign-in");
+    expect(html).toContain("Enter this one-time code on xAI&#x27;s sign-in page");
+    expect(html).toContain("Open Grok sign-in");
     expect(html).toContain("grok.com subscription");
     expect(html).not.toMatch(/ChatGPT|OpenAI/);
   });

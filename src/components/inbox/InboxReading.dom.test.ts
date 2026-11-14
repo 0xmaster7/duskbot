@@ -100,8 +100,8 @@ describe("the inbox's words", () => {
     expect(answerKindOf(connect)).toBe("connect");
     expect(answerKindOf({ ...signIn, signIn: { ...signIn.signIn!, done: true } })).toBe("none");
     expect(answerKindOf({ ...secret, secret: { ...secret.secret!, provided: true } })).toBe("none");
-    expect(headlineOf(signIn)).toBe("sign in to shop.test");
-    expect(headlineOf(connect)).toBe("connect Gmail");
+    expect(headlineOf(signIn)).toBe("Sign in to shop.test");
+    expect(headlineOf(connect)).toBe("Connect Gmail");
   });
 });
 
@@ -109,7 +109,7 @@ describe("the inbox tab", () => {
   it("is a tab with its count that closes, and lists three-line rows a search filters", async () => {
     await mount();
     const chip = document.querySelector("[data-inbox-tab-chip]")!;
-    expect(chip.textContent).toContain("inbox");
+    expect(chip.textContent).toContain("Inbox");
     expect(chip.querySelector("[data-inbox-tab-count]")!.textContent).toBe("2");
     expect(listed()).toEqual(["q1", "q2", "n1"]);
     const first = document.querySelector('[data-inbox-row="q1"]')!;
@@ -122,7 +122,7 @@ describe("the inbox tab", () => {
     await type(document.querySelector<HTMLInputElement>('input[type="search"]')!, "nothing like it");
     expect(listed()).toEqual([]);
     expect(document.body.textContent).toContain("Nothing in the inbox matches.");
-    await click('[aria-label="close inbox"]');
+    await click('[aria-label="Close inbox"]');
     expect(currentInboxPanel().open).toBe(false);
   });
 });
@@ -143,12 +143,12 @@ describe("a line read in full", () => {
     expect(words.textContent).toContain("Grilling round 1.");
     expect(words.querySelector("strong")?.textContent, "drawn as the chat's Markdown").toBe("A small team");
     expect(words.textContent, "what the person said is not the bot's").not.toContain("set up self-hosting");
-    await click('[aria-label="next"]');
+    await click('[aria-label="Next"]');
     expect(currentInboxPanel().reading).toBe("q2");
     expect(document.querySelector("[data-inbox-position]")!.textContent).toBe("2 of 3");
-    await click('[aria-label="previous"]');
+    await click('[aria-label="Previous"]');
     expect(currentInboxPanel().reading).toBe("q1");
-    await click('[aria-label="back to the list"]');
+    await click('[aria-label="Back to the list"]');
     expect(currentInboxPanel().reading).toBeNull();
   });
 
@@ -157,12 +157,12 @@ describe("a line read in full", () => {
     await click('[data-inbox-row="q1"] > button');
     const options = [...document.querySelectorAll<HTMLElement>("[data-inbox-option]")];
     expect(options.map((option) => option.dataset.inboxOption)).toEqual(["Small team", "Enterprise", "Solo developer"]);
-    expect(options[0]!.querySelector("[data-inbox-recommended]")?.textContent).toBe("recommended");
+    expect(options[0]!.querySelector("[data-inbox-recommended]")?.textContent).toBe("Recommended");
     expect(options[1]!.textContent).toContain("On-prem or private VPC");
     expect(document.querySelector<HTMLButtonElement>("[data-inbox-send]")!.disabled, "nothing to send yet").toBe(true);
     await act(async () => { document.dispatchEvent(new KeyboardEvent("keydown", { key: "2", bubbles: true })); });
     expect(options[1]!.getAttribute("aria-checked")).toBe("true");
-    await type(document.querySelector<HTMLTextAreaElement>('textarea[aria-label="add a note"]')!, "Mostly agencies");
+    await type(document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Add a note"]')!, "Mostly agencies");
     await click("[data-inbox-send]");
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "decideRequest", threadId: "plan-thread", requestId: "req-q1", behavior: "answer" }));
     const sent = dispatch.mock.calls.find(([action]) => action.type === "decideRequest")![0].message as string;

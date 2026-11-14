@@ -312,8 +312,8 @@ describe("ApprovalCard learned skills", () => {
     const markup = renderToStaticMarkup(createElement(ApprovalCard, { message }));
     expect(markup).toContain("enable a learned skill");
     expect(markup).toContain("Files an expense in the company portal.");
-    expect(markup).toContain("review the complete SKILL.md before enabling");
-    expect(markup).toContain("source: learn:conversation");
+    expect(markup).toContain("Review the complete SKILL.md before enabling");
+    expect(markup).toContain("Source: learn:conversation");
     expect(markup).toContain("name: file-expense");
     expect(markup).toContain("sha256 abcdef01");
 
@@ -752,7 +752,7 @@ describe("one approval, one card", () => {
     const row = visibleRow(panel);
     expect(row).toContain("Dev wants to run a command");
     expect(row).toMatch(/font-mono[^"]*"[^>]*>git status<\/div>/);
-    expect(panel).toContain('aria-label="pending approval"');
+    expect(panel).toContain('aria-label="Pending approval"');
     expect(panel).not.toContain("Command approval requested");
     expect(row).not.toContain("<pre");
     expect(row).toContain('aria-expanded="false"');
@@ -854,7 +854,7 @@ describe("ApprovalCard MCP server changes", () => {
       createElement(PendingApprovalActions, { pending: pending!, threadId: "thread-1", bot, onCancelTurn: () => undefined })));
     expect(actions).toContain(">turn on</button>");
     expect(actions).toContain(">Cancel</button>");
-    expect(actions).not.toContain("always allow");
+    expect(actions).not.toContain("Always allow");
     expect(spokenApprovalPrompt(pending!, "Kiwi")).toBe("Kiwi: turn on linear? review the details and choose turn on or cancel.");
   });
 

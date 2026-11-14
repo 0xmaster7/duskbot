@@ -146,7 +146,7 @@ describe.each(SEND_KEYS)("in %s mode", (mode) => {
   it("the Cloud's first job starts on the same key", () => {
     setPendingIntent("Watch my inbox");
     render(createElement(CloudIntent));
-    const job = () => textarea('textarea[aria-label="what should the cloud do while you\'re away?"]');
+    const job = () => textarea('textarea[aria-label="What should the cloud do while you\'re away?"]');
     expect(job().value).toBe("Watch my inbox");
     const given = () => vi.mocked(api).mock.calls.filter(([, init]) => String(init?.body).includes("cloud-intent-given")).length;
     expectSendKey(mode, job, given);
@@ -200,7 +200,7 @@ describe("the send key in hints", () => {
   it("names the key on the Cloud's first-job button", () => {
     setSendKey("mod-enter");
     render(createElement(CloudIntent));
-    expect(host.querySelector('button[aria-label="start setting it up"]')?.getAttribute("title")).toBe("start setting it up (Ctrl+Enter)");
+    expect(host.querySelector('button[aria-label="Start setting it up"]')?.getAttribute("title")).toBe("Start setting it up (Ctrl+Enter)");
   });
 });
 

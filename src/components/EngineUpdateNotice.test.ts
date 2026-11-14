@@ -19,7 +19,7 @@ describe("EngineUpdateNotice", () => {
     expect(markup).toContain("data-engine-update-notice");
     expect(markup).toContain("Update Codex for GPT-6 Astra");
     expect(markup).toContain("codex update");
-    expect(markup).toContain('aria-label="copy command"');
+    expect(markup).toContain('aria-label="Copy command"');
   });
 
   it("offers the native Terminal action when the desktop bridge supports it", () => {
@@ -27,7 +27,7 @@ describe("EngineUpdateNotice", () => {
 
     const markup = renderToStaticMarkup(createElement(EngineUpdateNotice, { update }));
 
-    expect(markup).toContain('aria-label="open update in Terminal"');
+    expect(markup).toContain('aria-label="Open update in Terminal"');
     expect(markup).toContain("Terminal");
   });
 });

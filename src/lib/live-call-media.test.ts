@@ -148,7 +148,7 @@ describe("live call media", () => {
     expect(peer.channel.sent.map((s) => JSON.parse(s).type)).toContain("session.close");
     expect(peer.closed).toBe(true);
     expect(track.stopped).toBe(true);
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "call dropped." });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "Call dropped." });
     expect(currentCall()).toBeNull();
   });
 
@@ -250,7 +250,7 @@ describe("live call media", () => {
 
   it("names why a call ended", () => {
     expect(endNotice("idle")).toEqual({ text: "Call ended after a long silence.", dropped: false });
-    expect(endNotice("sideband-lost")).toEqual({ text: "call dropped.", dropped: true });
+    expect(endNotice("sideband-lost")).toEqual({ text: "Call dropped.", dropped: true });
     expect(endNotice("hung-up").dropped).toBe(false);
     expect(endNotice("signed-out")).toEqual({ text: "Call ended: you were signed out.", dropped: false });
   });
@@ -563,7 +563,7 @@ describe("ending a call", () => {
     expect(liveMedia()).toMatchObject({ phase: "ending", hangingUp: false, notice: null });
     expect(track.stopped).toBe(true);
     onServerCall({ ...call, status: "ended", endReason: "hung-up" });
-    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "call ended.", action: null, hangingUp: false });
+    expect(liveMedia()).toMatchObject({ phase: "ended", notice: "Call ended.", action: null, hangingUp: false });
     expect(track.stopped).toBe(true);
     expect(currentCall()).toBeNull();
   });
@@ -724,7 +724,7 @@ describe("waiting for a Live call's audio to connect", () => {
     onServerCall({ ...call, status: "ended", endReason: "sideband-lost" });
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(25_000);
-    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "call dropped." });
+    expect(liveMedia()).toMatchObject({ phase: "failed", notice: "Call dropped." });
     expect(endRequests()).toEqual([]);
   });
 });

@@ -45,7 +45,7 @@ describe("silver", () => {
   it("is a colour every picker offers, drawn at #A8ADB4 and named Silver", () => {
     expect(MAUS_COLOR_NAMES).toContain("silver");
     expect(MAUS_COLORS.silver).toBe("#A8ADB4");
-    expect(t(MAUS_COLOR_LABEL.silver)).toBe("silver");
+    expect(t(MAUS_COLOR_LABEL.silver)).toBe("Silver");
   });
 });
 

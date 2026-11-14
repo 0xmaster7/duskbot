@@ -98,10 +98,10 @@ describe("the X card in Apps", () => {
   it("shows a Cloud plan's included calls with this month's use, and nothing to set up", async () => {
     await mount({ included: true, usage: USAGE });
     expect(card().dataset.xState).toBe("included");
-    expect(text()).toContain("included with your plan");
+    expect(text()).toContain("Included with your plan");
     expect(text()).toContain("312 of 5,000 X calls this month. They reset on November 1.");
     expect(field()).toBeNull();
-    expect(button("use my own treg key")).toBeDefined();
+    expect(button("Use my own treg key")).toBeDefined();
     expect(onConnection).toHaveBeenLastCalledWith(true);
   });
 
@@ -123,8 +123,8 @@ describe("the X card in Apps", () => {
   it("asks everyone else for a treg key with a link to treg.to, saves it where keys go, tests it once and says it works", async () => {
     await mount({});
     expect(card().dataset.xState).toBe("none");
-    expect(text()).toContain("add your treg key");
-    expect(host.querySelector<HTMLAnchorElement>('a[href="https://treg.to"]')?.textContent).toContain("get a key at treg.to");
+    expect(text()).toContain("Add your treg key");
+    expect(host.querySelector<HTMLAnchorElement>('a[href="https://treg.to"]')?.textContent).toContain("Get a key at treg.to");
     expect(onConnection).toHaveBeenLastCalledWith(false);
     await type(KEY);
     await submit();
@@ -134,8 +134,8 @@ describe("the X card in Apps", () => {
     ]);
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "configStatus", config: { treg: { configured: true }, xResearch: { included: false } } });
     expect(card().dataset.xState).toBe("own");
-    expect(text()).toContain("using your treg key");
-    expect(text()).toContain("treg is working ✓ balance: $4.25.");
+    expect(text()).toContain("Using your treg key");
+    expect(text()).toContain("Treg is working ✓ Balance: $4.25.");
     expect(field()).toBeNull();
     expect(fixture.track).toHaveBeenCalledWith("api_key_saved", { provider: "treg", via: "apps", result: "ok" });
     expect(onConnection).toHaveBeenLastCalledWith(true);
@@ -163,23 +163,23 @@ describe("the X card in Apps", () => {
     await mount({ own: true, included: true, usage: USAGE, check: { ok: false, check: "treg", message: "treg rejected this key. Copy it again from treg.to." } });
     expect(card().dataset.xState).toBe("own");
     expect(text()).toContain("Your own treg key is used first, and calls are billed to your treg balance. Your plan's included X calls wait until you remove it.");
-    await click("test");
+    await click("Test");
     expect(text()).toContain("treg rejected this key. Copy it again from treg.to.");
   });
 
   it("falls back to the plan's included calls when the key is removed", async () => {
     await mount({ own: true, included: true, usage: USAGE });
-    await click("remove key");
+    await click("Remove key");
     expect(server.calls).toContainEqual(["PUT", "/api/config", { treg: { key: "" } }]);
     expect(card().dataset.xState).toBe("included");
-    expect(text()).toContain("included with your plan");
+    expect(text()).toContain("Included with your plan");
     expect(fixture.track).toHaveBeenCalledWith("api_key_removed", { provider: "treg", via: "apps" });
   });
 
   it("removing the only key leaves no X, and the card asks for a key again", async () => {
     await mount({ own: true });
     expect(text()).toContain("Your bots search and read X with your own treg key. Calls are billed to your treg balance.");
-    await click("remove key");
+    await click("Remove key");
     expect(card().dataset.xState).toBe("none");
     expect(field()).not.toBeNull();
     expect(onConnection).toHaveBeenLastCalledWith(false);

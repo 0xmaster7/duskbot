@@ -28,7 +28,7 @@ vi.mock("@/state/store", async (importOriginal) => {
 const { BotContextMenu } = await import("./Sidebar");
 const { setTeamPeople } = await import("@/state/team-people");
 const bot: Bot = {
-  id: "dumpling", threadId: "thread", name: "Dumpling", title: "", description: "", notifications: true,
+  id: "dumpling", threadId: "Thread", name: "Dumpling", title: "", description: "", notifications: true,
   color: "green", unread: false, messages: [], modelSelection: { instanceId: "test", model: "test" },
 };
 const listeners = new Map<string, () => void>();
@@ -71,7 +71,7 @@ describe("bot actions menu viewport placement", () => {
     const element = measuredMenu(228, 468);
     const cleanup = layoutEffects();
     expect(element.style).toEqual({ top: "324px", left: "764px" });
-    expect(html).toContain(">hide from sidebar</span></button>");
+    expect(html).toContain(">Hide from sidebar</span></button>");
     expect(fixture.portal?.target).toBe(document.body);
     expect(html).toContain("data-sidebar");
     expect(listeners.has("resize")).toBe(true);

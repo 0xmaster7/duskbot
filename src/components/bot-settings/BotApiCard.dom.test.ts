@@ -100,7 +100,7 @@ describe("the Bot API card", () => {
 
   it("is off with no command until switched on", async () => {
     await mount();
-    expect(find("bot-api")!.textContent).toContain("bot API");
+    expect(find("bot-api")!.textContent).toContain("Bot API");
     expect(find("bot-api-switch")!.getAttribute("aria-checked")).toBe("false");
     expect(find("bot-api-curl")).toBeNull();
   });
@@ -142,7 +142,7 @@ describe("the Bot API card", () => {
     expect(find("bot-api-switch")!.hasAttribute("disabled")).toBe(true);
     expect(find("bot-api-new-key")).toBeNull();
     expect(find("bot-api-calls")).toBeNull();
-    expect(find("bot-api-webhooks")!.textContent).toBe("webhooks: 2 triggers");
+    expect(find("bot-api-webhooks")!.textContent).toBe("Webhooks: 2 triggers");
     await click("bot-api-webhooks");
     expect(fixture.dispatched).toEqual([{ type: "toggleSettings", open: true, section: "routines", botId: "b1" }]);
   });
@@ -152,6 +152,6 @@ describe("the Bot API card", () => {
     await mount();
     expect(find("bot-api-local")).not.toBeNull();
     expect(find("bot-api-calls")!.textContent).toContain("What is the pay date?");
-    expect(callWords({ outcome: "rejected", statusCode: 401, repeats: 3 })).toBe("wrong key (3)");
+    expect(callWords({ outcome: "rejected", statusCode: 401, repeats: 3 })).toBe("Wrong key (3)");
   });
 });

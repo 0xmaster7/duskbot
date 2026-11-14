@@ -55,7 +55,7 @@ describe("CallSheet", () => {
     draw();
     openSheet();
     const text = sheet()!.textContent ?? "";
-    expect(sheet()!.getAttribute("role")).toBe("dialog");
+    expect(sheet()!.getAttribute("Role")).toBe("dialog");
     expect(text).toContain("Call with Kiwi");
     expect(text).toContain("0:45");
     const asked = text.indexOf("Hey Kiwi, what are the two issues I should pick up");
@@ -83,7 +83,7 @@ describe("CallSheet", () => {
   it("closes from its button and from Escape", () => {
     draw();
     openSheet();
-    flushSync(() => sheet()!.querySelector<HTMLButtonElement>('button[aria-label="close"]')!.click());
+    flushSync(() => sheet()!.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!.click());
     expect(sheet()).toBeNull();
 
     openSheet();

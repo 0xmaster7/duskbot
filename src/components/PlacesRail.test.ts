@@ -59,7 +59,7 @@ it("a circle per place, with its initials on its colour; the place on screen is 
   expect(host.querySelector('[data-rail-place="c"]')?.getAttribute("aria-label")).toBe("Client C: setting up");
   expect(host.querySelector('[data-rail-place="pending:c-b"]')?.getAttribute("aria-label")).toBe("Client B: waiting for payment");
   expect(host.querySelector("[data-rail-more-button]")).toBeNull();
-  expect(host.querySelector("[data-rail-add]")?.getAttribute("aria-label")).toBe("add a cloud or your own server");
+  expect(host.querySelector("[data-rail-add]")?.getAttribute("aria-label")).toBe("Add a cloud or your own server");
 });
 
 it("marks the place on screen with a pill on the rail's edge, a short one on hover for a place that opens, and no ring round a tile", async () => {
@@ -137,7 +137,7 @@ it("＋ opens the one add-a-place sheet: dusk cloud, or a server of one's own ha
   await mount(createElement(PlacesRail));
   await click(host.querySelector("[data-rail-add]"));
   const sheet = document.querySelector("[data-place-add-sheet]")!;
-  expect(sheet.querySelector("h2")?.textContent).toBe("add a place");
+  expect(sheet.querySelector("h2")?.textContent).toBe("Add a place");
   expect([...sheet.querySelectorAll("[data-place-add-choice]")].map((choice) => choice.getAttribute("data-place-add-choice"))).toEqual(["cloud", "server"]);
   expect(sheet.querySelector("input"), "no box to paste a link into").toBeNull();
   await click(sheet.querySelector('[data-place-add-choice="server"]'));
@@ -170,9 +170,9 @@ it("＋ for the account a Team plan's organizations are billed to: New organizat
   await click(sheet.querySelector('[data-place-add-choice="organization"]'));
   await act(async () => { await Promise.resolve(); });
   const form = document.querySelector('[data-place-add="organization"]')!;
-  expect(form.querySelector("h2")?.textContent).toBe("new organization");
+  expect(form.querySelector("h2")?.textContent).toBe("New organization");
   expect(form.textContent).toContain("nothing to pay now");
-  expect(form.querySelector("[data-org-count]")?.textContent).toBe("organization 4 of 10");
+  expect(form.querySelector("[data-org-count]")?.textContent).toBe("Organization 4 of 10");
   expect(createButton()?.disabled, "a name first").toBe(true);
   await type(form.querySelector("input"), "  Client   B ");
   expect(form.querySelector("[data-org-preview]")?.textContent).toBe("Client B");
@@ -232,14 +232,14 @@ it("Buy a Cloud, for someone whose Admin sells one Cloud per account: the calm w
   await click(document.querySelector('[data-place-add-choice="cloud"]'));
   await act(async () => { await Promise.resolve(); });
   const flow = document.querySelector('[data-cloud-add="extra-one"]')!;
-  expect(flow.textContent).toContain("one cloud per account for now");
+  expect(flow.textContent).toContain("One cloud per account for now");
   expect(flow.textContent).toContain("You have My Cloud.");
   expect(cloudAdd.sheet).toHaveBeenCalledWith(true);
 });
 
 it("a circle's letters and words", () => {
   expect(["Client A", "Acme", "  my  cloud ", "Ünïcode Øne", "😀 Fun"].map(placeInitials)).toEqual(["CA", "A", "MC", "ÜØ", "😀F"]);
-  expect(placeLabel(place("local", "This computer", { kind: "computer" }))).toBe("this computer");
+  expect(placeLabel(place("local", "This computer", { kind: "computer" }))).toBe("This computer");
   expect(placeLabel(place("x", "Acme", { attention: true }))).toBe("Acme: needs you");
 });
 
@@ -252,11 +252,11 @@ it("a server of the person's own that signed in: a small server mark, the offlin
     place("signed-in:s-render", "Render VPS", { kind: "server", opens: false, pairs: true, server: true }),
   ];
   expect(placeLabel(servers[1]!)).toBe("Office, your own server");
-  expect(placeLabel(servers[2]!, now)).toBe("Mac mini, your own server: offline, last seen 2 hours ago · only reachable on its own network");
+  expect(placeLabel(servers[2]!, now)).toBe("Mac mini, your own server: offline, last seen 2 hours ago · Only reachable on its own network");
   expect(placeLabel({ ...servers[2]!, lastSeenAt: undefined, ownNetwork: undefined })).toBe("Mac mini, your own server: offline");
   expect(placeLabel(servers[3]!)).toBe("Render VPS, your own server: connect it to this app");
   expect(placeLabel(place("s", "Mac mini", { kind: "server", server: true, update: { version: "0.1.118", latest: "0.1.130" } })))
-    .toBe("Mac mini, your own server · update ready");
+    .toBe("Mac mini, your own server · Update ready");
   rail = { places: servers, add: { cloud: true, link: true, address: false } };
   await mount(createElement(PlacesRail));
   expect(host.querySelector('[data-rail-place="vps"] [data-rail-server]')).toBeTruthy();
@@ -265,7 +265,7 @@ it("a server of the person's own that signed in: a small server mark, the offlin
   const mini = host.querySelector('[data-rail-place="signed-in:s-mini"]')!;
   expect(mini.querySelector("[data-rail-offline]")?.className).toContain("grayscale");
   expect(mini.getAttribute("aria-disabled")).toBe("true");
-  expect(mini.getAttribute("title")).toContain("only reachable on its own network");
+  expect(mini.getAttribute("title")).toContain("Only reachable on its own network");
   await click(mini);
   expect(document.querySelector("[data-place-add-sheet]")).toBeNull();
   await click(host.querySelector('[data-rail-place="vps"]'));
@@ -273,7 +273,7 @@ it("a server of the person's own that signed in: a small server mark, the offlin
   await click(host.querySelector('[data-rail-place="signed-in:s-render"]'));
   expect(workspaces.open.mock.calls).toHaveLength(1);
   const connect = document.querySelector("[data-place-setup-way=address]")!;
-  expect(connect.querySelector("h2")?.textContent).toBe("connect Render VPS");
+  expect(connect.querySelector("h2")?.textContent).toBe("Connect Render VPS");
   await type(connect.querySelector("[data-setup-address]"), "https://render.example.test");
   await type(connect.querySelector("[data-setup-code]"), "abcd-2345-efgh");
   await submit(connect);
@@ -296,7 +296,7 @@ it("a server of the person's own on an older release than the newest has a quiet
     place("s-old", "Old box", { kind: "server", server: true, attention: true, update: { version: "0.1.100", latest: "0.1.130" } })], add: { cloud: true, link: true, address: false } };
   await mount(createElement(PlacesRail));
   expect(host.querySelector('[data-rail-place="s-mini"] [data-rail-update]')).toBeTruthy();
-  expect(host.querySelector('[data-rail-place="s-mini"]')?.getAttribute("title")).toContain("update ready");
+  expect(host.querySelector('[data-rail-place="s-mini"]')?.getAttribute("title")).toContain("Update ready");
   expect(host.querySelector('[data-rail-place="s-old"] [data-rail-update]')).toBeNull();
   expect(host.querySelector('[data-rail-place="s-old"] [data-rail-dot]')).toBeTruthy();
 });
@@ -349,8 +349,8 @@ it("a right-click on a circle opens its place's menu: its colour, saved by main 
   };
   expect(host.querySelector('[data-rail-place="local"] span[style]')?.getAttribute("style"), "this computer's circle wears its colour").toContain("var(--identity-teal)");
   const own = await menuOf("local");
-  expect([own?.getAttribute("aria-label"), own?.querySelector("[aria-checked='true']")?.getAttribute("data-swatch")]).toEqual(["this computer", "green"]);
-  expect(own!.querySelector("[data-swatch='slate']")?.getAttribute("aria-label"), "the plain swatch says what it does").toBe("none");
+  expect([own?.getAttribute("aria-label"), own?.querySelector("[aria-checked='true']")?.getAttribute("data-swatch")]).toEqual(["This computer", "green"]);
+  expect(own!.querySelector("[data-swatch='slate']")?.getAttribute("aria-label"), "the plain swatch says what it does").toBe("None");
   await click(own!.querySelector("[data-swatch='slate']"));
   await settle();
   expect(recolor).toHaveBeenCalledWith("local", "slate");
@@ -423,7 +423,7 @@ it("a server of the person's own that main offers as home: its menu's one tap st
   await act(async () => { host.querySelector("[data-rail-menu]")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
   const menu = await menuOf("garage");
   const row = menu!.querySelector("[data-rail-make-home-start]");
-  expect(row?.textContent).toBe("make Garage server my homeMoves this computer's bots, chats, memory and routines to Garage server, and this computer then works for it.");
+  expect(row?.textContent).toBe("Make Garage server my homeMoves this computer's bots, chats, memory and routines to Garage server, and this computer then works for it.");
   await click(row);
   await settle();
   expect(makeHome).toHaveBeenCalledWith("garage");
@@ -481,7 +481,7 @@ it("a saved account whose sign-in ended: its tile says so, and a click opens the
   Object.assign(window, { duskDesktop: { workspaces, cloudAdd, accounts } });
   workspaces.open.mockResolvedValueOnce({ outcome: "sign-in", email: BOB } as never);
   await mount(createElement(PlacesRail));
-  expect(host.querySelector('[data-rail-place="b1"]')?.getAttribute("title")).toBe(`My Cloud · ${BOB} · sign in again`);
+  expect(host.querySelector('[data-rail-place="b1"]')?.getAttribute("title")).toBe(`My Cloud · ${BOB} · Sign in again`);
   await click(host.querySelector('[data-rail-place="b1"]'));
   await act(async () => { await Promise.resolve(); });
   expect((host.querySelector("#cloud-add-email") as HTMLInputElement | null)?.value).toBe(BOB);

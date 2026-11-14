@@ -148,10 +148,10 @@ describe("a bot's conversations in its panel", () => {
   it("marks an unread reply with a dot, a pinned conversation with a pin, and a running one with how long it has worked", async () => {
     render(research());
     await settle();
-    expect(row("launch").querySelector('[aria-label="unread"]')).not.toBeNull();
-    expect(row("who").querySelector('[aria-label="unread"]')).toBeNull();
-    expect(row("hiring").querySelector('svg[aria-label="pin"]')).not.toBeNull();
-    expect(row("launch").querySelector('svg[aria-label="pin"]')).toBeNull();
+    expect(row("launch").querySelector('[aria-label="Unread"]')).not.toBeNull();
+    expect(row("who").querySelector('[aria-label="Unread"]')).toBeNull();
+    expect(row("hiring").querySelector('svg[aria-label="Pin"]')).not.toBeNull();
+    expect(row("launch").querySelector('svg[aria-label="Pin"]')).toBeNull();
     expect(row("pricing")).toBeNull();
     click(more());
     expect(row("pricing").querySelector("[data-thread-working]")!.textContent).toMatch(/^Working·1m 1[23]s$/);
@@ -228,15 +228,15 @@ describe("a bot's conversations in its panel", () => {
   it("pins, archives, renames and deletes through the thread menu the sidebar uses", () => {
     render(research());
     const menuFor = (title: string) => {
-      click(host.querySelector(`[aria-label="actions for ${title}"]`));
-      return [...document.querySelector(`[data-thread-overlay][aria-label="actions for ${title}"]`)!.querySelectorAll("button")];
+      click(host.querySelector(`[aria-label="Actions for ${title}"]`));
+      return [...document.querySelector(`[data-thread-overlay][aria-label="Actions for ${title}"]`)!.querySelectorAll("button")];
     };
     const items = menuFor("Translate the launch post");
-    expect(items.map((button) => button.textContent)).toEqual(expect.arrayContaining(["copy link", "rename thread", "pin", "archive", "delete thread"]));
-    click(items.find((button) => button.textContent === "pin")!);
+    expect(items.map((button) => button.textContent)).toEqual(expect.arrayContaining(["Copy link", "Rename thread", "Pin", "Archive", "Delete thread"]));
+    click(items.find((button) => button.textContent === "Pin")!);
     expect(fixture.dispatch.mock.calls).toEqual([[{ type: "updateTask", botId: "research", threadId: "launch", patch: { pinned: true } }]]);
     fixture.dispatch.mockReset();
-    click(menuFor("Translate the launch post").find((button) => button.textContent === "archive")!);
+    click(menuFor("Translate the launch post").find((button) => button.textContent === "Archive")!);
     expect(fixture.dispatch.mock.calls).toEqual([[{ type: "updateTask", botId: "research", threadId: "launch", patch: { archivedAt: expect.any(Number) } }]]);
   });
 
@@ -266,9 +266,9 @@ describe("a bot's conversations in its panel", () => {
     expect(archivedToggle.getAttribute("aria-expanded")).toBe("false");
     click(archivedToggle);
     expect(listed()).toEqual(["hiring", "who", "pricing", "launch", "deck"]);
-    click(host.querySelector('[aria-label="actions for Summarise the board deck"]'));
-    const unarchive = [...document.querySelector('[data-thread-overlay][aria-label="actions for Summarise the board deck"]')!.querySelectorAll("button")]
-      .find((button) => button.textContent === "unarchive")!;
+    click(host.querySelector('[aria-label="Actions for Summarise the board deck"]'));
+    const unarchive = [...document.querySelector('[data-thread-overlay][aria-label="Actions for Summarise the board deck"]')!.querySelectorAll("button")]
+      .find((button) => button.textContent === "Unarchive")!;
     click(unarchive);
     expect(fixture.dispatch.mock.calls).toEqual([[{ type: "updateTask", botId: "research", threadId: "deck", patch: { archivedAt: null } }]]);
   });

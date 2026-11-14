@@ -45,7 +45,7 @@ describe("app rows", () => {
     const markup = renderToStaticMarkup(createElement(ChatView, { bot: bot([message("m1", "count my coffees"), appRow]) }));
     expect(markup).toContain('data-app="a1"');
     expect(markup).toContain("Coffee counter");
-    expect(markup).toContain("page made by Pepper");
+    expect(markup).toContain("Page made by Pepper");
     // the readable fallback is for older clients: not drawn as a bubble here
     expect(markup).not.toContain("Cups of coffee today");
   });

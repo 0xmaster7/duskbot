@@ -64,11 +64,11 @@ describe("trace helpers", () => {
   });
 
   it("names the groupings that are not a person in plain words", () => {
-    expect(usageGroupLabel("user", { key: "owner", label: "this computer" })).toBe("this computer");
-    expect(usageGroupLabel("user", { key: "bot", label: "bot to bot" })).toBe("bot to bot");
-    expect(usageGroupLabel("user", { key: "routine:r1", label: "Routine: Morning digest" })).toBe("routine: Morning digest");
+    expect(usageGroupLabel("user", { key: "owner", label: "this computer" })).toBe("This computer");
+    expect(usageGroupLabel("user", { key: "bot", label: "bot to bot" })).toBe("Bot to bot");
+    expect(usageGroupLabel("user", { key: "routine:r1", label: "Routine: Morning digest" })).toBe("Routine: Morning digest");
     expect(usageGroupLabel("user", { key: "user:ada@example.test", label: "ada@example.test" })).toBe("ada@example.test");
-    expect(usageGroupLabel("routine", { key: "manual", label: "not from a routine" })).toBe("not from a routine");
+    expect(usageGroupLabel("routine", { key: "manual", label: "not from a routine" })).toBe("Not from a routine");
   });
 
   it("ranks models by tokens, so a subscription model with no price still shows", () => {

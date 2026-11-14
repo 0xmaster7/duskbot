@@ -61,17 +61,17 @@ describe("Settings full backups", () => {
     expect(html.match(/type="password"/g)).toBeNull();
     expect(html).toContain("Sign-ins and keys are left out");
     expect(html).toContain("can&#x27;t be recovered");
-    expect(html).not.toContain("replace installation");
-    pill("export full backup").props.onClick!();
+    expect(html).not.toContain("Replace installation");
+    pill("Export full backup").props.onClick!();
     expect(render().html.match(/type="password"/g)).toHaveLength(2);
     const preview = renderToStaticMarkup(createElement(WorkspaceBackupSummaryView, { summary }));
-    for (const text of ["validated backup", "0.1.71", "bots", "threads", "messages", "Fixture warning", "External CLI sign-ins"]) expect(preview).toContain(text);
+    for (const text of ["Validated backup", "0.1.71", "Bots", "Threads", "Messages", "Fixture warning", "External CLI sign-ins"]) expect(preview).toContain(text);
   });
 
   it("exports encrypted state by POST and downloads without putting the password in a URL or storage", async () => {
     await ready();
     storage.set("dusk-drafts", "private draft"); storage.set("auth-token", "not exported"); storage.set("dusk-webhook-credentials", "not exported either");
-    pill("export full backup").props.onClick!();
+    pill("Export full backup").props.onClick!();
     const passwords = render().nodes.filter((node) => node.type === "input" && node.props.type === "password");
     change(passwords[0], "correct horse battery"); change(passwords[1], "correct horse battery");
     const link = { href: "", download: "", click: vi.fn(), remove: vi.fn() };
@@ -99,7 +99,7 @@ describe("Settings full backups", () => {
     expect(fixture.api.mock.calls[1]).toEqual(["/api/workspace-backup/upload", { method: "POST", headers: { "content-type": "application/octet-stream" }, body: file }]);
     expect(JSON.parse(fixture.api.mock.calls[2][1].body)).toEqual({ id: "upload-id", password: "correct horse battery" });
     const restore = () => dialogs()[0]!.props as unknown as { canSave: boolean; saveLabel: string };
-    expect(restore().saveLabel).toBe("replace installation");
+    expect(restore().saveLabel).toBe("Replace installation");
     expect(restore().canSave).toBe(false);
     const confirm = render().nodes.filter((node) => node.type === "input" && !node.props.type)[0];
     change(confirm, "replace"); expect(restore().canSave).toBe(false);
@@ -118,7 +118,7 @@ describe("Settings full backups", () => {
     fixture.api.mockResolvedValueOnce({ id: "upload" }).mockRejectedValueOnce(new Error("Wrong password"));
     void save(dialogs()[0]!); await flush();
     const html = render().html;
-    expect(html).toContain('role="alert"'); expect(html).toContain("Wrong password"); expect(html).not.toContain("replace installation");
+    expect(html).toContain('role="alert"'); expect(html).toContain("Wrong password"); expect(html).not.toContain("Replace installation");
   });
 
   it("reuploads the selected file if its upload or validated stage expires", async () => {
@@ -134,20 +134,20 @@ describe("Settings full backups", () => {
     change(render().nodes.find((node) => node.type === "input" && !node.props.type)!, "REPLACE");
     fixture.api.mockRejectedValueOnce(expired);
     void save(dialogs()[0]!); await flush();
-    expect(render().html).not.toContain("validated backup");
+    expect(render().html).not.toContain("Validated backup");
     fixture.api.mockResolvedValueOnce({ id: "upload-final" }).mockResolvedValueOnce({ id: "stage-final", summary });
     await validate();
     expect(fixture.api.mock.calls.filter(([path]) => path.endsWith("/upload"))).toHaveLength(3);
-    expect(render().html).toContain("validated backup");
+    expect(render().html).toContain("Validated backup");
   });
 
   it("does not restore client state before restart, then replaces only the initiating browser's allowlist", async () => {
     storage.set("dusk-pending-workspace-restore", "stage-id"); storage.set("dusk-drafts", "old"); storage.set("auth-token", "keep");
     fixture.api.mockResolvedValueOnce({ busy: true, pendingRestore: true });
-    expect(render(true).html).not.toContain("continue without restoring drafts");
+    expect(render(true).html).not.toContain("Continue without restoring drafts");
     fixture.effects[0](); await flush();
     expect(render(true).html).toContain("Fully quit dusk bot");
-    expect(render(true).html).not.toContain("continue without restoring drafts");
+    expect(render(true).html).not.toContain("Continue without restoring drafts");
     expect(fixture.api).toHaveBeenCalledOnce(); expect(storage.get("dusk-drafts")).toBe("old");
     fixture.values = [];
     fixture.api.mockResolvedValueOnce({ busy: false, lastRestoreId: "stage-id" }).mockResolvedValueOnce({ clientState: { "dusk-drafts": "restored" } });
@@ -162,8 +162,8 @@ describe("Settings full backups", () => {
     storage.set("dusk-pending-workspace-restore", "stage-id"); storage.set("dusk-drafts", "keep");
     fixture.api.mockResolvedValueOnce({ busy: true, pendingRestore: true });
     render(true); fixture.effects[0](); await flush();
-    expect(render(true).html).toContain("restart and restore");
-    expect(render(true).html).not.toContain(">retry<");
+    expect(render(true).html).toContain("Restart and restore");
+    expect(render(true).html).not.toContain(">Retry<");
     fixture.values = [];
     const restart = render("restart").nodes.find(node => node.type === "button")!;
     restart.props.onClick!(); restart.props.onClick!(); await flush();
@@ -190,7 +190,7 @@ describe("Settings full backups", () => {
     window.duskDesktop = bridge as Window["duskDesktop"];
     const view = render("restart");
     expect(view.html).toContain("restart the server process");
-    expect(view.html).not.toContain("restart and restore");
+    expect(view.html).not.toContain("Restart and restore");
     expect(view.nodes.filter(node => node.type === "button")).toHaveLength(0);
   });
 
@@ -198,8 +198,8 @@ describe("Settings full backups", () => {
     storage.set("dusk-pending-workspace-restore", "stage-id");
     fixture.api.mockResolvedValueOnce({ busy: true, pendingRestore: true });
     render(true); fixture.effects[0](); await flush();
-    expect(render(true).html).toContain(">retry<");
-    expect(render(true).html).not.toContain("restart and restore");
+    expect(render(true).html).toContain(">Retry<");
+    expect(render(true).html).not.toContain("Restart and restore");
   });
 
   it("never imports a different restore's browser state", async () => {
@@ -218,7 +218,7 @@ describe("Settings full backups", () => {
     fixture.api.mockResolvedValueOnce({ busy: false, lastRestoreId: "stage-id" }).mockRejectedValueOnce(new Error("Fixture unavailable"));
     render(true); fixture.effects[0](); await flush();
     const html = render(true).html;
-    expect(html).toContain("Fixture unavailable"); expect(html).toContain("retry"); expect(html).not.toContain("Normal app");
+    expect(html).toContain("Fixture unavailable"); expect(html).toContain("Retry"); expect(html).not.toContain("Normal app");
     expect(storage.get("dusk-drafts")).toBe("keep"); expect(storage.get("dusk-pending-workspace-restore")).toBe("stage-id");
     expect(window.location.reload).not.toHaveBeenCalled();
   });
@@ -232,10 +232,10 @@ describe("Settings full backups", () => {
     fixture.api.mockRejectedValueOnce(Object.assign(new Error("sign-in required"), { status }));
     render(true); fixture.effects[0](); await flush();
     const view = render(true);
-    expect(view.html).toContain("retry"); expect(view.html).toContain("This does not undo the installation restore.");
+    expect(view.html).toContain("Retry"); expect(view.html).toContain("This does not undo the installation restore.");
     expect(view.html).not.toContain("Normal app");
     expect(storage).toEqual(before); expect(window.location.reload).not.toHaveBeenCalled();
-    view.nodes.find((node) => node.type === "button" && node.props.children === "continue without restoring drafts")!.props.onClick!();
+    view.nodes.find((node) => node.type === "button" && node.props.children === "Continue without restoring drafts")!.props.onClick!();
     before.delete("dusk-pending-workspace-restore");
     expect(storage).toEqual(before);
     expect(window.location.reload).toHaveBeenCalledOnce();
@@ -248,7 +248,7 @@ describe("Settings full backups", () => {
     fixture.api.mockRejectedValueOnce(new Error("sign-in required"));
     render(true); fixture.effects[0](); await flush();
     vi.spyOn(localStorage, "removeItem").mockImplementation(() => { throw new Error("Storage unavailable"); });
-    render(true).nodes.find((node) => node.type === "button" && node.props.children === "continue without restoring drafts")!.props.onClick!();
+    render(true).nodes.find((node) => node.type === "button" && node.props.children === "Continue without restoring drafts")!.props.onClick!();
     expect(render(true).html).toContain("Storage unavailable"); expect(render(true).html).not.toContain("Normal app");
     expect(storage.get("dusk-drafts")).toBe("keep"); expect(storage.get("dusk-pending-workspace-restore")).toBe("stage-id");
     expect(window.location.reload).not.toHaveBeenCalled();

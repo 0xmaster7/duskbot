@@ -32,7 +32,7 @@ describe("resolveLocale", () => {
 
 describe("t", () => {
   it("returns the English catalog value by default", () => {
-    expect(t("engines.cloud")).toBe("cloud");
+    expect(t("engines.cloud")).toBe("Cloud");
   });
 
   it("fills {app} with the product's name or the name a caller passes", () => {
@@ -50,7 +50,7 @@ describe("t", () => {
     expect(setLocale("de-AT")).toBe("de");
     expect(t("engines.local")).toBe("Lokal");
     expect(setLocale("xx-YY")).toBe("en");
-    expect(t("engines.local")).toBe("local");
+    expect(t("engines.local")).toBe("Local");
   });
 
   it("resolves every registered locale to itself", () => {
@@ -108,7 +108,7 @@ describe("t", () => {
     try {
       expect(setLocale("zz")).toBe("zz");
       expect(t("engines.cloud")).toBe("Wolke");
-      expect(t("engines.local")).toBe("local");
+      expect(t("engines.local")).toBe("Local");
     } finally {
       delete locales["zz"];
       setLocale("en");
@@ -199,7 +199,7 @@ describe("loading a language", () => {
     });
     const page = await import("./i18n");
     expect(await page.loadLocale("fr")).toBe("en");
-    expect(page.t("rail.thisComputer")).toBe("this computer");
+    expect(page.t("rail.thisComputer")).toBe("This computer");
     offline = false;
     expect(await page.loadLocale("fr")).toBe("fr");
     expect(page.t("rail.thisComputer")).toBe("Cet ordinateur");

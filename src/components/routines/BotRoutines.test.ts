@@ -90,7 +90,7 @@ describe("a bot's routines in its panel", () => {
     open("routine-1");
     expect(row("routine-1").textContent).toBe("Morning summaryEvery day at 9 AM");
     const text = sheet().textContent!;
-    for (const part of ["When", "Every day at 9 AM", "next:", "What to do", "Send me a summary of my inbox.", "Works on", "This computer", "Results go to", "Inbox digests", "Uses", "new mail", "Recent runs", "Three new emails, none urgent."]) expect(text).toContain(part);
+    for (const part of ["When", "Every day at 9 AM", "Next:", "What to do", "Send me a summary of my inbox.", "Works on", "This computer", "Results go to", "Inbox digests", "Uses", "New mail", "Recent runs", "Three new emails, none urgent."]) expect(text).toContain(part);
     flushSync(() => sheet().querySelector<HTMLButtonElement>("[data-routine-run]")!.click());
     expect(fixture.dispatch).toHaveBeenCalled();
   });

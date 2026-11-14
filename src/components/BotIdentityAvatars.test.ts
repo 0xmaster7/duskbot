@@ -52,7 +52,7 @@ describe("uploaded bot identity portraits", () => {
   it("renders the receipt sender image while preserving its navigation button", () => {
     const html = render(createElement(RoomToolChip, { message: receipt }));
     expect(html).toContain('<img src="/api/attachments/fixture-1.png"');
-    expect(html).toContain('title="open Juniper"');
+    expect(html).toContain('title="Open Juniper"');
     expect(html).toContain("message from @Juniper");
   });
   it("keeps a deleted receipt sender readable with a mascot fallback", () => {

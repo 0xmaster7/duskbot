@@ -67,8 +67,8 @@ describe("room queue labels", () => {
   it("lists only the open thread's waiting members and says on whom they wait", () => {
     const waiting = roomThreadQueue({ queue }, "open");
     expect(waiting.map((entry) => entry.botId)).toEqual(["pixel"]);
-    expect(roomQueueLabel(waiting[0]!, (id) => (id === "scout" ? "Scout" : undefined))).toBe("queued · waiting for Scout (2 of 3)");
-    expect(roomQueueLabel(roomThreadQueue({ queue }, "other")[0]!, () => undefined)).toBe("queued (2 of 2)");
+    expect(roomQueueLabel(waiting[0]!, (id) => (id === "scout" ? "Scout" : undefined))).toBe("Queued · waiting for Scout (2 of 3)");
+    expect(roomQueueLabel(roomThreadQueue({ queue }, "other")[0]!, () => undefined)).toBe("Queued (2 of 2)");
     expect(roomThreadQueue({}, "open")).toEqual([]);
   });
 });

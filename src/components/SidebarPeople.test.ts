@@ -27,11 +27,11 @@ describe("the team's people in the sidebar", () => {
   it("lists everyone with their face, you first, and says what a click does", () => {
     setTeamPeople(asBen);
     const markup = render(createElement(SidebarPeople, { compact: false }));
-    expect(markup).toContain(">people<");
+    expect(markup).toContain(">People<");
     expect(markup.indexOf("ben@acme.test")).toBeLessThan(markup.indexOf("cleo@acme.test"));
-    expect(markup).toMatch(/aria-label="your inbox: everything sent to you"[^>]*data-person="ben@acme.test"/);
+    expect(markup).toMatch(/aria-label="Your inbox: everything sent to you"[^>]*data-person="ben@acme.test"/);
     expect(markup).toContain("Ben (you)");
-    expect(markup).toMatch(/aria-label="write to Cleo"[^>]*data-person="cleo@acme.test"/);
+    expect(markup).toMatch(/aria-label="Write to Cleo"[^>]*data-person="cleo@acme.test"/);
   });
 
   it("shows nothing off a team, or for a team of one", () => {
@@ -47,25 +47,25 @@ describe("the team's people in the sidebar", () => {
     setTeamPeople({ ...asBen, admin: true });
     const listed = render(createElement(SidebarPeople, { compact: false }), { config });
     expect(listed).toContain(invite);
-    expect(listed).toContain("invite someone</span>");
+    expect(listed).toContain("Invite someone</span>");
     expect(listed.indexOf("cleo@acme.test")).toBeLessThan(listed.indexOf(invite));
     setTeamPeople({ ...asBen, people: [BEN], admin: true });
     const alone = render(createElement(SidebarPeople, { compact: false }), { config });
-    expect(alone).toContain(">people<");
+    expect(alone).toContain(">People<");
     expect(alone).toContain(invite);
     const rail = render(createElement(SidebarPeople, { compact: true }), { config });
     expect(rail).toContain(invite);
-    expect(rail).toContain('aria-label="invite someone"');
+    expect(rail).toContain('aria-label="Invite someone"');
   });
 
   it("offers Invite someone to nobody else, and not where no Cloud page runs the team", () => {
     const config = { team: { id: "team-acme", name: "Acme", cloudPage: "https://cloud.example.test/cloud" } } as AppState["config"];
     setTeamPeople(asBen);
-    expect(render(createElement(SidebarPeople, { compact: false }), { config })).not.toContain("invite someone");
+    expect(render(createElement(SidebarPeople, { compact: false }), { config })).not.toContain("Invite someone");
     setTeamPeople({ ...asBen, people: [BEN] });
     expect(render(createElement(SidebarPeople, { compact: false }), { config })).toBe("");
     setTeamPeople({ ...asBen, admin: true });
-    expect(render(createElement(SidebarPeople, { compact: false }), { config: { team: { id: "team-acme", name: "Acme" } } as AppState["config"] })).not.toContain("invite someone");
+    expect(render(createElement(SidebarPeople, { compact: false }), { config: { team: { id: "team-acme", name: "Acme" } } as AppState["config"] })).not.toContain("Invite someone");
   });
 
   it("counts the asks waiting on you on your inbox row, and shows no count when none wait", () => {
@@ -73,11 +73,11 @@ describe("the team's people in the sidebar", () => {
     const inbox = (openAsks?: number) => bot({ id: "mc", name: "Ben's Chief", chiefOfStaff: true, reportsTo: BEN.email,
       tasks: [{ threadId: "inbox", title: "Inbox", createdAt: 1, inbox: true, ...(openAsks ? { openAsks } : {}) }] });
     const waiting = render(createElement(SidebarPeople, { compact: false }), { bots: [inbox(2)] });
-    expect(waiting).toMatch(/aria-label="your inbox: waiting on you, 2"[^>]*data-person="ben@acme.test"/);
+    expect(waiting).toMatch(/aria-label="Your inbox: waiting on you, 2"[^>]*data-person="ben@acme.test"/);
     expect(waiting).toMatch(/data-inbox-waiting="2"[^>]*>2<\/span>/);
     expect(render(createElement(SidebarPeople, { compact: true }), { bots: [inbox(2)] }), "on the rail too").toContain('data-inbox-waiting="2"');
     const none = render(createElement(SidebarPeople, { compact: false }), { bots: [inbox()] });
-    expect(none).toContain('aria-label="your inbox: everything sent to you"');
+    expect(none).toContain('aria-label="Your inbox: everything sent to you"');
     expect(none).not.toContain("data-inbox-waiting");
   });
 
@@ -103,9 +103,9 @@ describe("a line in the inbox", () => {
     const markup = render(createElement(InboxCaption, { message: line({ kind: "message", from: { name: "Cleo", email: CLEO.email }, via: { botId: "scout", name: "Scout" },
       origin: { botId: "scout", threadId: "scout-main", title: "Scout" }, replies: true }) }));
     expect(markup).toContain('data-inbox-line="message"');
-    expect(markup).toContain("from Cleo");
+    expect(markup).toContain("From Cleo");
     expect(markup).toContain("· via Scout");
-    expect(markup).toMatch(/<button[^>]*aria-label="open Scout"[^>]*>· in Scout<\/button>/);
+    expect(markup).toMatch(/<button[^>]*aria-label="Open Scout"[^>]*>· in Scout<\/button>/);
     const hidden = render(createElement(InboxCaption, { message: line({ kind: "message", from: { name: "Cleo", email: CLEO.email }, replies: true }) }));
     expect(hidden).not.toContain("<button");
   });
@@ -118,11 +118,11 @@ describe("a line in the inbox", () => {
     const caption = (card: Partial<NonNullable<Message["card"]>>) => render(createElement(InboxCaption, { message: message(card) }));
     expect(caption({ requestType: "question", options: ["Yes", "No"] })).toBe("");
     expect(caption({ tool: "Bash" })).toBe("");
-    expect(caption({ tool: "Bash", answered: "allow" })).toContain("from Ledger");
-    expect(caption({ tool: "Bash", expired: true })).toContain("from Ledger");
+    expect(caption({ tool: "Bash", answered: "allow" })).toContain("From Ledger");
+    expect(caption({ tool: "Bash", expired: true })).toContain("From Ledger");
     const pending = pendingApprovals([message({ tool: "Bash" })])[0]!;
     const dock = render(createElement(PendingApprovalPanel, { pending, count: 1, index: 0, asker: { name: "Ledger", color: "teal" } }));
-    expect(dock).toMatch(/<button[^>]*aria-label="open Fix"[^>]*>· in Fix<\/button>/);
+    expect(dock).toMatch(/<button[^>]*aria-label="Open Fix"[^>]*>· in Fix<\/button>/);
   });
 
   it("names the sender's assistant on its answer, and shows what yours answered with the way to correct it", () => {
@@ -131,7 +131,7 @@ describe("a line in the inbox", () => {
     const answered = render(createElement(InboxAnswers, { message: line({ kind: "message", from: { name: "Cleo" }, answers: [
       { by: "person", text: "Fine.", at: 1 }, { by: "assistant", text: "Ben is free after 16:00.", at: 2 },
     ] }) }));
-    expect(answered).toContain("your assistant answered");
+    expect(answered).toContain("Your assistant answered");
     expect(answered).toContain("Ben is free after 16:00.");
     expect(answered).not.toContain("Fine.");
     expect(answered).toContain("Reply to correct it.");

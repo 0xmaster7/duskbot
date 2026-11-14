@@ -194,7 +194,7 @@ describe("header name", () => {
       };
       expect(pillOf(busyMarkup)).not.toContain("animate-status-pulse");
       expect(pillOf(busyMarkup)).toBe(pillOf(idleMarkup));
-      expect(busyMarkup).toMatch(/<span role="status" class="sr-only" data-chathead-status="true">working…<\/span>/);
+      expect(busyMarkup).toMatch(/<span role="status" class="sr-only" data-chathead-status="true">Working…<\/span>/);
       expect(idleMarkup).toMatch(/<span role="status" class="sr-only" data-chathead-status="true"><\/span>/);
       expect(busyMarkup).toContain(remote ? 'title="Stop this turn"' : 'aria-label="Stop this turn"');
     }
@@ -303,7 +303,7 @@ describe("thread control placement", () => {
   });
   it("directs ChatGPT plan limits to usage settings rather than repeatedly retrying", () => {
     const markup = renderToStaticMarkup(createElement(ErrorRow, { message: "ChatGPT plan usage limit reached (subscription_sharing_usage_limit_exceeded)", onRetry: () => {} }));
-    expect(markup).toContain("manage usage");
+    expect(markup).toContain("Manage usage");
     expect(markup).toContain("https://chatgpt.com/settings/usage");
     expect(markup).not.toContain(">Retry<");
   });
@@ -313,7 +313,7 @@ describe("thread control placement", () => {
     const markup = renderToStaticMarkup(createElement(FailedTurnRow, { tool: failedTurnTool(limit), engine: codex, onRetry: () => {} }));
     expect(markup).toContain(limit.replaceAll("'", "&#x27;"));
     expect(markup).toContain(`href="${CODEX_USAGE_URL}"`);
-    expect(markup).toContain("manage usage");
+    expect(markup).toContain("Manage usage");
     expect(markup).not.toContain("<button");
   });
   it("opens a signed-out engine's failed turn with one sentence and the sign-in, the CLI's words behind Copy details", () => {
@@ -326,7 +326,7 @@ describe("thread control placement", () => {
     } as InstanceInfo;
     const markup = renderToStaticMarkup(createElement(FailedTurnRow, { tool: { name: "error: Not logged in · Please run /login", ok: false, setup: true }, engine: claude, onRetry: () => {} }));
     expect(markup).toContain(">Claude isn&#x27;t signed in yet. Sign in below, then send your message again.</span>");
-    expect(markup).toContain("sign in to Claude</button>");
+    expect(markup).toContain("Sign in to Claude</button>");
     expect(markup).toContain("data-error-details-copy");
     expect(markup).not.toContain("Please run /login");
     expect(markup).not.toContain(">Retry<");
@@ -445,19 +445,19 @@ describe("thread control placement", () => {
     const screen = renderToStaticMarkup(createElement(ErrorRow, {
       message: "dusk bot can't use this computer yet — embedded host failed: Screen Recording required. Relaunch dusk bot after granting any missing macOS permission.",
     }));
-    expect(screen).toContain("open Screen Recording settings");
-    expect(screen).toContain(">relaunch dusk bot<");
-    expect(screen).not.toContain("open Accessibility settings");
+    expect(screen).toContain("Open Screen Recording settings");
+    expect(screen).toContain(">Relaunch dusk bot<");
+    expect(screen).not.toContain("Open Accessibility settings");
     fixture.localMessage = "Accessibility required";
     const accessibility = renderToStaticMarkup(createElement(ErrorRow, {
       message: "dusk bot can't use this computer yet — Accessibility required",
     }));
-    expect(accessibility).toContain("open Accessibility settings");
-    expect(accessibility).not.toContain("open Screen Recording settings");
+    expect(accessibility).toContain("Open Accessibility settings");
+    expect(accessibility).not.toContain("Open Screen Recording settings");
     expect(renderToStaticMarkup(createElement(ErrorRow, {
       message: "dusk bot can't use this computer yet — Screen Recording required",
-    }))).not.toContain("open Screen Recording settings");
-    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout" }))).not.toContain("open Screen Recording settings");
+    }))).not.toContain("Open Screen Recording settings");
+    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "Network timeout" }))).not.toContain("Open Screen Recording settings");
     // a copy run from source waits on CuaDriver's grant: name it, open its pane, check again instead of relaunching
     fixture.localMessage = "Screen Recording required for CuaDriver; turn on CuaDriver in System Settings > Privacy & Security";
     window.duskDesktop = { platform: "darwin", permOpenSettings: vi.fn(), relaunch: vi.fn(), localControl: { retry: vi.fn() } } as unknown as NonNullable<Window["duskDesktop"]>;
@@ -465,11 +465,11 @@ describe("thread control placement", () => {
       message: "dusk bot can't use this computer yet: Screen Recording required. Turn on CuaDriver in System Settings > Privacy & Security > Screen Recording; dusk bot notices by itself, no restart needed.",
     }));
     expect(helper).toContain("Turn on CuaDriver in System Settings");
-    expect(helper).toContain("open Screen Recording settings");
-    expect(helper).toContain("check again");
+    expect(helper).toContain("Open Screen Recording settings");
+    expect(helper).toContain("Check again");
     expect(helper).not.toContain("Relaunch");
     fixture.localReasonCode = "remote-server";
-    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "dusk bot can't use this computer yet — Screen Recording required" }))).not.toContain("open Screen Recording settings");
+    expect(renderToStaticMarkup(createElement(ErrorRow, { message: "dusk bot can't use this computer yet — Screen Recording required" }))).not.toContain("Open Screen Recording settings");
     fixture.localReasonCode = "cua-driver-unavailable";
     fixture.platform = "other";
     fixture.localMessage = "";

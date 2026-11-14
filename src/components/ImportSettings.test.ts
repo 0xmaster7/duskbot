@@ -71,9 +71,9 @@ describe("Settings → bring in from other apps", () => {
       .toEqual([["bots:openclaw", "true"], ["bots:grok-bot", "true"]]);
     expect(text()).toContain("Molty");
     expect(text()).toContain("Drew");
-    expect(host.querySelector("[data-bring-online]")?.textContent).toBe("from Grok bot, ChatGPT, Claude or Gemini");
+    expect(host.querySelector("[data-bring-online]")?.textContent).toBe("From Grok bot, ChatGPT, Claude or Gemini");
     expect(host.querySelector("[data-bring-grok]")?.textContent, "a Grok bot bot with nothing saved yet goes through the prompt").toContain("Eggbot in Grok bot");
-    for (const old of ["move from Grok bot", "start import", "copy prompt", "look for bots"]) expect(button(old), old).toBeUndefined();
+    for (const old of ["Move from Grok bot", "Start import", "Copy prompt", "Look for bots"]) expect(button(old), old).toBeUndefined();
     expect(host.querySelector("[data-import-section=grok], [data-import-section=notes], [data-import-section=apps], [data-import-section=bots]")).toBeNull();
     expect(host.querySelector("[data-bring-skip], [data-bring-next]"), "no funnel buttons").toBeNull();
   });
@@ -81,26 +81,26 @@ describe("Settings → bring in from other apps", () => {
   it("brings the chosen in on one press, says how it went on the page, and locks what was brought", async () => {
     const setup = await show();
     await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-find="bots:grok-bot"]')!.click(); });
-    await act(async () => { button("bring it in")!.click(); });
+    await act(async () => { button("Bring it in")!.click(); });
     await settle();
     expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, instructions: true, sources: ["claudeCode"] });
     const imported = f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import")).map(([, init]) => JSON.parse(init.body).package.name);
     expect(imported, "only the chosen app's bots").toEqual(["Molty"]);
     expect(host.querySelector("[data-bring-run]")?.textContent).toBe("Brought in 1 bot and 1 skill.");
-    expect(button("bring it in")).toBeUndefined();
+    expect(button("Bring it in")).toBeUndefined();
     expect(host.querySelector("[data-bring-find]")?.getAttribute("aria-disabled")).toBe("true");
   });
 
   it("forgets a bringing in that finished before the page opened", async () => {
     await show();
-    await act(async () => { button("bring it in")!.click(); });
+    await act(async () => { button("Bring it in")!.click(); });
     await settle();
     expect(bringRunNow().kind).toBe("done");
     await act(async () => root.unmount());
     root = createRoot(host);
     await show();
     expect(bringRunNow().kind).toBe("idle");
-    expect(button("bring it in")).toBeTruthy();
+    expect(button("Bring it in")).toBeTruthy();
   });
 
   it("away from this computer's own desktop app, reads nothing here and offers the prompt straight away", async () => {
@@ -109,8 +109,8 @@ describe("Settings → bring in from other apps", () => {
     expect(host.querySelector("[data-bring-looking]")).toBeNull();
     expect(host.querySelector("[data-bring-find]")).toBeNull();
     expect(host.querySelector("[data-bring-prompt] pre")?.textContent).toContain("dusk-bot-notes");
-    expect(button("copy the prompt")).toBeTruthy();
-    expect(button("bring it in")).toBeUndefined();
+    expect(button("Copy the prompt")).toBeTruthy();
+    expect(button("Bring it in")).toBeUndefined();
   });
 
   it("takes the notes another AI wrote when they are pasted on the page, and says so there", async () => {

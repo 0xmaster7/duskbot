@@ -59,14 +59,14 @@ describe("a vendor app's accounts", () => {
 
   it("marks one that needs reconnecting, and Reconnect signs that same entry in again", async () => {
     await mount([{ name: "notion", signedIn: false, stale: true }]);
-    expect(rows()).toEqual(["Notionneeds reconnectingreconnect"]);
-    await act(async () => { button("reconnect")!.click(); });
+    expect(rows()).toEqual(["NotionNeeds reconnectingReconnect"]);
+    await act(async () => { button("Reconnect")!.click(); });
     expect(calls.reconnect).toEqual(["notion"]);
   });
 
   it("adds another account by name, keeping the first as every bot's default", async () => {
     await mount([{ name: "notion", signedIn: true, stale: false }]);
-    await act(async () => { button("add another account")!.click(); });
+    await act(async () => { button("Add another account")!.click(); });
     await act(async () => { type(document.querySelector<HTMLInputElement>(".ca-alias input")!, "Work"); });
     await act(async () => { document.querySelector(".ca-alias")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
     await flush();
@@ -77,9 +77,9 @@ describe("a vendor app's accounts", () => {
   it("with two working accounts, names each, marks the default, and lets each bot pick one", async () => {
     choices.defaults["mcp-notion"] = "notion";
     await mount([{ name: "notion", signedIn: true, stale: false }, { name: "notion-2", account: "Work", signedIn: true, stale: false }]);
-    expect(rows()).toEqual(["Notiondefault", "Workmake default"]);
+    expect(rows()).toEqual(["NotionDefault", "WorkMake default"]);
     const select = document.querySelector<HTMLSelectElement>("[data-account-bot='nova'] select")!;
-    expect([...select.options].map((option) => option.textContent)).toEqual(["default (Notion)", "Notion", "Work"]);
+    expect([...select.options].map((option) => option.textContent)).toEqual(["Default (Notion)", "Notion", "Work"]);
     await act(async () => { select.value = "notion-2"; select.dispatchEvent(new Event("change", { bubbles: true })); });
     await flush();
     expect(choices.bots).toEqual({ nova: { "mcp-notion": "notion-2" } });

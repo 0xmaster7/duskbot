@@ -23,8 +23,8 @@ describe("delete all threads", () => {
 
   it("says a new empty chat starts only when nothing is running, in one line", () => {
     const idle = deleteAllThreadsCopy(allThreadRows(bot));
-    expect(idle.title).toBe("delete all threads (2)?");
-    expect(idle.confirmLabel).toBe("delete 2");
+    expect(idle.title).toBe("Delete all threads (2)?");
+    expect(idle.confirmLabel).toBe("Delete 2");
     expect(idle.body).toBe("Their messages go too. A new empty chat starts.");
     const running = deleteAllThreadsCopy(allThreadRows({ ...bot, busy: true, activity: "working" }));
     expect(running.body).toBe("Their messages go too. Project files are kept.");
@@ -38,7 +38,7 @@ describe("delete all threads", () => {
     await deleteAllThreads({ ...bot, busy: true, activity: "working" }, dispatch);
 
     expect(post).toHaveBeenCalledWith("/api/bots/maus/tasks/delete", { method: "POST", body: JSON.stringify({ threadIds: ["open", "pinned"] }) });
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "notice", notice: { kind: "note", botName: null, text: "deleted: 1. Kept because they are running: 1." } });
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "notice", notice: { kind: "note", botName: null, text: "Deleted: 1. Kept because they are running: 1." } });
   });
 
   it("says nothing when every thread went", async () => {

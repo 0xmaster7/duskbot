@@ -56,8 +56,8 @@ it("keeps browser access separately off until granted, including old sidecar sna
   for (const browserControlAccess of [undefined, false, true]) {
     f.state = { enabled: true, devices: [{ id: "phone-1", name: "Ada", lastSeenAt: Date.now(), cloudDesktopAccess: true, browserControlAccess }], port: 8810 };
     const markup = renderToStaticMarkup(createElement(() => CompanionSection({})));
-    const browser = markup.match(/<button[^>]*aria-label="browser control access for Ada"[^>]*>/)?.[0];
-    const computer = markup.match(/<button[^>]*aria-label="computer view access for Ada"[^>]*>/)?.[0];
+    const browser = markup.match(/<button[^>]*aria-label="Browser control access for Ada"[^>]*>/)?.[0];
+    const computer = markup.match(/<button[^>]*aria-label="Computer view access for Ada"[^>]*>/)?.[0];
     expect(browser).toContain(`aria-checked="${browserControlAccess === true}"`);
     expect(computer).toContain('aria-checked="true"');
   }

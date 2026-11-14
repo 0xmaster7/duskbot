@@ -14,7 +14,7 @@ describe("call mode", () => {
     expect(parseCallMode(null)).toBe("turns");
     expect(parseCallMode("live")).toBe("live");
     expect(parseCallMode("LIVE")).toBe("turns");
-    expect(CALL_MODES.map((mode) => t(mode.label))).toEqual(["take turns", "live"]);
+    expect(CALL_MODES.map((mode) => t(mode.label))).toEqual(["Take turns", "Live"]);
   });
 
   it("says, where Live is chosen, what a Live call sends to OpenAI", () => {

@@ -120,8 +120,8 @@ describe("the welcome", () => {
   it("opens on the welcome with nothing else to decide, and asks nothing about sharing off the desktop app", async () => {
     await show();
     expect(step()).toBe("welcome");
-    expect(title()).toBe("meet dusk bot");
-    await press("get started");
+    expect(title()).toBe("Meet dusk bot");
+    await press("Get started");
     expect(step()).toBe("ai");
     expect(host.querySelector("[data-help-improve]"), "Settings has the switch; the run here has no place step").toBeNull();
     expect(f.onDone).not.toHaveBeenCalled();
@@ -144,10 +144,10 @@ describe("the welcome", () => {
 
   it("with Claude already answering, still shows the AI step with Claude connected, one press from Dusk's chat", async () => {
     await show();
-    await press("get started");
+    await press("Get started");
     expect(step()).toBe("ai");
     expect(host.querySelector("[data-funnel-ai=claude]")?.hasAttribute("data-connected")).toBe(true);
-    await press("continue");
+    await press("Continue");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
     expect(introStaged("maus")).toBe(true);
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true } });
@@ -160,47 +160,47 @@ describe("connecting an AI", () => {
   it("shows every AI as a button with its name, and opens the picked one's own sign-in under the grid", async () => {
     f.state = { ...f.state, instances: nothingSignedIn() };
     await show();
-    await press("get started");
+    await press("Get started");
     expect(step()).toBe("ai");
-    expect(title()).toBe("connect an AI");
+    expect(title()).toBe("Connect an AI");
     expect([...host.querySelectorAll<HTMLElement>("[data-funnel-ai]")].map((tile) => tile.dataset.funnelAi)).toEqual(["chatgpt", "claude", "cursor", "copilot", "more"]);
     expect(text()).toContain("ChatGPT");
     await press("Claude");
     expect(host.querySelector("[data-funnel-ai-connect=claude]")).not.toBeNull();
-    expect(button("sign in with Claude")).toBeDefined();
-    await press("more ways");
+    expect(button("Sign in with Claude")).toBeDefined();
+    await press("More ways");
     expect(host.querySelector("[data-connect-ai]")).not.toBeNull();
   });
 
   it("shows connected AIs as connected, not to be pressed again, with continue ready and more still to add", async () => {
     f.state = { ...f.state, instances: nothingSignedIn() };
     await show();
-    await press("get started");
-    expect(button("continue"), "nothing connected yet: only the quiet way on").toBeUndefined();
-    expect(button("set up later")?.className).not.toContain("ui-button-primary");
+    await press("Get started");
+    expect(button("Continue"), "nothing connected yet: only the quiet way on").toBeUndefined();
+    expect(button("Set up later")?.className).not.toContain("ui-button-primary");
     const focus = vi.fn(async () => true);
     vi.stubGlobal("duskDesktop", { focusWindow: focus });
     f.state = { ...f.state, instances: [cursor(true), { ...claude(true), instanceId: "chatgpt", driverKind: "codex", displayName: "ChatGPT plan" } as InstanceInfo, signedOut("claude", "claudeAgent", "Claude")] };
     await show();
-    expect(title()).toBe("connect an AI");
+    expect(title()).toBe("Connect an AI");
     const connected = [...host.querySelectorAll<HTMLElement>("[data-funnel-ai][data-connected]")].map((tile) => tile.dataset.funnelAi);
     expect(connected).toEqual(["chatgpt", "cursor"]);
     expect(host.querySelector("[data-funnel-ai=cursor]")?.tagName, "a connected AI is not a button").toBe("DIV");
-    expect(host.querySelector("[data-funnel-ai=cursor]")?.textContent).toContain("connected");
+    expect(host.querySelector("[data-funnel-ai=cursor]")?.textContent).toContain("Connected");
     expect(focus, "a sign-in that finished brings the app back").toHaveBeenCalled();
-    expect(button("set up later")).toBeUndefined();
-    expect(button("continue")?.className).toContain("ui-button-primary");
+    expect(button("Set up later")).toBeUndefined();
+    expect(button("Continue")?.className).toContain("ui-button-primary");
     expect(host.querySelector("button[data-funnel-ai=claude]"), "another can still be added").not.toBeNull();
-    await press("continue");
+    await press("Continue");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 
   it("set up later, or the free model, goes on; a found sign-in that didn't answer says why", async () => {
     f.state = { ...f.state, instances: [freeOpenCode, ...nothingSignedIn()] };
     await show();
-    await press("get started");
-    expect(button("start with the free model")).toBeDefined();
-    await press("set up later");
+    await press("Get started");
+    expect(button("Start with the free model")).toBeDefined();
+    await press("Set up later");
     expect(f.onDone).toHaveBeenCalledOnce();
     await act(async () => root.unmount());
     root = createRoot(host);
@@ -231,25 +231,25 @@ describe("on the desktop app", () => {
     desktop({ platform: "linux" });
     await show();
     expect(step(), "no separate hello screen to click through").toBe("place");
-    expect(title()).toBe("where should your bots live?");
+    expect(title()).toBe("Where should your bots live?");
     expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("1/3");
-    expect(text()).toContain("this computer");
+    expect(text()).toContain("This computer");
     expect(text(), "never a Mac on Linux").not.toContain("Mac");
     expect(text()).toContain("dusk cloud");
-    expect(text()).toContain("from $20 a month");
+    expect(text()).toContain("From $20 a month");
     await choose("[data-funnel-place=mac]");
     expect(step(), "this computer asks first").toBe("place");
     await pick("mac");
     expect(macSheet()).toBeNull();
     expect(step()).toBe("ai");
     expect(host.querySelector("[data-help-improve]"), "only on the place step").toBeNull();
-    await press("continue");
+    await press("Continue");
     expect(step()).toBe("bring");
     expect(host.querySelector("[data-help-improve]"), "never on a later screen").toBeNull();
-    await press("back");
+    await press("Back");
     expect(step()).toBe("ai");
-    await press("continue");
-    await press("continue");
+    await press("Continue");
+    await press("Continue");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
     expect(host.querySelector(".phone-frame"), "the phone app is hidden").toBeNull();
   });
@@ -263,19 +263,19 @@ describe("on the desktop app", () => {
     await pick("mac");
     expect(step()).toBe("ai");
     expect(host.querySelector("[data-help-improve]"), "only on the place step").toBeNull();
-    await press("continue");
+    await press("Continue");
     expect(step()).toBe("bring");
-    await press("continue");
+    await press("Continue");
     expect(step()).toBe("phone");
     expect(host.querySelector(".phone-frame img"), "the phone app's own screen").not.toBeNull();
     expect(host.querySelector("[data-help-improve]"), "never on a later screen").toBeNull();
-    expect(button("skip")?.className, "skip is a real button").toContain("ui-button-lg");
-    await press("back");
+    expect(button("Skip")?.className, "skip is a real button").toContain("ui-button-lg");
+    await press("Back");
     expect(step()).toBe("bring");
-    await press("continue");
-    await press("show the code");
+    await press("Continue");
+    await press("Show the code");
     expect(host.querySelector("[data-phone-offer]")).not.toBeNull();
-    await press("continue");
+    await press("Continue");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
   });
 
@@ -366,11 +366,11 @@ describe("on the desktop app", () => {
     expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress"), "place, checkout, ai, making").toBe("2/4");
     expect(text(), "no dash anywhere").not.toMatch(/\u2014/);
     await bridge.tell({ status: "connected", account: { email: "sam@qa.dusk.test" }, clouds: [] });
-    expect(text(), "signed in: the plan and checkout are what is left").toContain("Waiting for your checkout");
+    expect(text(), "Signed in: the plan and checkout are what is left").toContain("Waiting for your checkout");
     expect(host.querySelector("[data-funnel-checkout-email]")?.textContent).toBe("Signed in as sam@qa.dusk.test.");
     await press("Open the page again");
     expect(bridge.continueInBrowser).toHaveBeenCalledTimes(2);
-    await press("back");
+    await press("Back");
     expect(step()).toBe("place");
     await choose("[data-funnel-place=cloud]");
     await press("Use this computer instead");
@@ -422,11 +422,11 @@ describe("on the desktop app", () => {
     expect(text()).toContain("Your cloud is getting ready.");
     expect(host.querySelector("[data-funnel-back]"), "no way back to a purchase that is done").toBeNull();
     expect(host.querySelector("[data-funnel-progress]")?.getAttribute("data-funnel-progress")).toBe("3/4");
-    await press("start with the free model");
+    await press("Start with the free model");
     expect(step()).toBe("making");
-    expect(title()).toBe("making your cloud");
+    expect(title()).toBe("Making your cloud");
     expect(host.querySelector("[data-funnel-making]")?.getAttribute("data-funnel-making")).toBe("setting-up");
-    expect(host.querySelector("[aria-current=step]")?.textContent).toBe("preparing storage");
+    expect(host.querySelector("[aria-current=step]")?.textContent).toBe("Preparing storage");
     expect(bridge.holdSignIns).toHaveBeenCalledOnce();
     expect(JSON.parse(localStorage.getItem("dusk.onboarding.welcomeDraft")!), "a closed app comes back here").toMatchObject({ beat: "making", cloud: true });
     await bridge.tell(own("ready"));
@@ -457,16 +457,16 @@ describe("on the desktop app", () => {
     await choose("[data-funnel-place=mac]");
     await pick("mac");
     expect(step()).toBe("account");
-    expect(title()).toBe("sign in to dusk bot");
+    expect(title()).toBe("Sign in to dusk bot");
     expect(text(), "no phone in the pitch while its app is hidden").toContain("Your account keeps dusk cloud and your bots in sync.");
-    expect(button("continue with Google")).toBeDefined();
-    expect(button("continue without an account"), "required here").toBeUndefined();
+    expect(button("Continue with Google")).toBeDefined();
+    expect(button("Continue without an account"), "required here").toBeUndefined();
     await type(host.querySelector<HTMLInputElement>("input[type=email]")!, "person@example.com");
-    await press("email me a code");
+    await press("Email me a code");
     expect(gate.signInStart).toHaveBeenCalledWith("person@example.com");
     const digits = [...host.querySelectorAll<HTMLInputElement>("input")];
     for (const [index, digit] of digits.entries()) await type(digit, String(index + 1));
-    await press("sign in");
+    await press("Sign in");
     expect(gate.signInVerify).toHaveBeenCalledWith("12345678");
     expect(step()).toBe("ai");
   });
@@ -477,7 +477,7 @@ describe("on the desktop app", () => {
     await choose("[data-funnel-place=mac]");
     await pick("mac");
     expect(step()).toBe("account");
-    expect(button("continue without an account")).toBeUndefined();
+    expect(button("Continue without an account")).toBeUndefined();
     await key("Escape");
     expect(step()).toBe("account");
   });
@@ -488,16 +488,16 @@ describe("Dusk as the Chief", () => {
   it("makes Dusk the Chief only where there is none", async () => {
     f.state = { ...f.state, bots: [{ ...maus, chiefOfStaff: false }] };
     await show();
-    await press("get started");
-    await press("continue");
+    await press("Get started");
+    await press("Continue");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "updateBot", botId: "maus", patch: { welcomed: true, chiefOfStaff: true } });
   });
 
   it("lands on no bot where another bot is already the Chief", async () => {
     f.state = { ...f.state, bots: [{ ...maus, chiefOfStaff: false }, { ...maus, id: "research", threadId: "r", name: "Research", defaultBot: undefined, chiefOfStaff: true }] };
     await show();
-    await press("get started");
-    await press("continue");
+    await press("Get started");
+    await press("Continue");
     expect(f.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "updateBot" }));
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
   });
@@ -507,8 +507,8 @@ describe("other first runs", () => {
   it("a replay from Settings records nothing about a first chat", async () => {
     f.state = { ...f.state, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01T00:00:00.000Z", version: WELCOME_VERSION } } };
     await show({ replay: true });
-    await press("get started");
-    await press("continue");
+    await press("Get started");
+    await press("Continue");
     await act(async () => {});
     expect(f.onDone).toHaveBeenCalledOnce();
     expect(saved()[0].onboarding).not.toHaveProperty("hintsSeen");
@@ -540,7 +540,7 @@ describe("bots from another app on this computer", () => {
   it("lists what this Mac holds, all chosen, and brings it in on one press while the run goes on to the chat", async () => {
     desktop(found, { skills: [{ name: "pdf", source: "claudeCode" }], tools: [{ name: "notion", source: "cursor" }] });
     await show({ initialBeat: "bring" });
-    expect(title()).toBe("bring what you already use");
+    expect(title()).toBe("Bring what you already use");
     expect(text()).toContain("Molty");
     expect([...host.querySelectorAll("[data-bring-find]")].map((row) => [row.getAttribute("data-bring-find"), row.getAttribute("aria-checked")]))
       .toEqual([["bots:openclaw", "true"]]);
@@ -552,9 +552,9 @@ describe("bots from another app on this computer", () => {
     expect(online.getAttribute("aria-expanded")).toBe("true");
     expect(host.querySelector("[data-bring-prompt] [style*=background]"), "the steps' numbers are tonal, not coloured").toBeNull();
     expect(host.querySelector("[data-bring-scene]")?.getAttribute("data-bring-scene"), "nothing travels before anything is brought").toBe("still");
-    await press("bring it in");
-    expect(button("continue"), "the way on is there at once, without waiting").toBeTruthy();
-    expect(button("bring it in")).toBeUndefined();
+    await press("Bring it in");
+    expect(button("Continue"), "the way on is there at once, without waiting").toBeTruthy();
+    expect(button("Bring it in")).toBeUndefined();
     await settle();
     const applied = f.api.mock.calls.filter(([path, init]) => path === "/api/setup-import" && init?.method === "POST").map(([, init]) => JSON.parse(init.body));
     expect(applied).toEqual([{ skills: true, tools: true, instructions: true, sources: ["claudeCode", "cursor"] }]);
@@ -563,7 +563,7 @@ describe("bots from another app on this computer", () => {
     expect(host.querySelector("[data-bring-find]")?.getAttribute("aria-disabled"), "what was brought is no longer a choice").toBe("true");
     expect(host.querySelector("[data-bring-status]"), "and not twice").toBeNull();
     expect(host.querySelector("[data-bring-scene]")?.getAttribute("data-bring-scene"), "nothing travels once it's done").toBe("still");
-    await press("continue");
+    await press("Continue");
     expect(f.onDone).toHaveBeenCalledOnce();
   });
 
@@ -575,12 +575,12 @@ describe("bots from another app on this computer", () => {
     expect(step()).toBe("bring");
     expect(host.querySelector("[data-bring-find]")).toBeNull();
     expect(host.querySelector("[data-bring-prompt] pre")?.textContent, "the prompt itself, read-only, to look over first").toContain("dusk-bot-notes");
-    expect(button("continue"), "continue is the main action before and after the copy").toBeTruthy();
-    await press("copy the prompt");
+    expect(button("Continue"), "continue is the main action before and after the copy").toBeTruthy();
+    await press("Copy the prompt");
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("dusk-bot-notes"));
     expect(host.querySelector("[data-bring-copied]")?.textContent).toContain("Copied.");
     expect(JSON.parse(localStorage.getItem("dusk.notesWaiting")!)).toHaveProperty("since");
-    await press("continue");
+    await press("Continue");
     expect(f.onDone).toHaveBeenCalledOnce();
   });
 });

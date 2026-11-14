@@ -67,7 +67,7 @@ describe("SecretRequestCard superseded requests", () => {
   });
   it("still offers entry while the newest request is pending", () => {
     const html = view({});
-    expect(html).toContain("save securely");
+    expect(html).toContain("Save securely");
     expect(html).toContain("Private. Your bot never sees it.");
   });
 
@@ -77,7 +77,7 @@ describe("SecretRequestCard superseded requests", () => {
     expect(html).toContain('aria-expanded="false"');
     expect(html).not.toContain("Save securely");
     expect(html).not.toContain("type=\"password\"");
-    expect(html).not.toContain("not now");
+    expect(html).not.toContain("Not now");
     expect(html).not.toContain("Waiting to resume safely");
   });
 });
@@ -163,7 +163,7 @@ describe("SecretRequestCard mailbox", () => {
   });
 
   it("asks for the server only once one could not be found, and other cards have no address field", () => {
-    expect(view(email)).not.toContain("incoming mail server");
+    expect(view(email)).not.toContain("Incoming mail server");
     expect(view({})).not.toContain('type="email"');
   });
 

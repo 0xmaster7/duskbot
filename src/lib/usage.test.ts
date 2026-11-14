@@ -126,14 +126,14 @@ describe("usage formatting", () => {
       { turns: 700, input: 199_000_000, cachedInput: 198_400_000, output: 200_000, costUsd: null },
     ]);
     expect(formatTokens(headlineTokens(total))).toBe("2.1M");
-    expect(tokensColumnLabel(total)).toBe("new tokens");
+    expect(tokensColumnLabel(total)).toBe("New tokens");
     const note = cachedUsageNote(total)!;
     expect(note).toContain("498M");
     expect(note).toContain("500M went through the model");
     expect(note).not.toMatch(/count everything/i);
 
     const uncached = { input: 1_900_000, output: 12_000, costUsd: null, turns: 12 };
-    expect(tokensColumnLabel(uncached)).toBe("tokens");
+    expect(tokensColumnLabel(uncached)).toBe("Tokens");
     expect(cachedUsageNote(uncached)).toBeNull();
   });
 

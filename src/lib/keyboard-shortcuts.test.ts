@@ -12,7 +12,7 @@ import {
 describe("keyboard-shortcuts", () => {
   it("lists ⌘\\ or Ctrl+\\ for collapsing the sidebar, and matches only that chord", () => {
     const item = SHORTCUT_GROUPS.flatMap((group) => group.items).find((entry) => entry.id === "toggle-sidebar")!;
-    expect(item).toMatchObject({ description: "collapse or expand the sidebar", macKeys: ["⌘", "\\"], winKeys: ["Ctrl", "\\"] });
+    expect(item).toMatchObject({ description: "Collapse or expand the sidebar", macKeys: ["⌘", "\\"], winKeys: ["Ctrl", "\\"] });
     const chord = { key: "\\", metaKey: true, ctrlKey: false, shiftKey: false, altKey: false, defaultPrevented: false };
     expect(isSidebarToggle(chord)).toBe(true);
     expect(isSidebarToggle({ ...chord, metaKey: false, ctrlKey: true })).toBe(true);
@@ -74,7 +74,7 @@ describe("keyboard-shortcuts", () => {
     expect(row(mod, "send-follow-up")).toMatchObject({ macKeys: ["⌘", "⇧", "Return"], winKeys: ["Ctrl", "Shift", "Enter"] });
     for (const groups of [shift, mod]) {
       expect(row(groups, "save-bulletin")).toBe(row(SHORTCUT_GROUPS, "save-bulletin"));
-      expect(row(groups, "send-message").description).toBe("send message");
+      expect(row(groups, "send-message").description).toBe("Send message");
       expect(groups.map((group) => group.items.map((item) => item.id))).toEqual(SHORTCUT_GROUPS.map((group) => group.items.map((item) => item.id)));
     }
   });

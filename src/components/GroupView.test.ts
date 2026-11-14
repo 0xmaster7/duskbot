@@ -31,7 +31,7 @@ describe("RoomToolChip", () => {
     }));
     expect(markup).toContain("<button");
     expect(markup).toContain("posted in Standup");
-    expect(markup).toContain('title="open Standup"');
+    expect(markup).toContain('title="Open Standup"');
   });
 
   it("turns an opened-thread receipt into a button that opens that thread", () => {

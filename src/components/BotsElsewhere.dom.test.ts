@@ -40,8 +40,8 @@ afterEach(() => { act(() => root.unmount()); host.remove(); finish = null; vi.cl
 it("opening a place keeps this screen up until main answers, never this computer's empty page in between", async () => {
   await render();
   expect(screen()?.getAttribute("data-elsewhere")).toBe("bots-on");
-  expect(host.querySelector("h1")?.textContent).toBe("pick where to open");
-  expect(host.querySelector("button[data-place-row=computer]")?.textContent).toContain("no bots");
+  expect(host.querySelector("h1")?.textContent).toBe("Pick where to open");
+  expect(host.querySelector("button[data-place-row=computer]")?.textContent).toContain("No bots");
   expect(primary().textContent).toContain("instance-1");
   expect(primary().textContent).toContain("3 bots");
   expect(primary().hasAttribute("data-lit")).toBe(true);
@@ -69,7 +69,7 @@ it("a place that fails to open says so under its row, and the row can be tried a
   await act(async () => { primary().click(); });
   await act(async () => { finish?.(false); });
   const note = host.querySelector("[data-row-note]");
-  expect(note?.getAttribute("role")).toBe("alert");
+  expect(note?.getAttribute("Role")).toBe("alert");
   expect(note?.textContent).toBe("Couldn't open instance-1. Check it's online and try again.");
   expect(primary().disabled).toBe(false);
   await act(async () => { primary().click(); });

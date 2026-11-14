@@ -34,8 +34,8 @@ describe("a row's actions", () => {
   });
 
   it("names each line's subject plainly, or by the conversation a message came from", () => {
-    expect([approvalRow, questionRow, reportRow].map(subjectOf)).toEqual(["approval", "question", "routine report"]);
-    expect(subjectOf(messageRow)).toBe("message");
+    expect([approvalRow, questionRow, reportRow].map(subjectOf)).toEqual(["Approval", "Question", "Routine report"]);
+    expect(subjectOf(messageRow)).toBe("Message");
     expect(subjectOf({ ...messageRow, origin: { botId: "scout", threadId: "scout-main", title: "Launch" } })).toBe("Launch");
   });
 

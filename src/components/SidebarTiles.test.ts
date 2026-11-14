@@ -50,7 +50,7 @@ describe("the sidebar tiles", () => {
     const tileHtml = (extra: Partial<Bot>, primary: boolean) => renderToStaticMarkup(createElement(SidebarBotTile, { ...props(bot(extra)), primary }));
     const main = tileHtml({ chiefOfStaff: true }, true);
     expect(main).toContain('data-testid="chief-badge"');
-    expect(main).toContain('title="Dusk · chief of staff"');
+    expect(main).toContain('title="Dusk · Chief of staff"');
     expect(tileHtml({ chiefOfStaff: true }, false)).not.toContain('data-testid="chief-badge"');
     expect(tileHtml({}, true)).not.toContain('data-testid="chief-badge"');
   });
@@ -63,7 +63,7 @@ describe("the sidebar tiles", () => {
     expect(renderToStaticMarkup(createElement(SidebarBotTile, props(bot({ activity: "waiting-on-you" }))))).toContain('data-testid="waiting-dot"');
     const unread = renderToStaticMarkup(createElement(SidebarBotTile, props(bot({ unread: true }))));
     expect(unread).toContain('data-testid="unread-dot"');
-    expect(unread).toContain('aria-label="Dusk · unread"');
+    expect(unread).toContain('aria-label="Dusk · Unread"');
   });
 
   it("opens the bot on Enter and its menu from the ContextMenu key", () => {

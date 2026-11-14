@@ -44,14 +44,14 @@ describe("the trial's notice card", () => {
     tree.find(node => node.type === "button" && renderToStaticMarkup(node).includes("Manage subscription"))!.props.onClick();
     expect(onAction).toHaveBeenCalledOnce();
     for (const label of ["Not now"]) tree.find(node => node.type === "button" && renderToStaticMarkup(node).includes(label))!.props.onClick();
-    tree.find(node => node.type === "button" && node.props["aria-label"] === "close")!.props.onClick();
+    tree.find(node => node.type === "button" && node.props["aria-label"] === "Close")!.props.onClick();
     const event = { key: "Escape", preventDefault: vi.fn(), stopPropagation: vi.fn() };
     tree.find(node => node.type === "aside")!.props.onKeyDown(event);
     expect(onClose).toHaveBeenCalledTimes(3); expect(event.preventDefault).toHaveBeenCalled();
   });
   it("with nothing to do, one OK; a browser that did not open says so", () => {
     const { html } = card(cloudTrialView(trial("processing")));
-    expect(html).toContain("Your first payment is processing"); expect(html).toContain(">OK<"); expect(html).not.toContain("not now");
+    expect(html).toContain("Your first payment is processing"); expect(html).toContain(">OK<"); expect(html).not.toContain("Not now");
     expect(card(cloudTrialView(trial("ended", { deleteAt: ENDS + 3 * DAY, keep: "checkout" })), true).html).toContain("Could not open your browser. Please try again.");
   });
 });

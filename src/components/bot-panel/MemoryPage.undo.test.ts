@@ -60,7 +60,7 @@ const forgetFirst = async () => {
   await settle();
 };
 const undo = async () => {
-  const button = [...toast()!.querySelectorAll("button")].find((candidate) => candidate.textContent === "undo")!;
+  const button = [...toast()!.querySelectorAll("button")].find((candidate) => candidate.textContent === "Undo")!;
   await act(async () => button.click());
   await settle();
 };

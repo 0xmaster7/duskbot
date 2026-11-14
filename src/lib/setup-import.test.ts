@@ -89,8 +89,8 @@ describe("what the step says", () => {
     expect(importOutcome({
       skills: { added: ["pdf", "review"], present: [], skipped: [], filesLeftOut: 0, review: [] },
       tools: { added: ["notion"], present: [], skipped: [] },
-    })).toEqual({ line: "added 2 skills and 1 tool.", notes: [], done: true });
-    expect(importOutcome({ skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] } }).line).toBe("added 1 skill.");
+    })).toEqual({ line: "Added 2 skills and 1 tool.", notes: [], done: true });
+    expect(importOutcome({ skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] } }).line).toBe("Added 1 skill.");
     expect(importOutcome({ tools: { added: [], present: ["notion"], skipped: [] } })).toEqual({ line: "All of it was already here.", notes: [], done: true });
     expect(importOutcome({
       skills: { added: ["pdf", "deploy"], present: [], skipped: [{ name: "review", reason: "conflict" }, { name: "lint", reason: "failed" }], filesLeftOut: 2, review: ["deploy"] },
@@ -99,7 +99,7 @@ describe("what the step says", () => {
         { name: "github", reason: "conflict" }, { name: "sentry", reason: "failed" },
       ] },
     })).toEqual({
-      line: "added 2 skills and 4 tools.",
+      line: "Added 2 skills and 4 tools.",
       done: true,
       notes: [
         "deploy: switched off until you check what the scan found, in a bot's skills settings.",

@@ -38,8 +38,8 @@ afterEach(() => {
   host.remove();
 });
 
-describe("open sites on this server", () => {
-  const sites = () => host.querySelector<HTMLButtonElement>('button[aria-label="open sites on this server"]');
+describe("Open sites on this server", () => {
+  const sites = () => host.querySelector<HTMLButtonElement>('button[aria-label="Open sites on this server"]');
   const show = () => flushSync(() => root.render(createElement(ServerSitesRow)));
   afterEach(() => { owner.value = true; });
 

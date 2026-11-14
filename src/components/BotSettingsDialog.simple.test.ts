@@ -504,7 +504,7 @@ describe("the hero", () => {
   it("sets the name at 17px, with no label line under it", () => {
     expect(find(hero(makeBot()), "data-panel-rename").props.className).toContain("text-[17px]");
     expect(has(hero(makeBot({ title: "Researcher" })), "data-panel-label")).toBe(false);
-    expect(hero(makeBot()).html).not.toContain("add a label");
+    expect(hero(makeBot()).html).not.toContain("Add a label");
   });
 
 });
@@ -518,13 +518,13 @@ describe("the avatar editor", () => {
     expect([...rendered.html.matchAll(/aria-label="(\w+) character shape"/g)].map((match) => match[1]))
       .toEqual([...DUSK_BODY_IDS]);
     expect([...rendered.html.matchAll(/aria-label="(\w+) character color"/g)].map((match) => match[1]))
-      .toEqual(["blue", "cyan", "teal", "green", "yellow", "orange", "coral", "red", "pink", "purple"]);
-    expect(rendered.html).not.toContain("more looks");
+      .toEqual(["Blue", "Cyan", "Teal", "Green", "Yellow", "Orange", "Coral", "Red", "Pink", "Purple"]);
+    expect(rendered.html.toLowerCase()).not.toContain("more looks");
     expect(find(rendered, "aria-label", "kit character shape").props["aria-pressed"]).toBe(true);
     expect(find(editor(makeBot({ mascotBody: "teardrop" as Bot["mascotBody"] })), "aria-label", "drip character shape").props["aria-pressed"]).toBe(true);
     click(find(rendered, "aria-label", "pip character shape"));
     expect(patch).toHaveBeenLastCalledWith({ mascotBody: "pip" });
-    click(find(rendered, "aria-label", "blue character color"));
+    click(find(rendered, "aria-label", "Blue character color"));
     expect(patch).toHaveBeenLastCalledWith({ color: "blue" });
     expect(rendered.html).not.toContain("Silver character color");
   });
@@ -977,7 +977,7 @@ describe("the drill-in pages", () => {
     expect(row(rendered, "skill:summarise").props).toMatchObject({ checked: false, label: "Use summarise", hint: "summarise helper", disabled: false });
     (row(rendered, "skill:summarise").props.onChange as () => void)();
     expect(fixture.skills.toggle).toHaveBeenCalledWith(off);
-    expect(rendered.html).not.toContain("write a command");
+    expect(rendered.html).not.toContain("Write a command");
 
     click(find(rendered, "data-panel-action", "remove-skill:summarise"));
     await Promise.resolve();
@@ -1012,7 +1012,7 @@ describe("the drill-in pages", () => {
     expect(find(rendered, "data-panel-choice", "private").props.checked).toBe(true);
     expect(find(rendered, "data-panel-choice", "pick").props.checked).toBe(false);
     expect(has(rendered, "data-panel-action", "pick-folder")).toBe(false);
-    expect(rendered.html).not.toContain("changed in this chat");
+    expect(rendered.html).not.toContain("Changed in this chat");
     click(find(rendered, "data-panel-choice", "pick"));
     await Promise.resolve();
     expect(pickFolder).toHaveBeenCalledWith(undefined);

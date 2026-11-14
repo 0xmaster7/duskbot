@@ -165,7 +165,7 @@ describe("choosing a model with the keyboard", () => {
     const low = document.querySelector<HTMLElement>("[data-effort-pill]")!;
     low.focus();
     press("ArrowRight");
-    expect(focused()?.textContent).toBe("medium");
+    expect(focused()?.textContent).toBe("Medium");
     expect(fixture.dispatch).not.toHaveBeenCalled();
     flushSync(() => focused()!.click());
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ selection: expect.objectContaining({ effort: "medium" }) }));
@@ -269,7 +269,7 @@ describe("picking a model that has reasoning levels", () => {
       }));
       expect(menu()).not.toBeNull();
       expect(chip().getAttribute("aria-expanded")).toBe("true");
-      expect(menu()!.querySelector(advanced ? 'select[aria-label="reasoning effort"]' : "[data-effort-pill]")).not.toBeNull();
+      expect(menu()!.querySelector(advanced ? 'select[aria-label="Reasoning effort"]' : "[data-effort-pill]")).not.toBeNull();
 
       // The store applies the pick; the picked row may be redrawn elsewhere, but focus stays in the menu.
       render(scout("claude-sonnet-5-5"));
@@ -381,7 +381,7 @@ describe("a model the organization turned off", () => {
       await openWith("click");
       expect(row().disabled).toBe(true);
       expect(row().textContent).toContain("Sonnet 5.5");
-      expect(row().textContent).toContain("turned off by your organization");
+      expect(row().textContent).toContain("Turned off by your organization");
       flushSync(() => row().click());
       await settle();
       expect(fixture.dispatch).not.toHaveBeenCalled();
@@ -403,9 +403,9 @@ describe("a model the organization turned off", () => {
     fixture.instances = [claude(blockedThree)];
     render(scout("claude-sonnet-5-5"));
     expect(chip().querySelector("[data-model-attention]")).not.toBeNull();
-    expect(chip().title).toContain("turned off by your organization");
+    expect(chip().title).toContain("Turned off by your organization");
     await openWith("click");
-    expect(document.querySelector("[data-current-model]")?.textContent).toContain("turned off by your organization");
+    expect(document.querySelector("[data-current-model]")?.textContent).toContain("Turned off by your organization");
   });
 
   it("the current row of a blocked model has nothing to set up: tapping it just closes the menu", async () => {

@@ -142,7 +142,7 @@ async function firstLiveCall() {
   expect(requests.map(({ path, method }) => `${method} ${path}`)).toEqual(["POST /api/live/session"]);
   expect(text()).not.toContain("Call unavailable");
   expect(container.querySelector("input")).toBeNull();
-  const openApiKeys = Array.from(container.querySelectorAll("button")).find((item) => item.textContent?.trim() === "open API keys");
+  const openApiKeys = Array.from(container.querySelectorAll("button")).find((item) => item.textContent?.trim() === "Open API keys");
   press(openApiKeys ?? null);
   expect(text()).not.toContain(KEY_NEEDED);
 
@@ -151,7 +151,7 @@ async function firstLiveCall() {
   await vi.waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2));
   await vi.waitFor(() => expect(requests.filter(({ path }) => path === "/api/live/session")).toHaveLength(2));
   expect(liveMedia()).toMatchObject({ phase: "starting", botId: "ada", threadId: "thread-ada" });
-  await vi.waitFor(() => expect(text()).toContain("live with Ada"));
+  await vi.waitFor(() => expect(text()).toContain("Live with Ada"));
   expect(text()).not.toContain(KEY_NEEDED);
   expect(text()).not.toContain("Choose This computer");
   expect(requests.filter(({ path }) => path === "/api/config")).toEqual([]);
@@ -161,11 +161,11 @@ async function firstLiveCall() {
 function expectTurnsDisabled(reason: string) {
   press(container.querySelector('[aria-label="Call mode"]'));
   const [turns, live] = menuItems();
-  expect(turns?.textContent).toContain("take turns");
+  expect(turns?.textContent).toContain("Take turns");
   expect(turns?.getAttribute("aria-disabled")).toBe("true");
   expect(turns?.textContent).toContain(reason);
   expect(turns?.getAttribute("aria-checked")).toBe("false");
-  expect(live?.textContent).toContain("live");
+  expect(live?.textContent).toContain("Live");
   expect(live?.hasAttribute("aria-disabled")).toBe(false);
   expect(live?.getAttribute("aria-checked")).toBe("true");
   expect(text()).not.toContain("Choose This computer");
@@ -241,21 +241,21 @@ describe("calling a bot off the Mac", () => {
   it("on My Cloud in the Mac app, the call is Live, and Take turns says it works on This computer", async () => {
     open(desktopApp("darwin", "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("calls where you take turns work with bots on this Mac. They listen with your Mac's own speech recognition, which only bots on this Mac can use.");
+    expectTurnsDisabled("Calls where you take turns work with bots on this Mac. They listen with your Mac's own speech recognition, which only bots on this Mac can use.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on My Cloud in the %s app, the call is Live, and Take turns says it works on This computer", async (platform) => {
     open(desktopApp(platform, "my-cloud"));
     chat(CLOUD);
-    expectTurnsDisabled("calls where you take turns work with bots on this computer. They listen from this computer's own window, so only bots on this computer can use them.");
+    expectTurnsDisabled("Calls where you take turns work with bots on this computer. They listen from this computer's own window, so only bots on this computer can use them.");
     await firstLiveCall();
   });
 
   it.each(["win32", "linux"] as const)("on This computer in the %s app with no Fish Audio key, the call is Live, Take turns asks for the key, and Live points to API keys", async (platform) => {
     open(desktopApp(platform, "this-computer"));
     chat(THIS_COMPUTER);
-    expectTurnsDisabled("add a Fish Audio key to take turns on calls. On this computer, take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in settings → API keys.");
+    expectTurnsDisabled("Add a Fish Audio key to take turns on calls. On this computer, take turns hears you through Fish Audio speech-to-text. Add a Fish Audio key in settings → API keys.");
     await firstLiveCall();
   });
 
@@ -281,7 +281,7 @@ describe("calling a bot off the Mac", () => {
     press(callButton());
     await vi.waitFor(() => expect(text()).toContain(APP_REFUSED));
     expect(getUserMedia).toHaveBeenCalledTimes(1);
-    expect(Array.from(container.querySelectorAll("button"), (button) => button.textContent?.trim())).toContain("open in browser");
+    expect(Array.from(container.querySelectorAll("button"), (button) => button.textContent?.trim())).toContain("Open in browser");
     expect(text()).not.toContain(KEY_NEEDED);
     expect(container.querySelector('input[aria-label="OpenAI API key for live calls"]')).toBeNull();
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);

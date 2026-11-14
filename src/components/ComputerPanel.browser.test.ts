@@ -35,29 +35,29 @@ describe("Browser panel installation access", () => {
 
   it("shows the real install panel before the engine is available", () => {
     const config = { features: { browser: true }, browserEngine: missing };
-    expect(render(config)).toContain("install the browser");
+    expect(render(config)).toContain("Install the browser");
     expect(browserAvailable(config)).toBe(false);
   });
 
   it("retains the global and per-bot opt-in gates", () => {
-    expect(render({ browserEngine: missing })).not.toContain("install the browser");
-    expect(render({ features: { browser: true }, browserEngine: missing }, false)).not.toContain("install the browser");
+    expect(render({ browserEngine: missing })).not.toContain("Install the browser");
+    expect(render({ features: { browser: true }, browserEngine: missing }, false)).not.toContain("Install the browser");
   });
 
   it("does not offer an install on unsupported hosts and still shows a ready engine", () => {
-    expect(render({ features: { browser: true }, browserEngine: { kind: "unavailable", installable: false } })).not.toContain("the browser isn't installed");
+    expect(render({ features: { browser: true }, browserEngine: { kind: "unavailable", installable: false } })).not.toContain("The browser isn't installed");
     const ready = render({ features: { browser: true }, browserEngine: { kind: "engine" } });
-    expect(ready).toContain("opening the live browser…");
+    expect(ready).toContain("Opening the live browser…");
     expect(ready).not.toMatch(/Loading browser…|Only admins/);
   });
 
   it("keeps Chrome setup failure and progress visible even when the binary exists", () => {
     const failed = render({ features: { browser: true }, browserEngine: { kind: "engine", installError: "Chrome download failed" } });
     expect(failed).toContain("Chrome download failed");
-    expect(failed).toContain("retry browser installation");
+    expect(failed).toContain("Retry browser installation");
     expect(failed).not.toContain("has its own browser");
     const installing = render({ features: { browser: true }, browserEngine: { kind: "engine", installing: true } });
-    expect(installing).toContain("installing…");
+    expect(installing).toContain("Installing…");
     expect(installing).toContain('disabled=""');
     expect(installing).not.toContain("has its own browser");
   });

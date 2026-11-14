@@ -75,12 +75,12 @@ describe("call modes", () => {
     for (const mode of ["live", "turns"] as const) {
       setCallMode(mode);
       const other = render(createElement(CallButton, { bot: { ...bot, id: "juniper", name: "Juniper" } }));
-      expect(other).toMatch(/<button[^>]*disabled=""[^>]*aria-label="on a live call"/);
+      expect(other).toMatch(/<button[^>]*disabled=""[^>]*aria-label="On a live call"/);
     }
     const room = render(createElement(CallTargetButton, {
       targetId: "room", targetName: "Room", voices: [undefined], requireExplicitVoices: true, onStart: vi.fn(),
     }));
-    expect(room).toMatch(/<button[^>]*disabled=""[^>]*aria-label="on a live call"/);
+    expect(room).toMatch(/<button[^>]*disabled=""[^>]*aria-label="On a live call"/);
   });
 
   it("says Live calls use the person's own OpenAI key, with a way to API keys, under the call button when the harness has none", async () => {
@@ -106,9 +106,9 @@ describe("call modes", () => {
     await startLiveCall({ botId: bot.id, threadId: bot.threadId });
     const header = render(createElement(CallButton, { bot }));
     expect(header).toContain("Live calls use your own OpenAI key. Add it in settings → API keys.");
-    expect(header).toContain(">open API keys</button>");
+    expect(header).toContain(">Open API keys</button>");
     // no plan to buy and no key field: the key goes in Settings → API keys
-    for (const gone of ["Pro plan", "start free trial", 'type="password"']) expect(header).not.toContain(gone);
+    for (const gone of ["Pro plan", "Start free trial", 'type="Password"']) expect(header).not.toContain(gone);
     expect(header).toMatch(/aria-expanded="true" aria-controls="[^"]+"[^>]*aria-label="Live call with Atlas"/);
     const popup = /<div id="([^"]+)" class="animate-pop-in absolute right-0 z-30 max-h-/.exec(header);
     expect(popup).not.toBeNull();
@@ -118,7 +118,7 @@ describe("call modes", () => {
     expect(composer).toContain("bottom-full");
     expect(render(createElement(CallButton, { bot: { ...bot, id: "juniper" } }))).not.toContain("OpenAI key");
     dismissStartPrompt("juniper");
-    expect(render(createElement(CallButton, { bot }))).toContain("open API keys");
+    expect(render(createElement(CallButton, { bot }))).toContain("Open API keys");
     dismissStartPrompt(bot.id);
     expect(render(createElement(CallButton, { bot }))).not.toContain("OpenAI key");
   });

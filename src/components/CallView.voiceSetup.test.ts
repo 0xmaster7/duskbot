@@ -134,7 +134,7 @@ describe("setting up a voice from the call button", () => {
 
     const help = render();
     expect(help.html).toContain("Set up a voice in an agent profile to make calls");
-    expect(help.html).toContain("set up voice");
+    expect(help.html).toContain("Set up voice");
     expect(help.html).not.toContain("open agent settings");
     const setUp = find(help, "data-voice-setup-open");
     expect(setUp.props["aria-haspopup"]).toBe("dialog");
@@ -180,7 +180,7 @@ describe("setting up a voice from the call button", () => {
     fixture.config = { tts: { configured: true, ready: false } };
     click(find(render(), "data-call-button"));
     const help = render();
-    expect(help.html).toContain("set up voice");
+    expect(help.html).toContain("Set up voice");
     const setUp = find(help, "data-voice-setup-open");
     expect(setUp.props["aria-haspopup"]).toBeUndefined();
     click(setUp);
@@ -241,7 +241,7 @@ describe("setting up a voice from the call button", () => {
     expect(liveMedia()).toMatchObject({ phase: "starting", botId: "pepper", threadId: "t" });
     expect(fixture.track).toHaveBeenCalledWith("call_started", { driver: "codex", mode: "live" });
     const after = render();
-    expect(after.html).not.toContain("set up voice");
+    expect(after.html).not.toContain("Set up voice");
     expect(after.html).not.toContain("Call unavailable");
     expect(after.html).not.toContain("Choose This computer");
     expect(fixture.dialog).toBeNull();

@@ -125,7 +125,7 @@ describe("move a VPS's bots to dusk cloud", () => {
     await render();
     expect(text()).toContain("Continue in your browser");
     expect(text()).toContain("pick up your plan there");
-    expect(button("cancel")).toBeTruthy();
+    expect(button("Cancel")).toBeTruthy();
     expect(button("Open checkout again")).toBeUndefined();
     button("Open again")!.click();
     await settle();

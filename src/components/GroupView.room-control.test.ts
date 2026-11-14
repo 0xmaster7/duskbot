@@ -77,7 +77,7 @@ describe("held room members", () => {
   it("lists who is held and resumes one from the banner", () => {
     render(createElement(RoomHoldsBanner, { group: { ...room, holds: { bee: { at: 1 } } }, members: [lead, bee] }));
     expect(host.textContent).toContain("Stopped by you: Bee.");
-    const resume = [...host.querySelectorAll("button")].find((button) => button.textContent === "resume Bee")!;
+    const resume = [...host.querySelectorAll("button")].find((button) => button.textContent === "Resume Bee")!;
     flushSync(() => resume.click());
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "setGroupHold", groupId: "room", botId: "bee", held: false });
   });

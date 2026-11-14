@@ -24,7 +24,7 @@ describe("the summary the island and the dock draw", () => {
   it("offers a plain approval in place and leaves a proposal to its own card", () => {
     const asking = ambientBot(bot({ messages: [approval()] }), [], turnLive);
     expect(asking).toMatchObject({ status: "needs-you", asks: 1, approval: { requestId: "r1", threadId: "t1", title: "npm test" } });
-    expect(asking.detail).toMatch(/^wants to [a-z]/); // the sentence-case tool label drops its capital mid-sentence
+    expect(asking.detail).toMatch(/^Wants to [a-z]/); // the sentence-case tool label drops its capital mid-sentence
     const proposal = ambientBot(bot({ messages: [approval({ skillRequest: { action: "enable", name: "x" } })] }), [], turnLive);
     expect(proposal).toMatchObject({ status: "needs-you", approval: null });
     const answered = ambientBot(bot({ messages: [approval({ answered: "allow" })] }), [], turnLive);
@@ -52,7 +52,7 @@ describe("the summary the island and the dock draw", () => {
     expect(ambientBot(bot({ unread: true, messages: [intro] }), [], turnLive)).toMatchObject({ status: "done", waits: null, question: null });
     expect(ambientBot(bot({ messages: [intro] }), [], turnLive).status).toBe("idle");
     const signIn = message({ kind: "signin", signIn: { site: "Gmail" } } as unknown as Partial<Message>);
-    expect(ambientBot(bot({ messages: [signIn] }), [], turnLive)).toMatchObject({ status: "needs-you", waits: "sign-in", detail: "sign in to Gmail" });
+    expect(ambientBot(bot({ messages: [signIn] }), [], turnLive)).toMatchObject({ status: "needs-you", waits: "sign-in", detail: "Sign in to Gmail" });
   });
 
   it("takes a typed answer where the question allows one, and names the step a turn is on", () => {
@@ -104,7 +104,7 @@ describe("the summary the island and the dock draw", () => {
       bot({ id: "far", avatarUrl: "https://example.com/a.png", avatarCrop: "circle" } as Partial<Bot>),
     ], [], turnLive, "en");
     expect(snapshot.bots.map((entry) => [entry.id, entry.avatar])).toEqual([["nova", "/api/bots/nova/avatar.png"], ["far", null]]);
-    expect(snapshot.labels.idle).toBe("idle");
+    expect(snapshot.labels.idle).toBe("Idle");
     expect(snapshot.lang).toBe("en");
   });
 });

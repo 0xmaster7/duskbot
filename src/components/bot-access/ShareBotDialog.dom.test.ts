@@ -81,9 +81,9 @@ it("lists who looks after it first as quiet text, then each person added with no
   expect([...dialog()!.querySelectorAll("[data-share-person]")].map((row) => row.getAttribute("data-share-person"))).toEqual([ADA.email, BOB.email, CARA.email]);
   const owner = dialog()!.querySelector(`[data-share-person="${ADA.email}"]`)!;
   expect(owner.textContent).toContain("Ada (you)");
-  expect(owner.textContent).toContain("looks after it");
+  expect(owner.textContent).toContain("Looks after it");
   expect(owner.querySelector("button")).toBeNull();
-  expect(menuOf("Bob's access").textContent).toBe("added");
+  expect(menuOf("Bob's access").textContent).toBe("Added");
   expect(dialog()!.textContent).not.toContain("Can view");
   expect(dialog()!.textContent).not.toContain("Can edit");
   expect(dialog()!.querySelector("select")).toBeNull();
@@ -96,7 +96,7 @@ it("opens a person's real menu: have them look after it, then a divider and Remo
   await openMenu("Bob's access");
   expect(rows().map((row) => row.dataset.menuKey)).toEqual(["owner", "remove"]);
   expect(rows().map((row) => row.getAttribute("role"))).toEqual(["menuitem", "menuitem"]);
-  expect(rows()[0]!.textContent).toBe("have Bob look after it");
+  expect(rows()[0]!.textContent).toBe("Have Bob look after it");
   expect(document.querySelectorAll('[role="menu"] [role="separator"]')).toHaveLength(1);
   expect(rows()[1]!.parentElement!.querySelector('[role="separator"]')).not.toBeNull();
 });
@@ -106,7 +106,7 @@ it("removes a person at once, says so with Undo, and Undo puts the sharing back 
   await choose("Bob's access", "remove");
   expect(server.calls).toEqual([{ path: "/api/bots/payroll/access", body: { everyone: "none", people: { [CARA.email]: "chat" } } }]);
   const toast = document.querySelector<HTMLElement>("[data-access-toast]")!;
-  expect(toast.textContent).toContain("removed Bob");
+  expect(toast.textContent).toContain("Removed Bob");
   toast.querySelector("button")!.click();
   await settle();
   expect(server.calls[1]).toEqual({ path: "/api/bots/payroll/access", body: editable.access });
@@ -128,7 +128,7 @@ it("suggests teammates not yet added, and arrow keys and Enter add one at Can ch
   expect(offered().find((row) => row.getAttribute("aria-selected") === "true")!.dataset.shareSuggestion).toBe(EVE.email);
   await press("Enter");
   expect(server.calls.at(-1)!.body).toEqual({ everyone: "none", people: { [BOB.email]: "view", [CARA.email]: "chat", [EVE.email]: "chat" } });
-  expect(document.querySelector("[data-access-toast]")!.textContent).toContain("added Eve");
+  expect(document.querySelector("[data-access-toast]")!.textContent).toContain("Added Eve");
   expect(document.querySelector("[data-access-toast]")!.textContent).not.toContain("Can chat");
   expect(offered()).toEqual([]);
   expect(document.activeElement).toBe(field());
@@ -168,7 +168,7 @@ it("removes a person, and switches between everyone in the team using it and onl
   await open(editable);
   await choose("Cara's access", "remove");
   expect(server.calls.at(-1)!.body).toEqual({ everyone: "none", people: { [BOB.email]: "view" } });
-  await choose("general access", "everyone");
+  await choose("General access", "everyone");
   expect(server.calls.at(-1)!.body).toEqual({ everyone: "chat", people: editable.access!.people });
   expect(document.querySelector("[data-access-toast]")!.textContent).toContain("Everyone in Acme can use it now");
   flushSync(() => root.unmount());
@@ -178,9 +178,9 @@ it("removes a person, and switches between everyone in the team using it and onl
   root = createRoot(host);
   await open(payroll({ yourAccess: "edit", access: { everyone: "chat", people: {} } }));
   expect(dialog()!.textContent).toContain("Everyone in Acme can find it and chat with it.");
-  expect(menuOf("general access").textContent).toBe("everyone in Acme can use it");
+  expect(menuOf("General access").textContent).toBe("Everyone in Acme can use it");
   expect(document.querySelector('[data-share-bot] button[aria-label="What everyone in Acme can do"]'), "no level for everyone on a team").toBeNull();
-  await openMenu("general access");
+  await openMenu("General access");
   expect(rows().map((row) => row.dataset.menuKey)).toEqual(["none", "everyone"]);
   rows()[0]!.click();
   await settle();
@@ -191,13 +191,13 @@ it("hands the bot to someone added only after a confirmation", async () => {
   await open(editable);
   await choose("Bob's access", "owner");
   expect(server.calls).toEqual([]);
-  expect(dialog()!.querySelector(`[data-share-make-owner="${BOB.email}"]`)!.textContent).toContain("have Bob look after Payroll?");
-  expect(document.activeElement?.textContent).toBe("cancel");
+  expect(dialog()!.querySelector(`[data-share-make-owner="${BOB.email}"]`)!.textContent).toContain("Have Bob look after Payroll?");
+  expect(document.activeElement?.textContent).toBe("Cancel");
   await press("Escape");
   expect(dialog()!.querySelector("[data-share-make-owner]")).toBeNull();
   expect(dialog()).not.toBeNull();
   await choose("Bob's access", "owner");
-  [...dialog()!.querySelectorAll("button")].find((button) => button.textContent === "have Bob look after it")!.click();
+  [...dialog()!.querySelectorAll("button")].find((button) => button.textContent === "Have Bob look after it")!.click();
   await settle();
   expect(server.calls).toEqual([{ path: "/api/bots/payroll/reports-to", body: { email: BOB.email } }]);
   expect(dialog()!.querySelector("[data-share-make-owner]")).toBeNull();
@@ -207,7 +207,7 @@ it("stays on the confirmation and says why when the handover is refused", async 
   await open(editable);
   await choose("Bob's access", "owner");
   server.refuse = "Bob is no longer in the team";
-  [...dialog()!.querySelectorAll("button")].find((button) => button.textContent === "have Bob look after it")!.click();
+  [...dialog()!.querySelectorAll("button")].find((button) => button.textContent === "Have Bob look after it")!.click();
   await settle();
   expect(dialog()!.querySelector("[data-share-make-owner]")!.querySelector('[role="alert"]')!.textContent).toBe("Bob is no longer in the team");
   dialog()!.focus();
@@ -263,7 +263,7 @@ it("keeps its keys to itself over Settings, which listens on the window, and Esc
 it("draws what else its opener offers in the header, with only Done at its foot", async () => {
   await open(editable, { headerMenu: createElement("button", { type: "button", "data-more": true }, "More") });
   expect(dialog()!.querySelector("header [data-more]")).not.toBeNull();
-  expect([...dialog()!.querySelectorAll("footer button")].map((button) => button.textContent)).toEqual(["done"]);
+  expect([...dialog()!.querySelectorAll("footer button")].map((button) => button.textContent)).toEqual(["Done"]);
 });
 
 it("is not there off a team", () => {

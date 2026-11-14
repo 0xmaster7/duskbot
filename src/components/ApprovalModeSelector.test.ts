@@ -14,28 +14,28 @@ describe("approval mode selector", () => {
     expect(approvalModeOptions().map(({ mode, label, description }) => ({ mode, label, description }))).toEqual([
       {
         mode: "ask",
-        label: "ask for approval",
-        description: "asks before commands, file changes and app actions that write, send or delete; reading never asks",
+        label: "Ask for approval",
+        description: "Asks before commands, file changes and app actions that write, send or delete; reading never asks",
       },
       {
         mode: "edits",
-        label: "auto-accept edits",
-        description: "approves file edits automatically and asks before other changes; reading never asks",
+        label: "Auto-accept edits",
+        description: "Approves file edits automatically and asks before other changes; reading never asks",
       },
       {
         mode: "auto",
-        label: "approve for me",
+        label: "Approve for me",
         description: "Uses the provider's automatic review to approve routine actions and ask about others. Web search is allowed without asking.",
       },
       {
         mode: "full",
-        label: "full access",
-        description: "full computer access (elevated risk)",
+        label: "Full access",
+        description: "Full computer access (elevated risk)",
       },
       {
         mode: "custom",
-        label: "custom (config.toml)",
-        description: "uses permissions defined in config.toml",
+        label: "Custom (config.toml)",
+        description: "Uses permissions defined in config.toml",
       },
     ]);
   });
@@ -68,11 +68,11 @@ describe("approval mode selector", () => {
   it("offers Antigravity Auto as the explicit full-access grant, not native review", () => {
     const options = approvalModeOptionsFor("antigravityAgent");
     expect(options.map(({ mode, label }) => ({ mode, label }))).toEqual([
-      { mode: "ask", label: "ask for approval" },
-      { mode: "edits", label: "auto-accept edits" },
-      { mode: "full", label: "auto (full access)" },
+      { mode: "ask", label: "Ask for approval" },
+      { mode: "edits", label: "Auto-accept edits" },
+      { mode: "full", label: "Auto (full access)" },
     ]);
-    expect(options[2].chip).toBe("auto");
+    expect(options[2].chip).toBe("Auto");
     expect(options[2].description).toContain("Automatically approve tool requests");
     expect(approvalModeOptionsFor("antigravityAgent", false).map((option) => option.mode)).toEqual(["ask", "edits", "full"]);
   });
@@ -83,11 +83,11 @@ describe("approval mode selector", () => {
       providerName: "Antigravity", driverKind: "antigravityAgent", onSelect: () => {},
     }));
     for (const html of [render("ask"), render("auto"), render(undefined, true)]) {
-      expect(html).toContain('aria-label="ask for approval for Antigravity"');
+      expect(html).toContain('aria-label="Ask for approval for Antigravity"');
       expect(html).not.toContain('aria-label="auto (full access)');
     }
-    expect(render("full")).toContain('aria-label="auto (full access) for Antigravity"');
-    expect(render("full", false, false)).toContain('aria-label="auto (full access) for Antigravity"');
+    expect(render("full")).toContain('aria-label="Auto (full access) for Antigravity"');
+    expect(render("full", false, false)).toContain('aria-label="Auto (full access) for Antigravity"');
   });
 
   it("explains Auto fallbacks and offers Full, the default level, on every provider", () => {
@@ -109,13 +109,13 @@ describe("approval mode selector", () => {
     const compact = renderToStaticMarkup(createElement(ApprovalModeSelector, {
       approvalMode: "full", providerName: "Grok", driverKind: "grokAgent", onSelect: () => {},
     }));
-    expect(compact).toContain('aria-label="full access for Grok"');
-    expect(compact).toContain('title="full access"');
-    expect(compact).not.toMatch(/<span class="truncate">full access<\/span>/);
+    expect(compact).toContain('aria-label="Full access for Grok"');
+    expect(compact).toContain('title="Full access"');
+    expect(compact).not.toMatch(/<span class="truncate">Full access<\/span>/);
     const settings = renderToStaticMarkup(createElement(ApprovalModeSelector, {
       approvalMode: "full", providerName: "Grok", driverKind: "grokAgent", onSelect: () => {}, wide: true,
     }));
-    expect(settings).toMatch(/<span class="truncate">full access<\/span>/);
+    expect(settings).toMatch(/<span class="truncate">Full access<\/span>/);
   });
 
   it("locks an existing Custom bot to the local packaged desktop", () => {
@@ -126,6 +126,6 @@ describe("approval mode selector", () => {
       approvalMode: "custom", trustedModesAvailable: false,
       providerName: "Missing provider", driverKind: "", onSelect: () => {},
     }));
-    expect(html).toContain('aria-label="custom (config.toml) for Missing provider"');
+    expect(html).toContain('aria-label="Custom (config.toml) for Missing provider"');
   });
 });

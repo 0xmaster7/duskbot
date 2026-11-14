@@ -126,7 +126,7 @@ async function readyOuter(state: ManagedDesktopState = connected) {
   render(true); const cleanup = effects(); await flush(); return cleanup;
 }
 async function validateRestore() {
-  button("restore this backup").props.onClick!();
+  button("Restore this backup").props.onClick!();
   change(passwords()[0], PASSWORD);
   submit(form()); await flush();
 }
@@ -171,7 +171,7 @@ describe("optional Company cloud backup settings", () => {
     const saved = () => { fixture.index = 0; fixture.effects = []; const tree = SavedCompanyBackupSchedule({ bridge }); return nodes(tree); };
     fixture.values = [];
     saved(); effects(); await flush();
-    const toggle = asSwitch(saved().find(node => (node.props as { label?: string }).label === "daily backups")!);
+    const toggle = asSwitch(saved().find(node => (node.props as { label?: string }).label === "Daily backups")!);
     toggle.props.onClick!(); await flush();
     expect(bridge.configureSchedule).toHaveBeenCalledExactlyOnceWith({ enabled: false });
     expect(saved()).toEqual([]);
@@ -184,7 +184,7 @@ describe("optional Company cloud backup settings", () => {
     expect(bridge.state).not.toHaveBeenCalled(); expect(bridge.list).not.toHaveBeenCalled();
     resolveConnection(connected); await flush();
     const initial = render(true);
-    expect(initial.html).toContain("company cloud backups");
+    expect(initial.html).toContain("Company cloud backups");
     const firstKey = isValidElement(initial.tree) ? initial.tree.key : null;
     pushOrganization({ ...connected, deviceId: "different-device" });
     const changed = render(true);
@@ -207,7 +207,7 @@ describe("optional Company cloud backup settings", () => {
   it("shows company identity, ready backup metadata and quota without asking for a password or upload", async () => {
     await ready();
     const view = render();
-    expect(view.html).toContain("company cloud backups");
+    expect(view.html).toContain("Company cloud backups");
     expect(view.html).toContain("Fixture Company");
     expect(view.html).toContain("employee@example.test");
     expect(view.html).toContain("0.0.0-fixture");
@@ -215,7 +215,7 @@ describe("optional Company cloud backup settings", () => {
     expect(bridge.state).toHaveBeenCalledOnce(); expect(bridge.list).toHaveBeenCalledOnce();
     expect(bridge.create).not.toHaveBeenCalled(); expect(bridge.prepareRestore).not.toHaveBeenCalled();
     expect(bridge.restore).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
-    button("refresh cloud backups").props.onClick!(); await flush();
+    button("Refresh cloud backups").props.onClick!(); await flush();
     expect(bridge.list).toHaveBeenCalledTimes(2);
   });
 
@@ -234,16 +234,16 @@ describe("optional Company cloud backup settings", () => {
     expect(html).toContain(READY_ID);
     expect(html).not.toContain("pending-fixture"); expect(html).not.toContain("pending-version");
     expect(html).not.toContain("2028");
-    expect(buttons("restore this backup")).toHaveLength(1);
-    expect(buttons("delete cloud backup")).toHaveLength(1);
+    expect(buttons("Restore this backup")).toHaveLength(1);
+    expect(buttons("Delete cloud backup")).toHaveLength(1);
   });
 
   it("does not present unfinished uploads as restorable backups", async () => {
     vi.mocked(bridge.list).mockResolvedValueOnce({ backups: [{ ...readyEntry, status: "uploading" }], usedBytes: 4096, limits: { ownerQuotaBytes: 1024 ** 3, retainedSnapshots: 5 } });
     await ready();
     expect(render().html).toContain("No completed cloud backups yet");
-    expect(button("restore this backup")).toBeUndefined();
-    expect(button("delete cloud backup")).toBeUndefined();
+    expect(button("Restore this backup")).toBeUndefined();
+    expect(button("Delete cloud backup")).toBeUndefined();
     expect(bridge.prepareRestore).not.toHaveBeenCalled();
   });
 
@@ -251,7 +251,7 @@ describe("optional Company cloud backup settings", () => {
     vi.mocked(bridge.state).mockResolvedValueOnce({ busy: false, pendingRestore: true });
     await ready();
     expect(render().html).toContain("Fully quit dusk bot");
-    for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
+    for (const label of ["Back up this installation", "Restore this backup", "Delete cloud backup", "Refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
     expect(passwords()).toHaveLength(0);
@@ -271,7 +271,7 @@ describe("optional Company cloud backup settings", () => {
       resolveState({ busy: false, pendingRestore: true }); await flush();
     }
     expect(render().html).toContain("Fully quit dusk bot");
-    for (const label of ["back up this installation", "restore this backup", "delete cloud backup", "refresh cloud backups"]) {
+    for (const label of ["Back up this installation", "Restore this backup", "Delete cloud backup", "Refresh cloud backups"]) {
       expect(button(label)).toBeUndefined();
     }
     expect(bridge.create).not.toHaveBeenCalled(); expect(bridge.prepareRestore).not.toHaveBeenCalled();
@@ -281,18 +281,18 @@ describe("optional Company cloud backup settings", () => {
   it("can retry after an initial state request fails without exposing internal errors", async () => {
     vi.mocked(bridge.state).mockRejectedValueOnce(new Error("Fixture private-path signed-token"));
     await ready();
-    expect(button("refresh cloud backups").props.disabled).toBe(false);
+    expect(button("Refresh cloud backups").props.disabled).toBe(false);
     expect(render().html).not.toContain("signed-token");
-    button("refresh cloud backups").props.onClick!(); await flush();
+    button("Refresh cloud backups").props.onClick!(); await flush();
     expect(bridge.state).toHaveBeenCalledTimes(2);
-    expect(button("back up this installation").props.disabled).toBe(false);
+    expect(button("Back up this installation").props.disabled).toBe(false);
   });
 
   it("keeps the newer list when refresh responses finish out of order", async () => {
     await ready();
     const resolvers: Array<(value: Awaited<ReturnType<BackupBridge["list"]>>) => void> = [];
     vi.mocked(bridge.list).mockImplementation(() => new Promise(resolve => resolvers.push(resolve)));
-    const refresh = button("refresh cloud backups");
+    const refresh = button("Refresh cloud backups");
     refresh.props.onClick!(); refresh.props.onClick!();
     resolvers[1]({ backups: [{ ...readyEntry, id: OTHER_ID }], usedBytes: 4096, limits: { ownerQuotaBytes: 1024 ** 3, retainedSnapshots: 5 } });
     await flush();
@@ -303,18 +303,18 @@ describe("optional Company cloud backup settings", () => {
 
   it("previews a managed backup without asking for or forwarding a password", async () => {
     vi.mocked(bridge.list).mockResolvedValueOnce({ backups: [{ ...readyEntry, passwordRequired: false }], usedBytes: 4096, limits: { ownerQuotaBytes: 1024 ** 3, retainedSnapshots: 7 } });
-    await ready(); button("restore this backup").props.onClick!();
+    await ready(); button("Restore this backup").props.onClick!();
     expect(passwords()).toHaveLength(0);
-    expect(button("validate backup").props.disabled).toBe(false);
+    expect(button("Validate backup").props.disabled).toBe(false);
     submit(form()); await flush();
     expect(bridge.prepareRestore).toHaveBeenCalledExactlyOnceWith({ id: READY_ID });
     expect(bridge.restore).not.toHaveBeenCalled();
   });
 
   it("rejects a short legacy password before calling the native preview", async () => {
-    await ready(); button("restore this backup").props.onClick!();
+    await ready(); button("Restore this backup").props.onClick!();
     change(passwords()[0], "short");
-    expect(button("validate backup").props.disabled).toBe(true);
+    expect(button("Validate backup").props.disabled).toBe(true);
     submit(form()); await flush();
     expect(bridge.prepareRestore).not.toHaveBeenCalled();
   });
@@ -323,7 +323,7 @@ describe("optional Company cloud backup settings", () => {
     await ready();
     storage.set("dusk-drafts", "private fixture draft"); storage.set("dusk-skin", "fixture-theme");
     storage.set("auth-token", "fixture auth secret"); storage.set("dusk-webhook-credentials", "fixture connection secret");
-    button("back up this installation").props.onClick!();
+    button("Back up this installation").props.onClick!();
     expect(bridge.create).not.toHaveBeenCalled(); expect(passwords()).toHaveLength(0);
     expect(render().nodes.some(node => node.type === "dialog")).toBe(true);
     expect(render().html).toContain("THIS installation");
@@ -339,16 +339,16 @@ describe("optional Company cloud backup settings", () => {
   });
 
   it("clears a cancelled backup dialog without retaining passwords or uploading", async () => {
-    await ready(); button("back up this installation").props.onClick!();
+    await ready(); button("Back up this installation").props.onClick!();
     expect(passwords()).toHaveLength(0);
-    button("cancel").props.onClick!();
+    button("Cancel").props.onClick!();
     expect(passwords()).toHaveLength(0); expect(bridge.create).not.toHaveBeenCalled();
-    button("back up this installation").props.onClick!();
+    button("Back up this installation").props.onClick!();
     expect(passwords()).toHaveLength(0);
     expect([...storage.values()]).not.toContain(PASSWORD);
   });
 
-  const scheduleSwitch = () => asSwitch(render().nodes.find(node => (node.props as { label?: string }).label === "daily backups")!);
+  const scheduleSwitch = () => asSwitch(render().nodes.find(node => (node.props as { label?: string }).label === "Daily backups")!);
   const scheduleOff = { busy: false, schedule: { enabled: false, status: "off" as const } };
   it("keeps daily backups off without any automatic setting mutation or password request", async () => {
     vi.mocked(bridge.state).mockResolvedValueOnce(scheduleOff);
@@ -369,14 +369,14 @@ describe("optional Company cloud backup settings", () => {
     expect(render().html).toContain("does not create a separate installation for work");
     expect(render().html).toContain("No backup password needed");
     expect(passwords()).toHaveLength(0);
-    expect(button("enable daily backups").props.disabled).toBe(true);
+    expect(button("Enable daily backups").props.disabled).toBe(true);
     submit(form()); await flush(); expect(bridge.configureSchedule).not.toHaveBeenCalled();
     const checkbox = render().nodes.find(node => node.type === "input" && node.props.type === "checkbox")!;
     checkbox.props.onChange!({ target: { checked: true } });
     const submitForm = form(); submit(submitForm); submit(submitForm); await flush();
     expect(bridge.configureSchedule).toHaveBeenCalledExactlyOnceWith({ enabled: true, confirmation: "BACK UP THIS WORKSPACE DAILY" });
     expect(render().html).toContain('aria-checked="true"');
-    expect(render().html).toContain("next attempt:");
+    expect(render().html).toContain("Next attempt:");
     expect(render().html).not.toContain(PASSWORD);
     expect([...storage.values()]).not.toContain(PASSWORD);
     expect(bridge.create).not.toHaveBeenCalled();
@@ -396,9 +396,9 @@ describe("optional Company cloud backup settings", () => {
     vi.mocked(bridge.state).mockResolvedValueOnce(scheduleOff);
     await ready(); scheduleSwitch().props.onClick!();
     expect(passwords()).toHaveLength(0);
-    button("cancel").props.onClick!();
+    button("Cancel").props.onClick!();
     scheduleSwitch().props.onClick!(); expect(passwords()).toHaveLength(0);
-    button("cancel").props.onClick!();
+    button("Cancel").props.onClick!();
     pushBackup({ ...scheduleOff, pendingRestore: true });
     expect(scheduleSwitch().props.disabled).toBe(true);
     scheduleSwitch().props.onClick!(); expect(passwords()).toHaveLength(0);
@@ -427,7 +427,7 @@ describe("optional Company cloud backup settings", () => {
   });
 
   it("keeps native dialog keyboard events out of the parent Settings shortcut handler", async () => {
-    await ready(); button("back up this installation").props.onClick!();
+    await ready(); button("Back up this installation").props.onClick!();
     const dialog = () => render().nodes.find(node => node.type === "dialog")!;
     for (const key of ["Escape", "Tab"]) {
       const stopPropagation = vi.fn();
@@ -441,7 +441,7 @@ describe("optional Company cloud backup settings", () => {
 
     let finishCreate!: (entry: CompanyBackupEntry) => void;
     vi.mocked(bridge.create).mockImplementation(() => new Promise(resolve => { finishCreate = resolve; }));
-    button("back up this installation").props.onClick!();
+    button("Back up this installation").props.onClick!();
     expect(passwords()).toHaveLength(0); submit(form());
     dialog().props.onCancel!({ preventDefault });
     expect(dialog()).toBeDefined();
@@ -451,15 +451,15 @@ describe("optional Company cloud backup settings", () => {
 
   it("validates the selected backup before exact REPLACE and saves recovery identity before requesting replacement", async () => {
     await ready();
-    expect(button("replace installation")).toBeUndefined();
+    expect(button("Replace installation")).toBeUndefined();
     await validateRestore();
     expect(bridge.prepareRestore).toHaveBeenCalledExactlyOnceWith({ id: READY_ID, password: PASSWORD });
     expect(bridge.restore).not.toHaveBeenCalled();
-    expect(render().html).toContain("validated backup"); expect(render().html).toContain("Fixture archive warning");
+    expect(render().html).toContain("Validated backup"); expect(render().html).toContain("Fixture archive warning");
     expect(render().html).not.toContain(PASSWORD);
-    expect(button("replace installation").props.disabled).toBe(true);
+    expect(button("Replace installation").props.disabled).toBe(true);
     for (const value of ["replace", " REPLACE", "REPLACE "]) {
-      change(confirmation(), value); expect(button("replace installation").props.disabled).toBe(true);
+      change(confirmation(), value); expect(button("Replace installation").props.disabled).toBe(true);
     }
     vi.mocked(bridge.restore).mockImplementation(async input => {
       expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(STAGE_ID);
@@ -467,8 +467,8 @@ describe("optional Company cloud backup settings", () => {
       return { restoreId: STAGE_ID };
     });
     change(confirmation(), "REPLACE");
-    expect(button("replace installation").props.disabled).toBe(false);
-    const replace = button("replace installation"); replace.props.onClick!(); replace.props.onClick!(); await flush();
+    expect(button("Replace installation").props.disabled).toBe(false);
+    const replace = button("Replace installation"); replace.props.onClick!(); replace.props.onClick!(); await flush();
     expect(bridge.restore).toHaveBeenCalledOnce();
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(STAGE_ID);
     expect(render().html).toContain("Fully quit dusk bot");
@@ -481,7 +481,7 @@ describe("optional Company cloud backup settings", () => {
     vi.mocked(bridge.prepareRestore).mockRejectedValueOnce(new Error("Wrong password; fixture-private-path signed-token"));
     await validateRestore();
     expect(render().html).toContain('role="alert"');
-    expect(render().html).not.toContain("validated backup"); expect(button("replace installation")).toBeUndefined();
+    expect(render().html).not.toContain("Validated backup"); expect(button("Replace installation")).toBeUndefined();
     expect(render().html).not.toContain("signed-token");
     expect(bridge.restore).not.toHaveBeenCalled(); expect(storage.has(WORKSPACE_RESTORE_MARKER)).toBe(false);
   });
@@ -489,7 +489,7 @@ describe("optional Company cloud backup settings", () => {
   it("never starts replacement if its recovery marker cannot be persisted", async () => {
     await ready(); await validateRestore();
     vi.mocked(localStorage.setItem).mockImplementation(() => { throw new Error("Fixture storage is unavailable"); });
-    change(confirmation(), "REPLACE"); button("replace installation").props.onClick!(); await flush();
+    change(confirmation(), "REPLACE"); button("Replace installation").props.onClick!(); await flush();
     expect(bridge.restore).not.toHaveBeenCalled();
     expect(render().html).toContain('role="alert"');
     expect(window.location.reload).not.toHaveBeenCalled();
@@ -498,7 +498,7 @@ describe("optional Company cloud backup settings", () => {
   it("preserves its recovery marker if the replacement response is lost", async () => {
     await ready(); await validateRestore();
     vi.mocked(bridge.restore).mockRejectedValueOnce(new Error("Fixture connection closed"));
-    change(confirmation(), "REPLACE"); button("replace installation").props.onClick!(); await flush();
+    change(confirmation(), "REPLACE"); button("Replace installation").props.onClick!(); await flush();
     expect(bridge.restore).toHaveBeenCalledOnce();
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(STAGE_ID);
     expect(render().html).toContain("The replacement could not be confirmed");
@@ -508,7 +508,7 @@ describe("optional Company cloud backup settings", () => {
   it("preserves a different pending recovery marker and refuses another replacement", async () => {
     await ready(); await validateRestore();
     storage.set(WORKSPACE_RESTORE_MARKER, OTHER_ID);
-    change(confirmation(), "REPLACE"); button("replace installation").props.onClick!(); await flush();
+    change(confirmation(), "REPLACE"); button("Replace installation").props.onClick!(); await flush();
     expect(storage.get(WORKSPACE_RESTORE_MARKER)).toBe(OTHER_ID);
     expect(localStorage.setItem).not.toHaveBeenCalled();
     expect(bridge.restore).not.toHaveBeenCalled();
@@ -519,9 +519,9 @@ describe("optional Company cloud backup settings", () => {
   it("requires typed DELETE and sends only the selected cloud archive ID", async () => {
     vi.mocked(bridge.list).mockResolvedValue({ backups: [readyEntry, { ...readyEntry, id: OTHER_ID }], usedBytes: 8192, limits: { ownerQuotaBytes: 1024 ** 3, retainedSnapshots: 5 } });
     await ready();
-    buttons("delete cloud backup")[1].props.onClick!();
-    expect(bridge.delete).not.toHaveBeenCalled(); expect(render().html).toContain("type DELETE to confirm");
-    const confirmDelete = () => render().nodes.filter(node => node.type === "button" && content(node.props.children) === "delete cloud backup").at(-1)!;
+    buttons("Delete cloud backup")[1].props.onClick!();
+    expect(bridge.delete).not.toHaveBeenCalled(); expect(render().html).toContain("Type DELETE to confirm");
+    const confirmDelete = () => render().nodes.filter(node => node.type === "button" && content(node.props.children) === "Delete cloud backup").at(-1)!;
     expect(confirmDelete().props.disabled).toBe(true);
     change(confirmation(), "delete"); expect(confirmDelete().props.disabled).toBe(true);
     change(confirmation(), "DELETE"); expect(confirmDelete().props.disabled).toBe(false);
@@ -533,10 +533,10 @@ describe("optional Company cloud backup settings", () => {
   it("offers explicit cancellation while a transfer is busy and disables conflicting mutations", async () => {
     await ready();
     pushBackup({ busy: true, kind: "backup", progress: { phase: "uploading", bytesTransferred: 1024, totalBytes: 4096 } });
-    expect(button("back up this installation").props.disabled).toBe(true);
-    expect(button("restore this backup").props.disabled).toBe(true);
-    expect(button("delete cloud backup").props.disabled).toBe(true);
-    button("cancel transfer").props.onClick!(); await flush();
+    expect(button("Back up this installation").props.disabled).toBe(true);
+    expect(button("Restore this backup").props.disabled).toBe(true);
+    expect(button("Delete cloud backup").props.disabled).toBe(true);
+    button("Cancel transfer").props.onClick!(); await flush();
     expect(bridge.cancel).toHaveBeenCalledOnce();
     expect(bridge.create).not.toHaveBeenCalled(); expect(bridge.restore).not.toHaveBeenCalled();
   });
@@ -547,15 +547,15 @@ describe("optional Company cloud backup settings", () => {
     render(); effects();
     pushBackup({ busy: true, kind: "backup", progress: { phase: "uploading", bytesTransferred: 1024, totalBytes: 4096 } });
     resolveState({ busy: false }); await flush();
-    expect(button("back up this installation").props.disabled).toBe(true);
-    expect(button("cancel transfer")).toBeDefined();
+    expect(button("Back up this installation").props.disabled).toBe(true);
+    expect(button("Cancel transfer")).toBeDefined();
   });
 
   it("does not fetch another company's list after a creation result reaches an unmounted panel", async () => {
     const cleanup = await ready();
     let resolveCreate!: (value: CompanyBackupEntry) => void;
     vi.mocked(bridge.create).mockImplementation(() => new Promise(resolve => { resolveCreate = resolve; }));
-    button("back up this installation").props.onClick!();
+    button("Back up this installation").props.onClick!();
     expect(passwords()).toHaveLength(0); submit(form());
     cleanup(); resolveCreate(readyEntry); await flush();
     expect(bridge.list).toHaveBeenCalledOnce();
@@ -566,12 +566,12 @@ describe("optional Company cloud backup settings", () => {
     const cleanup = await ready();
     let resolvePreview!: (value: { id: string; summary: WorkspaceBackupSummary }) => void;
     vi.mocked(bridge.prepareRestore).mockImplementation(() => new Promise(resolve => { resolvePreview = resolve; }));
-    button("restore this backup").props.onClick!(); change(passwords()[0], PASSWORD); submit(form());
+    button("Restore this backup").props.onClick!(); change(passwords()[0], PASSWORD); submit(form());
     cleanup();
     pushBackup({ busy: false, message: "stale fixture message" });
     resolvePreview({ id: STAGE_ID, summary }); await flush();
     expect(unsubscribeBackup).toHaveBeenCalledOnce();
-    expect(render().html).not.toContain("validated backup"); expect(render().html).not.toContain("stale fixture message");
+    expect(render().html).not.toContain("Validated backup"); expect(render().html).not.toContain("stale fixture message");
     expect(bridge.restore).not.toHaveBeenCalled(); expect(storage.has(WORKSPACE_RESTORE_MARKER)).toBe(false);
   });
 });

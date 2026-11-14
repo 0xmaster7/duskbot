@@ -60,10 +60,10 @@ describe("sidebar header", () => {
     fixture.density = density;
     const html = render();
     expect(html).not.toContain('aria-label="Inbox"');
-    expect(html).not.toContain('aria-label="active threads"');
-    expect(html).toContain(density === "icons" ? 'aria-label="new or share"' : 'aria-label="new bot"');
+    expect(html).not.toContain('aria-label="Active threads"');
+    expect(html).toContain(density === "icons" ? 'aria-label="New or share"' : 'aria-label="New bot"');
     expect(html).not.toMatch(collapse);
-    expect(html, "the edge that is dragged, open or as avatars, so the avatars are never a dead end").toMatch(/role="separator" aria-label="resize sidebar"/);
+    expect(html, "the edge that is dragged, open or as avatars, so the avatars are never a dead end").toMatch(/role="separator" aria-label="Resize sidebar"/);
   });
 });
 
@@ -75,7 +75,7 @@ describe("sidebar top row", () => {
   });
   const topRow = (html: string) => {
     const start = html.indexOf("data-sidebar-top-row");
-    const end = html.includes('aria-label="new or share"') ? html.indexOf('aria-label="new or share"') : html.indexOf('aria-label="new bot"');
+    const end = html.includes('aria-label="New or share"') ? html.indexOf('aria-label="New or share"') : html.indexOf('aria-label="New bot"');
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     return html.slice(start, end);
@@ -108,11 +108,11 @@ describe("sidebar top row", () => {
     expect(buttons).toBeGreaterThan(slot);
     expect(classesOf(row, "data-sidebar-top-buttons")).toEqual(expect.arrayContaining(["shrink-0", "pointer-events-auto"]));
     expect(row.slice(buttons).match(/<button/g)).toHaveLength(2);
-    expect(row).toMatch(/data-sidebar-search-toggle="true" aria-label="search" aria-expanded="false" title="search" class="[^"]*\bsize-\[26px\][^"]*\brounded-lg\b[^"]*\btext-ink-secondary\b/);
+    expect(row).toMatch(/data-sidebar-search-toggle="true" aria-label="Search" aria-expanded="false" title="Search" class="[^"]*\bsize-\[26px\][^"]*\brounded-lg\b[^"]*\btext-ink-secondary\b/);
     expect(row, "no round box round either").not.toContain("bg-composer");
-    expect(html).toMatch(/aria-label="new or share" class="[^"]*\bsize-\[26px\][^"]*\brounded-lg\b/);
+    expect(html).toMatch(/aria-label="New or share" class="[^"]*\bsize-\[26px\][^"]*\brounded-lg\b/);
     expect(html).not.toContain("data-sidebar-edge-toggle");
-    expect(html).not.toContain('title="active threads"');
+    expect(html).not.toContain('title="Active threads"');
     expect(html).not.toContain("data-sidebar-search-pill");
   });
 
@@ -134,9 +134,9 @@ describe("sidebar top row", () => {
     expect(top).not.toContain("data-traffic-light-space");
     expect(top).not.toContain("data-sidebar-top-buttons");
     expect(top).not.toContain("data-workspace-switcher");
-    expect(top.indexOf('aria-label="search bots and messages"')).toBeLessThan(top.indexOf('aria-label="new or share"'));
+    expect(top.indexOf('aria-label="Search bots and messages"')).toBeLessThan(top.indexOf('aria-label="New or share"'));
     expect(top).toMatch(/data-sidebar-rail-top="true" class="flex flex-col items-center gap-2 pt-1"/);
-    expect(top).toMatch(/aria-label="new or share" class="[^"]*\bsize-9\b[^"]*\brounded-full\b/);
+    expect(top).toMatch(/aria-label="New or share" class="[^"]*\bsize-9\b[^"]*\brounded-full\b/);
     const foot = html.slice(html.indexOf("data-sidebar-rail-footer"));
     const at = (marker: string) => {
       const index = foot.indexOf(marker);
@@ -144,7 +144,7 @@ describe("sidebar top row", () => {
       return index;
     };
     expect(html).not.toContain("data-sidebar-edge-toggle");
-    expect(foot).not.toContain('aria-label="search bots and messages"');
+    expect(foot).not.toContain('aria-label="Search bots and messages"');
     const positions = [
       at('data-sidebar-nav="apps"'),
       at("data-sidebar-account"),
@@ -155,7 +155,7 @@ describe("sidebar top row", () => {
     expect(foot).not.toContain('data-sidebar-nav="automations"');
     expect(foot).not.toContain('data-sidebar-nav="team-map"');
     expect(html).not.toContain("switch server:");
-    expect(html.match(/aria-label="new or share"/g)).toHaveLength(1);
+    expect(html.match(/aria-label="New or share"/g)).toHaveLength(1);
   });
 
 });

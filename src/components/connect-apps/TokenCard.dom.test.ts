@@ -50,10 +50,10 @@ describe("a token app's guide", () => {
     await mount("notion");
     expect(steps()).toEqual(["open:current", "make:next", "paste:next"]);
     expect(card().querySelector("[data-guide-step='open']")?.textContent).toContain("Open Notion and sign in.");
-    await act(async () => { button("open Notion").click(); });
+    await act(async () => { button("Open Notion").click(); });
     expect(fixture.opened).toEqual(["https://www.notion.so/profile/integrations"]);
     expect(steps()).toEqual(["open:done", "make:current", "paste:next"]);
-    expect(button("connect").disabled, "nothing pasted yet").toBe(true);
+    expect(button("Connect").disabled, "nothing pasted yet").toBe(true);
     await act(async () => { type(card().querySelector<HTMLInputElement>('input[type="password"]')!, "ntn_secret"); });
     expect(steps()).toEqual(["open:done", "make:done", "paste:current"]);
     await act(async () => { card().querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
@@ -82,11 +82,11 @@ describe("a token app's guide", () => {
     });
     await mount("googledrive");
     expect(card().querySelector("form"), "Drive has no token to paste").toBeNull();
-    await act(async () => { button("sign in with Google Drive").click(); });
+    await act(async () => { button("Sign in with Google Drive").click(); });
     await flush();
     expect(steps()).toEqual(["sign-in:done", "code:current"]);
     expect(card().querySelector("[data-device-code]")?.textContent).toBe("ABCD-EFGH");
-    button("open Google Drive").click();
+    button("Open Google Drive").click();
     expect(fixture.opened).toEqual(["https://www.google.com/device"]);
   });
 
@@ -104,7 +104,7 @@ describe("a token app's guide", () => {
       ? { handle: "h".repeat(32), verificationUrl: "https://github.com/login/oauth/authorize?x=1", expiresIn: 900, interval: 2 }
       : status({ github: true }));
     await mount("github");
-    await act(async () => { button("sign in with GitHub").click(); });
+    await act(async () => { button("Sign in with GitHub").click(); });
     await flush();
     expect(fixture.opened).toEqual(["https://github.com/login/oauth/authorize?x=1"]);
     expect(steps()).toEqual(["sign-in:done", "finish:current"]);
@@ -125,8 +125,8 @@ describe("a token app's guide", () => {
       return status({ notion: true }, accounts);
     });
     await mount("notion");
-    expect(card().querySelector("[data-needs-reconnect]")?.textContent).toBe("needs reconnecting");
-    await act(async () => { button("reconnect").click(); });
+    expect(card().querySelector("[data-needs-reconnect]")?.textContent).toBe("Needs reconnecting");
+    await act(async () => { button("Reconnect").click(); });
     await flush();
     expect(posted).toEqual([{ replaces: "a1a1a1a1a1a1a1a1" }]);
     expect(fixture.opened).toEqual(["https://api.notion.com/v1/oauth/authorize?x=1"]);

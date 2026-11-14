@@ -27,7 +27,7 @@ it("an ended Cloud: Buy again on the Cloud page, and Remove from list asked firs
   await mount(bridgeOf({ screen: "ended", name: "My Cloud", deleteAt: Date.now() + 2 * 86_400_000, removable: true }, remove), manage);
   expect(host.querySelector("[data-home-screen]")?.getAttribute("data-home-screen")).toBe("ended");
   expect(host.querySelector("[role='status'] span"), "no spinner for a Cloud that isn't running").toBeNull();
-  expect(host.querySelector("[data-home-action='buy']")?.textContent).toBe("buy again");
+  expect(host.querySelector("[data-home-action='buy']")?.textContent).toBe("Buy again");
   await click("[data-home-action='buy']");
   expect(manage).toHaveBeenCalledTimes(1);
   await click("[data-home-remove-ask]");
@@ -50,7 +50,7 @@ it("remove from list shows only where the Admin says so and the app can; a Cloud
   expect(host.querySelector("[role='status'] span"), "no spinner going on for ever").toBeNull();
   const retried = offline.retry.mock.calls.length;
   await click("[data-home-action='retry']");
-  expect(host.querySelector("[data-home-action='retry']")?.textContent).toBe("try again");
+  expect(host.querySelector("[data-home-action='retry']")?.textContent).toBe("Try again");
   expect(offline.retry.mock.calls.length).toBe(retried + 1);
 });
 

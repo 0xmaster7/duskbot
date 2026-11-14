@@ -114,15 +114,15 @@ describe("the row before its frame runs", () => {
     const markup = renderToStaticMarkup(view(row(htmlPayload())));
     expect(markup).toContain('data-app="a1"');
     expect(markup).toContain("Coffee counter");
-    expect(markup).toContain("page made by Pepper");
-    expect(markup).toContain('aria-label="about this app"');
-    expect(markup).toContain('aria-label="reload app"');
+    expect(markup).toContain("Page made by Pepper");
+    expect(markup).toContain('aria-label="About this app"');
+    expect(markup).toContain('aria-label="Reload app"');
     expect(markup).toContain("height:200px");
     expect(markup).not.toContain("<iframe");
   });
 
   it("names the server an MCP app came from", () => {
-    expect(renderToStaticMarkup(view(row(mcpPayload())))).toContain("app from Excalidraw");
+    expect(renderToStaticMarkup(view(row(mcpPayload())))).toContain("App from Excalidraw");
   });
 
   it("reads as its text when there is no payload", () => {
@@ -136,7 +136,7 @@ describe("the row before its frame runs", () => {
     expect(markup).toContain('data-app-state="unavailable"');
     expect(markup).toContain("This app is too large to store");
     expect(markup).toContain("Cups of coffee today");
-    expect(markup).not.toContain('aria-label="reload app"');
+    expect(markup).not.toContain('aria-label="Reload app"');
   });
 });
 
@@ -161,17 +161,17 @@ describe("a bot's page", () => {
     expect(find("[data-app-box]")!.className).not.toContain("border-t");
     expect(frame().getAttribute("sandbox")).toBe("allow-scripts allow-forms");
     expect(find("[data-app]")!.textContent).toContain("Coffee counter");
-    expect(button("reload app")).toBeTruthy();
+    expect(button("Reload app")).toBeTruthy();
   });
 
   it("lists what the frame may reach, its size, and what is always off", async () => {
     await mount(row(htmlPayload()));
-    await act(async () => button("about this app")!.click());
+    await act(async () => button("About this app")!.click());
     const info = find("[data-app-info]")!;
     expect(info.textContent).toContain("https://cdnjs.cloudflare.com, https://fonts.googleapis.com");
     expect(info.textContent).toContain("1.2 KB");
-    expect(info.textContent).toContain("camera, microphone, location, clipboard, pop-ups and downloads");
-    expect(button("about this app")!.getAttribute("aria-expanded")).toBe("true");
+    expect(info.textContent).toContain("Camera, microphone, location, clipboard, pop-ups and downloads");
+    expect(button("About this app")!.getAttribute("aria-expanded")).toBe("true");
   });
 
   it("sends dusk.send as the person's message from this app, only while they use it", async () => {
@@ -239,7 +239,7 @@ describe("a bot's page", () => {
     expect(find("[data-app]")!.getAttribute("data-app-state")).toBe("collapsed");
     expect(find("iframe")).toBeNull();
     expect(pool.live()).toEqual([]);
-    await act(async () => button("open again")!.click());
+    await act(async () => button("Open again")!.click());
     await settle();
     expect(find("[data-app]")!.getAttribute("data-app-state")).toBe("live");
   });
@@ -254,9 +254,9 @@ describe("a bot's page", () => {
   it("offers to reconnect when the server did not answer", async () => {
     fetchMock.mockImplementation(async () => { throw new TypeError("Failed to fetch"); });
     await mount(row(htmlPayload()));
-    expect(find("[data-app-strip]")!.textContent).toContain("reconnect to use this app");
+    expect(find("[data-app-strip]")!.textContent).toContain("Reconnect to use this app");
     fetchMock.mockImplementation(async (path) => /\/app(\?|$)/.test(path) ? json(200, htmlDoc()) : json(202, {}));
-    await act(async () => button("try again")!.click());
+    await act(async () => button("Try again")!.click());
     await settle();
     expect(find("[data-app]")!.getAttribute("data-app-state")).toBe("live");
     expect(find("[data-app-strip]")).toBeNull();
@@ -278,20 +278,20 @@ describe("an MCP app", () => {
     expect(posts("/rpc")).toHaveLength(1);
     expect(posts("/rpc")[0]).not.toHaveProperty("confirmed");
     expect(toView.find((message) => message.id === "t1")).toMatchObject({ error: { code: -32000 } });
-    expect(button("allow")).toBeFalsy();
+    expect(button("Allow")).toBeFalsy();
     expect(find("[data-app-strip]")).toBeNull();
   });
 
   it("says sign in again when its server signed the person out", async () => {
     fetchMock.mockImplementation(async (path) => /\/app(\?|$)/.test(path) ? json(200, mcpDoc())
-      : json(401, { error: { code: -32000, message: "sign in to Excalidraw again" }, signIn: { server: "excalidraw" } }));
+      : json(401, { error: { code: -32000, message: "Sign in to Excalidraw again" }, signIn: { server: "excalidraw" } }));
     await mount(row(mcpPayload()));
     await handshake();
     await fromView({ jsonrpc: "2.0", id: "r1", method: "tools/list", params: {} });
     await settle();
     expect(toView.find((message) => message.id === "r1")).toEqual({ jsonrpc: "2.0", id: "r1", error: { code: -32000, message: "Sign-in needed" } });
-    expect(find("[data-app-strip]")!.textContent).toContain("sign in to Excalidraw again");
-    await act(async () => button("sign in")!.click());
+    expect(find("[data-app-strip]")!.textContent).toContain("Sign in to Excalidraw again");
+    await act(async () => button("Sign in")!.click());
     expect(dispatch).toHaveBeenCalledWith({ type: "togglePlugins", open: true, surface: "mcp" });
   });
 

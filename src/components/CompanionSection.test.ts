@@ -54,7 +54,7 @@ describe("companion status refresh", () => {
       enabled: true,
       devices: [],
       error: "sidecar stopped responding",
-    })).toEqual({ label: "remote access needs attention", good: false });
+    })).toEqual({ label: "Remote access needs attention", good: false });
   });
 
   it("keeps account refreshes when the local Companion status fails", async () => {
@@ -197,8 +197,8 @@ describe("companion pairing availability", () => {
 describe("Tailscale pairing onboarding", () => {
   it("keeps HTTPS as the recommended default surface", () => {
     expect(pairingSurfaceCopy({ localFallback: false, tailscaleFallback: false })).toEqual({
-      title: "secure HTTPS pairing",
-      subtitle: "recommended. the simplest setup, and it keeps working when the paired device leaves this Wi-Fi.",
+      title: "Secure HTTPS pairing",
+      subtitle: "Recommended. The simplest setup, and it keeps working when the paired device leaves this Wi-Fi.",
     });
     expect(pairingSurfaceCopy({ localFallback: false, tailscaleFallback: true }).title).toBe(
       "Tailscale pairing",
@@ -221,7 +221,7 @@ describe("Tailscale pairing onboarding", () => {
       tailnetName: "mac.tail1234.ts.net",
     }, true)).toMatchObject({
       kind: "ready",
-      title: "ready on mac.tail1234.ts.net",
+      title: "Ready on mac.tail1234.ts.net",
     });
   });
 
@@ -231,7 +231,7 @@ describe("Tailscale pairing onboarding", () => {
       error: "the companion is not responding",
     }, false)).toEqual({
       kind: "error",
-      title: "remote access needs attention",
+      title: "Remote access needs attention",
       detail: "the companion is not responding",
     });
   });

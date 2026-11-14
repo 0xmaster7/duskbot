@@ -106,11 +106,11 @@ describe("voice set-up pop-up", () => {
     expect(html).toContain("rounded-[14px]");
     expect(html).not.toContain("glass-surface");
     expect(html).toMatch(/role="dialog" aria-modal="true"/);
-    expect(html).toContain("give Pepper a voice");
-    expect(html).toContain("choose a voice provider, add its key if it needs one, then pick a voice.");
+    expect(html).toContain("Give Pepper a voice");
+    expect(html).toContain("Choose a voice provider, add its key if it needs one, then pick a voice.");
     expect(html).toContain('data-voice-settings="pepper"');
-    expect(html).toContain('aria-label="close voice set-up"');
-    expect(html).toContain("all voice settings");
+    expect(html).toContain('aria-label="Close voice set-up"');
+    expect(html).toContain("All voice settings");
     expect(html).not.toContain("Voice is ready");
     expect(fixture.voiceSettings.at(-1)!.bot).toBe(pepper);
   });
@@ -157,7 +157,7 @@ describe("voice set-up pop-up", () => {
 
   it("closes from the close button and from a click on the scrim, not from inside", () => {
     const view = render();
-    click(byAttribute(view, "aria-label", "close voice set-up"));
+    click(byAttribute(view, "aria-label", "Close voice set-up"));
     expect(view.props.onClose).toHaveBeenCalledTimes(1);
     const frame = view.nodes.find((node) => String(node.props.className).split(" ").includes("glass-popup-frame"))!;
     const onMouseDown = frame.props.onMouseDown as (event: { target: unknown; currentTarget: unknown }) => void;
@@ -288,7 +288,7 @@ describe("voice set-up pop-up", () => {
   it("waits for the voice settings to load instead of showing an empty pop-up", () => {
     fixture.config = null;
     const { html } = render();
-    expect(html).toContain("loading voice settings…");
+    expect(html).toContain("Loading voice settings…");
     expect(html).not.toContain("data-voice-settings");
   });
 });

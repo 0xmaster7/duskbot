@@ -46,7 +46,7 @@ describe("BotModelBadge", () => {
   it("draws the engine mark, names only the model on hover and the engine too for screen readers", () => {
     const markup = renderToStaticMarkup(createElement(BotModelBadge, { bot: bot("claude", "opus"), instances: [claude], avatarSize: 44 }));
     expect(markup).toContain('data-testid="model-badge"');
-    expect(markup).toContain('aria-label="model: Opus 4.1 (Claude)"');
+    expect(markup).toContain('aria-label="Model: Opus 4.1 (Claude)"');
     expect(markup).toContain('title="Opus 4.1"');
     expect(markup).toContain("<svg");
   });

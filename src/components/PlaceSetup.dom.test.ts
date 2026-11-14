@@ -60,33 +60,33 @@ it("adding a server by one line shows the line, then each step live, then opens 
   await settle();
   expect(q("[data-place-setup=choose]")).toBeTruthy();
   await click(q("[data-place-add-choice=server]"));
-  expect(q("[data-setup-method=relay]")?.textContent).not.toContain("recommended");
-  expect(q("[data-setup-method=cloudflare]")?.textContent).toContain("recommended");
+  expect(q("[data-setup-method=relay]")?.textContent).not.toContain("Recommended");
+  expect(q("[data-setup-method=cloudflare]")?.textContent).toContain("Recommended");
   await click(q("[data-setup-method=relay]"));
   expect(link.bridge.start).toHaveBeenCalledTimes(1);
   expect(q("[data-setup-command]")?.className, "the whole line shows, wrapped").toContain("[overflow-wrap:anywhere]");
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("waiting");
   expect(q("[data-setup-command]")?.textContent).toContain("curl -fsSL");
-  expect(q("li[aria-current=step]")?.textContent).toBe("waiting for your server");
+  expect(q("li[aria-current=step]")?.textContent).toBe("Waiting for your server");
 
   await link.emit({ ...EMPTY_VIEW, stage: "installing", steps: VPS_STEP_IDS.map((id, index) => ({ id, status: index === 0 ? "running" : "waiting" })) });
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("found");
   await link.emit({ ...EMPTY_VIEW, stage: "installing", steps: VPS_STEP_IDS.map((id, index) => ({ id, status: index < 4 ? "done" : index === 4 ? "running" : "waiting" })) });
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("connecting");
-  expect(q("li[aria-current=step]")?.textContent).toContain("setting it up");
+  expect(q("li[aria-current=step]")?.textContent).toContain("Setting it up");
 
   await link.emit({ ...EMPTY_VIEW, stage: "installing", steps: VPS_STEP_IDS.map((id, index) => ({ id, status: index < 4 ? "done" : index === 4 ? "failed" : "waiting", ...(index === 4 ? { log: "Node didn't install." } : {}) })) });
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("failed");
   expect(q("[role=alert]")?.textContent).toContain("Node didn't install.");
-  await click(byText("try again"));
+  await click(byText("Try again"));
   expect(link.bridge.reset).toHaveBeenCalledTimes(1);
   expect(link.bridge.start).toHaveBeenCalledTimes(2);
 
   await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("done");
   expect(q("h2")?.textContent).toBe("my-vps is connected");
-  expect(q("li")?.textContent, "a finished first step reads as done, not as still waiting").toBe("your server checked in");
-  await click(byText("open my-vps"));
+  expect(q("li")?.textContent, "a finished first step reads as done, not as still waiting").toBe("Your server checked in");
+  await click(byText("Open my-vps"));
   expect(link.bridge.open).toHaveBeenCalledTimes(1);
   expect(onClose).toHaveBeenCalled();
 });
@@ -98,13 +98,13 @@ it("a step that failed keeps its line to paste again, with a new line as the sec
   await settle();
   await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000,
     steps: VPS_STEP_IDS.map((id, index) => ({ id, status: index < 2 ? "done" : index === 2 ? "failed" : "waiting", ...(index === 2 ? { log: "Couldn't install Node." } : {}) })) });
-  expect(q("h2")?.textContent).toBe("something got stuck");
+  expect(q("h2")?.textContent).toBe("Something got stuck");
   expect(q("h2 + p")?.textContent).toBe("Paste the same line again. It picks up where it stopped.");
   expect(q("[data-setup-command]")?.textContent).toContain("link.example/i/abc");
-  expect(byText("try again")).toBeUndefined();
+  expect(byText("Try again")).toBeUndefined();
   expect(q("[data-setup-new]")?.className).not.toContain("ui-button-primary");
   expect(q("li[aria-current]")).toBeNull();
-  expect(document.body.textContent).toContain("didn't finish");
+  expect(document.body.textContent).toContain("Didn't finish");
 });
 
 it("arriving with a server linked already makes a new line, so another server can be added", async () => {
@@ -116,7 +116,7 @@ it("arriving with a server linked already makes a new line, so another server ca
   await settle();
   expect(link.bridge.start).toHaveBeenCalledTimes(1);
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("waiting");
-  expect(q("h2")?.textContent).toBe("paste this on your server");
+  expect(q("h2")?.textContent).toBe("Paste this on your server");
 });
 
 it("once linked it goes on to signing in the AI and moving the bots", async () => {
@@ -126,7 +126,7 @@ it("once linked it goes on to signing in the AI and moving the bots", async () =
   await act(async () => { root.render(createElement(PlaceSetup, { onClose, start: "install" })); });
   await settle();
   await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
-  expect(q("[data-setup-next]")?.textContent).toBe("sign in to your AI");
+  expect(q("[data-setup-next]")?.textContent).toBe("Sign in to your AI");
   expect(q("[data-setup-next]")?.className).toContain("ui-button-primary");
   const { useAddVpsOpen } = await import("@/lib/vps-link");
   let shown = false;
@@ -144,10 +144,10 @@ it("a line out of time offers a new one", async () => {
   await settle();
   await link.emit({ ...EMPTY_VIEW, stage: "command", command: "curl x | sh", expiresAt: Date.now() - 1000 });
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("expired");
-  expect(q("h2")?.textContent).toBe("this line ran out of time");
-  expect(document.body.textContent).toContain("out of time");
-  expect(document.body.textContent).not.toContain("stopped");
-  await click(byText("new line"));
+  expect(q("h2")?.textContent).toBe("This line ran out of time");
+  expect(document.body.textContent).toContain("Out of time");
+  expect(document.body.textContent).not.toContain("Stopped");
+  await click(byText("New line"));
   expect(link.bridge.start).toHaveBeenCalledTimes(2);
   expect(link.bridge.reset).toHaveBeenCalledTimes(1);
 });
@@ -159,8 +159,8 @@ it("every way to connect is one row in order, Cloudflare first and recommended, 
     .toEqual(["cloudflare", "relay", "tailscale", "ssh", "address"]);
   const first = q("[data-setup-method]")!;
   expect(first.hasAttribute("data-autofocus")).toBe(true);
-  expect(first.textContent).toContain("recommended");
-  expect([...document.querySelectorAll("[data-setup-method]")].filter((row) => row.textContent?.includes("recommended"))).toHaveLength(1);
+  expect(first.textContent).toContain("Recommended");
+  expect([...document.querySelectorAll("[data-setup-method]")].filter((row) => row.textContent?.includes("Recommended"))).toHaveLength(1);
   expect(q("[data-setup-method] [data-place-art]")).toBeNull();
   for (const row of document.querySelectorAll("[data-setup-method]")) expect(row.querySelectorAll("span.block").length).toBe(1);
 });
@@ -182,8 +182,8 @@ it("each way is the same one line with the way on the end, three plain steps, an
   await link.emit({ ...EMPTY_VIEW, stage: "installing", command: "curl -fsSL https://link.example/i/abc | sh", expiresAt: Date.now() + 60_000,
     steps: VPS_STEP_IDS.map((id, index) => ({ id, status: index < 8 ? "done" : index === 8 ? "running" : "waiting" })),
     ask: { kind: "tailscale-login", url: "https://login.tailscale.com/a/abc123", state: "waiting" } });
-  expect(q("[data-setup-ask=tailscale-login]")?.textContent).toContain("sign in to Tailscale");
-  expect(q("[data-ask-status]")?.textContent).toBe("waiting for you…");
+  expect(q("[data-setup-ask=tailscale-login]")?.textContent).toContain("Sign in to Tailscale");
+  expect(q("[data-ask-status]")?.textContent).toBe("Waiting for you…");
   await click(q("[data-ask-open]"));
   expect(openExternal).toHaveBeenCalledWith("https://login.tailscale.com/a/abc123");
   await link.emit({ ...EMPTY_VIEW, stage: "linked", server: SERVER, mode: "direct", via: "tailscale", steps: VPS_STEP_IDS.map((id) => ({ id, status: "done" })) });
@@ -267,7 +267,7 @@ it("from the rail it offers a new organization and another account under the two
 it("a server signed in to the account but not connected here goes straight to its address", async () => {
   vi.stubGlobal("duskDesktop", { workspaces: { add: vi.fn() } });
   await act(async () => { root.render(createElement(PlaceSetup, { onClose: vi.fn(), connect: "studio" })); });
-  expect(q("h2")?.textContent).toBe("connect studio");
+  expect(q("h2")?.textContent).toBe("Connect studio");
   expect(q("[data-place-setup-way=address]")).toBeTruthy();
 });
 
@@ -301,16 +301,16 @@ it("this computer with no bots names the server they are on, switches there, or 
   const onClose = vi.fn();
   await act(async () => { root.render(createElement(MacEmptyMain, { from: { id: "vps-1", name: "my-vps", why: "moved" }, onClose })); });
   await settle();
-  expect(q("[role=dialog] h2")?.textContent).toBe("your bots are on my-vps");
+  expect(q("[role=dialog] h2")?.textContent).toBe("Your bots are on my-vps");
   expect(q("[role=dialog] [data-place-art=server]")).toBeTruthy();
-  expect(byText("new bot")).toBeUndefined();
-  expect(q("[data-mac-empty-open]")?.textContent).toBe("switch to my-vps");
+  expect(byText("New bot")).toBeUndefined();
+  expect(q("[data-mac-empty-open]")?.textContent).toBe("Switch to my-vps");
   await click(q("[data-mac-empty-open]"));
   expect(open).toHaveBeenCalledWith("vps-1");
-  expect(q("[data-mac-empty-back]")?.textContent).toBe("bring them back here");
+  expect(q("[data-mac-empty-back]")?.textContent).toBe("Bring them back here");
   await click(q("[data-mac-empty-back]"));
-  expect(q("[role=alertdialog] h2")?.textContent).toBe("bring your bots back to this Mac?");
-  await click(byText("bring them back"));
+  expect(q("[role=alertdialog] h2")?.textContent).toBe("Bring your bots back to this Mac?");
+  await click(byText("Bring them back"));
   expect(link.bridge.moveBack).toHaveBeenCalledTimes(1);
   expect(q("[role=status]")?.textContent).toContain("Bringing your bots back");
   expect(onClose).not.toHaveBeenCalled();
@@ -366,7 +366,7 @@ it("before a line exists it says it is making one, with no step waiting yet", as
   await settle();
   expect(q("[data-install-phase]")?.getAttribute("data-install-phase")).toBe("starting");
   expect(q("li")).toBeNull();
-  expect(q("[role=status]")?.textContent).toBe("making your line…");
+  expect(q("[role=status]")?.textContent).toBe("Making your line…");
 });
 
 it("the welcome's own server opens on the recommended way's one line, with every other way one back away", async () => {
@@ -379,7 +379,7 @@ it("the welcome's own server opens on the recommended way's one line, with every
   await settle();
   expect(q("[data-place-setup]")?.getAttribute("data-place-setup")).toBe("way:cloudflare");
   expect(document.body.textContent).toContain("| sh -s -- --cloudflare");
-  await click(byText("back"));
+  await click(byText("Back"));
   expect(q("[data-place-setup]")?.getAttribute("data-place-setup")).toBe("server");
   expect(document.body.textContent).toContain("Tailscale");
   closePlaceSetup();

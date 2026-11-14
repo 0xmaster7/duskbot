@@ -322,7 +322,7 @@ describe("the chat header's pill", () => {
     }
     const untitled = pill({ bot: { ...withTasks, mainThreadId: "other", tasks: [{ ...withTasks.tasks![0]!, title: "New thread" }, withTasks.tasks![1]!] } });
     try {
-      expect(untitled.header.querySelector("[data-chathead-conversation]")!.textContent).toBe("new conversation");
+      expect(untitled.header.querySelector("[data-chathead-conversation]")!.textContent).toBe("New conversation");
     } finally {
       untitled.done();
     }
@@ -332,7 +332,7 @@ describe("the chat header's pill", () => {
     const quiet = pill({ bot: { ...withTasks, tasks: withTasks.tasks!.map((task) => ({ ...task, unread: false })) }, privacy: { kind: "private" } });
     try {
       expect(quiet.header.querySelector("[data-chathead-elsewhere]")).toBeNull();
-      expect(quiet.header.querySelector('[data-chathead-privacy="private"]')!.textContent).toBe("private · only you");
+      expect(quiet.header.querySelector('[data-chathead-privacy="private"]')!.textContent).toBe("Private · only you");
     } finally {
       quiet.done();
     }

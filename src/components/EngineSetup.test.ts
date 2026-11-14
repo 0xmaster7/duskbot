@@ -67,21 +67,21 @@ describe("managed engine setup errors", () => {
     expect(markup).toContain(reason);
     expect(markup).toContain('role="alert"');
     expect(markup).toContain("install official Antigravity");
-    expect(engineStatus(engine)).toBe("setup required");
+    expect(engineStatus(engine)).toBe("Setup required");
     expect(markup).not.toMatch(/CLI not found|Not installed/);
   });
 
   it("renders an initialization failure reported by the snapshot", () => {
     const engine = managed({ state: "unavailable", reason: "initialize timed out." });
     expect(render(engine)).toContain("initialize timed out.");
-    expect(engineStatus(engine)).toBe("setup required");
+    expect(engineStatus(engine)).toBe("Setup required");
   });
 
   it("preserves the installed engine's sign-in flow", () => {
     const engine = managed({ state: "available", authenticated: false, version: "1.1.1" });
     const markup = render(engine);
-    expect(engineStatus(engine)).toBe("sign-in required");
-    expect(markup).toContain("sign in with Google");
+    expect(engineStatus(engine)).toBe("Sign-in required");
+    expect(markup).toContain("Sign in with Google");
     expect(markup).not.toContain("install official Antigravity");
   });
 });
@@ -98,8 +98,8 @@ describe("engines set up with a key in Settings", () => {
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
     expect(markup).toContain("other (OpenAI-compatible) needs an API key");
-    expect(markup).toContain("open API keys");
-    expect(markup).not.toContain("open install in Terminal");
+    expect(markup).toContain("Open API keys");
+    expect(markup).not.toContain("Open install in Terminal");
     expect(markup).not.toContain("config.json");
   });
 
@@ -148,9 +148,9 @@ describe("install from Settings on the server", () => {
 
   it("offers one click on the server and keeps the terminal command behind a disclosure", () => {
     const markup = render(npmEngine({ state: "unavailable", reason: "`kimi` CLI not found" }));
-    expect(markup).toContain("install Kimi here");
+    expect(markup).toContain("Install Kimi here");
     expect(markup).toContain("as its own user");
-    expect(markup).toContain("prefer a terminal?");
+    expect(markup).toContain("Prefer a terminal?");
     expect(markup).toContain("npm install -g kimi-fixture");
     expect(markup).not.toContain("needs");
   });
@@ -160,10 +160,10 @@ describe("install from Settings on the server", () => {
     const reason = "`kimi` isn't installed yet: the probe timed out.";
     const engine = npmEngine({ state: "unavailable", reason });
     const quiet = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine, quiet: true })));
-    expect(quiet).toMatch(/<details data-engine-setup-reason="true" class="[^"]*text-ink-tertiary"><summary[^>]*>details<\/summary><p[^>]*>`kimi` isn&#x27;t installed yet/);
+    expect(quiet).toMatch(/<details data-engine-setup-reason="true" class="[^"]*text-ink-tertiary"><summary[^>]*>Details<\/summary><p[^>]*>`kimi` isn&#x27;t installed yet/);
     expect(quiet).not.toContain('role="alert"');
     expect(quiet).not.toContain("text-danger");
-    expect(quiet).toContain("install Kimi here");
+    expect(quiet).toContain("Install Kimi here");
     expect(render(engine)).toMatch(/role="alert" class="[^"]*text-danger">`kimi` isn&#x27;t installed yet/);
   });
 
@@ -177,7 +177,7 @@ describe("install from Settings on the server", () => {
 
   it("falls back to the terminal command when the server cannot install", () => {
     const markup = render(npmEngine({ state: "unavailable", reason: "`kimi` CLI not found" }, false));
-    expect(markup).not.toContain("install Kimi here");
+    expect(markup).not.toContain("Install Kimi here");
     expect(markup).toContain("npm install -g kimi-fixture");
   });
 
@@ -194,7 +194,7 @@ describe("install from Settings on the server", () => {
       },
     });
     const standalone = render(opencode({ standalone: { version: "1.19.4", downloadBytes: 79_667_571 } }));
-    expect(standalone).toContain("install OpenCode here");
+    expect(standalone).toContain("Install OpenCode here");
     expect(standalone).not.toContain("Requires Node.js");
     // No npm on the server, so no npm command to paste into a terminal.
     expect(standalone).not.toContain("npm install -g opencode-ai");
@@ -202,10 +202,10 @@ describe("install from Settings on the server", () => {
     expect(standalone).toContain("About 80 MB download");
     expect(render(opencode({ standalone: { version: "1.19.4", downloadBytes: 64_291_659 } }))).toContain("About 64 MB download");
     const withNpm = render(opencode({ standalone: { version: "1.19.4", downloadBytes: 79_667_571 }, package: "opencode-ai" }));
-    expect(withNpm).toContain("prefer a terminal?");
+    expect(withNpm).toContain("Prefer a terminal?");
     expect(withNpm).toContain("npm install -g opencode-ai");
     const neither = render(opencode());
-    expect(neither).not.toContain("install OpenCode here");
+    expect(neither).not.toContain("Install OpenCode here");
     expect(neither).toContain("Requires Node.js");
   });
 
@@ -226,8 +226,8 @@ describe("install from Settings on the server", () => {
     const markup = render(appCopy({ state: "available", authenticated: false, version: "1.19.4" }));
     expect(markup).toContain("OpenCode is installed");
     expect(markup).toContain("free models");
-    expect(markup).toContain("open API keys");
-    expect(markup).toContain("check again");
+    expect(markup).toContain("Open API keys");
+    expect(markup).toContain("Check again");
     for (const line of ["Terminal", "terminal", "one-line installer", "npm install", "Install and sign in on the computer", "sign in to OpenCode"]) {
       expect(markup).not.toContain(line);
     }
@@ -235,14 +235,14 @@ describe("install from Settings on the server", () => {
     vi.stubGlobal("window", { duskDesktop: { platform: "linux", remoteClient: { active: true } } });
     const remote = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: appCopy({ state: "available", authenticated: false, version: "1.19.4" }) })));
     expect(remote).toContain("on the computer running dusk bot");
-    expect(remote).not.toContain("open API keys");
+    expect(remote).not.toContain("Open API keys");
     // Missing or broken, the app's copy is installed again from here.
-    expect(render(appCopy({ state: "unavailable", reason: "`opencode` version check failed." }))).toContain("install OpenCode here");
+    expect(render(appCopy({ state: "unavailable", reason: "`opencode` version check failed." }))).toContain("Install OpenCode here");
   });
 
   it("never offers an install when only sign-in is missing", () => {
     const markup = render(npmEngine({ state: "available", authenticated: false, version: "1.0.0" }));
-    expect(markup).not.toContain("install Kimi here");
+    expect(markup).not.toContain("Install Kimi here");
     expect(markup).toContain("kimi login");
   });
 
@@ -250,10 +250,10 @@ describe("install from Settings on the server", () => {
     const update = { title: "Kimi update available", message: "Newer models need it.", command: "npm install -g kimi-fixture@latest" };
     vi.stubGlobal("window", { duskDesktop: { platform: "linux" } });
     const withServer = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineUpdateNotice, { update, instance: npmEngine({ state: "available", authenticated: true }) })));
-    expect(withServer).toContain("update Kimi here");
-    expect(withServer).toContain("prefer a terminal?");
+    expect(withServer).toContain("Update Kimi here");
+    expect(withServer).toContain("Prefer a terminal?");
     const without = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineUpdateNotice, { update, instance: npmEngine({ state: "available", authenticated: true }, false) })));
-    expect(without).not.toContain("update Kimi here");
+    expect(without).not.toContain("Update Kimi here");
     expect(without).toContain("npm install -g kimi-fixture@latest");
   });
 });
@@ -267,7 +267,7 @@ describe("server device-code sign-in", () => {
       authentication: { method: "browser-pkce" }, install: { signInCommand: "codex login" },
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
-    expect(markup).toContain("continue with ChatGPT");
+    expect(markup).toContain("Continue with ChatGPT");
     expect(markup).toContain("separate from dusk cloud and from paying with an API key");
     expect(markup).not.toContain("codex login");
     expect(markup).not.toContain("Device-code login");
@@ -282,7 +282,7 @@ describe("server device-code sign-in", () => {
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
     expect(markup).toContain("Hosted ChatGPT plan access requires approval.");
-    expect(markup).not.toContain("continue with ChatGPT");
+    expect(markup).not.toContain("Continue with ChatGPT");
     expect(markup).not.toContain("npm install");
     expect(markup).not.toContain("codex login");
   });
@@ -298,7 +298,7 @@ describe("server device-code sign-in", () => {
       install: { signInCommand: "codex login" },
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
-    expect(markup).toContain("connect ChatGPT");
+    expect(markup).toContain("Connect ChatGPT");
     expect(markup).toContain("no terminal or password sharing");
     expect(markup).not.toContain("codex login");
   });
@@ -311,7 +311,7 @@ describe("server device-code sign-in", () => {
       install: { command: { linux: "npm install -g @openai/codex" }, signInCommand: "codex login" },
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine, intent: "inject" })));
-    expect(markup).not.toContain("connect ChatGPT");
+    expect(markup).not.toContain("Connect ChatGPT");
     expect(markup).toContain("npm install");
   });
 });
@@ -331,7 +331,7 @@ describe("API-key engine setup", () => {
     expect(html).toContain("Grok (API) needs an API key");
     expect(html).toContain("Paste it here. It saves and checks itself");
     expect(html).toContain('data-key-row="xai"');
-    expect(html).not.toContain("open API keys");
+    expect(html).not.toContain("Open API keys");
     expect(html).not.toContain("config.json");
   });
 
@@ -344,14 +344,14 @@ describe("API-key engine setup", () => {
 
   it("still sends an engine with no key row of its own to Settings → API keys", () => {
     const html = render(keyEngine("openai-compat", { state: "unavailable" }));
-    expect(html).toContain("open API keys");
+    expect(html).toContain("Open API keys");
     expect(html).not.toContain("data-key-row");
   });
 
   it("has no button on a remote client, whose settings hide the keys", () => {
     const html = render(keyEngine("openai-compat", { state: "unavailable" }), { platform: "darwin", remoteClient: { active: true } });
     expect(html).toContain("on the computer running dusk bot");
-    expect(html).not.toContain("open API keys");
+    expect(html).not.toContain("Open API keys");
   });
 
   it("leaves CLI engines on their install card", () => {

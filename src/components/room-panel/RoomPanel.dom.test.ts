@@ -179,7 +179,7 @@ describe("the tabs", () => {
     expect(fixture.find).toHaveBeenCalledWith("desk-thread");
     click($('[data-panel-row="delete"]'));
     expect(fixture.dispatch.mock.calls.some(([action]) => action.type === "deleteGroup")).toBe(false);
-    const confirm = [...document.querySelectorAll("button")].find((button) => button.textContent === "delete group chat" && !button.hasAttribute("data-panel-row"));
+    const confirm = [...document.querySelectorAll("button")].find((button) => button.textContent === "Delete group chat" && !button.hasAttribute("data-panel-row"));
     click(confirm ?? null);
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "deleteGroup", groupId: "desk" });
   });
@@ -416,7 +416,7 @@ describe("members", () => {
     render(room());
     click($('[data-panel-row="members"]'));
     const dialog = $('[role="dialog"][data-panel-modal="members"]');
-    expect(dialog?.querySelector("h2")?.textContent).toBe("manage members");
+    expect(dialog?.querySelector("h2")?.textContent).toBe("Manage members");
     expect(dialog?.textContent).toContain("Desk HQ");
   });
 });

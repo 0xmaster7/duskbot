@@ -62,7 +62,7 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("bot-first sidebar", () => {
-  it.each([false])("uses the selected mode for bot and room tool previews (advanced: %s)", (advanced) => {
+  it.each([false])("uses the selected mode for bot and room tool previews (Advanced: %s)", (advanced) => {
     fixture.advanced = advanced;
     const messages: Bot["messages"] = [{ id: "step", role: "bot", kind: "activity", at: 1, tool: { name: "mcp__dusk__computer_batch", ok: true } }];
     const candidate = { ...bot, messages, tasks: [], projects: [] };
@@ -131,10 +131,10 @@ describe("bot-first sidebar", () => {
     function Capture() { tree = botRow(rowProps("comfortable", candidate)); return tree; }
     const markup = renderToStaticMarkup(createElement(Capture));
     const line = markup.slice(markup.indexOf(">Done.<"));
-    expect(line).toMatch(/^>Done\.<\/span><\/span><\/div><span class="sr-only">unread<\/span>/);
+    expect(line).toMatch(/^>Done\.<\/span><\/span><\/div><span class="sr-only">Unread<\/span>/);
     const name = markup.slice(markup.indexOf('class="flex items-baseline justify-between gap-2 pr-7"'), markup.indexOf(">Done.<"));
-    expect(name).toMatch(/<span aria-hidden="true" data-row-dot="" class="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-\[120ms\] group-has-\[:focus-visible\]:opacity-0 touch:opacity-0 max-md:hidden"><span data-testid="unread-dot" title="unread activity" class="size-2 shrink-0 rounded-full animate-\[dusk-fade-in_130ms_cubic-bezier\(\.22,1,\.36,1\)\] bg-\[var\(--color-unread,var\(--color-accent\)\)\]"><\/span><\/span>/);
-    expect(name).toContain('<span aria-hidden="true" title="unread activity" class="size-2 shrink-0 rounded-full animate-[dusk-fade-in_130ms_cubic-bezier(.22,1,.36,1)] bg-[var(--color-unread,var(--color-accent))] hidden self-center max-md:block touch:block"></span>');
+    expect(name).toMatch(/<span aria-hidden="true" data-row-dot="" class="pointer-events-none absolute inset-y-0 right-2 flex items-center transition-opacity duration-\[120ms\] group-has-\[:focus-visible\]:opacity-0 touch:opacity-0 max-md:hidden"><span data-testid="unread-dot" title="Unread activity" class="size-2 shrink-0 rounded-full animate-\[dusk-fade-in_130ms_cubic-bezier\(\.22,1,\.36,1\)\] bg-\[var\(--color-unread,var\(--color-accent\)\)\]"><\/span><\/span>/);
+    expect(name).toContain('<span aria-hidden="true" title="Unread activity" class="size-2 shrink-0 rounded-full animate-[dusk-fade-in_130ms_cubic-bezier(.22,1,.36,1)] bg-[var(--color-unread,var(--color-accent))] hidden self-center max-md:block touch:block"></span>');
     expect(markup).not.toContain("data-provider-mark=");
     expect(String(findElement(tree, "data-sidebar-bot-row", bot.id)!.props.className)).not.toContain("group-hover:pr-9");
     expect(markup).not.toContain("group-hover:pr-7");
@@ -151,10 +151,10 @@ describe("bot-first sidebar", () => {
   it("shows a waiting Simple row as grok's amber dot and preview, and a working one with no dot at all, with no badge or live region", () => {
     const quiet = { ...bot, tasks: [], projects: [], unread: false, messages: [] };
     const waiting = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, activity: "waiting-on-you" })));
-    expect(waiting).toContain('data-testid="waiting-dot" title="waiting for you…" class="size-2 shrink-0 rounded-full bg-[#da830e]"');
+    expect(waiting).toContain('data-testid="waiting-dot" title="Waiting for you…" class="size-2 shrink-0 rounded-full bg-[#da830e]"');
     expect(waiting).toContain("text-[#aa6300]");
     const asked = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...quiet, activity: "waiting-on-you", messages: [{ id: "q", role: "bot", kind: "text", text: "send the reply to vitaliu?", at: 1 }] } as Bot)));
-    expect(asked).toContain(">waiting for you: send the reply to vitaliu?</span>");
+    expect(asked).toContain(">Waiting for you: send the reply to vitaliu?</span>");
     expect(waiting).not.toContain(">!<");
     expect(waiting).not.toContain("font-semibold text-warning");
     expect(waiting).not.toContain('role="status"');
@@ -165,7 +165,7 @@ describe("bot-first sidebar", () => {
     expect(working).toContain("[--row:var(--color-panel)]");
   });
 
-  it.each([false])("says the step a working bot is on in place of its last message, and its last message again once done (advanced: %s)", (advanced) => {
+  it.each([false])("says the step a working bot is on in place of its last message, and its last message again once done (Advanced: %s)", (advanced) => {
     fixture.advanced = advanced;
     resetTurnLive();
     const said: Bot["messages"] = [{ id: "hi", role: "bot", kind: "text", at: 1, text: "Here are the leads from Monday." }];
@@ -183,7 +183,7 @@ describe("bot-first sidebar", () => {
       resetTurnLive();
       return;
     }
-    expect(working).toContain('<span dir="auto" data-sidebar-working-phrase="" class="truncate">running scrape.py</span>');
+    expect(working).toContain('<span dir="Auto" data-sidebar-working-phrase="" class="truncate">running scrape.py</span>');
     expect(working).not.toContain("Monday");
     const done = renderToStaticMarkup(createElement(BotListItem, rowProps("comfortable", { ...candidate, busy: false, tasks: [{ ...leads, busy: false, activity: "idle" }] })));
     expect(done).toContain("Here are the leads from Monday.");
@@ -220,7 +220,7 @@ describe("bot-first sidebar", () => {
     const name = markup.slice(markup.indexOf('class="flex items-baseline justify-between gap-2 pr-7"'));
     expect(name.indexOf('data-row-dot=""')).toBeLessThan(name.indexOf("</div>"));
     expect(markup.match(/data-testid="unread-dot"/g)).toHaveLength(1);
-    expect(markup).toContain('<span class="sr-only">unread</span>');
+    expect(markup).toContain('<span class="sr-only">Unread</span>');
   });
 
   it("draws no engine mark for a bot with no AI yet or in a group chat, and a faded one in Advanced mode", () => {
@@ -241,8 +241,8 @@ describe("bot-first sidebar", () => {
     expect(markup).not.toContain('data-testid="bot-role"');
     expect(markup).not.toContain('data-testid="model-badge"');
     expect(markup).not.toContain("data-provider-mark=");
-    expect(markup).toMatch(/data-testid="main-bot-star" class="absolute bottom-0 right-0 flex size-\[9\.6px\] [^"]*bg-\[#f59312\][^"]*ring-\[var\(--row\)\]"><svg[^>]*data-icon-name="star"[^>]*aria-label="main bot"/);
-    expect(markup).toContain('<span class="sr-only">main bot</span>');
+    expect(markup).toMatch(/data-testid="main-bot-star" class="absolute bottom-0 right-0 flex size-\[9\.6px\] [^"]*bg-\[#f59312\][^"]*ring-\[var\(--row\)\]"><svg[^>]*data-icon-name="star"[^>]*aria-label="Main bot"/);
+    expect(markup).toContain('<span class="sr-only">Main bot</span>');
     expect(markup).not.toContain('data-testid="chief-crown"');
     expect(markup).not.toContain("gi-pin");
     expect(markup).not.toMatch(/tabular-nums text-ink-secondary transition-opacity group-hover:opacity-0/);
@@ -321,8 +321,8 @@ describe("bot-first sidebar", () => {
     fixture.state = { ...fixture.state, bots: [{ ...bot, mainThreadId: "idle-history" }], selectedId: bot.id };
     renderToStaticMarkup(createElement(Capture));
     walk(tree);
-    for (const gone of ["new thread", "view threads", "set as main thread", "More", "edit profile", "Duplicate"]) expect(labels).not.toContain(gone);
-    expect(labels).toContain("copy conversation ID");
+    for (const gone of ["New thread", "View threads", "Set as main thread", "More", "Edit profile", "Duplicate"]) expect(labels).not.toContain(gone);
+    expect(labels).toContain("Copy conversation ID");
   });
   it("draws a room with several conversations as one row, with no thread list or new-thread button", () => {
     const group: Group = {
@@ -336,7 +336,7 @@ describe("bot-first sidebar", () => {
       expect(markup).toContain('data-sidebar-group-row="group"');
       expect(markup).toContain('aria-current="page"');
       expect(markup).not.toContain("data-sidebar-thread-row");
-      expect(markup).not.toContain("new thread");
+      expect(markup).not.toContain("New thread");
       expect(markup).not.toContain("Planning threads");
       expect(markup).not.toContain("Earlier planning");
     }

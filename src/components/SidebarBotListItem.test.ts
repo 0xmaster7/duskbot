@@ -141,7 +141,7 @@ describe("BotListItem", () => {
     const markup = renderRow(bot({ chiefOfStaff: true }));
 
     expect(markup).toContain('data-sidebar-bot-row="atlas"');
-    expect(markup).not.toContain('aria-label="archive Atlas"');
+    expect(markup).not.toContain('aria-label="Archive Atlas"');
   });
 
 
@@ -180,13 +180,13 @@ describe("BotListItem", () => {
 
     const markup = renderRow(bot());
     expect(markup).toContain('data-testid="live-call-badge"');
-    expect(markup).toContain('aria-label="on a live call"');
+    expect(markup).toContain('aria-label="On a live call"');
     expect(markup.indexOf('data-testid="live-call-badge"')).toBeGreaterThan(markup.indexOf(">Atlas<"));
     expect(renderRow(bot({ id: "other" }))).not.toContain('data-testid="live-call-badge"');
 
     const icons = renderRow(bot(), "icons");
     expect(icons).toContain('data-testid="live-call-badge"');
-    expect(icons).toContain('aria-label="Atlas · on a live call"');
+    expect(icons).toContain('aria-label="Atlas · On a live call"');
   });
 
   it("marks an idle bot waiting on a teammate with a quiet dot, never the work signals", () => {
@@ -194,7 +194,7 @@ describe("BotListItem", () => {
     expect(markup).toContain('data-testid="teammate-wait-dot"');
     expect(markup).not.toContain('data-testid="working-dot"');
     expect(markup).not.toContain("animate-status-pulse");
-    expect(markup).toContain("waiting on a teammate…");
+    expect(markup).toContain("Waiting on a teammate…");
   });
 
 });
@@ -235,9 +235,9 @@ describe("archive / delete confirmation", () => {
     }));
 
     expect(markup).toContain('role="alertdialog"');
-    expect(markup).toContain("delete Willow?");
-    expect(markup).toContain(">cancel</button>");
-    expect(markup).toContain(">delete</button>");
+    expect(markup).toContain("Delete Willow?");
+    expect(markup).toContain(">Cancel</button>");
+    expect(markup).toContain(">Delete</button>");
     expect(markup).toContain("bg-danger");
   });
 });
@@ -249,8 +249,8 @@ describe("bot deletion feedback", () => {
       onClick: vi.fn(),
     }));
 
-    expect(markup).toContain("deleting the bot and its desktop…");
-    expect(markup).toContain('title="deleting this bot and any desktop it owns"');
+    expect(markup).toContain("Deleting the bot and its desktop…");
+    expect(markup).toContain('title="Deleting this bot and any desktop it owns"');
     expect(markup).toContain('disabled=""');
     expect(markup).toContain('aria-busy="true"');
   });
@@ -261,7 +261,7 @@ describe("bot deletion feedback", () => {
       onClick: vi.fn(),
     }));
 
-    expect(markup).toContain(">delete</span></button>");
+    expect(markup).toContain(">Delete</span></button>");
     expect(markup).not.toContain('disabled=""');
   });
 });

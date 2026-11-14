@@ -40,7 +40,7 @@ it("sign in continues in the browser for its context, with one calm sheet: Open 
   await act(async () => { openSignIn(); });
   await settle();
   expect(cloudAccount.continueInBrowser).toHaveBeenCalledWith({ kind: "signin" });
-  expect(q("[data-continue-in-browser=signin]")?.textContent).toContain("continue in your browser");
+  expect(q("[data-continue-in-browser=signin]")?.textContent).toContain("Continue in your browser");
   await act(async () => { q("[data-continue-open]")!.click(); });
   expect(cloudAccount.reopen).toHaveBeenCalledTimes(1);
   await act(async () => { q("[data-continue-cancel]")!.click(); });

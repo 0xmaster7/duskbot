@@ -225,11 +225,11 @@ describe("the Simple composer in a bot chat", () => {
     render({ bot: { ...bot, tasks: [{ ...task, approvalMode: "full" }] } });
     const chip = container.querySelector("[data-approval-chip]")!;
     expect(chip.getAttribute("data-approval-chip")).toBe("full");
-    expect(chip.textContent).toBe("just do it");
+    expect(chip.textContent).toBe("Just do it");
     click(chip.closest("button"));
     const level = popover()!;
-    expect(level.textContent).toContain("ask me first");
-    expect(level.textContent).toContain("command allowlist");
+    expect(level.textContent).toContain("Ask me first");
+    expect(level.textContent).toContain("Command allowlist");
     expect(level.querySelector('[data-menu-key="approval:full"] .gi-check')).not.toBeNull();
     click(level.querySelector('[data-menu-key="approval:ask"]'));
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "updateTask", botId: "atlas", threadId: "atlas-thread", patch: { approvalMode: "ask" } });

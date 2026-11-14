@@ -36,13 +36,13 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("the move's words on the account", () => {
   it("needs the person once failing, goes quietly while on its way, and says nothing once done", () => {
-    expect(accountMoveWords("failed")).toBe("your move to dusk cloud needs you");
-    expect(accountMoveWords("sending")).toBe("moving to dusk cloud…");
+    expect(accountMoveWords("failed")).toBe("Your move to dusk cloud needs you");
+    expect(accountMoveWords("sending")).toBe("Moving to dusk cloud…");
     expect(accountMoveWords("done")).toBeNull();
     expect(accountMoveWords(null)).toBeNull();
     expect(accountMoveWords("failed", "Garage server")).toBe("Garage server move needs you");
-    expect(accountMoveWords("sending", "Garage server")).toBe("moving to Garage server…");
-    expect(markup(AccountMoveStatus({ kind: "sending", place: "Garage server" }))).toContain("moving to Garage server…");
+    expect(accountMoveWords("sending", "Garage server")).toBe("Moving to Garage server…");
+    expect(markup(AccountMoveStatus({ kind: "sending", place: "Garage server" }))).toContain("Moving to Garage server…");
   });
 
   it("is a button that opens the account menu by the account, and plain words inside a trigger", () => {
@@ -51,10 +51,10 @@ describe("the move's words on the account", () => {
     expect(markup(failed)).toContain('data-account-move="failed"');
     expect(markup(failed)).toContain("text-warning");
     expect(markup(failed)).toContain("<button");
-    expect(markup(AccountMoveStatus({ kind: "sending", onOpen: opened }))).toContain("moving to dusk cloud…");
+    expect(markup(AccountMoveStatus({ kind: "sending", onOpen: opened }))).toContain("Moving to dusk cloud…");
     expect(markup(AccountMoveStatus({ kind: "sending", onOpen: opened }))).not.toContain("text-warning");
     expect(markup(AccountMoveStatus({ kind: "failed" }))).not.toContain("<button");
-    expect(markup(AccountMoveStatus({ kind: "failed" }))).toContain("your move to dusk cloud needs you");
+    expect(markup(AccountMoveStatus({ kind: "failed" }))).toContain("Your move to dusk cloud needs you");
     expect(AccountMoveStatus({ kind: "done", onOpen: opened })).toBeNull();
     expect(AccountMoveStatus({ kind: null })).toBeNull();
   });
@@ -65,13 +65,13 @@ describe("the move's words on the account", () => {
     const html = markup(status);
     const tag = tryAgainTag(html);
     expect(html.match(/<button/g)).toHaveLength(2);
-    expect(tag).toContain('aria-label="try again to move to dusk cloud"');
+    expect(tag).toContain('aria-label="Try again to move to dusk cloud"');
     expect(tag).toContain('title="My Cloud did not answer."');
     expect(tag).not.toContain("aria-disabled");
-    expect(html).toMatch(/data-move-retry[^>]*>try again<\/button>/);
-    expect(html.indexOf("your move to dusk cloud needs you")).toBeLessThan(html.indexOf(">try again<"));
+    expect(html).toMatch(/data-move-retry[^>]*>Try again<\/button>/);
+    expect(html.indexOf("Your move to dusk cloud needs you")).toBeLessThan(html.indexOf(">Try again<"));
     // The words shorten before Try again does.
-    expect(html).toContain('<span class="truncate">your move to dusk cloud needs you</span>');
+    expect(html).toContain('<span class="truncate">Your move to dusk cloud needs you</span>');
     expect(tag).toMatch(/class="[^"]*\bshrink-0\b/);
     const row = (status.props as { children: ReturnType<typeof createElement>[] }).children[0]!;
     const tryAgain = (row.props as { children: ReturnType<typeof createElement>[] }).children[1]!;
@@ -83,7 +83,7 @@ describe("the move's words on the account", () => {
     const why = "Some of this computer's things didn't reach My Cloud yet. It tries again by itself.";
     const html = markup(AccountMoveStatus({ kind: "failed", onOpen: noop, retry: { onRetry: noop, retrying: false, why } }));
     expect(html).toMatch(new RegExp(`<p data-move-why[^>]*>${why.replaceAll(".", "\\.")}</p>`));
-    expect(html.indexOf(">try again<")).toBeLessThan(html.indexOf("data-move-why"));
+    expect(html.indexOf(">Try again<")).toBeLessThan(html.indexOf("data-move-why"));
     expect(markup(AccountMoveStatus({ kind: "sending", onOpen: noop, retry: { onRetry: noop, retrying: false, why } }))).not.toContain("data-move-why");
     expect(markup(AccountMoveStatus({ kind: "failed", onOpen: noop, retry: { onRetry: noop, retrying: false, why: "" } }))).not.toContain("data-move-why");
   });
@@ -93,14 +93,14 @@ describe("the move's words on the account", () => {
     const tag = tryAgainTag(html);
     expect(tag).toContain('aria-busy="true"');
     expect(tag).toContain('aria-disabled="true"');
-    expect(html).toMatch(/data-move-retry[^>]*>.*animate-spin.*try again<\/button>/);
+    expect(html).toMatch(/data-move-retry[^>]*>.*animate-spin.*Try again<\/button>/);
   });
 
   it("has no Try again on its way, inside a trigger, or when the move allows none", () => {
     const retry = { onRetry: noop, retrying: false, why: "" };
-    expect(markup(AccountMoveStatus({ kind: "sending", onOpen: noop, retry }))).not.toContain("try again");
-    expect(markup(AccountMoveStatus({ kind: "failed", retry }))).not.toContain("try again");
-    expect(markup(AccountMoveStatus({ kind: "failed", onOpen: noop }))).not.toContain("try again");
+    expect(markup(AccountMoveStatus({ kind: "sending", onOpen: noop, retry }))).not.toContain("Try again");
+    expect(markup(AccountMoveStatus({ kind: "failed", retry }))).not.toContain("Try again");
+    expect(markup(AccountMoveStatus({ kind: "failed", onOpen: noop }))).not.toContain("Try again");
   });
 });
 
@@ -112,7 +112,7 @@ describe("the move's row in the account menu", () => {
     const onOpen = vi.fn(), onRetry = vi.fn();
     const items = rows(line({ phase: "copy", failing: { error: "Some of this computer's things did not reach My Cloud." } }), { onOpen, onRetry });
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ key: "cloud-move", label: "try moving to dusk cloud again", title: "Something got in the way. Your bots are safe here.", disabled: false, keepOpen: true });
+    expect(items[0]).toMatchObject({ key: "cloud-move", label: "Try moving to dusk cloud again", title: "Something got in the way. Your bots are safe here.", disabled: false, keepOpen: true });
     expect(items[0]).toMatchObject({ note: "Something got in the way. Your bots are safe here.", wrap: true });
     expect(markup(items[0]!.icon)).not.toContain("animate-spin");
     items[0]!.onSelect();
@@ -124,15 +124,15 @@ describe("the move's row in the account menu", () => {
 
   it("to a server of the person's own: the same rows, named for it", () => {
     const place = "Garage server";
-    expect(rows(line({ phase: "copy", failing: { error: null }, place }))[0]).toMatchObject({ label: "try Garage server move again", title: "Your bots couldn't move to Garage server yet." });
-    expect(rows(line({ phase: "copy", place }))[0]).toMatchObject({ label: "moving to Garage server…", title: "moving your bots to Garage server…" });
+    expect(rows(line({ phase: "copy", failing: { error: null }, place }))[0]).toMatchObject({ label: "Try Garage server move again", title: "Your bots couldn't move to Garage server yet." });
+    expect(rows(line({ phase: "copy", place }))[0]).toMatchObject({ label: "Moving to Garage server…", title: "Moving your bots to Garage server…" });
   });
 
   it("failing: the same one row, disabled with a spinner, while Try again runs, and main's words when it did not answer", () => {
     const failing = line({ phase: "wait", failing: { error: "My Cloud did not answer." } });
     const busy = rows(failing, { retrying: true });
     expect(busy).toHaveLength(1);
-    expect(busy[0]).toMatchObject({ label: "try moving to dusk cloud again", disabled: true });
+    expect(busy[0]).toMatchObject({ label: "Try moving to dusk cloud again", disabled: true });
     expect(markup(busy[0]!.icon)).toContain("animate-spin");
     expect(rows(failing, { unanswered: "dusk bot on this computer did not answer." })[0]!.title).toBe("dusk bot on this computer did not answer.");
     // Main gave no words of its own: the friendly line stays.
@@ -143,7 +143,7 @@ describe("the move's row in the account menu", () => {
     const onOpen = vi.fn(), onRetry = vi.fn();
     const items = rows({ kind: "failed", text: "Something got in the way. Your bots are safe here.", extra: [], reason: "My Cloud is full." }, { onOpen, onRetry });
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ key: "cloud-move", label: "your move to dusk cloud needs you", title: "My Cloud is full." });
+    expect(items[0]).toMatchObject({ key: "cloud-move", label: "Your move to dusk cloud needs you", title: "My Cloud is full." });
     items[0]!.onSelect();
     expect(onOpen).toHaveBeenCalledOnce();
     expect(onRetry).not.toHaveBeenCalled();
@@ -153,10 +153,10 @@ describe("the move's row in the account menu", () => {
     const onOpen = vi.fn();
     const items = rows(line({ phase: "copy", chats: { done: 34, total: 120 } }), { onOpen });
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ key: "cloud-move", label: "moving to dusk cloud…", title: "moving your bots to dusk cloud…" });
+    expect(items[0]).toMatchObject({ key: "cloud-move", label: "Moving to dusk cloud…", title: "Moving your bots to dusk cloud…" });
     expect(items[0]).not.toHaveProperty("wrap");
     expect(markup(items[0]!.icon)).toContain("animate-spin");
-    expect(rows(line({ phase: "finishing" }))[0]).toMatchObject({ label: "moving to dusk cloud…", title: "moving your bots to dusk cloud… almost there" });
+    expect(rows(line({ phase: "finishing" }))[0]).toMatchObject({ label: "Moving to dusk cloud…", title: "Moving your bots to dusk cloud… almost there" });
     items[0]!.onSelect();
     expect(onOpen).toHaveBeenCalledOnce();
   });
@@ -167,8 +167,8 @@ describe("the move's row in the account menu", () => {
     const items = rows(done, { onPairPhone, onClose });
     expect(items.map((item) => item.key)).toEqual(["cloud-move", "cloud-move-phone", "cloud-move-close"]);
     expect(items[0]!.label).toBe("Everything from this computer is here: 4 bots, 2 skills, 2 logins, 1Password, 148 chats, and 2 routines.");
-    expect(items[1]!.label).toBe("pair your phone with my cloud");
-    expect(items[2]!.label).toBe("got it");
+    expect(items[1]!.label).toBe("Pair your phone with my cloud");
+    expect(items[2]!.label).toBe("Got it");
     items[1]!.onSelect();
     items[2]!.onSelect();
     expect(onPairPhone).toHaveBeenCalledOnce();
@@ -197,10 +197,10 @@ describe("useAccountMove", () => {
   it("on its way on either page, with nothing to press", async () => {
     const bringing = await shown({ ...notice, move: { phase: "copy", chats: { done: 34, total: 120 } } }, true);
     expect(bringing.kind).toBe("sending");
-    expect(bringing.items.map((item) => [item.label, item.title])).toEqual([["moving to dusk cloud…", "your bots are on their way here…"]]);
+    expect(bringing.items.map((item) => [item.label, item.title])).toEqual([["Moving to dusk cloud…", "Your bots are on their way here…"]]);
     f.values = [];
     const waiting = await shown({ ...notice, move: { phase: "wait", waitingFor: "Scout" } });
-    expect(waiting.items.map((item) => item.title)).toEqual(["moving your bots to dusk cloud…"]);
+    expect(waiting.items.map((item) => item.title)).toEqual(["Moving your bots to dusk cloud…"]);
     expect(lineHook().retry).toBeNull();
   });
 
@@ -213,7 +213,7 @@ describe("useAccountMove", () => {
     expect(page.moveRetry).toHaveBeenCalledTimes(1);
     expect(hook().items[0]).toMatchObject({ key: "cloud-move", disabled: true });
     answer({ ...notice, move: { phase: "finishing" } }); await flush();
-    expect(hook()).toMatchObject({ kind: "sending", items: [{ label: "moving to dusk cloud…" }] });
+    expect(hook()).toMatchObject({ kind: "sending", items: [{ label: "Moving to dusk cloud…" }] });
   });
 
   it("says main's words in the tooltip when Try again goes unanswered", async () => {

@@ -129,7 +129,7 @@ describe("the Simple model menu", () => {
     expect(built.current).toMatchObject({ label: "qwen3 (Ollama)", warning: false });
     expect(body(built)).toMatchObject({ kind: "models", rows: [], signInForOwn: true });
     const onOfficial = menu([signedOut]);
-    expect(onOfficial.current).toMatchObject({ meta: "sign-in required", warning: true });
+    expect(onOfficial.current).toMatchObject({ meta: "Sign-in required", warning: true });
     expect(rows(onOfficial)).toEqual(["qwen3 (Ollama)"]);
   });
 
@@ -216,7 +216,7 @@ describe("the Simple model menu", () => {
   it("shows a model whose engine has not loaded as waiting, then as unavailable", () => {
     expect(menu([], { loading: true }).current).toMatchObject({ label: "sonnet-5", pending: true });
     expect(menu([], { loading: true }).empty).toBe("loading");
-    expect(menu([]).current).toMatchObject({ meta: "unavailable", warning: true, pending: false });
+    expect(menu([]).current).toMatchObject({ meta: "Unavailable", warning: true, pending: false });
     expect(menu([]).empty).toBe("none");
   });
 
@@ -257,7 +257,7 @@ describe("a model the organization turned off", () => {
   });
 
   it("says so on the current row, with nothing to set up", () => {
-    expect(menuOn("opus-5-5").current).toMatchObject({ warning: true, blocked: true, meta: "turned off by your organization" });
+    expect(menuOn("opus-5-5").current).toMatchObject({ warning: true, blocked: true, meta: "Turned off by your organization" });
     expect(menuOn("sonnet-5").current?.blocked).toBeUndefined();
   });
 });

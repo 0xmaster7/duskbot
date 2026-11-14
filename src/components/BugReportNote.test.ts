@@ -17,10 +17,10 @@ const person = (bugReport?: Message["bugReport"]): Message => ({ id: "m1", role:
 describe("a @devs report's status, under the message that sent it", () => {
   it("says it was received, then fixed, coming in an update, then here", () => {
     const shown = (bugReport: Message["bugReport"]) => text(renderToStaticMarkup(createElement(UserLineNote, { message: person(bugReport) })));
-    expect(shown({ id: "r1", status: "received" })).toBe("bug report sent · got it, we're looking");
-    expect(shown({ id: "r1", status: "fixed" })).toBe("bug report · fixed, coming in an update");
-    expect(shown({ id: "r1", status: "fixed", fixedIn: "0.1.135" })).toBe("bug report · fixed in 0.1.135, coming in your next update");
-    expect(shown({ id: "r1", status: "fixed", fixedIn: "0.1.135", running: true })).toBe("bug report · fixed in 0.1.135");
+    expect(shown({ id: "r1", status: "received" })).toBe("Bug report sent · got it, we're looking");
+    expect(shown({ id: "r1", status: "fixed" })).toBe("Bug report · fixed, coming in an update");
+    expect(shown({ id: "r1", status: "fixed", fixedIn: "0.1.135" })).toBe("Bug report · fixed in 0.1.135, coming in your next update");
+    expect(shown({ id: "r1", status: "fixed", fixedIn: "0.1.135", running: true })).toBe("Bug report · fixed in 0.1.135");
     // A message that sent no report shows nothing.
     expect(renderToStaticMarkup(createElement(UserLineNote, { message: person() }))).toBe("");
   });

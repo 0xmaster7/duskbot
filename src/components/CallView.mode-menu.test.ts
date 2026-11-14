@@ -188,9 +188,9 @@ describe("the call mode menu", () => {
     expect(markup).toContain('aria-label="Call mode"');
     const items = markup.split('role="menuitemradio"').slice(1);
     expect(items).toHaveLength(2);
-    expect(items[0]).toContain(">take turns<");
+    expect(items[0]).toContain(">Take turns<");
     expect(items[0]).toMatch(/^ aria-checked="false"/);
-    expect(items[1]).toContain(">live<");
+    expect(items[1]).toContain(">Live<");
     expect(items[1]).toMatch(/^ aria-checked="true"/);
   });
 
@@ -211,7 +211,7 @@ describe("the call mode menu", () => {
     const [turns, live] = markup.split('role="menuitemradio"').slice(1);
     expect(turns).toMatch(/^ aria-checked="false" aria-disabled="true"/);
     expect(turns).not.toContain('disabled=""');
-    expect(turns).toContain(">take turns<");
+    expect(turns).toContain(">Take turns<");
     expect(turns).toContain("calls where you take turns need the desktop app. they listen from this computer, so they need dusk bot on a Mac, Windows or Linux computer.");
     expect(turns).not.toContain("Listening stays on this computer");
     expect(live).toMatch(/^ aria-checked="true"/);

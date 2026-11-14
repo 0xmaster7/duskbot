@@ -341,9 +341,9 @@ describe("VPS computer preparation", () => {
     expect(reports.at(-1)?.detail ?? null).toBeNull();
     const frame = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
     expect(frame?.textContent).toContain("Update ready");
-    expect(document.querySelector("[data-panel-problem]")?.textContent).toBe("update");
+    expect(document.querySelector("[data-panel-problem]")?.textContent).toBe("Update");
     const fix = document.querySelector<HTMLButtonElement>('[data-panel-action="fix"]');
-    expect(fix?.textContent).toBe("update");
+    expect(fix?.textContent).toBe("Update");
     flushSync(() => fix!.click());
     await settle();
     expect(fixture.posts).toEqual(["/api/bots/scout/computer/remove", "/api/bots/scout/computer/provision"]);
@@ -376,7 +376,7 @@ describe("VPS computer preparation", () => {
       await open(makeBot({ computer: "cloud" }), true);
       const settings = document.querySelector<HTMLButtonElement>("[data-panel-screen] button");
       expect(settings?.textContent).toContain("Update ready");
-      expect(document.querySelector('[data-panel-action="fix"]')?.textContent).toBe("open settings");
+      expect(document.querySelector('[data-panel-action="fix"]')?.textContent).toBe("Open settings");
       flushSync(() => settings!.click());
       await settle();
       expect(fixture.actions).toContainEqual({ type: "toggleAppSettings", open: true, section: "computer" });

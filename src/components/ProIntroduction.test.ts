@@ -51,27 +51,27 @@ const press = (label: string, Component = ProSettingsCard) => {
 it("for someone who may buy: what Cloud does, the Admin's lowest price and money-back; Start free trial and Compare plans both open the sheet, never the website", async () => {
   const html = await card(signedOut);
   for (const text of ["dusk cloud", "Keeps your bots and routines running, even when this computer is off.", "dusk cloud plans from $15/month + tax.",
-    "14-day money-back on every plan.", "dusk bot on this computer stays free for noncommercial use.", "compare plans", "start free trial", "sign in to your cloud plan"]) expect(html).toContain(text);
+    "14-day money-back on every plan.", "dusk bot on this computer stays free for noncommercial use.", "Compare plans", "Start free trial", "Sign in to your cloud plan"]) expect(html).toContain(text);
   for (const gone of [LEGACY.envPrefixes[0].slice(0, -1), "$89", "launch price", "New features first", "Get Pro", `${LEGACY.product} Pro`, `${LEGACY.product} Cloud`, "dusk bot Pro", "dusk bot Cloud"]) expect(html).not.toContain(gone);
-  press("start free trial");
+  press("Start free trial");
   expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_settings" });
   f.dispatch.mockClear();
-  press("compare plans"); await flush();
+  press("Compare plans"); await flush();
   expect(f.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "openCloudAdd", source: "app_settings" });
   expect(openExternal).not.toHaveBeenCalled();
-  press("sign in to your cloud plan");
+  press("Sign in to your cloud plan");
   expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_settings", signIn: true });
-  expect(html).toMatch(/class="ui-button ui-button-primary"[^>]*>start free trial</);
+  expect(html).toMatch(/class="ui-button ui-button-primary"[^>]*>Start free trial</);
 });
 
 it("without a trial it says Add a Cloud; signed in, no sign-in link; without the Admin's numbers, no price and no money-back", async () => {
   offer = { plans: PLANS.map(({ trialDays: _days, ...rest }) => rest), recommended: "pro" };
   const html = await card(plan());
-  expect(html).toContain(">add a cloud<"); expect(html).not.toContain("start free trial");
+  expect(html).toContain(">Add a cloud<"); expect(html).not.toContain("Start free trial");
   expect(html).not.toContain("sign in to your cloud plan"); expect(html).not.toContain("money-back");
   offer = null;
   const unknown = await card(plan());
-  expect(unknown).toContain(">add a cloud<"); expect(unknown).not.toContain("plans from");
+  expect(unknown).toContain(">Add a cloud<"); expect(unknown).not.toContain("plans from");
 });
 
 it("someone with a plan sees that plan and the way to it, never an offer, and Cloud is never asked", async () => {
@@ -84,7 +84,7 @@ it("someone with a plan sees that plan and the way to it, never an offer, and Cl
   ] as const) {
     const html = await card(state as CloudAccountState);
     expect(html).toContain(text); expect(html).toContain("dusk cloud settings");
-    expect(html).not.toContain("start free trial"); expect(html).not.toContain("$15");
+    expect(html).not.toContain("Start free trial"); expect(html).not.toContain("$15");
   }
   expect(bridge.offer).not.toHaveBeenCalled();
   for (const state of [{ status: "unavailable" }, { status: "connecting" }, { status: "signed-out", message: "restoring" }] as CloudAccountState[]) expect(await card(state)).toBe("");

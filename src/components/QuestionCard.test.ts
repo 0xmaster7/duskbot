@@ -156,7 +156,7 @@ describe("QuestionCard", () => {
 
   it("says where an inbox's copy was asked, as a link back there, in its own header", () => {
     const copy = render(asked({}, { inbox: { kind: "ask", from: { name: "Ledger", botId: "ledger" }, origin: { botId: "ledger", threadId: "work", title: "Pricing page: fix" } } }));
-    expect(copy).toMatch(/<button[^>]*aria-label="open Pricing page: fix"[^>]*>· in Pricing page: fix<\/button>/);
+    expect(copy).toMatch(/<button[^>]*aria-label="Open Pricing page: fix"[^>]*>· in Pricing page: fix<\/button>/);
   });
 });
 

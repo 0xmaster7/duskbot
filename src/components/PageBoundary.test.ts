@@ -23,10 +23,10 @@ describe("PageBoundary", () => {
     const root = createRoot(host);
     flushSync(() => root.render(createElement(PageBoundary, null, createElement(Broken))));
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(host.textContent).toContain("this page hit an error.");
+    expect(host.textContent).toContain("This page hit an error.");
     expect(host.textContent).toContain("Reload to carry on where you were.");
     expect(host.textContent).not.toContain("desktop.shown is not a function");
-    expect(host.querySelector("button")?.textContent).toBe("reload");
+    expect(host.querySelector("button")?.textContent).toBe("Reload");
     root.unmount();
     host.remove();
   });
@@ -45,7 +45,7 @@ describe("PageBoundary", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(host.textContent).toContain("The app updated. Reload to continue.");
     expect(host.textContent).not.toMatch(/hpke|https?:\/\/|\.js/);
-    expect(host.querySelector("button")?.textContent).toBe("reload");
+    expect(host.querySelector("button")?.textContent).toBe("Reload");
     root.unmount();
     host.remove();
     sessionStorage.clear();

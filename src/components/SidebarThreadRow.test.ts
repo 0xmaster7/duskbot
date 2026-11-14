@@ -66,10 +66,10 @@ describe("sidebar thread visibility", () => {
       ownerId: "scout",
       current: false, onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), locale: "en",
     }));
-    expect(render()).toContain("next job · queued");
+    expect(render()).toContain("next job · Queued");
     expect(render(true)).toContain("next job · Working");
     expect(render(true)).not.toContain("· queued");
-    expect(render(true, "waiting-on-you")).toContain("next job · waiting");
+    expect(render(true, "waiting-on-you")).toContain("next job · Waiting");
     expect(render(true, "waiting-on-you")).not.toContain("· queued");
   });
 });
@@ -81,8 +81,8 @@ describe("threads waiting on a teammate", () => {
     }));
   it("shows the wait as a quiet label over the busy paint, never the work spinner", () => {
     const markup = render({ threadId: "dispatch", title: "Dispatch", waitingForTeammates: true, busy: true, activity: "working" });
-    expect(markup).toContain('title="Dispatch · waiting on teammate"');
-    expect(markup).toContain('aria-label="waiting on teammate"');
+    expect(markup).toContain('title="Dispatch · Waiting on teammate"');
+    expect(markup).toContain('aria-label="Waiting on teammate"');
     expect(markup).not.toContain("animate-spin");
   });
   it("keeps an older waiting thread visible past the six recent rows", () => {
@@ -103,23 +103,23 @@ describe("threads a bot opened", () => {
     task, ownerId: "scout", current: false, onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), locale: "en",
   }));
   it("says who opened the thread in plain words, and nothing for the person's own", () => {
-    expect(threadOpenerLabel({ openedBy })).toBe("opened by Scout");
+    expect(threadOpenerLabel({ openedBy })).toBe("Opened by Scout");
     expect(threadOpenerLabel({})).toBeNull();
     expect(threadOpenerLabel({ openedBy: { ...openedBy, name: "  " } })).toBeNull();
   });
   it("shows the opener quietly under the title without changing the row's name or status", () => {
     const markup = render({ threadId: "qa", title: "QA PR 245", openedBy, activity: "waiting-on-you" });
-    expect(markup).toContain("opened by Scout");
-    expect(markup).toContain('title="QA PR 245 · waiting"');
-    expect(markup.indexOf("QA PR 245")).toBeLessThan(markup.indexOf("opened by Scout"));
+    expect(markup).toContain("Opened by Scout");
+    expect(markup).toContain('title="QA PR 245 · Waiting"');
+    expect(markup.indexOf("QA PR 245")).toBeLessThan(markup.indexOf("Opened by Scout"));
     expect(render({ threadId: "own", title: "Quick question" })).not.toContain("opened by");
   });
   it("gives a bot-opened thread the same waiting and unread signals as any other", () => {
     const waiting = render({ threadId: "qa", title: "QA PR 245", openedBy, activity: "waiting-on-you", unread: true });
-    expect(waiting).toContain('title="QA PR 245 · waiting · unread"');
-    expect(waiting).toContain(">waiting</span>");
-    expect(waiting).toContain('aria-label="unread"');
-    expect(waiting).toContain("opened by Scout");
+    expect(waiting).toContain('title="QA PR 245 · Waiting · Unread"');
+    expect(waiting).toContain(">Waiting</span>");
+    expect(waiting).toContain('aria-label="Unread"');
+    expect(waiting).toContain("Opened by Scout");
     const rows = Array.from({ length: 9 }, (_, index) => ({ threadId: String(index), title: `Thread ${index}` }));
     const opened = [...rows, { threadId: "qa", title: "QA PR 245", openedBy, activity: "waiting-on-you" as const, busy: false }];
     expect(visibleSidebarThreads(opened, "0").map((task) => task.threadId)).toEqual(["0", "1", "2", "3", "4", "5", "qa"]);
@@ -141,8 +141,8 @@ describe("snoozed threads", () => {
   it("treats snoozedUntil: 0 as snoozed, presence, not truthiness, and says so in the byline", () => {
     const sentinel = [{ ...rows[0], snoozedUntil: 0 }, ...rows.slice(1)];
     expect(visibleSidebarThreads(sentinel, "8").map((task) => task.threadId)).toEqual(["1", "2", "3", "4", "5", "6", "8"]);
-    expect(threadByline({ snoozedUntil: 0 })).toBe("snoozed");
-    expect(threadByline({ archivedAt: 5, snoozedUntil: 0 })).toBe("archived");
+    expect(threadByline({ snoozedUntil: 0 })).toBe("Snoozed");
+    expect(threadByline({ archivedAt: 5, snoozedUntil: 0 })).toBe("Archived");
     expect(threadByline({})).toBeNull();
   });
   it("wakes a timed snooze once its moment passes, without waiting for a fresh snapshot", () => {
@@ -165,23 +165,23 @@ describe("threads a bot opened", () => {
     task, ownerId: "scout", current: false, onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), locale: "en",
   }));
   it("says who opened the thread in plain words, and nothing for the person's own", () => {
-    expect(threadOpenerLabel({ openedBy })).toBe("opened by Scout");
+    expect(threadOpenerLabel({ openedBy })).toBe("Opened by Scout");
     expect(threadOpenerLabel({})).toBeNull();
     expect(threadOpenerLabel({ openedBy: { ...openedBy, name: "  " } })).toBeNull();
   });
   it("shows the opener quietly under the title without changing the row's name or status", () => {
     const markup = render({ threadId: "qa", title: "QA PR 245", openedBy, activity: "waiting-on-you" });
-    expect(markup).toContain("opened by Scout");
-    expect(markup).toContain('title="QA PR 245 · waiting"');
-    expect(markup.indexOf("QA PR 245")).toBeLessThan(markup.indexOf("opened by Scout"));
+    expect(markup).toContain("Opened by Scout");
+    expect(markup).toContain('title="QA PR 245 · Waiting"');
+    expect(markup.indexOf("QA PR 245")).toBeLessThan(markup.indexOf("Opened by Scout"));
     expect(render({ threadId: "own", title: "Quick question" })).not.toContain("opened by");
   });
   it("gives a bot-opened thread the same waiting and unread signals as any other", () => {
     const waiting = render({ threadId: "qa", title: "QA PR 245", openedBy, activity: "waiting-on-you", unread: true });
-    expect(waiting).toContain('title="QA PR 245 · waiting · unread"');
-    expect(waiting).toContain(">waiting</span>");
-    expect(waiting).toContain('aria-label="unread"');
-    expect(waiting).toContain("opened by Scout");
+    expect(waiting).toContain('title="QA PR 245 · Waiting · Unread"');
+    expect(waiting).toContain(">Waiting</span>");
+    expect(waiting).toContain('aria-label="Unread"');
+    expect(waiting).toContain("Opened by Scout");
     const rows = Array.from({ length: 9 }, (_, index) => ({ threadId: String(index), title: `Thread ${index}` }));
     const opened = [...rows, { threadId: "qa", title: "QA PR 245", openedBy, activity: "waiting-on-you" as const, busy: false }];
     expect(visibleSidebarThreads(opened, "0").map((task) => task.threadId)).toEqual(["0", "1", "2", "3", "4", "5", "qa"]);
@@ -211,13 +211,13 @@ describe("threads a bot closed", () => {
     expect(visibleSidebarThreads(rows, "current").map((task) => task.threadId)).toEqual(["current", "unread", "busy"]);
   });
   it("says who closed it under the title, dims the row, and says Closed in the tooltip", () => {
-    expect(threadByline({ openedBy, closedBy: { ...closedBy, name: "Scout" } })).toBe("closed by Scout");
-    expect(threadByline({ openedBy })).toBe("opened by Parker");
+    expect(threadByline({ openedBy, closedBy: { ...closedBy, name: "Scout" } })).toBe("Closed by Scout");
+    expect(threadByline({ openedBy })).toBe("Opened by Parker");
     expect(threadByline({})).toBeNull();
     const markup = render({ threadId: "h", title: "Helper 1", openedBy, closedBy });
-    expect(markup).toContain("closed by Parker");
+    expect(markup).toContain("Closed by Parker");
     expect(markup).not.toContain("opened by");
-    expect(markup).toContain('title="Helper 1 · closed"');
+    expect(markup).toContain('title="Helper 1 · Closed"');
     expect(markup).toContain('text-ink-tertiary">Helper 1</span>');
     expect(render({ threadId: "h", title: "Helper 1", closedBy, busy: true })).toContain('title="Helper 1 · Working"');
     expect(render({ threadId: "h", title: "Helper 1", closedBy }, true)).not.toContain('text-ink-tertiary">Helper 1</span>');
@@ -244,12 +244,12 @@ describe("threadUpdatedLabel", () => {
   const label = (ageMs: number) => threadUpdatedLabel(now - ageMs, now);
 
   it("sharpens the newest work, then falls back to the absolute date past a week", () => {
-    expect(label(10_000)).toBe("just now");
-    expect(label(44_000)).toBe("just now");
+    expect(label(10_000)).toBe("Just now");
+    expect(label(44_000)).toBe("Just now");
     expect(label(5 * 60_000)).toBe("5 min ago");
     expect(label(59 * 60_000)).toBe("59 min ago");
     expect(label(3 * 3_600_000)).toBe("3 h ago");
-    expect(label(26 * 3_600_000)).toBe("yesterday");
+    expect(label(26 * 3_600_000)).toBe("Yesterday");
     expect(label(2 * 86_400_000)).toBe("2 d ago");
     expect(label(6 * 86_400_000)).toBe("6 d ago");
     expect(label(7 * 86_400_000)).toBe(formatUpdatedAt(now - 7 * 86_400_000));
@@ -277,7 +277,7 @@ describe("threadUpdatedLabel", () => {
   it("skips a missing stamp and clamps a future clock to just now", () => {
     expect(threadUpdatedLabel(0, now)).toBe("");
     expect(threadUpdatedLabel(Number.NaN, now)).toBe("");
-    expect(label(-30_000)).toBe("just now");
+    expect(label(-30_000)).toBe("Just now");
   });
 
   it("renders relative on the row while the tooltip and the ISO stamp stay absolute", () => {
@@ -302,8 +302,8 @@ describe("threadUpdatedLabel", () => {
 
   it("translates through the locale catalog", () => {
     setLocale("pt-br");
-    expect(threadUpdatedLabel(now - 5 * 60_000, now)).toBe("há 5 min");
-    expect(threadUpdatedLabel(now - 26 * 3_600_000, now)).toBe("ontem");
+    expect(threadUpdatedLabel(now - 5 * 60_000, now)).toBe("Há 5 min");
+    expect(threadUpdatedLabel(now - 26 * 3_600_000, now)).toBe("Ontem");
   });
 });
 
@@ -485,14 +485,14 @@ describe("archived threads", () => {
     expect(visibleSidebarThreads(rows, "1").map((task) => task.threadId)).toEqual(["0", "1"]);
   });
   it("says Archived under the title and dims the row, behind any live status", () => {
-    expect(threadByline({ archivedAt: 5 })).toBe("archived");
-    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 }, archivedAt: 5 })).toBe("archived");
-    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 } })).toBe("opened by Scout");
-    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 }, archivedAt: 5, closedBy: { botId: "pm", name: "Parker", at: 2 } })).toBe("closed by Parker");
+    expect(threadByline({ archivedAt: 5 })).toBe("Archived");
+    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 }, archivedAt: 5 })).toBe("Archived");
+    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 } })).toBe("Opened by Scout");
+    expect(threadByline({ openedBy: { botId: "scout", name: "Scout", at: 1 }, archivedAt: 5, closedBy: { botId: "pm", name: "Parker", at: 2 } })).toBe("Closed by Parker");
     const markup = render({ threadId: "1", title: "Put away", archivedAt: 5 });
-    expect(markup).toContain("archived");
+    expect(markup).toContain("Archived");
     expect(markup).toContain('text-ink-tertiary">Put away</span>');
-    expect(render({ threadId: "1", title: "Put away", archivedAt: 5, busy: true })).toContain('title="Put away · Working · archived"');
+    expect(render({ threadId: "1", title: "Put away", archivedAt: 5, busy: true })).toContain('title="Put away · Working · Archived"');
   });
   it("treats archivedAt: 0 as archived, because zero is a valid timestamp at the API boundary", () => {
     const rows = [
@@ -500,8 +500,8 @@ describe("archived threads", () => {
       { threadId: "1", title: "Put away", archivedAt: 0 },
     ];
     expect(visibleSidebarThreads(rows, "0").map((task) => task.threadId)).toEqual(["0"]);
-    expect(threadByline({ archivedAt: 0 })).toBe("archived");
-    expect(render({ threadId: "1", title: "Put away", archivedAt: 0 })).toContain("archived");
+    expect(threadByline({ archivedAt: 0 })).toBe("Archived");
+    expect(render({ threadId: "1", title: "Put away", archivedAt: 0 })).toContain("Archived");
   });
 });
 
@@ -562,15 +562,15 @@ describe("copy link", () => {
     ];
     for (const { task, ownerId, link } of rows) {
       const closed = renderRow(task, ownerId);
-      expect(buttonWithLabel(closed, "copy link")).toBeUndefined();
+      expect(buttonWithLabel(closed, "Copy link")).toBeUndefined();
       const more = moreMenuButton(closed);
       expect(more?.props).toBeDefined();
       const openMenu = more!.props!.onClick as (event: unknown) => void;
       openMenu({ currentTarget: { getBoundingClientRect: () => ({ left: 100, bottom: 200 }) } });
       const menu = renderRow(task, ownerId, false);
-      const copy = buttonWithLabel(menu, "copy link");
+      const copy = buttonWithLabel(menu, "Copy link");
       expect(copy).toBeDefined();
-      expect(textOf(copy)).toContain("copy link");
+      expect(textOf(copy)).toContain("Copy link");
       (copy!.props!.onClick as () => void)();
       expect(writeText).toHaveBeenCalledTimes(1);
       expect(writeText).toHaveBeenCalledWith(link);
@@ -590,11 +590,11 @@ describe("refresh permissions", () => {
     vi.stubGlobal("document", { body: { nodeType: 1 } });
     const task = { threadId: "t1", title: "Fix the login" };
     openMenu(renderRow(task, "scout"));
-    expect(buttonWithLabel(renderRow(task, "scout", false), "refresh permissions")).toBeUndefined();
+    expect(buttonWithLabel(renderRow(task, "scout", false), "Refresh permissions")).toBeUndefined();
 
     const onRefreshPermissions = vi.fn();
     openMenu(renderRow(task, "scout", true, { onRefreshPermissions }));
-    const offered = buttonWithLabel(renderRow(task, "scout", false, { onRefreshPermissions }), "refresh permissions");
+    const offered = buttonWithLabel(renderRow(task, "scout", false, { onRefreshPermissions }), "Refresh permissions");
     expect(offered?.props?.disabled).toBe(false);
     expect(offered?.props?.title).toBe("Apply this bot's current approval level and saved approvals to this thread. Other threads stay as they are.");
     (offered!.props!.onClick as () => void)();
@@ -602,7 +602,7 @@ describe("refresh permissions", () => {
 
     const working = { ...task, activity: "working" as const };
     openMenu(renderRow(working, "scout", true, { onRefreshPermissions }));
-    const busy = buttonWithLabel(renderRow(working, "scout", false, { onRefreshPermissions }), "refresh permissions");
+    const busy = buttonWithLabel(renderRow(working, "scout", false, { onRefreshPermissions }), "Refresh permissions");
     expect(busy?.props?.disabled).toBe(true);
     vi.unstubAllGlobals();
   });
@@ -619,12 +619,12 @@ describe("regenerate title", () => {
     const task = { threadId: "t1", title: "Fix the login" };
     openMenu(renderRow(task, "scout"));
     const plain = renderRow(task, "scout", false);
-    expect(buttonWithLabel(plain, "rename thread")).toBeDefined();
-    expect(buttonWithLabel(plain, "regenerate title")).toBeUndefined();
+    expect(buttonWithLabel(plain, "Rename thread")).toBeDefined();
+    expect(buttonWithLabel(plain, "Regenerate title")).toBeUndefined();
 
     const onRegenerateTitle = vi.fn();
     openMenu(renderRow(task, "scout", true, { onRegenerateTitle }));
-    const offered = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "regenerate title");
+    const offered = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "Regenerate title");
     expect(offered?.props?.disabled).toBe(false);
     vi.unstubAllGlobals();
   });
@@ -636,18 +636,18 @@ describe("regenerate title", () => {
     let settle: ((ok: boolean) => void) | undefined;
     const onRegenerateTitle = vi.fn((_task: unknown, onSettled: (ok: boolean) => void) => { settle = onSettled; });
     openMenu(renderRow(task, "scout", true, { onRegenerateTitle }));
-    const idle = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "regenerate title")!;
+    const idle = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "Regenerate title")!;
     (idle.props!.onClick as () => void)();
     expect(onRegenerateTitle).toHaveBeenCalledTimes(1);
 
-    const pending = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "regenerating…")!;
+    const pending = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "Regenerating…")!;
     expect(pending.props!.disabled).toBe(true);
     expect(pending.props!["aria-busy"]).toBe(true);
     (pending.props!.onClick as () => void)();
     expect(onRegenerateTitle).toHaveBeenCalledTimes(1);
 
     settle!(false);
-    const again = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "regenerate title")!;
+    const again = buttonWithLabel(renderRow(task, "scout", false, { onRegenerateTitle }), "Regenerate title")!;
     expect(again.props!.disabled).toBe(false);
     vi.unstubAllGlobals();
   });
@@ -662,18 +662,18 @@ describe("Thread link", () => {
     const closed = renderRow(task, "scout", true, { onLink });
     let chip: RowNode | undefined;
     walk(closed, (element) => { if (element.type === "a") chip = element; });
-    expect(chip?.props).toMatchObject({ href: task.link, target: "_blank", "aria-label": "open #42" });
+    expect(chip?.props).toMatchObject({ href: task.link, target: "_blank", "aria-label": "Open #42" });
     expect(textOf(chip)).toBe("#42");
     let other: RowNode | undefined;
     walk(renderRow({ ...task, link: "https://docs.example.com/plan" }, "scout", true, { onLink }), (element) => { if (element.type === "a") other = element; });
-    expect(textOf(other)).toBe("link");
-    expect(other?.props?.["aria-label"]).toBe("open https://docs.example.com/plan");
+    expect(textOf(other)).toBe("Link");
+    expect(other?.props?.["aria-label"]).toBe("Open https://docs.example.com/plan");
     (moreMenuButton(closed)!.props!.onClick as (event: unknown) => void)({ currentTarget: { getBoundingClientRect: () => ({ left: 100, bottom: 200 }) } });
-    (buttonWithLabel(renderRow(task, "scout", false, { onLink }), "remove link")!.props!.onClick as () => void)();
+    (buttonWithLabel(renderRow(task, "scout", false, { onLink }), "Remove link")!.props!.onClick as () => void)();
     expect(onLink).toHaveBeenCalledWith(task, null);
     const unlinked = { threadId: "t2", title: "No link" };
     (moreMenuButton(renderRow(unlinked, "scout", true, { onLink }))!.props!.onClick as (event: unknown) => void)({ currentTarget: { getBoundingClientRect: () => ({ left: 100, bottom: 200 }) } });
-    expect(buttonWithLabel(renderRow(unlinked, "scout", false, { onLink }), "remove link")).toBeUndefined();
+    expect(buttonWithLabel(renderRow(unlinked, "scout", false, { onLink }), "Remove link")).toBeUndefined();
     vi.unstubAllGlobals();
   });
 

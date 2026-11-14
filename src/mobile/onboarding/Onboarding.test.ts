@@ -54,21 +54,21 @@ const heading = () => host.querySelector("h1")?.textContent;
 it("log in opens the account sign-in straight away", async () => {
   await mount(onboarding());
   await press("[data-entry=signin]");
-  expect(heading()).toBe("log in to dusk bot");
+  expect(heading()).toBe("Log in to dusk bot");
   expect(host.querySelector("input[type=email]")).not.toBeNull();
 });
 
 it("enter a code opens the code field straight away, with no intro in between", async () => {
   await mount(onboarding());
   await press("[data-entry=code]");
-  expect(heading()).toBe("enter the code");
+  expect(heading()).toBe("Enter the code");
   expect(host.querySelector("input[autocomplete=one-time-code]")).not.toBeNull();
 });
 
 it("scan without a camera falls back to the code field", async () => {
   await mount(onboarding());
   await press("[data-entry=scan]");
-  expect(heading()).toBe("enter the code");
+  expect(heading()).toBe("Enter the code");
 });
 
 it("picks the first screen from what the phone already has", () => {
@@ -90,7 +90,7 @@ it("leads with pairing your own computer; logging in is the quiet way, for a dus
   expect(signIn?.dataset.entry).toBe("signin");
   expect(scan?.className).toContain("bg-ink ");
   expect(signIn?.className).not.toContain("bg-ink");
-  expect(entries().map((button) => button.textContent)).toEqual(["scan a QR code", "enter a code", "Have a dusk cloud? Log in"]);
+  expect(entries().map((button) => button.textContent)).toEqual(["Scan a QR code", "Enter a code", "Have a dusk cloud? Log in"]);
   expect(host.textContent).not.toContain("demo");
 });
 
@@ -106,7 +106,7 @@ it("a signed-in phone pairs with its only cloud by itself, never saying it is as
     return response({ error: "unreachable" }, 503);
   });
   await mount(onboarding({ onLinked }));
-  expect(heading()).toBe("pick a cloud");
+  expect(heading()).toBe("Pick a cloud");
   expect(host.textContent).not.toMatch(/asleep/i);
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
   expect(pairs).toBe(1);
@@ -117,8 +117,8 @@ it("a signed-in account with no cloud is pointed at linking a computer", async (
   secrets.set("dusk.account", JSON.stringify({ origin, token, expiresAt: Date.now() + 60_000, account, deviceId: "phone" }));
   fetcher.mockImplementation(async (input) => String(input).endsWith("/api/cloud/desktop/session") ? response({ ok: true, clouds: [] }) : response({}));
   await mount(onboarding());
-  expect(heading()).toBe("no cloud yet");
-  expect([...host.querySelectorAll("button")].map((button) => button.textContent)).toEqual(expect.arrayContaining(["scan a QR code", "enter a code"]));
+  expect(heading()).toBe("No cloud yet");
+  expect([...host.querySelectorAll("button")].map((button) => button.textContent)).toEqual(expect.arrayContaining(["Scan a QR code", "Enter a code"]));
 });
 
 it("the store apps never offer an account to a phone paired with its own computer", async () => {
@@ -139,7 +139,7 @@ it("after a QR or code link, offers the account sign-in once, quietly, and remem
   await act(async () => { vi.advanceTimersByTime(3000); });
   await act(async () => {});
   expect(host.querySelector("[data-sign-in-offer]")).not.toBeNull();
-  await act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent === "not now")!.click(); });
+  await act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent === "Not now")!.click(); });
   expect(host.querySelector("[data-sign-in-offer]")).toBeNull();
   expect(prefs.get(SIGN_IN_OFFER_KEY)).toBe("dismissed");
   await act(async () => root.unmount());
@@ -155,6 +155,6 @@ it("the sign-in offer opens the sign-in without leaving the app", async () => {
   await mount(createElement(SignInOffer));
   await act(async () => { vi.advanceTimersByTime(3000); });
   await act(async () => {});
-  await act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent === "log in")!.click(); });
-  expect(host.querySelector("[role=dialog] h1")?.textContent).toBe("log in to dusk bot");
+  await act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent === "Log in")!.click(); });
+  expect(host.querySelector("[role=dialog] h1")?.textContent).toBe("Log in to dusk bot");
 });

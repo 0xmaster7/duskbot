@@ -56,10 +56,10 @@ it("this computer, by default: plain, nothing chosen, in plain words with no pic
   expect([checked(), tint(), host.querySelector("[data-place-banner]")], "no colour, no tint, no picture: the sidebar as it always was").toEqual([[], null, null]);
   expect(host.querySelector("[data-place-picture]")?.getAttribute("data-place-picture")).toBe("none");
   const words = host.querySelector("[data-sidebar-look]")!.textContent!;
-  for (const said of ["sidebar color", "sidebar picture"]) expect(words).toContain(said);
+  for (const said of ["Sidebar color", "Sidebar picture"]) expect(words).toContain(said);
   expect(words, "no Cloud's words on this computer").not.toMatch(/This computer|place|workspace|Everyone here|admins/i);
-  expect(host.querySelector("[role='radiogroup']")?.getAttribute("aria-label")).toBe("sidebar color");
-  expect([swatch("slate").getAttribute("aria-label"), swatch("slate").disabled, button("use an image")?.disabled], "None, and both changeable here").toEqual(["none", false, false]);
+  expect(host.querySelector("[role='radiogroup']")?.getAttribute("aria-label")).toBe("Sidebar color");
+  expect([swatch("slate").getAttribute("aria-label"), swatch("slate").disabled, button("Use an image")?.disabled], "None, and both changeable here").toEqual(["None", false, false]);
 });
 
 it("this computer takes a colour and a picture, both shown at once; None and Remove make it plain again", async () => {
@@ -83,14 +83,14 @@ it("this computer takes a colour and a picture, both shown at once; None and Rem
   const kept = await page({ ...COMPUTER, color: "teal", swatch: "green" }, { own: true, banner: SET });
   expect(host.querySelector("[data-place-banner] img")?.getAttribute("src"), "the server's word on the picture: the sidebar shows it").toBe("/api/workspace/banner?v=v1");
   expect(host.querySelector("[data-place-tint]")?.hasAttribute("data-under-banner"), "the colour waits under it").toBe(true);
-  expect(host.querySelector("[data-place-picture] img")?.getAttribute("alt"), "and Settings shows it").toBe("current picture");
-  await click(button("remove")!);
+  expect(host.querySelector("[data-place-picture] img")?.getAttribute("alt"), "and Settings shows it").toBe("Current picture");
+  await click(button("Remove")!);
   expect(kept.pictures.remove, "remove asks this computer's server to forget it").toHaveBeenCalled();
 });
 
 it("a solo Cloud's owner changes both its colour (on the Admin) and its picture", async () => {
   const { workspaces } = await page(look({ name: "My Cloud", color: null, swatch: null }));
-  expect([swatch("rose").disabled, button("use an image")?.disabled]).toEqual([false, false]);
+  expect([swatch("rose").disabled, button("Use an image")?.disabled]).toEqual([false, false]);
   await click(swatch("rose"));
   expect(workspaces.color).toHaveBeenCalledWith("rose");
   expect(checked()).toEqual(["rose"]);
@@ -116,9 +116,9 @@ it("a team member sees the team's colour and picture and who may change them, an
   await click(swatch("rose"));
   expect(workspaces.color).not.toHaveBeenCalled();
   expect(tint(), "they still see it").toContain("var(--identity-teal)");
-  expect([button("change image")?.disabled, button("remove")?.disabled]).toEqual([true, true]);
+  expect([button("Change image")?.disabled, button("Remove")?.disabled]).toEqual([true, true]);
   expect(host.querySelector("[data-place-picture]")?.textContent).toContain("Only its admins can change its picture.");
-  await click(button("remove")!);
+  await click(button("Remove")!);
   expect(pictures.remove).not.toHaveBeenCalled();
   expect(host.querySelector("[data-place-banner] img"), "they see the picture").toBeTruthy();
 });
@@ -144,7 +144,7 @@ it("a browser or an older app: no colour and no tint, only the place's picture",
   expect(host.querySelector("[data-swatch]")).toBeNull();
   expect(host.querySelector("[data-place-tint]")).toBeNull();
   expect(host.querySelector("[data-place-picture]")).toBeTruthy();
-  expect(host.textContent).toContain("sidebar picture");
+  expect(host.textContent).toContain("Sidebar picture");
   await act(async () => root?.unmount());
   vi.resetModules();
   vi.doMock("@/state/store", () => ({ useStore: () => ({ state: { config: {} } }) }));

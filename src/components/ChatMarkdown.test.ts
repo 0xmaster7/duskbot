@@ -359,7 +359,7 @@ describe("repaired tables", () => {
         text, message: { threadId: "thread-1", messageId: "message-1" },
       }));
       expect(html).not.toContain("<table");
-      expect(html).toContain("loading ");
+      expect(html).toContain("Loading ");
       expect(preview.mock.calls[0][0].sourceOffset).toBe(text.indexOf("!["));
     } finally {
       preview.mockRestore();
@@ -954,7 +954,7 @@ describe("ChatMarkdown attachments", () => {
       text: "![Generated preview](/workspace/output.png)",
       message: { threadId: "thread-1", messageId: "message-1" },
     }));
-    expect(html).toContain("loading Generated preview");
+    expect(html).toContain("Loading Generated preview");
     expect(html).not.toContain("src=\"/workspace/output.png\"");
   });
 });
@@ -1113,7 +1113,7 @@ describe("mermaid diagrams", () => {
     const html = renderToStaticMarkup(createElement(ChatMarkdown, {
       text: "```mermaid\nflowchart LR\n  Ship-->Sea\n```",
     }));
-    expect(html).toContain('aria-label="copy diagram source"');
+    expect(html).toContain('aria-label="Copy diagram source"');
     expect(html).toContain("flowchart LR");
   });
 
@@ -1121,15 +1121,15 @@ describe("mermaid diagrams", () => {
     const html = renderToStaticMarkup(createElement(ChatMarkdown, {
       text: "```Mermaid\nflowchart LR\n  Ship-->Sea\n```",
     }));
-    expect(html).toContain('aria-label="copy diagram source"');
+    expect(html).toContain('aria-label="Copy diagram source"');
   });
 
   it("keeps ordinary fenced code on the highlighter path", () => {
     const html = renderToStaticMarkup(createElement(ChatMarkdown, {
       text: "```ts\nconst sea = true;\n```",
     }));
-    expect(html).not.toContain("copy diagram source");
-    expect(html).toContain('aria-label="copy code"');
+    expect(html).not.toContain("Copy diagram source");
+    expect(html).toContain('aria-label="Copy code"');
   });
 });
 
@@ -1174,14 +1174,14 @@ describe("the code block", () => {
     expect(html).not.toContain('aria-label="Wrap long lines"');
     const plate = html.match(/<div data-code-plate="[^"]*" class="([^"]*)"/)?.[1] ?? "";
     expect(plate.split(" ")).toEqual(expect.arrayContaining(["opacity-0", "group-hover/code:opacity-100", "focus-within:opacity-100", "touch:opacity-100"]));
-    expect(html).toContain('aria-label="copy code"');
+    expect(html).toContain('aria-label="Copy code"');
     expect(html).not.toContain('aria-label="More"');
   });
 
   it("gives a diagram the same plate instead of its header", () => {
     const html = simple(() => renderToStaticMarkup(createElement(ChatMarkdown, { text: "```mermaid\ngraph TD; A-->B\n```" })));
     expect(html).toContain("data-code-plate");
-    expect(html).toContain('aria-label="copy diagram source"');
+    expect(html).toContain('aria-label="Copy diagram source"');
     expect(html).not.toContain('title="Mermaid diagram"');
   });
 });

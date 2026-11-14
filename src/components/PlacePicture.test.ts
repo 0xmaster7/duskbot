@@ -53,15 +53,15 @@ it("whoever may change the workspace's settings picks a picture: shrunk and clea
   banner.remove.mockResolvedValue({ ok: true });
   await render(createElement(PlacePicture, { banner: null, canChange: true }));
   expect(host.querySelector("[data-place-picture]")?.getAttribute("data-place-picture")).toBe("none");
-  expect(button("use an image")?.disabled).toBe(false);
+  expect(button("Use an image")?.disabled).toBe(false);
   expect((host.querySelector("[data-place-picture-input]") as HTMLInputElement).accept).toBe("image/png,image/jpeg,image/webp");
   const picked = new File(["png"], "beach.png", { type: "image/png" });
   await choose(picked);
   expect(banner.prepare).toHaveBeenCalledWith(picked);
   expect(banner.upload).toHaveBeenCalledWith(blob);
   await render(createElement(PlacePicture, { banner: SET, canChange: true }));
-  expect(host.querySelector("img")?.getAttribute("alt")).toBe("current picture");
-  await act(async () => { button("remove")!.click(); await Promise.resolve(); });
+  expect(host.querySelector("img")?.getAttribute("alt")).toBe("Current picture");
+  await act(async () => { button("Remove")!.click(); await Promise.resolve(); });
   expect(banner.remove).toHaveBeenCalled();
 });
 
@@ -82,8 +82,8 @@ it("a picture that can't be used is said plainly, and nothing is sent", async ()
 
 it("a team member sees the picture and who may change it, and can't", async () => {
   await render(createElement(PlacePicture, { banner: SET, canChange: false }));
-  expect(button("change image")?.disabled).toBe(true);
-  expect(button("remove")?.disabled).toBe(true);
+  expect(button("Change image")?.disabled).toBe(true);
+  expect(button("Remove")?.disabled).toBe(true);
   expect(host.textContent).toContain("Only its admins can change its picture.");
   await choose(new File(["png"], "x.png"));
   expect(banner.prepare).not.toHaveBeenCalled();

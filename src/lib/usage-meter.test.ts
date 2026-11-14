@@ -62,7 +62,7 @@ describe("upgrade", () => {
     expect(upgradePath(usage([], { upgrades: [] }))).toBe("browser");
     expect(upgradePath(usage([], { tier: "max", upgrades: [] }))).toBe("top");
     expect(upgradePath(usage([], { tier: "team", upgrades: [] }))).toBe("top");
-    expect(upgradeLabel({ tier: "max", amount: 9900 })).toBe("upgrade to Max · $99/month");
+    expect(upgradeLabel({ tier: "max", amount: 9900 })).toBe("Upgrade to Max · $99/month");
   });
   it("says in the confirm what the new plan costs, what today's charge is and when the next payment comes", () => {
     const next = Date.UTC(2026, 10, 18);
