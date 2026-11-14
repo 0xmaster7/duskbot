@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in dusk bot doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings, About shows it.
+      placeholder: 0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [macOS, Windows, Linux, iPhone, Android, Own server (VPS), Web]
+    validations:
+      required: true
+  - type: input
+    id: engine
+    attributes:
+      label: Engine
+      description: Which AI engine the bot uses, if it matters (Claude Code, Codex, ...).
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove keys, tokens and personal data before pasting.
+      render: text

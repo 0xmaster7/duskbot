@@ -1,0 +1,21 @@
+name: Feature request
+description: An idea that would make dusk bot better
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like
+      description: How you picture it working.
+  - type: textarea
+    id: else
+    attributes:
+      label: Anything else
+      description: Workarounds you use now, examples from other apps.
