@@ -18,10 +18,9 @@ describe("ChatErrorBanner", () => {
     expect(markup).toContain("Clipboard has no image");
     expect(markup).toContain('aria-label="Dismiss"');
     expect(markup).toContain('type="button"');
-    // grok's error tray: a neutral card on a hairline, only the glyph is red
-    expect(markup).toContain("border-ink/[0.08] bg-composer");
-    expect(markup).toContain('data-icon-name="exclamation-circle"');
-    expect(markup).toContain("text-danger");
+    // a neutral borderless card; only the pixel stop glyph says it is an error
+    expect(markup).toContain("border-transparent bg-composer");
+    expect(markup).toContain('data-pixel-icon="stop"');
     expect(markup).not.toMatch(/bg-danger|border-danger|text-\[12px\]/);
   });
 
@@ -69,7 +68,7 @@ describe("ChatNotice", () => {
 
   it("says why a pressed Steer left pictures queued", () => {
     const text = markup({ kind: "steer-images", botName: null });
-    expect(text).toContain("Pictures can&#x27;t be steered into this bot&#x27;s running turn. Your message will be sent as the next turn.");
+    expect(text).toContain("Pictures can&#x27;t join a turn that&#x27;s already running. Your message goes out when the bot is done.");
     expect(text).toContain('role="status"');
   });
 
