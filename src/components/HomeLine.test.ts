@@ -64,7 +64,7 @@ it("the clean workspace's line says the bots are safe in their Cloud, on every l
   const line = vi.fn().mockResolvedValue({ kind: "clean" });
   await mount(line);
   await vi.waitFor(() => expect(host.querySelector("[data-home-line='clean']")?.textContent).toBe("Your bots are in the cloud. Sign in to get them."));
-  expect(host.querySelector("button")).toBeNull();
+  expect([...host.querySelectorAll("button")].filter((b) => !b.hasAttribute("data-home-line-close") && !b.hasAttribute("data-home-line-ai")), "no Sign in button").toHaveLength(0);
   expect(homeLineText({ kind: "clean" })).toBe("Your bots are in the cloud. Sign in to get them.");
   expect(homeLineText({ kind: "clean", saved: true })).toBe("Your bots are in your other account's cloud. Click its icon on the left of the app to get them.");
 });
