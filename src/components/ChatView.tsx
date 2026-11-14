@@ -746,6 +746,8 @@ const MessagesList = memo(function MessagesList({
   }
   const focusedId = focus && !focus.consumed ? focus.messageId : null;
   const unreadIds = useMemo(() => unreadMessageIds(messages, unreadDividerId), [messages, unreadDividerId]);
+  // the "sign in on the connection page" footnote says the same thing under every app card: only the newest one keeps it
+  const lastConnectorId = useMemo(() => messages.findLast((one) => one.connector)?.id, [messages]);
   let dividerPlaced = false;
   const layout = useMemo(() => simpleRowLayout(items, { botId, showToolCalls, unreadIds }), [items, unreadIds, showToolCalls, botId]);
   const joins = useMemo(() => {
@@ -808,7 +810,7 @@ const MessagesList = memo(function MessagesList({
             case "signin":
               return m.signIn ? <SignInRequestCard botId={botId} botName={botName} color={botColor} threadId={threadId} message={m} /> : null;
             case "connector":
-              return m.connector ? <ConnectorCard botId={botId} color={botColor} threadId={threadId} message={m} /> : null;
+              return m.connector ? <ConnectorCard botId={botId} color={botColor} threadId={threadId} message={m} hideNote={m.id !== lastConnectorId} /> : null;
             case "options":
               // grok keeps an answered question in place and folds a decided permission to one grey line; the rest leave no row
               if (m.card && settledCardGoes(m)) return showsSettledChange(m.card) ? <SettledChangeEvent bot={{ name: botName }} message={m} threadId={threadId} /> : null;

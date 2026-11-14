@@ -20,7 +20,7 @@ const STATUS_CHECK_MS = 4_000;
 /** Composio marks an unfinished account EXPIRED shortly after its link lapses; the card keeps asking until it can say so. */
 const STATUS_WATCH_MS = AUTHORIZATION_LINK_MS + 2 * 60 * 1_000;
 
-export function ConnectorCard({ botId, threadId, message }: { botId: string; color?: Bot["color"]; threadId: string; message: Message }) {
+export function ConnectorCard({ botId, threadId, message, hideNote = false }: { botId: string; color?: Bot["color"]; threadId: string; message: Message; hideNote?: boolean }) {
   const connector = message.connector!;
   const gone = connector.dismissed || connector.superseded;
   const isMcp = connector.source === "mcp";
@@ -189,7 +189,7 @@ export function ConnectorCard({ botId, threadId, message }: { botId: string; col
       tile={tile}
       name={isMcp ? t("connectors.card.signInTo", { label: connector.label }) : connector.label}
       description={authorizing ? t("connectors.card.waiting") : connector.description}
-      note={t(isMcp ? "connectors.card.mcpSignInHint" : "connectors.card.signInHint")}
+      note={hideNote ? undefined : t(isMcp ? "connectors.card.mcpSignInHint" : "connectors.card.signInHint")}
       actions={<>
         <button
           type="button"

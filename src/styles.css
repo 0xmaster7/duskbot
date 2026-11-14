@@ -1810,6 +1810,9 @@ body {
   backdrop-filter: none;
   mask-image: none;
 }
+/* the top fade reaches a little past the bar, so a row scrolled up to the floating name pill has already gone soft by
+   the time it meets it (at the smallest window the pill sat on full-strength rows) */
+.glass-bar[data-glass-bar="top"][data-glass-fade]::before { bottom: -16px; }
 /* The colour of the place on screen (PlaceTint), faint, from the very top of the sidebar to just below its head, under
    everything there: the head's words and controls stay on what is still almost the plain panel. Dark skins take a
    little more of it to show at all. Reduced transparency: a thin solid line at the top instead; forced colours: none. */

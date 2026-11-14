@@ -35,7 +35,8 @@ export function useComposerDockPad(ref: RefObject<HTMLElement | null>, scroller?
       const live = el.getBoundingClientRect().height;
       const view = scrollerRef.current?.();
       if (view) {
-        const atEnd = view.scrollTop >= view.scrollHeight - view.clientHeight - 2;
+        // near the end counts: a banner that lands while the chat is still settling onto its last row must not cover it
+        const atEnd = view.scrollTop >= view.scrollHeight - view.clientHeight - 24;
         view.style.setProperty(DOCK_VAR, `${Math.max(0, Math.ceil(live))}px`);
         if (atEnd) view.scrollTop = view.scrollHeight;
       }
