@@ -20,7 +20,8 @@ beforeEach(async () => {
   vi.useFakeTimers();
   vi.setSystemTime(1_800_000_000_000);
   vi.resetModules();
-  const storage = new Map<string, string>();
+  // opted in: usage analytics are opt-in, and the "nothing before opt-in" tests clear this
+  const storage = new Map<string, string>([["dusk-usage-analytics", "on"]]);
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   fetcher.mockReset().mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal("fetch", fetcher);
@@ -38,6 +39,33 @@ afterEach(() => {
 });
 
 describe("product analytics", () => {
+  it("records and sends nothing until the person opts in", async () => {
+    localStorage.removeItem("dusk-usage-analytics");
+    const relay = { send: vi.fn(async () => {}), clear: vi.fn(async () => {}) };
+    client.configure(config);
+    client.feature("bot_created");
+    client.action("reply_reaction", { emoji: "love" });
+    client.screen("/bots/123");
+    client.messageSent();
+    client.replyReceived(10);
+    await client.flush();
+    await vi.advanceTimersByTimeAsync(60_000);
+    window.dispatchEvent(new Event("pagehide"));
+    await client.flush();
+    client.configure({ ...config, origin: null, relay });
+    client.feature("bot_created");
+    await client.flush();
+    expect(client.usageAnalyticsEnabled()).toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(relay.send).not.toHaveBeenCalled();
+    expect(localStorage.getItem("dusk-install-id")).toBeNull();
+
+    client.setUsageAnalytics(true);
+    client.feature("bot_created");
+    await client.flush();
+    expect(relay.send).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps only valid action extras, counts eight valid extras and requires a word name", async () => {
     client.configure(config);
     client.action("reply_reaction", {
@@ -367,9 +395,14 @@ describe("product analytics", () => {
     expect(events().filter(event => event.name === "app_pair_failed")).toEqual([{ name: "app_pair_failed", at: Date.now(), props: { reason: "expired_code" } }]);
   });
 
-  it("can track and opt out when storage is unavailable", async () => {
+  it("stays off without storage until opted in, then can track and opt out", async () => {
     vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } });
     client.configure(config);
+    client.feature("bot_created");
+    await client.flush();
+    expect(fetcher).not.toHaveBeenCalled();
+    client.setUsageAnalytics(true);
+    client.feature("bot_created");
     await expect(client.flush()).resolves.toBeUndefined();
     expect(bodies()[0].install).toMatch(/^[A-Za-z0-9_-]{22}$/);
     client.setUsageAnalytics(false);

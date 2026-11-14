@@ -20,7 +20,7 @@ const PLATFORMS: readonly string[] = ["darwin", "win32", "linux", "ios", "androi
 const started = Date.now();
 let options: Options | null = null;
 let forced = false;
-let optedOut = false;
+let optedOut = true;
 let opened = false;
 let closed = false;
 let listening = false;
@@ -50,8 +50,9 @@ function clear(): void {
   ++revision;
 }
 
+/** opt-in: nothing is recorded or sent until the person turns "help improve dusk bot" on */
 export function usageAnalyticsEnabled(): boolean {
-  try { optedOut = localStorage.getItem("dusk-usage-analytics") === "off"; } catch {}
+  try { optedOut = localStorage.getItem("dusk-usage-analytics") !== "on"; } catch {}
   const enabled = !optedOut && (import.meta.env?.MODE !== "test" || forced);
   if (!enabled) clear();
   return enabled;

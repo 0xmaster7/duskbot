@@ -74,7 +74,7 @@ export function StepArt({ art, place }: { art?: ArtName; place?: PlaceArtName })
   return art ? <Art name={art} size="xl" className="place-mark h-16" /> : null;
 }
 
-/** "help improve dusk bot": on by default, small and muted, saved the moment it is switched. Shown on the run's last
+/** "help improve dusk bot": off until switched on, small and muted, saved the moment it is switched. Shown on the run's last
  * screen (WelcomeFlow), not as the first thing. */
 export function ImproveSwitch() {
   const improve = useHelpImprove();

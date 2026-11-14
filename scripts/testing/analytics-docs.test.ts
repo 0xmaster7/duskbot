@@ -1,9 +1,12 @@
-// docs/analytics.md is the promise of what the app sends: nothing, so its track() records nothing and the page lists no
-// events. The docs site shows the same page.
+// @vitest-environment happy-dom
+// docs/analytics.md is the promise of what the app sends: nothing until the person turns "help improve dusk bot" on,
+// and then only the events its table lists.
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-const ROOT = new URL("../../", import.meta.url);
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The event names in the first column of the "## Events" table; one row may name several. */
 function eventRows(docs: string): string[] {
@@ -14,18 +17,46 @@ function eventRows(docs: string): string[] {
     .flatMap((line) => [...line.split("|")[1]!.matchAll(/`([^`]+)`/g)].map((match) => match[1]!));
 }
 
-const read = (path: string) => readFileSync(new URL(path, ROOT), "utf8").replace(/\r\n/g, "\n");
+const read = (path: string) => readFileSync(join(ROOT, path), "utf8").replace(/\r\n/g, "\n");
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.resetModules();
+});
 
 describe("docs/analytics.md", () => {
-  it("promises no product events, and the app's track() sends none", () => {
-    expect(read("src/lib/analytics.ts")).toMatch(/export function track\([^)]*\): void \{\}/);
-    expect(eventRows(read("docs/analytics.md"))).toEqual([]);
-    expect(read("docs/analytics.md")).not.toMatch(/posthog/i);
+  it("lists exactly the events the app's client accepts", () => {
+    const accepted = [...read("src/lib/product-analytics.ts").matchAll(/case "(app_\w+)":/g)].map((match) => match[1]!);
+    expect(accepted.length).toBeGreaterThan(0);
+    expect(eventRows(read("docs/analytics.md")).sort()).toEqual([...new Set(accepted)].sort());
   });
 
-  it("is the page the docs site shows", () => {
+  it("says it is off until turned on, and names no third-party SDK", () => {
     const docs = read("docs/analytics.md");
-    const site = read("apps/docs/content/docs/security/analytics.mdx");
-    expect(site.slice(site.indexOf("\n---\n", 3) + "\n---\n".length)).toBe(docs.slice(docs.indexOf("\n") + 1));
+    expect(docs).toMatch(/off on a new\s+install/);
+    expect(docs).not.toMatch(/posthog|\bfork\b/i);
+  });
+
+  it("holds the client to it: nothing is recorded or sent before opt-in", async () => {
+    vi.useFakeTimers();
+    const storage = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetcher);
+    const relay = { send: vi.fn(async () => {}), clear: vi.fn(async () => {}) };
+    const client = await import("../../src/lib/product-analytics");
+    client.configure({ origin: "https://accounts.example", token: null, platform: "darwin", version: "1.2.3", kind: "desktop", force: true });
+    client.feature("bot_created");
+    client.action("env", { os: "darwin" });
+    client.messageSent();
+    await client.flush();
+    client.configure({ origin: null, token: null, relay, platform: "darwin", version: "1.2.3", kind: "desktop", force: true });
+    client.feature("bot_created");
+    await client.flush();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(relay.send).not.toHaveBeenCalled();
+    expect(storage.has("dusk-install-id")).toBe(false);
   });
 });
