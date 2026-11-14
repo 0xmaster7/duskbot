@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { APP_CLOUD_LINK, fromApp, markFromApp } from "../lib/from-app";
+import { setFlowNote } from "../lib/flow-note";
 import { tryAppLink } from "./DeviceApproval";
 import { Check, ChevronDown, Download } from "@/icons";
 import { useCloud } from "../data/cloud";
@@ -212,7 +213,13 @@ export function BillingPage() {
   const [back, setBack] = useState<Back | null>(() => backFromCheckout(query));
   // back from the payment page at all (paid or not), and whether the app sent the person here
   const [returned] = useState(() => query.has("subscription_id") || query.has("payment_id"));
-  useEffect(() => { markFromApp(query); }, []);
+  useEffect(() => {
+    markFromApp(query);
+    // buying from the app: the cloud is what comes next, not a workspace to connect
+    if (!fromApp()) return;
+    setFlowNote({ title: "no workspace yet", sub: "dusk cloud shows here once it's ready" });
+    return () => setFlowNote(null);
+  }, []);
   useEffect(() => { if (query.has("subscription_id") || query.has("payment_id")) navigate("/billing", { replace: true }); }, []);
   const paid = Boolean(billing?.subscription);
   useEffect(() => {

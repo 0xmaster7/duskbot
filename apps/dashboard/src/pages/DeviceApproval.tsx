@@ -9,8 +9,12 @@ import { Button, ButtonLink, Card } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
 import { FROM_APP_KEY } from "../lib/from-app";
+import { setFlowNote } from "../lib/flow-note";
 
-type Device = { device: { name: string; platform: string }; userCode: string; expiresAt: number; intent?: { kind: string }; next?: string };
+/** the app's sign-in from linking its own server (electron/vps-link-main) */
+export const SERVER_LINK_SOURCE = "server_link";
+
+type Device = { device: { name: string; platform: string }; userCode: string; expiresAt: number; intent?: { kind: string; source?: string }; next?: string };
 
 /** the app's own link: it brings dusk bot forward (the app already signed itself in, so coming back is optional) */
 export const APP_LINK = "duskbot://open";
@@ -35,6 +39,14 @@ export function DeviceApprovalPage() {
     if (!code) { setState("missing"); return; }
     api.deviceLookup(code).then((d) => { setFound(d); setState("ask"); }, (e) => { setState("missing"); setError(e instanceof ApiError && e.status !== 404 ? e.message : null); });
   }, [code]);
+
+  // the app asked from its own server's setup: the server is being linked, so the sidebar says that rather than "no workspace"
+  const linking = found?.intent?.source === SERVER_LINK_SOURCE;
+  useEffect(() => {
+    if (!linking) return;
+    setFlowNote({ title: "linking your server…", sub: "it shows here once it's linked" });
+    return () => setFlowNote(null);
+  }, [linking]);
 
   const answer = async (yes: boolean) => {
     if (!found) return;

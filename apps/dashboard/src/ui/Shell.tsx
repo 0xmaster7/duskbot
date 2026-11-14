@@ -26,6 +26,8 @@ import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, Pop, ToastStack, usePill }
 import { useAccountUsage } from "../data/usage";
 import { investedLine, investedNoteDue, markInvestedNote } from "../lib/fun";
 import type { InvestedFacts } from "../../../../shared/cloud-upsell";
+import { useFlowNote } from "../lib/flow-note";
+import { fromApp } from "../lib/from-app";
 
 const ICON = { size: 18, strokeWidth: 1.75 } as const;
 
@@ -62,6 +64,7 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
 
 function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
   const { workspaces, workspace, pick } = useSession();
+  const note = useFlowNote();
   const now = useNow();
   const { clouds } = useCloud();
   const [open, setOpen] = useState(false);
@@ -78,8 +81,8 @@ function WorkspaceSwitcher({ onNavigate }: { onNavigate?: () => void }) {
         className="hover-btn flex w-full items-center gap-2.5 rounded-[18px] bg-btn px-3.5 py-2.5 text-start"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? "no workspace yet"}</span>
-          {workspace ? <FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} cloud={cloudForWorkspace(clouds, workspace.id)} className="!text-12" /> : <span className="text-12 text-ink-3">connect one from the app</span>}
+          <span className="block truncate text-14 font-medium text-ink">{workspace?.name ?? note?.title ?? "no workspace yet"}</span>
+          {workspace ? <FreshnessTag freshness={workspace.freshness} at={workspace.lastReportAt} now={now} cloud={cloudForWorkspace(clouds, workspace.id)} className="!text-12" /> : <span className="text-12 text-ink-3">{note?.sub ?? "connect one from the app"}</span>}
         </span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
       </button>
@@ -171,9 +174,12 @@ let visitInvested: InvestedFacts | null = null;
 /** the one nudge toward dusk cloud, for anyone without dusk cloud; hides for a week when closed */
 function SideUpsell() {
   const { clouds } = useCloud();
+  const { path, query } = useLocation();
+  // in the middle of the app's own step (approving its sign-in, buying from it) there is nothing to sell
+  const midFlow = path === "/cloud/desktop" || (path === "/billing" && (query.get("from") === "app" || fromApp()));
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
   const [open, setOpen] = useState<"dash_sidebar" | "dash_invested" | null>(null);
-  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now());
+  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now() && !midFlow);
   const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
     <>
