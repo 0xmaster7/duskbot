@@ -12,6 +12,7 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
   useEffect: (effect: EffectCallback) => { f.effects.push(effect); },
 }));
 vi.mock("@/state/store", async original => ({ ...await original<typeof import("@/state/store")>(), useStore: () => ({ state: f.state, dispatch: f.dispatch }), api: vi.fn() }));
+vi.mock("@/components/Avatar", () => ({ MausAvatar: () => null }));
 vi.mock("@/components/onboarding/view-transition", () => ({ withViewTransition: (update: () => void) => { update(); return null; } }));
 vi.mock("@/lib/cloud-intent", async original => {
   const actual = await original<typeof import("@/lib/cloud-intent")>();

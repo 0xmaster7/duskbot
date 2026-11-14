@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Check, ChevronDown, Cloud, Minus } from "../icons";
+import { createPortal } from "react-dom";
+import { ArrowRight, Check, ChevronDown, Minus } from "../icons";
 import { MausAvatar } from "@/components/Avatar";
 import { engineReady } from "@/components/EngineLibrary";
 import { staggerIndex } from "@/components/onboarding/beats/shared";
@@ -14,6 +15,7 @@ import type { MausMotion } from "@/lib/mascot";
 import { hintSeen, type WelcomeViewer } from "@/lib/onboarding";
 import type { LocaleKey } from "@/locales";
 import type { Routine } from "@/lib/routines";
+import { useSidebarFooterSlot } from "@/lib/sidebar-footer-slot";
 import { openBot, useStore } from "@/state/store";
 
 const TITLE: Record<CloudSetupStep, LocaleKey> = {
@@ -32,7 +34,15 @@ function storeCollapsed(collapsed: boolean) {
   try { globalThis.localStorage?.setItem(COLLAPSED_KEY, collapsed ? "1" : "0"); } catch {}
 }
 
-const CARD = "fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-40 max-h-[calc(100dvh-32px)] w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] origin-bottom-left overflow-y-auto rounded-2xl border border-transparent bg-menu text-ink shadow-[0_18px_48px_-16px_rgba(0,0,0,0.55),0_4px_12px_-6px_rgba(0,0,0,0.3)]";
+// in the sidebar's footer, above Connect apps, as its other cards are: tonal, no border, no shadow, the footer's width
+const IN_FOOTER = "relative mb-2 max-h-[50dvh] w-full overflow-y-auto overflow-x-hidden rounded-xl bg-composer text-ink";
+// with no sidebar footer on screen (the icon rail, a phone): over the page's corner
+const FLOATING = "fixed bottom-4 left-[calc(var(--rail-beside,0px)_+_1rem)] z-40 max-h-[calc(100dvh-32px)] w-[300px] max-w-[calc(100vw_-_var(--rail-beside,0px)_-_32px)] overflow-y-auto overflow-x-hidden rounded-2xl bg-menu text-ink shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)]";
+
+/** The card in the sidebar footer's slot while there is one, else floating. */
+function placed(slot: HTMLElement | null, render: (card: string) => ReactNode): ReactNode {
+  return slot ? createPortal(render(cn(IN_FOOTER, "origin-bottom")), slot) : render(cn(FLOATING, "origin-bottom-left"));
+}
 const PRIMARY = "ui-button ui-button-primary shrink-0 gap-1.5 text-[13px] transition-transform duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none";
 
 function nextRunLabel(at: number | null, now = Date.now()): string | null {
@@ -45,7 +55,7 @@ function nextRunLabel(at: number | null, now = Date.now()): string | null {
   return t("cloudSetup.ready.on", { day: when.toLocaleDateString([], { weekday: "long" }), time });
 }
 
-function CloudReady({ routine, onDone }: { routine?: Routine; onDone: () => void }) {
+function CloudReady({ routine, onDone, slot }: { routine?: Routine; onDone: () => void; slot: HTMLElement | null }) {
   const { dispatch } = useStore();
   const [motion, setMotion] = useState<{ kind: MausMotion; key: number }>({ kind: "none", key: 0 });
   const [leaving, setLeaving] = useState(false);
@@ -73,7 +83,7 @@ function CloudReady({ routine, onDone }: { routine?: Routine; onDone: () => void
     });
   };
   const next = routine ? nextRunLabel(routine.nextRunAt) : null;
-  return <aside aria-labelledby="cloud-ready-title" data-cloud-setup-ready className={cn(CARD, "flex flex-col items-center p-5 pt-6 text-center", leaving ? "animate-pop-out" : "animate-spot-in")}>
+  return placed(slot, (card) => <aside aria-labelledby="cloud-ready-title" data-cloud-setup-ready className={cn(card, "flex flex-col items-center p-4 pt-5 text-center", leaving ? "animate-pop-out" : "animate-spot-in")}>
     <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(60%_100%_at_50%_0%,color-mix(in_oklab,var(--color-success)_16%,transparent),transparent)]" />
     <MausAvatar color="green" state="celebrate" motion={motion.kind} motionKey={motion.key} size={56} label={productName()} />
     <div role="status" className="relative">
@@ -97,7 +107,7 @@ function CloudReady({ routine, onDone }: { routine?: Routine; onDone: () => void
           <button type="button" className="py-1 text-[12px] text-ink-secondary transition-colors hover:text-ink" onClick={() => setLeaving(true)}>{t("cloudSetup.ready.later")}</button>
         </div>
       : <button type="button" className="ui-button relative mt-4 w-full" onClick={() => setLeaving(true)}>{t("cloudSetup.ready.done")}</button>}
-  </aside>;
+  </aside>);
 }
 
 export function CloudSetup({ viewer, welcomeShown = false }: { viewer: WelcomeViewer | null; welcomeShown?: boolean }) {
@@ -108,6 +118,7 @@ export function CloudSetup({ viewer, welcomeShown = false }: { viewer: WelcomeVi
   const wasShown = useRef(false);
   const [chosen, setChosen] = useState<CloudSetupStep | null>(null);
   const intent = useCloudIntent();
+  const slot = useSidebarFooterSlot();
   const welcome = useCloudWelcome();
   const record = withEarlyHints(state.config?.onboarding, welcome.early);
   const early: string[] = [];
@@ -127,7 +138,7 @@ export function CloudSetup({ viewer, welcomeShown = false }: { viewer: WelcomeVi
     else if (stage === "shown") wasShown.current = true;
     else if (stage === "done" && wasShown.current) { wasShown.current = false; setFinale(true); }
   }, [stage, welcoming]);
-  if (finale) return <CloudReady routine={routine} onDone={() => setFinale(false)} />;
+  if (finale) return <CloudReady routine={routine} slot={slot} onDone={() => setFinale(false)} />;
   if (!shown) return null;
 
   const items = cloudSetupItems(facts);
@@ -208,10 +219,10 @@ export function CloudSetup({ viewer, welcomeShown = false }: { viewer: WelcomeVi
   const toggle = () => { setCollapsed(!collapsed); storeCollapsed(!collapsed); };
   const others = items.filter((item) => item.id !== current);
 
-  return <aside aria-labelledby="cloud-setup-title" data-cloud-setup className={cn(CARD, "animate-spot-in p-4")}>
+  return placed(slot, (card) => <aside aria-labelledby="cloud-setup-title" data-cloud-setup className={cn(card, "animate-spot-in p-3")}>
     <div className="flex items-center gap-2">
-      <Cloud size={14} aria-hidden="true" className="shrink-0 text-ink-secondary" />
-      <h2 id="cloud-setup-title" className="min-w-0 flex-1 truncate text-[13px] font-semibold">{t("cloudSetup.title")}</h2>
+      <span aria-hidden="true" className="-my-1 -ms-0.5 shrink-0"><MausAvatar color="blue" state={done === items.length ? "celebrate" : "idle"} size={22} trackPointer={false} label="" /></span>
+      <h2 id="cloud-setup-title" className="min-w-0 flex-1 text-[13px] font-semibold leading-[18px] [text-wrap:balance]">{t("cloudSetup.title")}</h2>
       <span aria-hidden="true" className="shrink-0 text-[12px] tabular-nums text-ink-secondary">{progress}</span>
       <button type="button" aria-label={t(collapsed ? "cloudSetup.expand" : "cloudSetup.collapse")} aria-expanded={!collapsed} aria-controls="cloud-setup-body" onClick={toggle}
         className={cn("ui-icon-button -mr-1.5 size-6 min-h-0 shrink-0 p-0", collapsed && "after:absolute after:inset-0 after:content-['']")}>
@@ -232,5 +243,5 @@ export function CloudSetup({ viewer, welcomeShown = false }: { viewer: WelcomeVi
       {others.length > 0 && <ol className="stagger mt-4 flex flex-col border-t border-transparent pt-2.5">{others.map(row)}</ol>}
       <button type="button" className="mt-1.5 py-1 text-[12px] text-ink-secondary transition-colors hover:text-ink" onClick={hide}>{t("cloudSetup.hide")}</button>
     </div>}
-  </aside>;
+  </aside>);
 }
