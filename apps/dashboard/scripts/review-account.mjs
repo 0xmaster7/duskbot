@@ -161,7 +161,8 @@ async function measureWake(botId) {
   home = null;
   const since = Date.now();
   for (;;) {
-    const cloud = ownCloud(await session());
+    // a redeploy of the account service while we wait is a few 502s, not a failed measurement
+    const cloud = await session().then(ownCloud, (error) => { log(`session read failed (${error.message}), waiting on`); return null; });
     if (cloud?.power?.state === "asleep") break;
     if (Date.now() - since > 75 * 60_000) throw new Error("the cloud did not sleep within 75 minutes");
     await sleep(60_000);
