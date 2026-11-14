@@ -217,10 +217,19 @@ async function main() {
     const cloud = state.clouds[0];
     const origin = cloud.origin ?? cloud.machine?.origin;
     if (!origin) throw new Error(`the cloud is listed without an address (${cloud.status ?? "no status"})`);
-    const health = await fetch(`${origin}/api/health`, { signal: AbortSignal.timeout(30_000) });
-    facts.myCloud = { origin, health: health.status };
-    if (!health.ok) throw new Error(`${origin} answered ${health.status}`);
-    return `${origin} healthy`;
+    // a cloud home asleep answers 503 "waking up" while its edge starts it: wait that out (reads only), up to 90 s
+    const started = Date.now();
+    let health, waited = false;
+    for (;;) {
+      health = await fetch(`${origin}/api/health`, { signal: AbortSignal.timeout(30_000) });
+      const text = health.status === 503 ? await health.text().catch(() => "") : "";
+      if (health.status !== 503 || !/waking/i.test(text) || Date.now() - started > 90_000) break;
+      waited = true;
+      await sleep(5_000);
+    }
+    facts.myCloud = { origin, health: health.status, wokeInSeconds: waited ? Math.round((Date.now() - started) / 1000) : 0 };
+    if (!health.ok) throw new Error(`${origin} answered ${health.status}${waited ? " after 90 s of waking" : ""}`);
+    return `${origin} healthy${waited ? ` (woke in ${facts.myCloud.wokeInSeconds} s)` : ""}`;
   });
 
   await step("settings", "every settings page opens without raw errors or overlaps", async (entry) => {

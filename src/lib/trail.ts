@@ -190,12 +190,14 @@ export function trailApiCall(path: string, method: string, status: number, start
     if (!bridge() || method === "GET" || method === "HEAD") return;
     const bare = path.replace(/[?#].*$/, "");
     const ms = Math.round(performance.now() - startedAt);
-    const base = { method, path: bare, status, ms, ok: status >= 200 && status < 400, ...(cid ? { cid } : {}) };
+    // the caller let the request go (a send confirmed over the live stream drops its own POST): not a failure
+    const cancelled = !status && (error as { name?: unknown } | null)?.name === "AbortError";
+    const base = { method, path: bare, status, ms, ok: status >= 200 && status < 400, ...(cancelled ? { cancelled: true } : {}), ...(cid ? { cid } : {}) };
     const connector = /^\/api\/connectors\/([\w.-]+)\/(authorize|accounts)/.exec(bare);
     if (connector) trail(connector[2] === "authorize" ? "apps.connect" : "apps.disconnect", { ...base, app: connector[1] });
     else if (bare === "/api/config" && (method === "PUT" || method === "PATCH")) trail("settings.change", { ...base, ...settingsChange(body) });
     else trail("api.call", base);
-    if (!status || status >= 500) trailError(status ? "api.server-error" : "api.unreachable", error ?? `${status}`, { method, path: bare, status });
+    if (!cancelled && (!status || status >= 500)) trailError(status ? "api.server-error" : "api.unreachable", error ?? `${status}`, { method, path: bare, status });
   } catch { /* never */ }
 }
 
