@@ -42,30 +42,54 @@ export function parseLocalBrowser(value: unknown, botId: string, threadId: strin
   return { open: reply?.open === true, closed };
 }
 
+/** What the Computer tab last knew of a bot's browser, kept while the app runs: leaving the tab, closing the panel or
+ * switching bots and coming back shows it at once, and the server's answer and the live page only confirm it. */
+export interface KeptView {
+  state?: LocalBrowserState;
+  tabs?: readonly { tabId: string; title: string; url: string; active: boolean }[];
+  /** The page as last painted, as an image address. */
+  frame?: string;
+}
+const keptViews = new Map<string, KeptView>();
+export const keptKey = (botId: string, threadId: string | undefined) => `${botId}\n${threadId ?? ""}`;
+export function keptView(key: string): KeptView { return keptViews.get(key) ?? {}; }
+export function keepView(key: string, patch: KeptView): void {
+  keptViews.set(key, { ...keptViews.get(key), ...patch });
+  // a handful of bots is all a person switches between
+  if (keptViews.size > 24) keptViews.delete(keptViews.keys().next().value!);
+}
+
 /** Whether a bot's browser on this computer is open now, and what it closed with in the last 30 minutes. Asked again every
- * few seconds while the page shows; asking never starts the browser. */
-export function useLocalBrowser(botId: string, threadId: string | undefined, enabled: boolean): LocalBrowserState {
-  const [state, setState] = useState<LocalBrowserState>(() => fixture ?? NONE);
+ * few seconds while the page shows; asking never starts the browser. Starts from what was last known for the bot. */
+export function useLocalBrowser(botId: string, threadId: string | undefined, enabled: boolean): LocalBrowserState & { known: boolean } {
+  const key = keptKey(botId, threadId);
+  const known = () => fixture ?? keptView(key).state ?? null;
+  const [held, setHeld] = useState(() => ({ key, state: known() }));
+  // another bot or conversation: what was last known of it, never the previous one's
+  const state = (held.key === key ? held.state : known());
   const visible = usePageVisible();
   useEffect(() => {
-    if (fixture) { setState(fixture); return; }
+    if (fixture) { setHeld({ key, state: fixture }); return; }
     if (!enabled || !visible) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const ask = async () => {
       try {
         const next = parseLocalBrowser(await api(recentPath(botId, threadId), { background: true, signal: controller.signal }), botId, threadId);
-        if (!controller.signal.aborted) setState((current) => sameState(current, next) ? current : next);
+        if (controller.signal.aborted) return;
+        keepView(key, { state: next });
+        setHeld((current) => current.key === key && current.state && sameState(current.state, next) ? current : { key, state: next });
       } catch {
-        // an older server without the route, or a blip: the panel keeps what it showed
+        // an older server without the route, or a blip: the panel keeps what it showed, and counts as answered
+        if (!controller.signal.aborted) setHeld((current) => current.key === key && current.state ? current : { key, state: NONE });
       } finally {
         if (!controller.signal.aborted) timer = setTimeout(() => void ask(), POLL_MS);
       }
     };
     void ask();
     return () => { controller.abort(); if (timer) clearTimeout(timer); };
-  }, [botId, threadId, enabled, visible]);
-  return state;
+  }, [botId, threadId, enabled, visible, key]);
+  return { ...(state ?? NONE), known: state !== null || !enabled };
 }
 
 function sameState(a: LocalBrowserState, b: LocalBrowserState): boolean {
@@ -84,30 +108,16 @@ export function pageTitle(title: string, url: string): string {
   return trimmed && bare(trimmed) !== bare(url) && bare(trimmed) !== siteOf(url) ? trimmed : "";
 }
 
-/** The address line's two halves: the host, then the rest. */
-export function addressParts(url: string): { host: string; rest: string } {
-  try {
-    const parsed = new URL(url);
-    const rest = `${parsed.pathname === "/" ? "" : parsed.pathname}${parsed.search}`;
-    return { host: parsed.hostname.replace(/^www\./, ""), rest };
-  } catch {
-    return { host: url, rest: "" };
-  }
+/** A tab with nothing on it yet, which the strip leaves out. */
+export function blankPage(url: string): boolean {
+  const bare = url.trim().toLowerCase();
+  return !bare || bare === "about:blank" || bare.startsWith("chrome://newtab") || bare.startsWith("chrome://new-tab-page") || bare.startsWith("chrome-search://");
 }
 
 /** One letter for a tab with no icon: the site's, else the title's. */
 export function tabLetter(title: string, url: string): string {
   const source = siteOf(url) || title;
   return (source.match(/[\p{L}\p{N}]/u)?.[0] ?? "·").toUpperCase();
-}
-
-/** The tabs the strip shows before folding the rest into "+N more": the selected one always among them. */
-export function foldTabs<T extends { tabId: string }>(tabs: readonly T[], selected: string | null, max: number): { shown: T[]; hidden: number } {
-  if (tabs.length <= max) return { shown: [...tabs], hidden: 0 };
-  const first = tabs.slice(0, max);
-  const chosen = selected ? tabs.find((tab) => tab.tabId === selected) : undefined;
-  const shown = chosen && !first.includes(chosen) ? [...first.slice(0, max - 1), chosen] : first;
-  return { shown, hidden: tabs.length - shown.length };
 }
 
 /** Whole minutes since, for the closed list. */

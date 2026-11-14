@@ -360,6 +360,7 @@ export class StreamV2 {
       pace: "hi",
       authPrompts: true,
       pagePopups: true,
+      ...(params.get("together") === "1" ? { together: true } : {}),
       ...(size && request.canOperate ? { size } : {}),
     };
     try {

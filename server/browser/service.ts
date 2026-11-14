@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 import { scrubHeldSecrets } from "../../shared/redact.ts";
 import { BrowserLanes } from "../browser-lane.ts";
-import { BROWSER_CALL_DEFAULTS, type BrowserTiming } from "../browser-runtime.ts";
+import { BROWSER_CALL_DEFAULTS, PERSON_ACTED, PERSON_TYPED_ON_PAGE, type BrowserTiming } from "../browser-runtime.ts";
 import { SecretHolds, type SecretHold } from "../browser-secret-hold.ts";
 import { scrubBrowserResult } from "../browser-tool-shape.ts";
 import type { FillLoginDeps } from "../login-fill.ts";
@@ -95,6 +95,8 @@ export class ProfileState {
   lastUsed = Date.now();
   calls = 0;
   reopened: Reopened = null;
+  /** The person clicked or typed beside the bot since its last call: its next answer says so. */
+  personActed = false;
   /** The next start opens one blank tab rather than the last session's. */
   fresh = false;
 
@@ -425,6 +427,9 @@ export class BrowserService {
     }
     const final = result ?? errorResult(LANE_BUSY);
     this.#options.onTiming?.({ session: profile.session, tool: name, outcome: final.isError ? "error" : "ok", totalMs: performance.now() - started, inFlight: profile.control.agents, chars: final.content.reduce((sum, part) => sum + (part.type === "text" ? part.text.length : 0), 0) });
+    const acted = profile.personActed;
+    profile.personActed = false;
+    if (acted && !profile.reopened) return scrubBrowserResult({ ...final, content: [{ type: "text", text: PERSON_ACTED }, ...final.content] }, this.#scrub);
     if (profile.reopened && profile.run) {
       const note = reopenedNote(profile.reopened, profile.temporary);
       profile.reopened = null;
@@ -505,6 +510,7 @@ export class BrowserService {
       paused: (tab, work) => profile.hub.paused(tab, work),
       health: (tab) => this.#health(profile, tab),
       secretOnPage: (tab) => this.#holds.refuses(profile.session, async () => tab.page.url(), tab.page.targetId),
+      secretNote: () => this.#holds.note(profile.session),
       saveScreenshot: (data, pageUrl) => this.#saveScreenshot(profile, data, pageUrl),
       downloads: () => run.browser.downloads?.list() ?? [],
     };
@@ -714,7 +720,8 @@ export class BrowserService {
       openTab: async (url: string | null, owner: string) => {
         const tab = await this.#openTab(profile, "person");
         const address = url ? personUrl(url) : null;
-        if (address) await profile.control.human(owner, tab, () => tab.page.navigate(address, { readiness: "none" }));
+        const go = () => tab.page.navigate(address!, { readiness: "none" });
+        if (address) await (profile.control.owner === null ? profile.control.shared(go) : profile.control.human(owner, tab, go));
         return tab;
       },
       closeTab: (tab: Tab) => this.#closeTab(profile, tab),
@@ -723,6 +730,8 @@ export class BrowserService {
         await profile.hub.fit();
         profile.hub.tabsChanged();
       },
+      personActed: () => { profile.personActed = true; },
+      personTyped: (tab: Tab) => { this.#holds.personTyped(profile.session, tab.page.url(), PERSON_TYPED_ON_PAGE, tab.page.targetId); },
       download: (id: string): Download | undefined => profile.run?.browser.downloads?.list().find((download) => download.id === id),
     };
   }

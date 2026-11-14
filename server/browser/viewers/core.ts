@@ -95,6 +95,8 @@ export interface ViewerOptions {
   pagePopups?: boolean;
   /** The viewer draws the agent's pointer, which the agent's actions wait for; false for the v1 view, which draws none. */
   pointer?: boolean;
+  /** The Computer tab's view: the person's input runs beside the bot's work, taking no hold. */
+  together?: boolean;
 }
 
 /** What a hub needs from the browser service. */
@@ -116,6 +118,10 @@ export interface HubHost {
   closeTab(tab: Tab): Promise<void>;
   showTab(tab: Tab): Promise<void>;
   download(id: string): Download | undefined;
+  /** The person clicked or typed beside the bot: its next answer says so. */
+  personActed?(): void;
+  /** The person typed on the tab beside the bot: page scripts there are refused for a while. */
+  personTyped?(tab: Tab): void;
 }
 
 const num = (value: unknown, fallback = 0) => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
@@ -171,6 +177,7 @@ export class Viewer {
       authPrompts: options.authPrompts === true,
       pagePopups: options.pagePopups === true,
       pointer: options.pointer !== false,
+      together: options.together === true,
     };
   }
 
@@ -573,7 +580,7 @@ export class ViewerHub {
     const control = this.host.control;
     const owner = control.owner;
     const owned = this.#hold.owns(viewer);
-    const controlling = this.#hold.controls(viewer);
+    const controlling = this.#hold.controls(viewer) || this.#shared(viewer);
     // Security: a dialog's text can be a code meant for the person holding the browser.
     const dialog = owner === null || owned ? this.host.active()?.page.dialogs.pending ?? null : null;
     return {
@@ -821,11 +828,18 @@ export class ViewerHub {
         return;
     }
     const tab = this.host.active();
-    if (!tab || !this.#hold.controls(viewer)) {
+    const shared = this.#shared(viewer);
+    if (!tab || !(shared || this.#hold.controls(viewer))) {
       this.broadcastControl();
       return;
     }
-    this.#hold.used();
+    // Beside the bot: no hold, so nothing pauses or refuses its tools; the later of two inputs wins.
+    const human = <R>(on: Tab, run: () => Promise<R>) => shared ? control.shared(run) : control.human(viewer.options.person, on, run);
+    if (shared) {
+      const acts = message.type === "key" ? message.action !== "up" : message.type === "mouse" ? message.action === "down" : message.type !== "dialog";
+      if (acts) this.host.personActed?.();
+      if (message.type === "text" || (message.type === "key" && message.action !== "up")) this.host.personTyped?.(tab);
+    } else this.#hold.used();
     switch (message.type) {
       case "dialog":
         if (typeof message.accept === "boolean") await tab.page.answerDialog({ accept: message.accept, ...(typeof message.promptText === "string" ? { promptText: message.promptText.slice(0, 4_000) } : {}) });
@@ -845,7 +859,7 @@ export class ViewerHub {
       }
       case "tabSelect": {
         const next = typeof message.tabId === "string" ? this.host.tab(message.tabId) : undefined;
-        if (next) await control.human(viewer.options.person, next, () => this.host.showTab(next));
+        if (next) await human(next, () => this.host.showTab(next));
         return;
       }
       case "tabNew":
@@ -861,11 +875,16 @@ export class ViewerHub {
         viewer.select = null;
         const index = num(message.index, -1);
         if (!select || select.id !== message.id || select.tab !== tab || !Number.isInteger(index) || index < 0) return;
-        await control.human(viewer.options.person, tab, () => chooseOption(tab.page, select.id, index));
+        await human(tab, () => chooseOption(tab.page, select.id, index));
         return;
       }
     }
-    await control.human(viewer.options.person, tab, () => this.#dispatch(viewer, tab, message));
+    await human(tab, () => this.#dispatch(viewer, tab, message));
+  }
+
+  /** A view used together with the bot while nobody holds the browser: its input runs at once, beside the bot's. */
+  #shared(viewer: Viewer): boolean {
+    return viewer.options.together && viewer.options.canOperate && this.host.control.owner === null && !this.host.control.closing;
   }
 
   /** A press on a dropdown list: the viewer draws its options, since no frame shows Chrome's own popup. */

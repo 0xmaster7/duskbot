@@ -320,8 +320,7 @@ export function ComputerTab({ bot, derived, cloudFor }: {
   return (
     <div data-panel-tabpanel="computer">
       {local && !cloudOwned ? !storeApp() && <>
-        <LocalBrowserSection bot={bot} />
-        {cloudBots.length > 0 && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} />}
+        <LocalBrowserSection bot={bot} after={cloudBots.length > 0 && <CloudCtaCard bot={cloudBots[0]!} group={cloudBots} stage={stage} cloudDesktop={cloudDesktop} />} />
       </> : <>
         <div ref={setScreenBox}>
           <Suspense fallback={<AsleepScreen bot={bot} off={current === "off"} />}>

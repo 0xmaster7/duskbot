@@ -185,6 +185,8 @@ export function StreamSurface(props: {
   readonly onClose?: (code: number, reason: string) => void;
   /** Shift+Escape: the person leaves the page for the app's own controls. */
   readonly onLeave?: () => void;
+  /** The person and the bot use the page together: the bot's pointer shows while the person's input runs too. */
+  readonly together?: boolean;
   readonly className?: string;
   readonly ref?: Ref<StreamSurfaceHandle>;
 }) {
@@ -639,7 +641,7 @@ export function StreamSurface(props: {
           onMouseDown={(event) => event.preventDefault()}
           onContextMenu={(event) => event.preventDefault()}
         />
-        {agentCursor && !you ? <AgentCursor {...agentCursor} controller={control?.controller === "agent" ? "agent" : "none"} /> : null}
+        {agentCursor && (!you || props.together) ? <AgentCursor {...agentCursor} controller={control?.controller === "agent" || props.together ? "agent" : "none"} /> : null}
         {/* Focus target for page keyboard input. Pinned top-left so focusing it never scrolls the surface; 16px keeps
           iOS from zooming the app on focus. */}
         <textarea

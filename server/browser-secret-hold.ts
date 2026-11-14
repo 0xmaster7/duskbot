@@ -6,11 +6,15 @@ export interface SecretHold {
   clear?: () => Promise<void>;
   /** The tab it was typed in, where a browser names its tabs: a page in any other tab neither meets nor ends the hold. */
   tab?: string;
+  /** What the bot is told instead of SECRET_ON_PAGE. */
+  note?: string;
 }
 
-type Hold = { url: string; until: number; clears: boolean; tab: string | null; timer?: NodeJS.Timeout };
+type Hold = { url: string; until: number; clears: boolean; tab: string | null; note: string | null; timer?: NodeJS.Timeout };
 
 export const SECRET_ON_PAGE = "A saved password was just filled on this page, so agent_browser_eval is refused here for now. Submit the form or open another page first; to read this page, use agent_browser_snapshot or agent_browser_get_text.";
+/** How long a page the person typed into keeps page scripts away: what they typed may be a password. */
+export const PERSON_TYPED_MS = 10 * 60_000;
 
 /** Per browser session, the page a fill left a secret on. `runClear` runs a clear in the browser's lane and says whether
  * it ran. */
@@ -24,7 +28,7 @@ export class SecretHolds {
 
   hold(session: string, held: SecretHold): void {
     this.drop(session);
-    const hold: Hold = { url: held.url, until: Date.now() + held.ms, clears: Boolean(held.clear), tab: held.tab ?? null };
+    const hold: Hold = { url: held.url, until: Date.now() + held.ms, clears: Boolean(held.clear), tab: held.tab ?? null, note: held.note ?? null };
     const clear = held.clear;
     if (clear) {
       hold.timer = setTimeout(() => {
@@ -47,6 +51,19 @@ export class SecretHolds {
     if (!url || url.split("#", 1)[0] === hold.url.split("#", 1)[0]) return true;
     if (!hold.clears) this.holds.delete(session);
     return false;
+  }
+
+  /** The person typed on `url` beside the bot: page scripts there are refused as after a fill, since it may be a password.
+   * A fill's own hold is never replaced by it. */
+  personTyped(session: string, url: string, note: string, tab?: string): void {
+    const current = this.holds.get(session);
+    if (!url || (current && current.note !== note && (current.clears || Date.now() < current.until))) return;
+    this.hold(session, { url, ms: PERSON_TYPED_MS, note, ...(tab ? { tab } : {}) });
+  }
+
+  /** What the bot is told when `refuses` says yes; read before asking, which may end the hold. */
+  note(session: string): string | null {
+    return this.holds.get(session)?.note ?? null;
   }
 
   drop(session: string): void {

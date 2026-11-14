@@ -165,6 +165,13 @@ export class ProfileControl<T extends ControlledTab = ControlledTab> {
     }
   }
 
+  /** A person's input beside the bot's work, taking no hold: refused only while someone holds the browser or it closes. */
+  async shared<R>(run: () => Promise<R>): Promise<R> {
+    if (this.owner !== null) throw new Error("Another person controls this browser.");
+    if (this.closing) throw new Error("The browser is closing. Try again shortly.");
+    return run();
+  }
+
   async human<R>(owner: string, tab: ControlledTab, run: () => Promise<R>): Promise<R> {
     if (!this.canControl(owner)) throw new Error("Take control of this browser before interacting.");
     this.humans++;

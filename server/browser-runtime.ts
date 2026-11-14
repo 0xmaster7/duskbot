@@ -21,6 +21,10 @@ export interface BrowserSpawnSpec {
 }
 
 export const BROWSER_CONTROL_REFUSAL = "Browser tools are paused while a person controls this browser. Wait for them to hand control back; do not try another browser or execution tool.";
+/** Told to the bot when a page script is refused on a page the person typed into beside it. */
+export const PERSON_TYPED_ON_PAGE = "The person typed on this page while you worked, maybe a password, so agent_browser_eval is refused here for now. Read the page with agent_browser_snapshot or agent_browser_get_text instead.";
+/** The bot's next answer after the person used its browser beside it. */
+export const PERSON_ACTED = "The person also used this browser since your last browser call (they can click and type in it while you work), so the page may have changed: check it before relying on earlier @eN refs, and do not undo what they did.";
 export const BROWSER_RESTART_TOOL = "restart_browser";
 const BROWSER_RESTART_TOOL_SPEC = {
   name: BROWSER_RESTART_TOOL,
@@ -325,6 +329,8 @@ interface Gate {
   idleClose?: Promise<void>;
   /** Closed since the bot's last call: its next answer says why its pages are gone. */
   reopened: "idle" | "restart" | null;
+  /** The person clicked or typed beside the bot since its last call: its next answer says so. */
+  personActed: boolean;
 }
 
 type ClientEntry = { key: string; client: BrowserClient };
@@ -389,7 +395,7 @@ export class BrowserRuntime {
   private gate(session: string): Gate {
     let gate = this.gates.get(session);
     if (!gate) {
-      gate = { owner: null, ready: false, releasing: false, agents: 0, probes: 0, dispatched: 0, humans: 0, uncertain: false, lostCall: null, closing: false, changed: new Set(), watchers: 0, calls: 0, lastUsed: Date.now(), reopened: null };
+      gate = { owner: null, ready: false, releasing: false, agents: 0, probes: 0, dispatched: 0, humans: 0, uncertain: false, lostCall: null, closing: false, changed: new Set(), watchers: 0, calls: 0, lastUsed: Date.now(), reopened: null, personActed: false };
       this.gates.set(session, gate);
     }
     return gate;
@@ -473,6 +479,12 @@ export class BrowserRuntime {
     } finally { gate.calls--; gate.lastUsed = Date.now(); }
     if (method !== "tools/call") return result;
     if (result === null || result === undefined) return scrubBrowserResult({ isError: true, content: [{ type: "text", text: LANE_BUSY }] }, this.scrub);
+    if (gate.personActed && !gate.reopened) {
+      gate.personActed = false;
+      const content = (result as { content?: unknown } | null)?.content;
+      return scrubBrowserResult({ ...result as object, content: [{ type: "text", text: PERSON_ACTED }, ...Array.isArray(content) ? content : []] }, this.scrub);
+    }
+    gate.personActed = false;
     if (!gate.reopened) return scrubBrowserResult(result, this.scrub);
     const note = gate.reopened === "restart" ? PERSON_RESTARTED : idleClosedNote(spec.env.AGENT_BROWSER_RESTORE_SAVE !== "never");
     gate.reopened = null;
@@ -545,7 +557,8 @@ export class BrowserRuntime {
         }
         const pageUrl = () => entry.client.rpc("tools/call", { name: "agent_browser_get_url", arguments: {} }, Math.max(1, Math.min(followUpMs(), 5_000)))
           .then((result) => firstText(result).trim(), (error: unknown) => { if (error instanceof TransportError) throw error; return ""; });
-        if (toolName === "agent_browser_eval" && await this.holds.refuses(session, pageUrl)) return { isError: true, content: [{ type: "text", text: SECRET_ON_PAGE }] };
+        const heldNote = this.holds.note(session);
+        if (toolName === "agent_browser_eval" && await this.holds.refuses(session, pageUrl)) return { isError: true, content: [{ type: "text", text: heldNote ?? SECRET_ON_PAGE }] };
         // Launch and session parameters dusk bot owns never reach the engine from a call.
         const stripped = method === "tools/call" ? stripHarnessOwnedArguments(params) : params;
         const labelled = toolName === "agent_browser_tab_new" && ctx
@@ -880,6 +893,26 @@ export class BrowserRuntime {
       throw error;
     }
     finally { gate.humans--; gate.lastUsed = Date.now(); this.changed(gate); }
+  }
+
+  /**
+   * A person's input beside the bot, from the Computer tab's view: it takes no hold and never pauses or refuses the bot's
+   * tools. The engine runs one command at a time, so it lands between the bot's own; the later of two wins. Refused only
+   * while someone holds the browser, it is closing, or an interrupted action left it unknown.
+   */
+  async withSharedInput<T>(session: string, acted: boolean, fn: () => Promise<T>): Promise<T> {
+    const gate = this.gate(session);
+    if (gate.owner !== null) throw new Error("Another person controls this browser.");
+    if (gate.closing) throw new Error("The browser is closing. Try again shortly.");
+    if (gate.uncertain) throw new Error(BROWSER_INTERRUPTED);
+    if (acted) { gate.personActed = true; this.steps?.personTook(session); }
+    gate.lastUsed = Date.now();
+    try { return await fn(); } finally { gate.lastUsed = Date.now(); }
+  }
+
+  /** The person typed on `url` beside the bot: page scripts there are refused for a while, as after a saved password. */
+  personTyped(session: string, url: string): void {
+    this.holds.personTyped(session, url, PERSON_TYPED_ON_PAGE);
   }
 
   /** A person opened a view, which counts as use; call the returned function when it closes. */

@@ -4,7 +4,7 @@ import { delimiter, join, posix, win32 } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { addHeldSecretScrubber, HELD_SECRET_MASK } from "../shared/redact.ts";
 import { BROWSER_VIEWPORT } from "./browser-page-size.ts";
-import { BROWSER_CALL_DEFAULTS, BROWSER_HOVER_TOOL, BROWSER_RESTART_TOOL, BROWSER_UPLOAD_TOOL, BrowserRuntime, TransportError, browserRuntimeEnv, formatBrowserTiming, type BrowserSpawnSpec, type BrowserTiming } from "./browser-runtime.ts";
+import { BROWSER_CALL_DEFAULTS, BROWSER_HOVER_TOOL, BROWSER_RESTART_TOOL, BROWSER_UPLOAD_TOOL, BrowserRuntime, PERSON_ACTED, PERSON_TYPED_ON_PAGE, TransportError, browserRuntimeEnv, formatBrowserTiming, type BrowserSpawnSpec, type BrowserTiming } from "./browser-runtime.ts";
 import { launchSettingsKey } from "./browser-launch-key.ts";
 import { HARNESS_CALL_BUDGET_MS, HARNESS_PROXY_TIMEOUT_MS } from "./harness-budget.ts";
 import { RelayPorts } from "./browser-relay.ts";
@@ -1497,5 +1497,44 @@ describe("one time budget per bot call", () => {
       await value.closeAll();
       daemon.cleanup();
     }
+  });
+});
+
+describe("a person using the browser together with the bot", () => {
+  const evaluate = (value: BrowserRuntime, daemon: { spec: BrowserSpawnSpec }) =>
+    value.agentRpc("s", daemon.spec, "tools/call", { name: "agent_browser_eval", arguments: { script: "document.querySelector('input').value" } }) as Promise<{ isError?: boolean; content: Array<{ text: string }> }>;
+  const snapshot = (value: BrowserRuntime, daemon: { spec: BrowserSpawnSpec }) =>
+    value.agentRpc("s", daemon.spec, "tools/call", { name: "agent_browser_snapshot", arguments: {} }) as Promise<{ isError?: boolean; content: Array<{ text: string }> }>;
+
+  it("runs their input beside a bot call without a hold, tells the bot's next answer once, and keeps eval off a page they typed on", async () => {
+    const value = runtime();
+    const daemon = daemonSpec();
+    try {
+      await value.agentRpc("s", daemon.spec, "tools/call", { name: "agent_browser_get_url", arguments: {} });
+      const bot = deferred();
+      const during = value.withAgentAction("s", () => bot.promise);
+      await expect(value.withSharedInput("s", true, async () => "typed")).resolves.toBe("typed");
+      expect(value.heldBy("s")).toBeNull();
+      bot.resolve();
+      await expect(during).resolves.toBeUndefined();
+      value.personTyped("s", "http://fixture.test/after");
+      const told = await snapshot(value, daemon);
+      expect(told.isError).toBeUndefined();
+      expect(told.content[0]!.text).toBe(PERSON_ACTED);
+      expect((await snapshot(value, daemon)).content.map((part) => part.text)).not.toContain(PERSON_ACTED);
+      expect(await evaluate(value, daemon)).toEqual({ isError: true, content: [{ type: "text", text: PERSON_TYPED_ON_PAGE }] });
+    } finally { daemon.cleanup(); }
+  });
+
+  it("never replaces a saved password's hold, and is refused only while someone holds the browser", async () => {
+    const value = runtime();
+    const daemon = daemonSpec();
+    try {
+      await value.withSecretInput("s", daemon.spec, async () => ({ ok: true, text: "Filled the password.", filled: ["password"], held: { url: "http://fixture.test/after", ms: 60_000 } }));
+      value.personTyped("s", "http://fixture.test/after");
+      expect((await evaluate(value, daemon)).content[0]!.text).toMatch(/^A saved password was just filled on this page/u);
+      await value.take("s", "person");
+      await expect(value.withSharedInput("s", true, async () => undefined)).rejects.toThrow(/Another person controls this browser/);
+    } finally { daemon.cleanup(); }
   });
 });

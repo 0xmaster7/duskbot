@@ -60,6 +60,8 @@ export interface ToolContext {
   paused<T>(tab: Tab, work: () => Promise<T>): Promise<T>;
   health(tab: Tab): string | null;
   secretOnPage(tab: Tab): Promise<boolean>;
+  /** What the bot is told when `secretOnPage` says yes, when it is not a saved password. */
+  secretNote?(): string | null;
   saveScreenshot(data: Buffer, pageUrl: string): string;
   downloads(): Download[];
   /** Throws once the call may no longer act, such as when its turn ended; a batch checks it between steps. */
@@ -410,7 +412,7 @@ export async function executeTool(context: ToolContext, call: ToolCall): Promise
     case "agent_browser_eval": {
       const tab = tabOf(context, call.input.tab);
       return act(context, tab, async () => {
-        if (await context.secretOnPage(tab)) return errorResult(SECRET_ON_PAGE_EVAL);
+        if (await context.secretOnPage(tab)) return errorResult(context.secretNote?.() ?? SECRET_ON_PAGE_EVAL);
         const value = await tab.page.evaluate(call.input.expression, { world: call.input.world ?? "isolated", timeoutMs: remaining(context) });
         return textResult(value === undefined ? "undefined" : JSON.stringify(value));
       });

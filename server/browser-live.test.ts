@@ -9,7 +9,8 @@ import type { Cdp, CdpListeners } from "./browser-sites.ts";
 const execute = vi.hoisted(() => vi.fn());
 const nativeClose = vi.hoisted(() => vi.fn());
 const nativeInput = vi.fn();
-vi.mock("./browser-engine.ts", () => ({ closeBrowserSession: nativeClose }));
+const daemonFile = vi.hoisted(() => vi.fn((_env: unknown, suffix: string) => `/nonexistent/session${suffix}`));
+vi.mock("./browser-engine.ts", () => ({ closeBrowserSession: nativeClose, browserDaemonFile: daemonFile }));
 vi.mock("node:child_process", async (original) => {
   const actual = await original<typeof import("node:child_process")>();
   const { promisify } = await import("node:util");
@@ -75,6 +76,8 @@ beforeEach(() => {
     abandonHumanInput: vi.fn(),
     interrupted: vi.fn(() => false),
     withHumanAction: vi.fn(async (_session: string, _owner: string, fn: () => unknown) => fn()),
+    withSharedInput: vi.fn(async (session: string, _acted: boolean, fn: () => unknown) => { if (held.has(session)) throw new Error("Another person controls this browser."); return fn(); }),
+    personTyped: vi.fn(),
     watch: vi.fn(() => () => {}),
     onIdleClose: vi.fn(),
     settled: vi.fn(async () => {}),
@@ -94,9 +97,9 @@ beforeEach(() => {
 });
 afterEach(() => { live.closeAll(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 
-async function open({ botId = "bot-a", session = "profile-a", owner = "admin-a", current = () => true, resume, size }: { botId?: string; session?: string; owner?: string; current?: () => boolean; resume?: string; size?: { width: number; height: number } } = {}) {
+async function open({ botId = "bot-a", session = "profile-a", owner = "admin-a", current = () => true, resume, size, together }: { botId?: string; session?: string; owner?: string; current?: () => boolean; resume?: string; size?: { width: number; height: number }; together?: boolean } = {}) {
   const res = new ResponseFixture();
-  await live.open({ botId, session, owner, isCurrent: current, res: res as unknown as ServerResponse, ...(resume ? { resume } : {}), ...(size ? { size } : {}),
+  await live.open({ botId, session, owner, isCurrent: current, res: res as unknown as ServerResponse, ...(resume ? { resume } : {}), ...(size ? { size } : {}), ...(together ? { together } : {}),
     spec: { command: "/trusted/agent-browser", args: ["mcp", "--tools", "core"], env: { AGENT_BROWSER_SESSION: session, AGENT_BROWSER_SOCKET_DIR: "/isolated/socket" } } });
   return { res, socket: SocketFixture.instances.at(-1)!, action: (body: unknown) => live.action({ viewerId: res.id, botId, owner, body }) };
 }
@@ -1241,5 +1244,68 @@ describe("opening a view while the bot holds the browser", () => {
     expect(JSON.parse(nativeInput.mock.calls.at(-1)![1].body)).toEqual({ action: "stream_status" });
     execute.mockRejectedValueOnce(Object.assign(new Error("spawn /engine ENOENT"), { code: "ENOENT" }));
     await expect(a.action({ type: "reload" })).rejects.toThrow(/browser engine is installed/);
+  });
+});
+
+describe("a view used together with the bot", () => {
+  it("drives without taking the browser: input runs at once, typing marks the page, and nothing holds or pauses the bot", async () => {
+    const { res, socket, action } = await open({ together: true });
+    socket.receive({ type: "url", url: "https://httpbin.org/forms/post" });
+    expect(res.events("control").at(-1)).toMatchObject({ held: false, owned: true, controlling: true });
+    await expect(action({ type: "input_mouse", eventType: "mousePressed", x: 10, y: 20, button: "left", clickCount: 1, modifiers: 0 })).resolves.toEqual({ ok: true });
+    await expect(action({ type: "input_keyboard", eventType: "char", text: "Ada" })).resolves.toEqual({ ok: true });
+    expect(runtime.take).not.toHaveBeenCalled();
+    expect(runtime.withHumanAction).not.toHaveBeenCalled();
+    expect(runtime.withSharedInput).toHaveBeenNthCalledWith(1, "profile-a", true, expect.any(Function));
+    expect(runtime.personTyped).toHaveBeenCalledWith("profile-a", "https://httpbin.org/forms/post");
+    expect(held.size).toBe(0);
+  });
+
+  it("is told another window holds the browser while someone took it there, and drives again once they hand it back", async () => {
+    const { res, action } = await open({ together: true });
+    await held.set("profile-a", "someone-else");
+    await expect(action({ type: "input_keyboard", eventType: "char", text: "x" })).rejects.toThrow(/Another window or device controls this browser/);
+    held.delete("profile-a");
+    await expect(action({ type: "input_keyboard", eventType: "char", text: "x" })).resolves.toEqual({ ok: true });
+    expect(res.events("control").length).toBeGreaterThan(0);
+  });
+
+  it("keeps the other views' hold rules: a view not used together still needs to take the browser", async () => {
+    const { action } = await open();
+    await expect(action({ type: "input_keyboard", eventType: "char", text: "x" })).rejects.toThrow(/Browser control changed/);
+    expect(runtime.withSharedInput).not.toHaveBeenCalled();
+  });
+});
+
+describe("a view that opens again while the bot works", () => {
+  it("connects at once on the port the session's daemon still names, never queuing a command behind the bot's", async () => {
+    const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(join(tmpdir(), "dusk-stream-"));
+    const file = join(dir, "profile-a.stream");
+    daemonFile.mockImplementation((_env: unknown, suffix: string) => join(dir, `profile-a${suffix}`));
+    try {
+      writeFileSync(file, "43210");
+      const first = await open({ together: true });
+      first.res.destroy();
+      const commands = execute.mock.calls.length;
+      // the bot's command holds the daemon: a status read now would wait behind it
+      execute.mockImplementation(() => new Promise(() => {}));
+      SocketFixture.initialMessages = [{ type: "tabs", tabs: [{ tabId: "t1", title: "Cat", url: "https://en.wikipedia.org/wiki/Cat", active: true }] }, frame];
+      const again = await open({ together: true });
+      expect(execute.mock.calls.length).toBe(commands);
+      expect(again.socket.url).toContain("127.0.0.1:43210");
+      expect(again.res.id).not.toBe("");
+      expect(again.res.events("tabs")).toHaveLength(1);
+      expect(again.res.events("frame")).toHaveLength(1);
+      again.res.destroy();
+      // a daemon that exited took its file with it: the port is never trusted again
+      rmSync(file);
+      execute.mockReset().mockResolvedValue(output({ ...ready, port: 43211 }));
+      const fresh = await open({ together: true });
+      expect(execute).toHaveBeenCalled();
+      expect(fresh.socket.url).toContain("127.0.0.1:43211");
+    } finally { rmSync(dir, { recursive: true, force: true }); daemonFile.mockImplementation((_env: unknown, suffix: string) => `/nonexistent/session${suffix}`); }
   });
 });
