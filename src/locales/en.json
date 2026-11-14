@@ -4023,7 +4023,7 @@
   "startFresh.list.servers": "dusk bot on your linked servers: its data there and the link. The server itself and everything else on it stay.",
   "startFresh.list.account": "Your dusk bot account, and you're signed out",
   "startFresh.list.local": "Everything dusk bot keeps on this computer, with the AI sign-ins and keys it saved",
-  "startFresh.typeLabel": "Type {phrase} to confirm",
+  "startFresh.typeLabel": "Type “{phrase}” to confirm",
   "startFresh.confirm": "Delete everything",
   "startFresh.cancel": "Cancel",
   "startFresh.progressTitle": "Deleting everything",

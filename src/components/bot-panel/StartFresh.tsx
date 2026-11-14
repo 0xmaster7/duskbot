@@ -137,7 +137,7 @@ export function StartFreshDialog({ bridge, onClose }: { bridge: Bridge; onClose:
               </button>
             )}
           </header>
-          <div className={cn(formBodyCls, "flex flex-col gap-3 pb-1")}>
+          <div className={cn(formBodyCls, "flex flex-col gap-3", phase === "running" ? "pb-4" : "pb-1")}>
             {phase === "idle" ? (
               <>
                 <p id="start-fresh-warning" className="m-0 flex items-start gap-2 rounded-[10px] bg-danger/10 px-3 py-2.5 text-[14px] font-medium leading-5 text-danger">
@@ -171,7 +171,7 @@ export function StartFreshDialog({ bridge, onClose }: { bridge: Bridge; onClose:
             )}
             {error && <p role="alert" className="m-0 text-[12px] leading-4 text-danger">{error}</p>}
           </div>
-          <div className={formFooterCls}>
+          {phase !== "running" && <div className={formFooterCls}>
             {phase === "idle" && (
               <>
                 <button type="button" onClick={onClose} disabled={asking} className={confirmCancelCls}>{t("startFresh.cancel")}</button>
@@ -193,7 +193,7 @@ export function StartFreshDialog({ bridge, onClose }: { bridge: Bridge; onClose:
                 {phase === "restarting" && <Loader2 size={14} className="animate-spin" />}{phase === "restarting" ? t("startFresh.restarting") : t("startFresh.restart")}
               </button>
             )}
-          </div>
+          </div>}
         </div>
       </div>
     </ModalLayer>
