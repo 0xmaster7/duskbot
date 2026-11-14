@@ -24,7 +24,7 @@ describe("the launcher agent-browser runs instead of Chrome", () => {
 
   it("adds the identity flags after the engine's own, so they win, keeps the user agent whole, and keeps Chrome off the keychain", () => {
     expect(launcherFlags(settings, "darwin")).toEqual([
-      "--disable-blink-features=AutomationControlled", `--user-agent=${UA}`, "--screen-info={1512x982}", "--lang=en-IN", "--use-mock-keychain",
+      "--disable-blink-features=AutomationControlled", `--user-agent=${UA}`, "--screen-info={1512x982}", "--lang=en-IN", "--use-mock-keychain", "--password-store=basic",
     ]);
     expect(launcherFlags(settings, "linux").at(-1)).toBe("--password-store=basic");
     expect(launcherFlags(settings, "win32").at(-1)).toBe("--lang=en-IN");

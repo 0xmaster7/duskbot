@@ -247,6 +247,7 @@ describe("egress gate", () => {
       "--webrtc-ip-handling-policy=disable_non_proxied_udp",
       "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
       "--use-mock-keychain",
+      "--password-store=basic",
     ]);
     expect(gateChromeFlags(4321, "linux").at(-1)).toBe("--password-store=basic");
     expect(gateChromeFlags(4321, "win32")).toHaveLength(4);

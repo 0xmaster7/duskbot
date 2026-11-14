@@ -6,7 +6,7 @@ import { chromeLaunchArgs, chromeLaunchEnv } from "./chrome-pipe.ts";
 describe("the test Chrome launcher", () => {
   it("keeps Chrome off the person's keychain on macOS and keyring on Linux", () => {
     expect(chromeLaunchArgs("/profile", [], "darwin")).toContain("--use-mock-keychain");
-    expect(chromeLaunchArgs("/profile", [], "darwin")).not.toContain("--password-store=basic");
+    expect(chromeLaunchArgs("/profile", [], "darwin")).toContain("--password-store=basic");
     expect(chromeLaunchArgs("/profile", [], "linux")).toContain("--password-store=basic");
     expect(chromeLaunchArgs("/profile", [], "win32").filter((arg) => /keychain|password-store/.test(arg))).toEqual([]);
     expect(chromeLaunchArgs("/profile", ["--proxy-server=socks5://127.0.0.1:1"], process.platform)).toEqual(expect.arrayContaining(["--remote-debugging-pipe", "--user-data-dir=/profile", "--proxy-server=socks5://127.0.0.1:1"]));

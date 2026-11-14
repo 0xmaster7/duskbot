@@ -42,7 +42,7 @@ suite("fill_login on the VPS desktop's Chromium", () => {
     });
     fx.page("/secure", `<!doctype html><title>Secure Area</title><div id="flash">You logged into a secure area!</div>`);
     dir = mkdtempSync(join(testRoot(), "dusk-box-login-"));
-    chrome = spawn(CHROME!, ["--headless=new", "--no-first-run", "--no-default-browser-check", "--use-mock-keychain", `--user-data-dir=${join(dir, "profile")}`, "--remote-debugging-port=0", "about:blank"], { stdio: "ignore" });
+    chrome = spawn(CHROME!, ["--headless=new", "--no-first-run", "--no-default-browser-check", "--use-mock-keychain", "--password-store=basic", `--user-data-dir=${join(dir, "profile")}`, "--remote-debugging-port=0", "about:blank"], { stdio: "ignore" });
     for (let i = 0; i < 150 && !port; i++) {
       await delay(100);
       try { port = readFileSync(join(dir, "profile", "DevToolsActivePort"), "utf8").split("\n")[0]!.trim(); } catch {}

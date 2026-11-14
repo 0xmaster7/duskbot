@@ -35,9 +35,10 @@ export interface EgressGate {
 }
 
 /** A Chrome dusk bot starts never touches the person's credential store: on macOS Chrome otherwise opens the login
- * keychain (a dialog when it cannot find one), and on Linux it asks the desktop keyring. */
+ * keychain (a "Keychain Not Found" dialog when it cannot find one), and on Linux it asks the desktop keyring. macOS gets
+ * both switches, so no Chrome build or helper on the Mac falls back to the keychain. */
 export function credentialStoreFlags(platform: NodeJS.Platform = process.platform): string[] {
-  return platform === "darwin" ? ["--use-mock-keychain"] : platform === "linux" ? ["--password-store=basic"] : [];
+  return platform === "darwin" ? ["--use-mock-keychain", "--password-store=basic"] : platform === "linux" ? ["--password-store=basic"] : [];
 }
 
 /** How a whole Chrome goes through the gate on `port`. */

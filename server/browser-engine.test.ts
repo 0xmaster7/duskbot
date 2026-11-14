@@ -904,7 +904,7 @@ describe("what a bot gets", () => {
   it("launches Chrome only behind its egress gate, off the person's keychain, and never for the person's own Chrome", () => {
     const gated = agentBrowserIntegration({ binaryPath: "/x/agent-browser", session: "bot-1", encryptionKey: "k", env: { PATH: "/usr/bin" }, egressPort: 45123, platform: "darwin" });
     expect(gated.env).toMatchObject({ AGENT_BROWSER_PROXY: "socks5://127.0.0.1:45123", AGENT_BROWSER_PROXY_BYPASS: "<-loopback>" });
-    expect(gated.env.AGENT_BROWSER_ARGS!.split("\n")).toEqual([cacheArg, "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--use-mock-keychain"]);
+    expect(gated.env.AGENT_BROWSER_ARGS!.split("\n")).toEqual([cacheArg, "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--use-mock-keychain", "--password-store=basic"]);
     expect(agentBrowserIntegration({ binaryPath: "/x", session: "bot-1", encryptionKey: "k", env: {}, egressPort: 45123, platform: "linux" }).env.AGENT_BROWSER_ARGS).toContain("--password-store=basic");
     expect(agentBrowserIntegration({ binaryPath: "/x", session: "bot-1", encryptionKey: "k", env: {} }).env.AGENT_BROWSER_PROXY).toBe("socks5://127.0.0.1:0");
     const mine = agentBrowserIntegration({ binaryPath: "/x", session: "work", encryptionKey: "k", env: {}, attach: {}, egressPort: 45123 });
@@ -921,7 +921,7 @@ describe("what a bot gets", () => {
       launcher: { ...launcher, AGENT_BROWSER_PROXY: "direct://", AGENT_BROWSER_PROXY_BYPASS: "*", AGENT_BROWSER_ARGS: "--lang=en-IN" },
     });
     expect(pushy.env).toMatchObject({ AGENT_BROWSER_EXECUTABLE_PATH: "/d/chrome-launcher.sh", ...gate });
-    expect(pushy.env.AGENT_BROWSER_ARGS!.split("\n")).toEqual(["--lang=en-IN", cacheArg, "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--use-mock-keychain"]);
+    expect(pushy.env.AGENT_BROWSER_ARGS!.split("\n")).toEqual(["--lang=en-IN", cacheArg, "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--use-mock-keychain", "--password-store=basic"]);
   });
 
   it("forwards the explicit Chrome path without copying arbitrary environment or overriding session isolation", () => {

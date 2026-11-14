@@ -216,7 +216,7 @@ walls = re.compile(r"(unusual traffic|are you a robot|not a robot|verify you are
 for s in sites:
     t = time.time()
     try:
-        p = subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--user-data-dir=/tmp/omb-browse", "--lang=en-US",
+        p = subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--use-mock-keychain", "--password-store=basic", "--disable-dev-shm-usage", "--user-data-dir=/tmp/omb-browse", "--lang=en-US",
             "--virtual-time-budget=10000", "--timeout=40000", "--dump-dom", s["url"]], capture_output=True, timeout=60)
         dom = p.stdout.decode("utf-8", "replace"); ms = int((time.time() - t) * 1000)
         title = re.search(r"<title[^>]*>(.*?)</title>", dom, re.S | re.I)
@@ -235,7 +235,7 @@ pages = os.path.join(os.path.expanduser("~"), ".dusk-live-pages"); os.makedirs(p
 with open(os.path.join(pages, "set.html"), "w") as f: f.write("<title>x</title><script>localStorage.setItem('dusk_login','kept');document.title='set:'+localStorage.getItem('dusk_login')</script>")
 with open(os.path.join(pages, "get.html"), "w") as f: f.write("<title>x</title><script>document.title='ls:'+localStorage.getItem('dusk_login')</script>")
 def dump(url):
-    p = subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--user-data-dir=" + profile, "--allow-file-access-from-files", "--virtual-time-budget=5000", "--dump-dom", url], capture_output=True, timeout=60)
+    p = subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--use-mock-keychain", "--password-store=basic", "--user-data-dir=" + profile, "--allow-file-access-from-files", "--virtual-time-budget=5000", "--dump-dom", url], capture_output=True, timeout=60)
     return p.stdout.decode("utf-8", "replace")
 if mode == "set":
     dump("https://httpbin.org/response-headers?Set-Cookie=dusk_persist%3Dkept%3B%20Max-Age%3D86400%3B%20Path%3D%2F")

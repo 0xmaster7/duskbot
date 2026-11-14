@@ -45,7 +45,7 @@ const helpers = (ids: Record<string, string>) => `
 `;
 
 async function openChrome(profile: string) {
-  const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check", "--use-mock-keychain",
+  const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check", "--use-mock-keychain", "--password-store=basic",
     `--user-data-dir=${profile}`, "--remote-debugging-port=0", "about:blank"], { stdio: "ignore" });
   let port = "";
   for (let i = 0; i < 100 && !port; i++) {

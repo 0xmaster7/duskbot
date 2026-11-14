@@ -154,7 +154,7 @@ await import(${JSON.stringify(new URL("server/testing/fake-claude-cli.ts", ROOT)
   const binary = join(APP, "Contents", "MacOS", "Dusk Bot");
   assert.ok(existsSync(binary), `no app at ${binary}`);
   const appLog = join(OUT, "app.log");
-  app = spawn(binary, ["--use-mock-keychain", `--remote-debugging-port=${DEBUG_PORT}`], { env: { ...process.env, HOME: home, DUSK_DATA_DIR: dataDir, NODE_EXTRA_CA_CERTS: certFile }, stdio: ["ignore", "pipe", "pipe"] });
+  app = spawn(binary, ["--use-mock-keychain", "--password-store=basic", `--remote-debugging-port=${DEBUG_PORT}`], { env: { ...process.env, HOME: home, DUSK_DATA_DIR: dataDir, NODE_EXTRA_CA_CERTS: certFile }, stdio: ["ignore", "pipe", "pipe"] });
   for (const stream of [app.stdout, app.stderr]) stream.on("data", (chunk) => appendFileSync(appLog, chunk));
   app.once("exit", (code, signal) => { if (!failure) log(`app exited: ${code ?? signal}`); });
 

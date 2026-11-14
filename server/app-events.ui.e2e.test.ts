@@ -34,7 +34,7 @@ beforeAll(async () => {
     undefined, undefined, undefined, { scripted: true }, [], dist);
   const { chromium } = createRequire(join(playwrightPath!, "package.json"))("playwright-core");
   // A mock keychain keeps the test browser from asking the person's macOS keychain for anything.
-  browser = await chromium.launch({ executablePath: chromiumPath, headless: true, args: ["--use-mock-keychain"] });
+  browser = await chromium.launch({ executablePath: chromiumPath, headless: true, args: ["--use-mock-keychain", "--password-store=basic"] });
   mkdirSync(shots, { recursive: true });
 }, 90_000);
 
