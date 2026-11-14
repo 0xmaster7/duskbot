@@ -462,7 +462,7 @@ export function useConnectors(): Connectors {
     }
   };
 
-  const signInComposio = async (launch: ConnectionPage, signal: AbortSignal): Promise<boolean> => {
+  const signInComposio = async (launch: ConnectionPage, signal: AbortSignal, onOpened: () => void): Promise<boolean> => {
     try {
       // a try that was cancelled or failed left its server entry behind: read what is there now and reuse it, never add twice
       const read = async () => {
@@ -483,7 +483,7 @@ export function useConnectors(): Connectors {
         }
       }
       const name = now.added ? now.name ?? COMPOSIO_CONNECT_NAME : COMPOSIO_CONNECT_NAME;
-      const result = await runMcpSignIn(name, { api, open: async (url) => { await launch.open(url); }, signal });
+      const result = await runMcpSignIn(name, { api, open: async (url) => { await launch.open(url); if (!signal.aborted) onOpened(); }, signal });
       if (result.phase !== "succeeded" || signal.aborted) return false;
       await api(`/api/mcp/servers/${encodeURIComponent(name)}`, { method: "PATCH", body: JSON.stringify({ enabled: true }) });
       const next = await api("/api/connectors/composio-connect") as ComposioConnect;
@@ -512,7 +512,7 @@ export function useConnectors(): Connectors {
     flowOf(slug, { step: "authorizing" });
     setError(null);
     let ok = false;
-    try { ok = await signInComposio(launch, controller.signal); } catch { ok = false; } finally {
+    try { ok = await signInComposio(launch, controller.signal, () => { if (authorizing.current === mine) flowOf(slug, { step: "authorizing", opened: true }); }); } catch { ok = false; } finally {
       unwatch();
       clearTimeout(deadline);
       if (authorizing.current === mine) authorizing.current = null;

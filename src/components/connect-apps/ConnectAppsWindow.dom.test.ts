@@ -621,7 +621,7 @@ describe("the Connect Apps window", () => {
         await act(async () => { await vi.advanceTimersByTimeAsync(0); });
         expect(posts(), "the server is added once").toBe(1);
         expect(fixture.opened, "the Composio page opens").toContain("https://connect.composio.dev/oauth/f2");
-        expect(shownLabel()).toBe("Waiting for Composio…");
+        expect(shownLabel()).toBe("Waiting for sign-in…");
       });
 
       it("a reload mid sign-in picks the wait up again", async () => {
@@ -677,10 +677,10 @@ describe("the Connect Apps window", () => {
         });
         await act(async () => { primary()!.click(); });
         await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-        expect(shownLabel()).toBe("Waiting for Composio…");
+        expect(shownLabel()).toBe("Waiting for sign-in…");
         await act(async () => { window.dispatchEvent(new Event("blur")); });
         await act(async () => { await vi.advanceTimersByTimeAsync(5 * 60_000); });
-        expect(shownLabel(), "away on the sign-in page: still waiting").toBe("Waiting for Composio…");
+        expect(shownLabel(), "away on the sign-in page: still waiting").toBe("Waiting for sign-in…");
         await act(async () => { window.dispatchEvent(new Event("focus")); });
         await act(async () => { await vi.advanceTimersByTimeAsync(76_000); });
         expect(line()).toBe("Composio wasn't authorized. Try again.");

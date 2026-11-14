@@ -71,7 +71,7 @@ describe("Gmail connects on one card", () => {
     await render(model(connectors, { kind: "connecting" }));
     expect(card().getAttribute("data-state")).toBe("connecting");
     expect(primaries()[0]!.disabled).toBe(true);
-    expect(shown(primaries()[0]!)).toBe("Connecting…");
+    expect(shown(primaries()[0]!), "the page is opening; no vendor named").toBe("Opening Google…");
     await act(async () => { card().querySelector<HTMLButtonElement>("[data-cancel]")!.click(); });
     expect(connectors.cancel).toHaveBeenCalledWith("gmail");
 
@@ -114,29 +114,37 @@ describe("Gmail connects on one card", () => {
       viaFlow: flow ? { gmail: flow } : {},
     });
 
-    it("the first click signs in to Composio, said as Connect Gmail, with a way to use your own key", async () => {
+    it("the first click is Connect Gmail, no vendor named, and your own key waits behind Advanced", async () => {
       const connectors = via(false);
       const page = model(connectors, { kind: "connect" });
       await render(page);
-      expect(card().querySelector(".ca-connect-note")?.textContent).toBe("Sign in to Composio, then pick your Google account. Nothing is sent without your OK.");
+      expect(card().querySelector(".ca-connect-note")?.textContent).toBe("Sign in with Google in your browser, then pick the account. Nothing is sent without your OK.");
+      expect(card().textContent, "the first screen never names Composio").not.toMatch(/composio/i);
       expect(primaries()).toHaveLength(1);
       expect(shown(primaries()[0]!)).toBe("Connect Gmail");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.authorizeComposio).toHaveBeenCalledWith("gmail");
+      const toggle = card().querySelector<HTMLButtonElement>("[data-gmail-advanced] > button")!;
+      expect(toggle.textContent).toBe("Advanced");
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+      await act(async () => { toggle.click(); });
+      expect(toggle.getAttribute("aria-expanded")).toBe("true");
       const own = [...card().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "Use my own Composio API key")!;
       await act(async () => { own.click(); });
       expect(page.onOpenKeys).toHaveBeenCalled();
     });
 
-    it("authorizing waits on Composio's page; then the same button connects Gmail", async () => {
+    it("authorizing says the page is opening, then waits on it; then the same button connects Gmail", async () => {
       await render(model(via(false, { step: "authorizing" }), { kind: "connect" }));
       expect(card().getAttribute("data-state")).toBe("connecting");
-      expect(shown(primaries()[0]!)).toBe("Waiting for Composio…");
+      expect(shown(primaries()[0]!)).toBe("Opening Google…");
+      await render(model(via(false, { step: "authorizing", opened: true }), { kind: "connect" }));
+      expect(shown(primaries()[0]!)).toBe("Waiting for Google…");
 
       const connectors = via(true);
       await render(model(connectors, { kind: "connect" }));
       expect(card().getAttribute("data-state")).toBe("idle");
-      expect(said()).toBe("Composio is ready. Now pick your Google account.");
+      expect(said()).toBe("Signed in. Now pick your Google account.");
       expect(shown(primaries()[0]!)).toBe("Connect Gmail");
       await act(async () => { primaries()[0]!.click(); });
       expect(connectors.connect).toHaveBeenCalledWith("gmail");

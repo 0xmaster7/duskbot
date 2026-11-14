@@ -40,11 +40,15 @@ await runFlow(flow, async () => {
     await sleep(2500);
     // one more press when the Gmail card asks to connect: the browser page it opens is recorded, never visited
     const connect = await flow.evaluate(`(() => { const b = [...document.querySelectorAll("button")].filter((e) => e.getClientRects().length && !e.disabled).find((e) => /^(connect|connect gmail|sign in with google|continue)$/i.test(e.innerText.trim())); if (!b) return null; b.click(); return b.innerText.trim(); })()`);
+    const pressed = Date.now();
     if (connect) { walkthrough.did(`clicks "${connect}"`); await sleep(8000); }
+    const first = flow.app.events().find((event) => event.kind === "open-external" && event.at >= pressed);
+    if (connect) flow.facts.gmailOpenMs = first ? first.at - pressed : null;
     const links = flow.opened(since).map((url) => { try { const u = new URL(url); return u.host + u.pathname; } catch { return url; } });
     flow.facts.gmailOpened = links;
     await walkthrough.capture("app");
-    return `${connect ? `pressed ${connect}; ` : ""}${links.length ? `the app opened ${links.join(", ")} in the browser` : "nothing opened in the browser"}`;
+    const after = connect && first ? ` ${((first.at - pressed) / 1000).toFixed(1)} s after the press` : "";
+    return `${connect ? `pressed ${connect}; ` : ""}${links.length ? `the app opened ${links.join(", ")} in the browser${after}` : "nothing opened in the browser"}`;
   });
 
   await flow.step("models", "Settings > Models: connecting an AI later", async () => {

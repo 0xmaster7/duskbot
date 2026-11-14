@@ -6,7 +6,8 @@ import { friendlyError } from "@/lib/plain-error";
 export type ViaFailure = "authorize" | "cancelled" | "timeout" | "signedOut" | "offline" | "refused";
 
 export type ViaFlow =
-  | { step: "authorizing" }
+  /** `opened`: the sign-in page is up in the browser; until then the press is still fetching its link */
+  | { step: "authorizing"; opened?: boolean }
   /** `note`: notYet once the person came back and it still is not connected; trouble while composio or dusk cannot be reached */
   | { step: "waiting"; url: string; since: number; note?: "notYet" | "trouble" }
   | { step: "done" }

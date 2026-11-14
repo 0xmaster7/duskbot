@@ -123,13 +123,13 @@ export function AppPage({ model }: { model: AppPageModel }) {
     const connect: Primary = { label: t("connectApps.connectApp", { name: entry.label }), onClick: () => void connectors.connect(slug), onCancel: () => connectors.cancel(slug) };
     if (viaSteps) {
       const authorize: Primary = { label: t("connectApps.via.authorize"), signIn: true, disabled: model.remoteClient, onClick: () => void connectors.authorizeComposio(slug), onCancel: () => connectors.cancel(slug) };
-      if (flow?.step === "authorizing") return { ...authorize, busy: true, busyLabel: t("connectApps.signIn.waiting") };
+      if (flow?.step === "authorizing") return { ...authorize, busy: true, busyLabel: t(flow.opened ? "connectApps.signIn.waiting" : "connectApps.signIn.opening") };
       if (flow?.step === "failed" && flow.why === "signedOut") return { ...authorize, label: t("connectApps.via.authorizeAgain") };
       if (!viaSignedIn) return flow?.step === "failed" ? { ...authorize, label: t("connectors.action.retry") } : authorize;
       if (flow?.step === "waiting") return { label: t("connectApps.via.openAgain"), onClick: () => connectors.reopenVia(slug), onCancel: () => connectors.cancel(slug), waiting: true };
       if (flow?.step === "failed") return { label: t("connectors.action.retry"), onClick: () => void connectors.connect(slug) };
       if (flow?.step === "done" || model.connection === "connected") return null;
-      return phase.kind === "connecting" ? { ...connect, busy: true, busyLabel: t("connectApps.signIn.waiting") } : connect;
+      return phase.kind === "connecting" ? { ...connect, busy: true, busyLabel: t("connectApps.signIn.opening") } : connect;
     }
     if (askingKey) return null;
     if (ways && model.connection === "connected" && phase.kind === "connect") return null;

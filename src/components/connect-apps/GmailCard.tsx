@@ -1,4 +1,7 @@
+import { useId, useState } from "react";
+
 import { t } from "@/lib/i18n";
+import { Icon } from "../Icon";
 import { ConnectBlock } from "./ConnectBlock";
 import type { Primary } from "./PrimaryButton";
 import { viaLine } from "./ComposioKeyStep";
@@ -38,8 +41,11 @@ export function gmailCard(input: GmailInput): GmailCardModel {
   let action = input.primary;
   // the first click signs in to Composio; to the person it is still connecting Gmail
   if (action?.signIn && !action.busy && !flow) action = { ...action, label: t("connectApps.connectApp", { name }) };
+  // while the link is fetched the page is opening; once it is up the person is on Google's side
+  if (action?.busy) action = { ...action, busyLabel: t(flow?.step === "authorizing" && flow.opened ? "connectApps.gmail.waitingGoogle" : "connectApps.gmail.opening") };
   const connected = input.connected || flow?.step === "done";
   let line = input.via ? viaLine(flow, name) : null;
+  if (flow?.step === "waiting" && !flow.note) line = { text: t("connectApps.gmail.waiting"), tone: "status" };
   if (connected) line = { text: t("connectApps.gmail.connected"), tone: "done" };
   else if (!line && input.via && input.viaSignedIn && !flow) line = { text: t("connectApps.gmail.next"), tone: "status" };
   else if (!line && phase?.kind === "continue") line = { text: t("connectApps.gmail.waiting"), tone: "status" };
@@ -60,11 +66,26 @@ export function gmailCard(input: GmailInput): GmailCardModel {
 
 export function GmailCard({ model }: { model: GmailCardModel }) {
   const own = model.onOwnKey;
+  const [advanced, setAdvanced] = useState(false);
+  const id = useId();
   return (
     <ConnectBlock data-gmail-card="" data-state={model.state} aria-label={t("connectApps.connectApp", { name: model.name })}
       note={model.note}
       primary={model.action} connected={model.state === "connected"} line={model.line} lineMarker="data-gmail-line">
-      {own && <button type="button" className="ca-link ca-connect-alt" onClick={own}>{t("connectApps.signIn.ownKey")}</button>}
+      {/* a person's own Composio key is for those who already run one: folded, never the first thing seen */}
+      {own && (
+        <div className="ca-connect-advanced" data-gmail-advanced="" data-open={advanced ? "" : undefined}>
+          <button type="button" className="ca-other-toggle" aria-expanded={advanced} aria-controls={id} onClick={() => setAdvanced(!advanced)}>
+            <span>{t("connectApps.gmail.advanced")}</span>
+            <Icon name="chevron-down" size={12} />
+          </button>
+          {advanced && (
+            <div id={id} className="ca-other-body">
+              <button type="button" className="ca-link ca-connect-alt" onClick={own}>{t("connectApps.signIn.ownKey")}</button>
+            </div>
+          )}
+        </div>
+      )}
     </ConnectBlock>
   );
 }

@@ -714,7 +714,7 @@ export function ConnectAppsWindow({ page: requested, nonce, onClose, onTemplates
   return (
     <div className="ca-scrim" data-connect-apps="" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div ref={dialog} data-tour="apps-panel" role="dialog" aria-modal="true" aria-label={t("connectApps.title")} tabIndex={-1} className="ca-dialog" onKeyDown={onDialogKey}>
-        <div className="ca-layout">
+        <div className="ca-layout" data-fit={page.kind === "detail" ? "" : undefined}>
           <button type="button" data-tour="apps-close" className="ca-icon-button ca-close" aria-label={t("connectApps.close")} onClick={onClose}>
             <Icon name="close" size={16} />
           </button>
