@@ -1,16 +1,15 @@
-import { ArrowUpRight } from "@/icons";
+import { Download } from "@/icons";
 import android from "../art/os/android.svg";
 import apple from "../art/os/apple.svg";
 import linux from "../art/os/linux.svg";
 import windows from "../art/os/windows.svg";
 import { track } from "../lib/analytics";
-import { detectOs, downloadPage, PLATFORMS, useReleaseState, WAITLIST_URL, type Platform } from "../lib/downloads";
-import { cx, Skeleton } from "./kit";
+import { detectOs, useReleaseState, WAITLIST_URL, type Platform } from "../lib/downloads";
+import { Skeleton } from "./kit";
 
 // os marks: gilbarbara/logos, cc0 1.0
 const LOGO: Record<Platform, string> = { macos: apple, windows, linux, android, ios: apple };
 const NAME: Record<Platform, string> = { macos: "macos", windows: "windows", linux: "linux", android: "android", ios: "ios" };
-const NOTE: Record<Platform, string> = { macos: "apple silicon and intel", windows: "windows 10 and 11", linux: "ubuntu 24.04", android: "text your bots", ios: "text your bots" };
 
 function Mark({ platform }: { platform: Platform }) {
   const src = LOGO[platform];
@@ -19,38 +18,53 @@ function Mark({ platform }: { platform: Platform }) {
   return <img src={src} alt="" width={22} height={22} className="size-[22px] object-contain" draggable={false} />;
 }
 
-/** every platform as one row with its mark, the visitor's own first; each row says what the site can give today */
+const FILE = "https://github.com/DuskBotAI/duskbot-releases/releases/latest/download/";
+// the file itself, so a press downloads right here instead of opening another page
+const DIRECT: Partial<Record<Platform, { href: string; also?: { label: string; href: string } }>> = {
+  macos: { href: `${FILE}DuskBot.dmg`, also: { label: "intel mac", href: `${FILE}DuskBot-intel.dmg` } },
+  windows: { href: `${FILE}DuskBot-setup.exe` },
+  linux: { href: `${FILE}DuskBot.AppImage`, also: { label: ".deb", href: `${FILE}DuskBot-amd64.deb` } },
+};
+const NOTE_DIRECT: Partial<Record<Platform, string>> = { macos: "apple silicon", windows: "windows 10 and 11", linux: "appimage" };
+
+/** the visitor's own computer, downloading in place, then the phone apps, dimmed until they're out */
 export function Downloads() {
   const release = useReleaseState();
   const detected = detectOs();
-  const order = detected === "unknown" ? PLATFORMS : [detected, ...PLATFORMS.filter((p) => p !== detected)];
+  const desktops: Platform[] = detected === "macos" || detected === "windows" || detected === "linux" ? [detected] : ["macos", "windows", "linux"];
   return (
     <ul className="flex flex-col gap-1.5" aria-label="downloads">
-      {order.map((p) => {
-        const yours = p === detected;
-        const href = release === "soon" ? WAITLIST_URL : downloadPage(p);
-        const action = release === "soon" ? "join waitlist" : p === "android" || p === "ios" ? "get it" : "download";
+      {desktops.map((p) => {
+        const direct = DIRECT[p]!;
+        const soon = release === "soon";
         return (
-          <li key={p}>
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => track({ name: "download_click", props: { platform: p, detected_os: detected } })}
-              className={cx("hover-card group flex min-h-14 items-center gap-3.5 rounded-[16px] px-4 py-2.5", yours ? "bg-card-2" : "bg-card")}
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-pop"><Mark platform={p} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2 text-15 font-medium text-ink">{NAME[p]}{yours && <span className="tag !h-5 !px-2 !text-[11px]">yours</span>}</span>
-                <span className="block truncate text-13 text-ink-3">{NOTE[p]}</span>
+          <li key={p} className="flex min-h-14 items-center gap-3.5 rounded-[16px] bg-card px-4 py-2.5">
+            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-pop"><Mark platform={p} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-15 font-medium text-ink">{NAME[p]}</span>
+              <span className="block truncate text-13 text-ink-3">
+                {NOTE_DIRECT[p]}
+                {direct.also && !soon && <> · <a href={direct.also.href} download className="underline-offset-2 hover:text-ink hover:underline"
+                  onClick={() => track({ name: "download_click", props: { platform: p, detected_os: detected } })}>{direct.also.label}</a></>}
               </span>
-              {release === null
-                ? <Skeleton className="h-5 w-20" />
-                : <span className="inline-flex shrink-0 items-center gap-1 text-14 text-ink-2">{action}<ArrowUpRight size={15} strokeWidth={1.75} aria-hidden /></span>}
-            </a>
+            </span>
+            {release === null
+              ? <Skeleton className="h-5 w-20" />
+              : <a href={soon ? WAITLIST_URL : direct.href} {...(soon ? { target: "_blank", rel: "noreferrer" } : { download: "" })}
+                  onClick={() => track({ name: "download_click", props: { platform: p, detected_os: detected } })}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-ink px-3.5 py-1.5 text-14 text-pop transition-opacity hover:opacity-90">
+                  {soon ? "join waitlist" : <><Download size={15} strokeWidth={1.75} aria-hidden />download</>}
+                </a>}
           </li>
         );
       })}
+      {(["ios", "android"] as const).map((p) => (
+        <li key={p} aria-disabled="true" className="flex min-h-14 items-center gap-3.5 rounded-[16px] bg-card px-4 py-2.5 opacity-50">
+          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-pop"><Mark platform={p} /></span>
+          <span className="min-w-0 flex-1 text-15 font-medium text-ink">{NAME[p]}</span>
+          <span className="shrink-0 text-14 text-ink-3">coming soon</span>
+        </li>
+      ))}
     </ul>
   );
 }

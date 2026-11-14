@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { ArrowUpRight, ChevronRight, Download, LayoutGrid, Smartphone } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { useWorkspaceDetail } from "../data/detail";
@@ -10,9 +10,8 @@ import { useNow } from "../lib/now";
 import { Link } from "../lib/router";
 import { DOWNLOAD_URL } from "../lib/usage";
 import { Card, cx, Skeleton } from "../ui/kit";
-import { BotMascot, Mascot, type MascotHandle } from "../ui/Mascot";
+import { BotMascot, Mascot } from "../ui/Mascot";
 import { cheerOnce } from "../lib/cheer";
-import { dailyLine } from "../lib/fun";
 import { CloudCard, MoveGuide } from "./cloud-card";
 import { Activity } from "./activity";
 import { CloudHero } from "./cloud-offer";
@@ -112,26 +111,17 @@ function Recent({ rows: all }: { rows: BotRow[] }) {
 
 export function HomePage() {
   const { account, detail } = useSession();
-  const { account: profile, clouds, error, refresh } = useCloud();
+  const { clouds, error, refresh } = useCloud();
   const { bots, loading } = useAccountUsage();
   const now = useNow(60_000);
-  const name = profile?.profile.name || account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
   const cloudDetail = useWorkspaceDetail(cloud?.workspaceId ?? null);
-  const greeter = useRef<MascotHandle>(null);
-  useEffect(() => { const t = setTimeout(() => greeter.current?.react("greet"), 450); return () => clearTimeout(t); }, []);
   useEffect(() => { if (bots.length) cheerOnce(account?.id, "first-bot", "your first bot is here. say hi in the app."); }, [bots.length > 0, account?.id]);
   useEffect(() => { if (cloud?.status === "running") cheerOnce(account?.id, "first-cloud", `${cloud.name} is up. your bots never sleep now.`, { confetti: true }); }, [cloud?.status, account?.id]);
   const crew = cloud ? null : bots.length ? <Crew rows={bots} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : <CrewEmpty />;
   return (
     <div>
-      <div className="enter mb-8 max-sm:mb-6">
-        <div className="flex items-end gap-3">
-          <h1 className="t-title">hi {name}.</h1>
-          {!cloud && <span className="mb-1 shrink-0" aria-hidden><Mascot ref={greeter} body="kit" color="blue" size={40} state="happy" tappable /></span>}
-        </div>
-        <p className="mt-2 text-15 text-ink-3">{dailyLine(now)}</p>
-      </div>
+      <h1 className="sr-only">home</h1>
       <div className="flex flex-col gap-4">
         {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudCard cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
         {clouds !== null && <>
