@@ -40,7 +40,8 @@ import { useAutomationNeedingYou, type AutomationNeedingYou } from "./SidebarFoo
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import { ShortcutHint } from "./ShortcutHint";
 import { useSidebarPhoneStatus } from "./SidebarPhoneButton";
-import { api, useStore, type Action } from "@/state/store";
+import { api, useStore, type Action, type ConfigStatus } from "@/state/store";
+import { localDesktopPage } from "./onboarding/WelcomeGate";
 import { serverCheckPhase, serverUpdateRow, type ServerUpdateCheck, type ServerUpdatePhase } from "@/lib/server-update";
 import type { CloudAccountBridge, CloudAccountState } from "../../electron/cloud-account.mjs";
 import { cloudColor } from "@/lib/cloud-look";
@@ -75,6 +76,39 @@ export function withAccountFace(profile: { name?: string; email?: string; avatar
   // the avatar the person picked on their account shows over this place's own photo; without a pick, the place's photo stays
   const face = account.id && (account.avatar || !profile?.avatarUrl) ? { face: { id: account.id, ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(account.avatar ? { avatar: account.avatar } : {}) } } : {};
   return { ...profile, ...(!own ? { email: account.email } : {}), ...(!profile?.name?.trim() && account.name ? { name: account.name } : {}), ...(!profile?.avatarUrl && account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...face };
+}
+
+/** The name this place's profile takes from the signed-in account: where the profile has none, or only the computer's own
+ * (the first run's guess), and the account has one of its own, for the same person. Null keeps the profile as it is. */
+export function adoptedAccountName(profile: { name?: string; email?: string } | undefined, account: { email: string; name?: string } | null, computerName: string | null): string | null {
+  const wanted = account?.name?.trim();
+  if (!wanted) return null;
+  const own = profile?.email?.trim().toLowerCase();
+  if (own && own !== account!.email.trim().toLowerCase()) return null;
+  const current = profile?.name?.trim() ?? "";
+  if (current === wanted) return null;
+  return !current || (computerName !== null && current === computerName.trim()) ? wanted : null;
+}
+
+/** This computer's page keeps the account's name once one is set (on the website's first step, often after the app's own
+ * first run): the bots and the sidebar call the person by it. A name the person typed here stays theirs. */
+function useAccountName(enabled: boolean, profile: { name?: string; email?: string } | undefined, account: { email: string; name?: string } | null, dispatch: (action: Action) => void) {
+  const asked = useRef<string | null>(null);
+  const wanted = account?.name?.trim() ?? null;
+  useEffect(() => {
+    if (!enabled || !wanted || asked.current === wanted) return;
+    let active = true;
+    void (async () => {
+      const computer = (await window.duskDesktop?.desktopProfile?.systemName().catch(() => null))?.trim() || null;
+      const name = active ? adoptedAccountName(profile, account, computer) : null;
+      asked.current = wanted;
+      if (!name) return;
+      const config = await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ profile: { name } }) }).catch(() => null);
+      if (config && active) dispatch({ type: "configStatus", config });
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, wanted, profile?.name]);
 }
 
 /** What `UserFace` draws for a person: an id to seed the drawn head, and the photo and choice that may stand in for it. */
@@ -562,6 +596,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
 
   const accounts = useAccounts();
   const ownProfile = profileForSession(state.config?.profile, session);
+  useAccountName(localDesktopPage() && window.duskDesktop?.remoteClient?.active !== true && !state.config?.cloudHome && !state.config?.team,
+    state.config?.profile, accounts.view?.active ?? null, dispatch);
   const profile = withAccountFace(ownProfile, accounts.view?.active ?? null);
   const face = personFace(ownProfile, accounts.view?.active ?? null);
   // grok's footer falls back to the computer's account: its initial in the grey circle, its name beside it

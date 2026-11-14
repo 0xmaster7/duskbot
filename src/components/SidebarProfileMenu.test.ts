@@ -7,6 +7,7 @@ vi.stubEnv("VITE_DUSK_DEV_TOOLS", "0");
 vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (children: unknown) => children }));
 
 import {
+  adoptedAccountName,
   cloudUsageSummary,
   phoneMenuItems,
   placeMenuItems,
@@ -609,5 +610,22 @@ describe("withAccountFace", () => {
     // a profile with no address of its own (this computer's) takes the account's, so the computer's initial never stands in
     expect(withAccountFace({}, { ...account, id: "acc_1" })).toMatchObject({ email: "ada@example.test", face: { id: "acc_1" } });
     expect(withAccountFace({ name: "Siddharth" }, account)).toMatchObject({ email: "ada@example.test", name: "Siddharth" });
+  });
+});
+
+describe("the account's name on this computer", () => {
+  const account = { email: "robin@example.com", name: "Robin Field" };
+  it("takes the name set on the website where the profile has none or only the computer's", () => {
+    expect(adoptedAccountName(undefined, account, null)).toBe("Robin Field");
+    expect(adoptedAccountName({ name: "" }, account, "Siddharth Meena")).toBe("Robin Field");
+    expect(adoptedAccountName({ name: "Siddharth Meena" }, account, "Siddharth Meena")).toBe("Robin Field");
+    expect(adoptedAccountName({ name: "Siddharth Meena", email: "ROBIN@example.com" }, account, "Siddharth Meena")).toBe("Robin Field");
+  });
+  it("keeps a name the person typed, another person's profile, and an account without a name", () => {
+    expect(adoptedAccountName({ name: "Rob" }, account, "Siddharth Meena")).toBeNull();
+    expect(adoptedAccountName({ name: "Robin Field" }, account, null)).toBeNull();
+    expect(adoptedAccountName({ name: "" , email: "someone@example.com" }, account, null)).toBeNull();
+    expect(adoptedAccountName({ name: "" }, { email: "robin@example.com" }, null)).toBeNull();
+    expect(adoptedAccountName({ name: "" }, null, null)).toBeNull();
   });
 });
