@@ -254,7 +254,7 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
 
   return (
     <div className="min-w-0 overflow-hidden rounded-xl border border-transparent bg-inset/40">
-      <div className="relative flex aspect-[4/3] items-center justify-center bg-inset">
+      <div className={cn("relative flex items-center justify-center bg-inset", !(preview && !error) && "aspect-[4/3]")}>
         {preview && !error ? (
           <video
             ref={videoRef}
@@ -264,7 +264,7 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
             playsInline
             preload="metadata"
             aria-label={t("attach.previewVideo", { name: file.name })}
-            className="max-h-full max-w-full"
+            className="block h-auto max-h-[70vh] w-full"
             onError={() => setError(t("attach.videoUnavailable"))}
           />
         ) : (
