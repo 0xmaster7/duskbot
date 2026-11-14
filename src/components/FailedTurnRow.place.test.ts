@@ -93,13 +93,13 @@ describe("the phone row", () => {
 
   it("carries the line and its action in words, whole, for every source", () => {
     const rows: Array<[PlaceRow, string]> = [
-      [hours, "Connect your VPS in Settings to give bots their own private desktops. Add your VPS in Settings → Computer."],
+      [hours, "Connect your own machine in Settings to give bots their own private desktops. Add your own machine in Settings → Computer."],
       [{ state: "cc-unavailable", params: { bot: "Scout" }, source: "auto-pin" },
         "Cloud desktops can't start right now. It isn't anything you did. This conversation is back on Auto. Send your message again."],
       [{ state: "cc-unavailable", params: { bot: "Scout" }, source: "routine" },
         "Cloud desktops can't start right now. It isn't anything you did. Change where this routine runs."],
       [{ state: "cc-at-once", params: { bot: "Bo", plan: "Personal", max: 1, holders: ["Ada"] }, source: "works-on" },
-        "Connect your VPS in Settings to give bots their own private desktops. Add your VPS in Settings → Computer."],
+        "Connect your own machine in Settings to give bots their own private desktops. Add your own machine in Settings → Computer."],
     ];
     for (const [place, words] of rows) {
       const tool = stored(place);

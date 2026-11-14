@@ -46,8 +46,8 @@ describe("one line and at most one action for every place", () => {
   it("routes stored provider and billing states to VPS setup", () => {
     for (const state of ["cc-no-hours", "cc-at-once", "cc-ended", "cc-provider", "cc-on-my-cloud", "cc-needs-key"] as const) {
       expect(placeViewOf(state, { ...params, words: "Old provider billing", hours: 50 }, { role: "admin", server: "mac" })).toMatchObject({
-        short: "Add your VPS", line: "Connect your VPS in Settings to give bots their own private desktops.",
-        action: { id: "add-vps", label: "Add your VPS" },
+        short: "Add your own machine", line: "Connect your own machine in Settings to give bots their own private desktops.",
+        action: { id: "add-vps", label: "Add your own machine" },
       });
     }
     expect(placeViewOf("cc-unavailable", {}, { role: "admin" })).toMatchObject({ action: { id: "try-again" } });
@@ -80,7 +80,7 @@ describe("VPS place facts", () => {
   });
 
   it("describes the available computers on the server where Auto runs", () => {
-    expect(placeView(facts({ place: "auto" })).line).toContain("private desktop on your VPS");
+    expect(placeView(facts({ place: "auto" })).line).toContain("private desktop on your own machine");
     expect(placeView(facts({ place: "auto", server: "pc" })).line).toContain("private desktop on this computer");
     expect(placeView(facts({ place: "auto", server: "linux" })).line).toContain("running private desktop");
   });
@@ -99,7 +99,7 @@ describe("a failed place and its source", () => {
   });
   it("keeps a missing VPS fix across every source and gives phones the same action", () => {
     for (const source of ["works-on", "pin", "auto-pin", "routine", "room"] as const) expect(placeRowView(row(source, "cc-needs-key"), { role: "admin" }).action?.id).toBe("add-vps");
-    expect(placeRowText(row("works-on", "cc-needs-key"))).toBe("Connect your VPS in Settings to give bots their own private desktops. Add your VPS in Settings → Computer.");
+    expect(placeRowText(row("works-on", "cc-needs-key"))).toBe("Connect your own machine in Settings to give bots their own private desktops. Add your own machine in Settings → Computer.");
     expect(placeRowText(row("routine"))).toContain("Change where this routine runs.");
     expect(placeRowText(row("room"))).not.toContain("Try again.");
   });
