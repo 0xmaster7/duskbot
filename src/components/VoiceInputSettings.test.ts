@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { setLocale } from "@/lib/i18n";
+import { setLocale, t } from "@/lib/i18n";
 import type { VoiceDevice } from "@/lib/voice-input/engines";
 import type { InstanceInfo } from "@/state/store";
 import { cleanupConnections, engineNote, engineOptions, micStateFrom, VoiceKeyField } from "./VoiceInputSettings";
@@ -16,12 +16,12 @@ beforeEach(() => setLocale("en"));
 describe("Settings > Voice", () => {
   it("names the built-in engine for the device and lists only the services that run there", () => {
     const desktop = engineOptions(mac, "system");
-    expect(desktop[0]).toEqual({ value: "system", label: "Built-in (Mac)" });
+    expect(desktop[0]).toEqual({ value: "system", label: t("settings.voice.builtIn.mac") });
     expect(desktop.map((option) => option.value)).toContain("whisper-cpp");
     const phone = engineOptions(iphone, "system");
-    expect(phone[0]!.label).toBe("Built-in (iPhone)");
+    expect(phone[0]!.label).toBe(t("settings.voice.builtIn.iphone"));
     expect(phone.map((option) => option.value)).not.toContain("whisper-cpp");
-    expect(engineOptions(browser, "system")).toEqual([{ value: "system", label: "Built-in (browser)" }]);
+    expect(engineOptions(browser, "system")).toEqual([{ value: "system", label: t("settings.voice.builtIn.browser") }]);
     // a service picked elsewhere stays visible as the choice, with the note saying it is not used here
     expect(engineOptions(iphone, "whisper-cpp").map((option) => option.value)).toContain("whisper-cpp");
   });
@@ -58,14 +58,14 @@ describe("Settings > Voice", () => {
       const empty = renderToStaticMarkup(createElement(VoiceKeyField, { provider: "openai", saved: false }));
       expect(empty).toContain('type="password"');
       expect(empty).toMatch(/<label id="[^"]+" for="([^"]+)"[^>]*>OpenAI key<\/label>/);
-      expect(empty).toContain("Get a key");
-      expect(empty).not.toContain("Saved");
+      expect(empty).toContain(t("settings.voice.getKey"));
+      expect(empty).not.toContain(t("settings.voice.keySaved"));
       const saved = renderToStaticMarkup(createElement(VoiceKeyField, { provider: "openai", saved: true }));
       expect(saved).not.toContain("<input");
-      expect(saved).toContain("Saved");
+      expect(saved).toContain(t("settings.voice.keySaved"));
       expect(saved).toContain("data-voice-key-replace");
       expect(saved).toContain("data-voice-key-remove");
-      expect(renderToStaticMarkup(createElement(VoiceKeyField, { provider: "openai-compatible", saved: false, optional: true }))).toContain("Key (optional)");
+      expect(renderToStaticMarkup(createElement(VoiceKeyField, { provider: "openai-compatible", saved: false, optional: true }))).toContain(t("settings.voice.compatKey"));
     } finally {
       vi.unstubAllGlobals();
     }
