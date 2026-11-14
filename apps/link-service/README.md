@@ -553,6 +553,15 @@ tgz files keep serving installs already under way; delete them when no install f
   stamped and checked in the link service's time (its `Date` header) on the agent, the app and the phone, so a clock
   that drifts later does not silence the link.
 
+## The free backup AI
+
+The engines step also runs `duskbot free-backup install` as the server account: OpenCode's pinned build goes into the
+data folder through the same verified install Settings uses, so the free backup answers the first message with no
+download wait. A copy already there (the app's or one the person installed) is kept and nothing is downloaded. A failed
+download does not stop the install: the server's unit sets `DUSK_PREINSTALL_FREE_BACKUP=1`, so the server tries again
+in the background at every start. The desktop app's server and a dusk cloud home (its unit and the `cloud-home` image)
+set the same flag.
+
 ## The terminal
 
 install.sh opens with the wordmark decoding out of noise and one light sweep (about a second, one awk process), then

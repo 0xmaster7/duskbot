@@ -193,7 +193,10 @@ RUN export HOME=/tmp/dusk-build-home \
  && untrusted="$(find /app /usr/local/bin/caddy \( ! -user root -o ! -type l -perm /022 \) -print)" \
  && if [ -n "$untrusted" ]; then echo "not root's, or writable by others:" >&2; echo "$untrusted" >&2; exit 1; fi \
  && rm -rf /tmp/dusk-build-home
-ENV HOME=/data
+# OpenCode's pinned build, the free backup AI, goes into the volume at the
+# first start, in the background (server/free-backup.ts).
+ENV HOME=/data \
+    DUSK_PREINSTALL_FREE_BACKUP=1
 VOLUME ["/data"]
 EXPOSE 30000-30063/udp
 EXPOSE 8080

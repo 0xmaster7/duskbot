@@ -107,6 +107,7 @@ ConditionPathExists=${APP}/dist-server/cloud-home-start.js
 
 [Service]
 EnvironmentFile=${CLOUD_HOME.etc}/home.env
+Environment=DUSK_PREINSTALL_FREE_BACKUP=1
 ExecStart=${HOME_NODE_BIN} ${APP}/dist-server/cloud-home-start.js
 Restart=always
 RestartSec=3

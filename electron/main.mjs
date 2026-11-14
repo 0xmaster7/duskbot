@@ -1296,6 +1296,7 @@ async function startServerOn(port, dataDir = runningDataDir ?? startupEnvironmen
     DUSK_PORT: String(port),
     DUSK_APP_VERSION: app.getVersion(),
     DUSK_USER_DATA: app.getPath("userData"),
+    DUSK_PREINSTALL_FREE_BACKUP: "1",
     ...(secureCredentials.composioApiKey
       ? { COMPOSIO_API_KEY: secureCredentials.composioApiKey }
       : {}),

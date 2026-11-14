@@ -584,6 +584,9 @@ layers (Node, Chrome's libraries, agent-browser and its Chrome) and adds:
   image whose Grok sign-in cannot run; `--build-arg GROK_VERSION=` leaves it
   out on purpose;
 - the engine CLIs from `CLOUD_HOME_ENGINES` (default Claude Code and Codex);
+- `DUSK_PREINSTALL_FREE_BACKUP=1`, so the server downloads OpenCode's pinned
+  build, the free backup AI, into the volume in the background at its first
+  start;
 - the app files, root's, with `server/cloud-home-start.ts` (bundled to
   `dist-server/cloud-home-start.js`) as the entry point. The build fails if
   any file under `/app`, or Caddy, is not root's or is writable by others.

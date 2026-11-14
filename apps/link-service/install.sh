@@ -1193,9 +1193,18 @@ do_engines() {
   missing=""
   [ -x "$SVC_HOME/.local/bin/claude" ] || missing="$missing @anthropic-ai/claude-code"
   [ -x "$SVC_HOME/.local/bin/codex" ] || missing="$missing @openai/codex"
-  [ -n "$missing" ] || { echo "already installed"; return 0; }
-  # shellcheck disable=SC2086
-  retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" $missing
+  if [ -n "$missing" ]; then
+    # shellcheck disable=SC2086
+    retry as_user npm install --global --no-fund --no-audit --prefix "$SVC_HOME/.local" $missing || return 1
+  else
+    echo "already installed"
+  fi
+  do_free_backup
+}
+# opencode's pinned build, the free backup ai, so the first message never waits on its download. not fatal: the server
+# tries again at every start (DUSK_PREINSTALL_FREE_BACKUP in its unit)
+do_free_backup() {
+  retry as_user "$SVC_HOME/.local/bin/duskbot" free-backup install || echo "the free backup ai is not installed yet; the server tries again when it starts"
 }
 
 # writes a file only when it changed; returns 0 when it wrote
@@ -1248,6 +1257,7 @@ Environment=DUSK_BOT_BOX=required
 Environment=DUSK_BOX_CODE_ROOTS=$SVC_HOME/.local/bin:$SVC_HOME/.local/lib
 Environment=DUSK_VPS_DOCKER=local
 Environment=DOCKER_HOST=unix://$GATE_SOCK
+Environment=DUSK_PREINSTALL_FREE_BACKUP=1
 EnvironmentFile=-$ETC/engines.env
 ExecStart=$SVC_HOME/.local/bin/duskbot serve --port $PORT --no-pair --label $NAME$public
 Restart=always

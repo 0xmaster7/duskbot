@@ -47,6 +47,8 @@ const SERVER_ENV_NAMES = new Set([
   "DUSK_CLOUD_EXPORT_ONLY",
   // the direct screen path (server/screen-direct.ts): its UDP range, and the switch that turns it off
   "DUSK_SCREEN_DIRECT_PORTS", "DUSK_SCREEN_DIRECT",
+  // OpenCode's free backup downloaded at the first start, before the first message (server/free-backup.ts)
+  "DUSK_PREINSTALL_FREE_BACKUP",
 ]);
 export function serverEnvironmentAllowed(name: string): boolean {
   return SERVER_ENV_NAMES.has(name) || name.startsWith("LC_");

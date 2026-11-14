@@ -316,9 +316,24 @@ do_engines
       await execute();
       return (await readFile(join(dir, "calls"), "utf8")).trim().split("\n");
     });
-    expect(calls).toHaveLength(1);
-    expect(calls[0]).toContain("@openai/codex");
-    expect(calls[0]).not.toContain("@anthropic-ai/claude-code");
+    const npm = calls.filter((line) => line.startsWith("npm "));
+    expect(npm).toHaveLength(1);
+    expect(npm[0]).toContain("@openai/codex");
+    expect(npm[0]).not.toContain("@anthropic-ai/claude-code");
+    expect(calls.filter((line) => line.endsWith("/.local/bin/duskbot free-backup install"))).toHaveLength(2);
+  });
+
+  it("keeps going when the free backup ai cannot be downloaded", async () => {
+    const out = await fixture(`
+SVC_HOME=$TMP/home
+mkdir -p "$SVC_HOME/.local/bin"
+for cli in claude codex; do touch "$SVC_HOME/.local/bin/$cli"; chmod +x "$SVC_HOME/.local/bin/$cli"; done
+RETRY_WAITS=""
+as_user() { return 1; }
+do_engines && echo engines-ok
+`, async ({ run: execute }) => (await execute()).stdout);
+    expect(out).toContain("the free backup ai is not installed yet");
+    expect(out).toContain("engines-ok");
   });
 
   it("stops only installer-owned children after an explicit app cancellation", async () => {

@@ -577,6 +577,25 @@ export async function runBrowser(options: CliOptions, io: CliIo = defaultIo()): 
   return 0;
 }
 
+export async function runFreeBackup(argv: string[], io: CliIo = defaultIo(), env: NodeJS.ProcessEnv = process.env): Promise<number> {
+  const [action, flag, dir, ...extra] = argv;
+  if (action !== "install" || extra.length || (flag !== undefined && (flag !== "--data-dir" || !dir))) {
+    io.error("usage: duskbot free-backup install [--data-dir DIR]");
+    return 2;
+  }
+  const dataDir = dir ? resolve(dir) : dataDirFor(env.DUSK_DATA_DIR, homedir());
+  env.DUSK_DATA_DIR = dataDir;
+  const { registerEnginesBinDir } = await import("./engine-install.ts");
+  const { preinstallFreeBackup } = await import("./free-backup.ts");
+  registerEnginesBinDir(dataDir);
+  const result = await preinstallFreeBackup({ baseDir: dataDir });
+  if (result.outcome === "present") io.log("OpenCode is already installed.");
+  else if (result.outcome === "installed") io.log("OpenCode is installed.");
+  else if (result.outcome === "unsupported") io.log("OpenCode has no build for this computer, so the free backup AI stays off.");
+  else io.error(`OpenCode couldn't be installed: ${result.error ?? "unknown error"}`);
+  return result.outcome === "failed" ? 1 : 0;
+}
+
 export function serverEntry(here = HERE): { command: string; args: string[]; staticDir: string | null; skillsDir: string | null } {
   const bundled = join(here, "index.js");
   const root = resolve(here, "..");
@@ -939,6 +958,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     return runVpsOps(options, { log: (line) => console.log(line), error: (line) => console.error(line) });
   }
   if (argv[0] === "sentinel") return runSentinelCli(argv.slice(1));
+  if (argv[0] === "free-backup") return runFreeBackup(argv.slice(1));
   if (HEADLESS_VERB_NAMES.has(argv[0] ?? "") || (argv[0] === "help" && HEADLESS_VERB_NAMES.has(argv[1] ?? ""))) return (await import("./headless/main.ts")).runHeadless(argv);
   const options = parseArgs(argv);
   if ("error" in options) {
