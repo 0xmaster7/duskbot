@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import type { PageSize } from "./browser-page-size.ts";
 import { attachesToChrome, browserRuntimeEnv, type BrowserRuntime } from "./browser-runtime.ts";
 import { requestedSize } from "./browser/viewers/viewport.ts";
+import { threadOfTabLabel } from "./browser-thread-tabs.ts";
 import { closeBrowserSession } from "./browser-engine.ts";
 import { DialogWatch, localDevToolsUrl } from "./browser-dialogs.ts";
 import type { Cdp, CdpListeners } from "./browser-sites.ts";
@@ -133,7 +134,8 @@ export function normalizeBrowserLiveMessage(value: unknown): ObjectValue | null 
     return { type: "tabs", tabs: message.tabs.flatMap((value) => {
       const tab = object(value);
       if (!tab || typeof tab.tabId !== "string" || !/^t[1-9]\d{0,8}$/.test(tab.tabId)) return [];
-      return [{ tabId: tab.tabId, title: text(tab.title, 512) ? tab.title : "", url: displayUrl(tab.url), active: tab.active === true }];
+      const threadId = threadOfTabLabel(tab.label);
+      return [{ tabId: tab.tabId, title: text(tab.title, 512) ? tab.title : "", url: displayUrl(tab.url), active: tab.active === true, ...(threadId ? { threadId } : {}) }];
     }) };
   }
   if (message.type === "status" && typeof message.connected === "boolean") {

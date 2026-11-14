@@ -337,20 +337,20 @@ it("does not instruct use of a selected browser when no surface is mounted", () 
   expect(surfacePrompt({ computer: null, browser: true })).toContain("For online research");
 });
 
-it("sends web work to the built-in browser, with its own tabs, pictures and sign-in card, only when that browser is mounted", () => {
+it("splits reading the web from interactive work in the built-in browser, with its own tabs, pictures and sign-in card, only when that browser is mounted", () => {
   for (const mounted of [{ computer: null, browser: true }, { computer: "local", browser: true }] as const) {
     const text = surfacePrompt(mounted);
-    expect(text).toContain("not with WebFetch, a web-fetch helper agent, curl or wget");
-    expect(text).toContain("Open each site of a task in its own new tab");
-    expect(text).toContain("never the whole browser");
-    expect(text).toContain("agent_browser_screenshot shows the page to you alone, so in every web task call attach_file with screen true");
-    expect(text).toContain("close the tabs you opened for it");
+    expect(text).toContain("Find and read information with web search and page fetches");
+    expect(text).toContain("Use your built-in browser for anything interactive");
+    expect(text).toContain("keeps this conversation's pages in a tab of its own");
+    expect(text).toContain("never close the whole browser");
+    expect(text).toContain("every agent_browser_screenshot you take is also posted in the chat");
     expect(text).toContain("the Computer tab of your panel");
     expect(text).toContain("call request_sign_in");
-    expect(text).toContain("Never make local files or drafts in place of work the person asked for on a website");
+    expect(text).toContain("never make local files or drafts in place of work the person asked for on a website you can reach");
   }
-  expect(surfacePrompt({ computer: "cloud", browser: false })).not.toContain("not with WebFetch");
-  expect(surfacePrompt({ computer: null, browser: false })).not.toContain("not with WebFetch");
+  expect(surfacePrompt({ computer: "cloud", browser: false })).not.toContain("Use your built-in browser for anything interactive");
+  expect(surfacePrompt({ computer: null, browser: false })).not.toContain("Use your built-in browser for anything interactive");
 });
 
 describe("cloudPlaceRefusal", () => {

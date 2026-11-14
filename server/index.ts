@@ -441,7 +441,7 @@ import * as vps from "./vps-computer.ts";
 import { BoxDiskNotes, clearBoxScratch } from "./box-scratch.ts";
 import { vpsConfigForBot, vpsSshAliasForBot } from "./vps-hosts.ts";
 import { ROUTINE_RESTARTED, RoutineManager, type RoutineRun, type RoutineRunOn, type RoutineRunTrigger } from "./routines.ts"; import { routineRunsFor } from "./routine-run-window.ts"; import { batchSaves, flushDeferredSaves } from "./save-batch.ts";
-import { BROWSER_UPLOAD_TOOL, browserRuntimeEnv } from "./browser-runtime.ts";
+import { BROWSER_UPLOAD_TOOL, browserRuntimeEnv } from "./browser-runtime.ts"; import { BATCH_TOOL } from "./browser/tools.ts";
 import { BrowserUploadRefusal, uploadableFiles } from "./browser-upload.ts";
 import { listSignedInSites, signOutOfSites } from "./browser-sites.ts";
 import { HeldSecrets, LoginStore } from "./login-store.ts";
@@ -7421,6 +7421,7 @@ bus.subscribe((event: RuntimeEvent) => {
             ...(tokens ? { usage: { input: tokens.input ?? 0, output: tokens.output ?? 0, ...(typeof tokens.cachedInput === "number" ? { cachedInput: tokens.cachedInput } : {}), costUsd: event.cost ?? null } } : {}),
           }) : Promise.resolve();
         if (resourceOwner) settlingResourceOwners.set(resourceOwner.threadId, resourceOwner.generation);
+        if (bot && browserUsedInTurn.delete(event.threadId)) closeThreadTabsLater(bot.id, event.threadId);
         settlingTurns.add(event.threadId);
         liveTurnByThread.delete(event.threadId);
         const routineReportThread = routineRun ? routineSourceThread(routineRun) : null;
@@ -7437,7 +7438,7 @@ bus.subscribe((event: RuntimeEvent) => {
             finalScreenFrame(bot.id, event.threadId),
             new Promise<null>((resolve) => { timeout = setTimeout(() => resolve(null), SCREEN_SETTLE_TIMEOUT_MS); }),
           ]).then((frame) => {
-            if (frame && isCurrent()) {
+            if (frame && isCurrent() && !postedBotScreenshot(event.threadId, resourceOwner?.generation)) {
               store.insertMessageAfter(event.threadId, settleLeafId, { role: "bot", kind: "screen", png: frame.png, mime: frame.mime });
             }
           }).catch(() => {}).finally(() => {
@@ -8099,6 +8100,52 @@ function startScreenPoller(
   });
   entry.timer = setInterval(() => void entry.capture(), SCREEN_POLL_MS);
   screenPollers.set(threadId, entry);
+}
+
+/** A conversation's tabs close a little after its task ends, unless it waits on the person or someone watches the browser. */
+const browserUsedInTurn = new Set<string>();
+const threadTabTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const THREAD_TABS_GRACE_MS = 2 * 60_000;
+const THREAD_TABS_TRIES = 30;
+
+function closeThreadTabsLater(botId: string, threadId: string, tries = 0): void {
+  clearTimeout(threadTabTimers.get(threadId));
+  const timer = setTimeout(() => {
+    threadTabTimers.delete(threadId);
+    const bot = store.bot(botId);
+    if (!bot || threadBusy(botId, threadId) || coordinator.parkedDirect(threadId)) return;
+    const session = currentBrowserSession(botId, botForThread(botId, threadId)?.browserProfile, teamHost.browserAudience(threadId));
+    if (!session || !browserRunning(session, usedBrowserSessions.get(session))) return;
+    void browserRuntime.closeThreadTabs(session, threadId).then((outcome) => {
+      if (outcome === "closed") console.info(`browser ${session}: closed the tabs of a finished conversation`);
+      if (outcome === "kept" && tries < THREAD_TABS_TRIES) closeThreadTabsLater(botId, threadId, tries + 1);
+    }, () => {});
+  }, THREAD_TABS_GRACE_MS);
+  timer.unref?.();
+  threadTabTimers.set(threadId, timer);
+}
+
+/** A bot's own browser screenshots go into its chat too, a few a turn and never the same picture twice in a row. */
+const botScreenshots = new Map<string, { generation: string; count: number; hash: string }>();
+const BOT_SCREENSHOTS_PER_TURN = 4;
+
+function postBotScreenshot(threadId: string, generation: string, result: unknown, from?: { botId: string; name: string; color: string }): void {
+  const content = (result as { isError?: boolean; content?: unknown } | null)?.isError ? null : (result as { content?: unknown } | null)?.content;
+  const images = Array.isArray(content) ? content.filter((part): part is { type: "image"; data: string; mimeType: string } =>
+    part?.type === "image" && typeof part.data === "string" && part.data.length > 0 && (part.mimeType === "image/png" || part.mimeType === "image/jpeg")) : [];
+  for (const image of images) {
+    const prior = botScreenshots.get(threadId);
+    const turn = prior?.generation === generation ? prior : { generation, count: 0, hash: "" };
+    const hash = screenFrameHash(image.data);
+    if (turn.count >= BOT_SCREENSHOTS_PER_TURN) return;
+    if (hash === turn.hash) continue;
+    store.appendMessage(threadId, { role: "bot", kind: "screen", png: image.data, mime: image.mimeType, ...(from ? { from } : {}) });
+    botScreenshots.set(threadId, { generation, count: turn.count + 1, hash });
+  }
+}
+
+function postedBotScreenshot(threadId: string, generation: string | undefined): boolean {
+  return Boolean(generation) && botScreenshots.get(threadId)?.generation === generation;
 }
 
 /** The screen this turn works on, as it is now: its browser tab or its computer. */
@@ -13933,6 +13980,11 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
           }
         }, stepContext(bot, internalCapability, () => liveTurnByThread.get(internalCapability.threadId) ?? null));
         requireActiveInternalCapability(); if (body.method === "tools/call") { browserSeats.used(internalCapability, browser.session); if (!(result as { isError?: boolean })?.isError) noteVpsTurnActivity(internalCapability); }
+        if (body.method === "tools/call") browserUsedInTurn.add(internalCapability.threadId);
+        if (body.method === "tools/call" && (params?.name === "agent_browser_screenshot" || params?.name === BATCH_TOOL)) {
+          const source = connectorThread(bot.id, internalCapability.threadId);
+          postBotScreenshot(internalCapability.threadId, internalCapability.generation, result, source?.group ? { botId: bot.id, name: bot.name, color: bot.color } : undefined);
+        }
         const site = body.method === "tools/call" ? landingSite(params?.name, params?.arguments) : null;
         // Security: notes are read for the capability's own bot only, and never into a guest's or the Bot API's turn.
         const notes = site && bot.memoryEnabled !== false && !cloudGuestDriven(internalCapability.threadId) && !botApiThread(internalCapability.threadId)

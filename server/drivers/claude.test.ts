@@ -2460,16 +2460,6 @@ describe("ClaudeDriver turns (fake CLI)", () => {
     expect(JSON.parse(readFileSync(inherited, "utf8")).argv).not.toContain("--disallowedTools");
   });
 
-  it("leaves out WebFetch while dusk bot's browser is mounted, so pages are read where the person can watch", async () => {
-    const dump = join(scratch, "around-browser.json");
-    await create(undefined, { FAKE_CLAUDE_DUMP: dump });
-    await instance.adapter.sendTurn({ threadId: "t-around-browser", text: "read a page",
-      integrations: { browser: { command: process.execPath, args: ["fixture-browser"], env: {} } } });
-    await recorder.until((event) => event.type === "turn.completed");
-    const seen = JSON.parse(readFileSync(dump, "utf8"));
-    expect(seen.argv[seen.argv.indexOf("--disallowedTools") + 1].split(",")).toContain("WebFetch");
-  });
-
   it("passes an explicit empty available set to disable every Claude built-in", async () => {
     await create(undefined, {}, { tools: [], disallowedTools: [] });
     const dump = join(scratch, "no-builtins.json");

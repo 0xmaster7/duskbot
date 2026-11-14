@@ -251,6 +251,10 @@ export class RuntimeRouter {
     return target ? this.#chrome.service.withSecretInput(target, fn) : this.#old.withSecretInput(session, spec, fn, ctx);
   }
 
+  /** A finished conversation's tabs; the new browser keeps its own tabs and is not asked. */
+  closeThreadTabs(session: string, threadId: string): Promise<"closed" | "kept" | "none"> {
+    return this.#old.closeThreadTabs(session, threadId);
+  }
   heldBy(session: string): string | null {
     return this.#chrome.service.heldBy(session) ?? this.#old.heldBy(session);
   }
