@@ -2192,7 +2192,7 @@ function createWindow({ deferNavigation = false } = {}) {
       preload: path.join(__dirname, "preload.cjs"),
       additionalArguments: [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess),
         "--dusk-current-local-origin=1",
-        ...(accountApp() ? ["--dusk-company-desktop=1"] : []), ...(accountGateNeeded() ? ["--dusk-account-gate=1"] : []), `--dusk-app-version=${app.getVersion()}`],
+        ...(accountApp() ? ["--dusk-company-desktop=1"] : []), ...(accountApp() || accountGateNeeded() ? ["--dusk-account-gate=1"] : []), `--dusk-app-version=${app.getVersion()}`],
     },
   });
   mainWindow = win; hiddenStart = false; chromeRail.attach(win);
@@ -2944,7 +2944,7 @@ const placeInbox = createPlaceInboxWatch({ places: () => [{ id: LOCAL_ID, local:
 const railList = () => { ownHome?.refresh(); return railPlaces({ saved: environmentsState, waiting: placeInbox.waiting, home: homeWindow.cloudOrigin() ?? ownHome?.origin() ?? null, mine: myCloud(), state: desktopRemoteAccess ? null : cloudAccount?.state(), offers: entry => !desktopRemoteAccess && ownHome?.offers(entry) === true, cloudMoves: entry => Boolean(vpsCloudMove && !vpsCloudMove.away() && vpsLink.servers().some(server => server.id === entry.id)), accounts: accountRing.waiting() }); };
 // The rail as the window's own chrome (chrome-rail.mjs): this app's page beside every place's page, the one that lists.
 const chromeRail = createChromeRail({ createView: options => new WebContentsView(options), preload: path.join(__dirname, "preload.cjs"), log: slog, prefs: () => desktopPrefs, changed: () => rail.changed(),
-  args: () => [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess), "--dusk-current-local-origin=1", ...(accountApp() ? ["--dusk-company-desktop=1"] : []), ...(accountGateNeeded() ? ["--dusk-account-gate=1"] : []), `--dusk-app-version=${app.getVersion()}`],
+  args: () => [...desktopCompanionRendererArguments(rendererOrigin(), desktopRemoteAccess), "--dusk-current-local-origin=1", ...(accountApp() ? ["--dusk-company-desktop=1"] : []), ...(accountApp() || accountGateNeeded() ? ["--dusk-account-gate=1"] : []), `--dusk-app-version=${app.getVersion()}`],
   url: () => `${rendererOrigin()}${CHROME_RAIL_PATH}`, wanted: () => !desktopRemoteAccess && serverReady && railList().length > 0 });
 chromeRail.install(ipcMain);
 function railChanged() { chromeRail.refresh(); rail.changed(); void localUi?.refresh(); }
@@ -3398,7 +3398,7 @@ app.whenReady().then(async () => {
   if (desktopShutdownStarted) return;
   if (app.isPackaged && !desktopRemoteAccess) void ensureManagedDesktop().start().then(() => companyBackupSchedule.start()).catch(() => {});
   // Fresh local use never makes a Cloud request; start only restores an existing grant.
-  if ((app.isPackaged && !desktopRemoteAccess) || accountGateNeeded()) {
+  if (accountApp() || accountGateNeeded()) {
     cloudAccountRestoring = true;
     cloudAccountStarted = ensureCloudAccount().start().catch(() => {}).then(() => accountRing()?.start()).finally(() => { cloudAccountRestoring = false; });
   }

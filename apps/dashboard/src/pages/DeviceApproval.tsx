@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Monitor } from "@/icons";
+import { useCloud } from "../data/cloud";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
 import { navigate, useLocation } from "../lib/router";
@@ -20,6 +21,7 @@ export function tryAppLink(link: string) { try { const frame = document.createEl
 export function DeviceApprovalPage() {
   const { query } = useLocation();
   const { account, toast } = useSession();
+  const cloud = useCloud();
   const code = query.get("code") ?? "";
   const [found, setFound] = useState<Device | null>(null);
   const [state, setState] = useState<"loading" | "ask" | "approved" | "denied" | "missing">("loading");
@@ -40,6 +42,8 @@ export function DeviceApprovalPage() {
         // the app's account step said where to go: the plan checkout or billing; a plain sign-in stays here, with the way back
         if (found.next && found.next !== "/" && found.next.startsWith("/") && !found.next.startsWith("//")) {
           try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {}
+          // the app's own first run is this account's first run: the plans come next, not a second one here
+          if (cloud.account && !cloud.account.profile.onboarded) await cloud.finishOnboarding().catch(() => {});
           navigate(found.next, { replace: true }); return;
         }
         setState("approved"); tryAppLink(APP_LINK);

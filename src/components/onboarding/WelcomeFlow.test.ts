@@ -426,10 +426,18 @@ describe("on the desktop app", () => {
     expect(f.onDone).toHaveBeenCalledOnce();
   });
 
-  it("asks for a dusk bot account by Google or an emailed code, and goes on once signed in", async () => {
+  it("never asks for an account on this Mac's way where the app works without one", async () => {
+    desktop({ accountGate: { state: async () => ({ required: false, blocked: false, status: "signed-out" }), options: async () => ({ providers: ["google"], recovery: true }), onChange: () => () => {} } });
+    await show();
+    await choose("[data-funnel-place=mac]");
+    await pick("mac");
+    expect(step(), "straight on to the AI, signed out").toBe("ai");
+  });
+
+  it("where the install requires an account, asks for it by Google or an emailed code, and goes on once signed in", async () => {
     const gate = {
-      required: false, signedIn: false,
-      state: vi.fn(async () => ({ required: gate.required, blocked: false, status: gate.signedIn ? "connected" : "signed-out" })),
+      required: true, signedIn: false,
+      state: vi.fn(async () => ({ required: gate.required, blocked: !gate.signedIn, status: gate.signedIn ? "connected" : "signed-out" })),
       options: vi.fn(async () => ({ providers: ["google"], recovery: true })),
       signInStart: vi.fn(async (email: string) => ({ outcome: "sent", email, expiresAt: Date.now() + 600_000, resendAt: Date.now() + 30_000, signupOpen: true })),
       signInVerify: vi.fn(async () => { gate.signedIn = true; return { outcome: "signed-in" }; }),
@@ -444,7 +452,7 @@ describe("on the desktop app", () => {
     expect(title()).toBe("sign in to dusk bot");
     expect(text(), "no phone in the pitch while its app is hidden").toContain("Your account keeps dusk cloud and your bots in sync.");
     expect(button("continue with Google")).toBeDefined();
-    expect(button("continue without an account")).toBeDefined();
+    expect(button("continue without an account"), "required here").toBeUndefined();
     await type(host.querySelector<HTMLInputElement>("input[type=email]")!, "person@example.com");
     await press("email me a code");
     expect(gate.signInStart).toHaveBeenCalledWith("person@example.com");
@@ -457,12 +465,15 @@ describe("on the desktop app", () => {
 
   it("never offers to go on without an account where the app needs one", async () => {
     desktop({ accountGate: { state: async () => ({ required: true, blocked: true, status: "signed-out" }), options: async () => ({ providers: [], recovery: false }), onChange: () => () => {} } });
-    await show({ initialBeat: "account" });
+    await show();
+    await choose("[data-funnel-place=mac]");
+    await pick("mac");
     expect(step()).toBe("account");
     expect(button("continue without an account")).toBeUndefined();
     await key("Escape");
     expect(step()).toBe("account");
   });
+
 });
 
 describe("Dusk as the Chief", () => {

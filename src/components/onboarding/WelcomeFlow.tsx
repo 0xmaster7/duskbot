@@ -128,7 +128,10 @@ export function WelcomeFlow({
   const [notesLine, setNotesLine] = useState<string | null>(null);
 
   const saved = initialBeat ?? draft?.beat;
-  const stepsFor = (picked: FunnelPath | null) => funnelSteps({ account: Boolean(account) && !firstKnown.current?.signedIn, desktop, bring: offersMove,
+  // the desktop app works without an account: it is asked for in the browser where something needs one (dusk cloud's
+  // checkout, a server's link), so the run has an account step only where the install requires one
+  const accountStep = Boolean(account) && !firstKnown.current?.signedIn && (!desktop || firstKnown.current?.required === true);
+  const stepsFor = (picked: FunnelPath | null) => funnelSteps({ account: accountStep, desktop, bring: offersMove,
     path: picked, hello: window.duskDesktop?.remoteClient?.active !== true, phone: phoneAppEnabled() });
   const steps = stepsFor(path);
 

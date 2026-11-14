@@ -317,11 +317,11 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     expect(await p.client.enrollGrant()).toEqual({ enrollToken: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/), dashboardUrl: f.url });
   }, 30_000);
 
-  it("gates signed-out desktops, honors escape hatches and signs in through sanitized gate IPC", async () => {
-    expect(accountGateRequired({ env: {}, packaged: true, remote: false, custom: false })).toBe(true);
+  it("gates a desktop only where the install asks for an account, and signs in through sanitized gate IPC", async () => {
+    expect(accountGateRequired({ env: {}, packaged: true, remote: false, custom: false }), "the app works signed out").toBe(false);
     for (const custom of [false, true]) {
-      expect(accountGateRequired({ env: { DUSK_ALLOW_SIGNED_OUT: "1" }, packaged: true, remote: false, custom })).toBe(false);
-      for (const packaged of [false, true]) expect(accountGateRequired({ env: {}, packaged, remote: true, custom })).toBe(false);
+      expect(accountGateRequired({ env: { DUSK_REQUIRE_ACCOUNT: "1" }, packaged: true, remote: false, custom })).toBe(true);
+      for (const packaged of [false, true]) expect(accountGateRequired({ env: { DUSK_REQUIRE_ACCOUNT: "1" }, packaged, remote: true, custom })).toBe(false);
     }
     const d = await desktop(), ipc = fakeIpc(), sent = [];
     const gate = installAccountGate({ ...ipc, client: () => d.client, required: () => true,

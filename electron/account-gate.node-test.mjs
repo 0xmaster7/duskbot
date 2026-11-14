@@ -4,9 +4,9 @@ import test from "node:test";
 import vm from "node:vm";
 import { accountGateRequired, gateBlocks, installAccountGate } from "./account-gate.mjs";
 
-test("only local packaged or custom desktops require an account unless explicitly opted out", () => {
-  for (const packaged of [true, false]) for (const custom of [true, false]) for (const remote of [true, false]) for (const allow of [undefined, "0", "1"]) {
-    assert.equal(accountGateRequired({ env: { DUSK_ALLOW_SIGNED_OUT: allow }, packaged, custom, remote }), !remote && allow !== "1" && (packaged || custom));
+test("no desktop requires an account before the app unless the install asks for one (DUSK_REQUIRE_ACCOUNT=1), and never a remote page", () => {
+  for (const packaged of [true, false]) for (const custom of [true, false]) for (const remote of [true, false]) for (const want of [undefined, "0", "1"]) {
+    assert.equal(accountGateRequired({ env: { DUSK_REQUIRE_ACCOUNT: want }, packaged, custom, remote }), !remote && want === "1");
   }
 });
 
