@@ -106,7 +106,7 @@ node apps/dashboard/scripts/review-account.mjs production
 
 It signs in with the review code, grants the review cloud (never through Dodo), flags it, waits for it, pairs as the
 phone does, makes the demo bot, wires its AI when `DUSK_REVIEW_AI_OPENROUTER_KEY` is set, and checks a reply.
-Check: it ends with `the demo bot replied in Ns` and `done`.
+Check: it ends with `the demo AI replied in Ns` and `done`.
 Rollback: delete the review cloud with the ops delete above (the account itself is harmless).
 
 ## 6. APNs on the link service

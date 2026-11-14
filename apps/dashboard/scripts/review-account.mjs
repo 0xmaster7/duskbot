@@ -25,7 +25,7 @@ const BOT = {
   description: "A cheerful, patient helper for quick everyday things: answering questions, explaining ideas simply, drafting short messages, "
     + "making lists and plans, and brainstorming. Keeps replies short, warm and clear, uses plain words, and asks a quick question when a request is unclear.",
 };
-const PROMPT = "Hi Sunny! In one short sentence, what can you help me with?";
+const PROMPT = "Hi! In one short sentence, what can you help me with?";
 
 const [target, ...flags] = process.argv.slice(2);
 const origin = TARGETS[target];
@@ -112,8 +112,14 @@ async function pair(cloud) {
 }
 
 async function demoBot() {
-  const roster = must(await call(home.origin, "/api/bots?messages=0", { token: home.token }), "the bot list");
-  const existing = (roster.bots ?? []).find((bot) => bot.name === BOT.name);
+  const roster = must(await call(home.origin, "/api/bots?messages=20", { token: home.token }), "the bot list");
+  let existing = (roster.bots ?? []).find((bot) => bot.name === BOT.name);
+  // the reviewer opens a fresh chat: a demo bot that already holds someone's messages (an earlier check, a reviewer) is made again
+  if (existing && (existing.messages ?? []).some((m) => m.role === "user")) {
+    must(await call(home.origin, `/api/bots/${existing.id}`, { method: "DELETE", token: home.token }), "clearing the demo bot's chat");
+    log(`made the demo bot again so its chat starts fresh`);
+    existing = null;
+  }
   if (!existing) {
     const made = must(await call(home.origin, "/api/bots", { method: "POST", token: home.token, body: BOT }), "making the demo bot");
     log(`made the demo bot ${made.bot.id} (${BOT.name})`);
@@ -190,11 +196,27 @@ try {
   if (!cloud.entitlement) log("warning: the session carries no entitlement for the cloud");
   await pair(cloud);
   const botId = await demoBot();
-  const wired = await wireDemoAi((path, init = {}) => call(home.origin, path, { ...init, token: home.token }), { botId, ai });
+  const homeCall = (path, init = {}) => call(home.origin, path, { ...init, token: home.token });
+  const wired = await wireDemoAi(homeCall, { botId, ai });
   log(wired.wired ? `the demo bot answers through ${wired.model} on ${wired.provider}${wired.added ? " (engine added)" : ""}${wired.pointed ? " (bot switched to it)" : ""}` : `warning: ${wired.reason}`);
+  // every other bot on the cloud (its own pinned dusk bot) answers through the same AI, so any chat the reviewer opens replies
+  if (wired.wired) {
+    for (const other of must(await homeCall("/api/bots?messages=0"), "the bot list").bots ?? []) {
+      if (other.id === botId) continue;
+      const also = await wireDemoAi(homeCall, { botId: other.id, ai });
+      if (also.pointed) log(`${other.name} answers through ${also.model} too`);
+    }
+  }
   if (!flags.includes("--no-reply")) {
-    const answered = await reply(botId);
-    log(`the demo bot replied in ${answered.total}s: "${answered.text.slice(0, 160).replace(/\s+/g, " ")}"`);
+    // the check talks to a throwaway bot on the same AI, so the demo bot's chat stays as the reviewer should first see it
+    const check = must(await homeCall("/api/bots", { method: "POST", body: { name: "Reply check", title: "setup check", description: "Answers one setup check, then is deleted." } }), "making the check bot").bot.id;
+    try {
+      await wireDemoAi(homeCall, { botId: check, ai });
+      const answered = await reply(check);
+      log(`the demo AI replied in ${answered.total}s: "${answered.text.slice(0, 160).replace(/\s+/g, " ")}"`);
+    } finally {
+      await homeCall(`/api/bots/${check}`, { method: "DELETE" }).catch(() => {});
+    }
   }
   const cycles = Number(flags.find((flag) => flag.startsWith("--measure-wake="))?.split("=")[1] ?? (flags.includes("--measure-wake") ? 1 : 0));
   for (let cycle = 1; cycle <= cycles; cycle++) { log(`wake cycle ${cycle} of ${cycles}`); await measureWake(botId); }

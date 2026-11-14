@@ -148,7 +148,7 @@ Notes on specific guidelines:
   Settings, Account, Delete account.
 - Purchases: the app sells nothing and links to no purchase page.
 - Camera: only to scan the pairing code and to take a photo the person attaches to a message.
-- Microphone: only when the person dictates a message, records a voice note or starts a voice call with a bot.
+- Microphone: only while the person dictates a message to a bot.
 - Local network: the app connects to the person's own computer on their Wi-Fi when they pair on the same network.
 - Notifications: sent by the person's own workspace when a bot replies or asks something while the app is closed.
 - AI: replies come from the AI model the person connected on their own computer, with their own account there. The

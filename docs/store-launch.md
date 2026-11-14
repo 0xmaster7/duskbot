@@ -20,8 +20,8 @@ Apple (developer.apple.com and appstoreconnect.apple.com). Done on 2026-11-14:
   invited as an internal tester.
 - APNs key "dusk bot push" `P6RM334469` (Sandbox and Production, team scoped), in dusk.env as `APPLE_APNS_KEY_ID` and
   `APPLE_APNS_KEY_PATH`.
-- App Privacy published: Email Address, User ID, Device ID, Other User Content, all linked, App Functionality, no
-  tracking.
+- App Privacy: Name, Email Address, User ID, Device ID, Photos or Videos, Other User Content, all linked, App
+  Functionality, no tracking (Name and Photos or Videos added 2026-11-15).
 
 Left for you:
 
@@ -151,11 +151,13 @@ Tracking: **No**. Every type below is **linked to the person**, used for **App F
 | Data type | When | What it is |
 |---|---|---|
 | Contact Info: Email Address | when the person signs in | the account email |
+| Contact Info: Name | when the person signs in with Apple, Google or X and shares a name | the account's display name |
 | Identifiers: User ID | when the person signs in | the account id |
 | Identifiers: Device ID | when notifications are allowed | the APNs device token, so a notification can be sent |
+| User Content: Photos or Videos | when the bot runs on our servers and the person attaches a photo | the attached photo |
 | User Content: Other User Content | when the bot runs on our servers (a hosted computer or the review demo bot) | messages and files sent to that bot |
 
-Not collected: location, contacts, photos or videos (an attached photo goes to the person's own workspace), audio,
+Not collected: location, contacts, audio (dictation runs through Apple's speech recognition),
 browsing or search history, purchases, financial, health, usage data, diagnostics.
 
 Two switches that would change these answers, both off in the store build today:

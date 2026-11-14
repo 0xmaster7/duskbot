@@ -2,7 +2,7 @@
 export const LEGAL_LINKS = {
   privacy: "https://dusk.bot/privacy",
   terms: "https://dusk.bot/terms",
-  help: "https://dusk.bot/docs",
+  help: "https://dusk.bot/support",
 } as const;
 
 /** where a person reaches a human, and where a reported reply goes (App Store guideline 1.2: published contact) */
