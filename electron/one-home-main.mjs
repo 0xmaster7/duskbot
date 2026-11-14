@@ -233,6 +233,7 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
     open: (grant) => openOwnerSession({ origin: grant.origin, grant: async () => grant }, fetchImpl, { label: HOME_LABEL, background: false }),
     local: backupLocal,
     tempRoot: tempRoot(),
+    bringSignIns: true,
   });
   const keepHome = createHomeAgain({
     async exportGrant() {

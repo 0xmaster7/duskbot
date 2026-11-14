@@ -9,6 +9,7 @@ import { mkdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { bringSignInsHome, remotePlace, writes } from "./connector-sync.mjs";
 
 const STARTING_MS = 15_000;
 const NOT_HELD_MS = 5 * 60_000;
@@ -24,7 +25,7 @@ const sentence = (value) => (typeof value === "string" && value.trim() ? value.t
  *   tempRoot: string,
  * }} deps
  */
-export function createHomeAgain({ exportGrant, open, local, tempRoot }) {
+export function createHomeAgain({ exportGrant, open, local, tempRoot, bringSignIns = false }) {
   /** My Cloud's backup, taken and staged here, kept while this computer is too busy to restore it. */
   let staged = null;
 
@@ -36,6 +37,8 @@ export function createHomeAgain({ exportGrant, open, local, tempRoot }) {
       const manifest = await session.call("GET", "/api/cloud-send/manifest");
       const switches = Object.fromEntries((Array.isArray(manifest.body?.automations) ? manifest.body.automations : [])
         .filter((entry) => record(entry) && typeof entry.key === "string").map((entry) => [entry.key, entry.on === true]));
+      // a Cloud that ended: the sign-ins it holds come home first (a restore keeps this computer's own)
+      if (bringSignIns) await bringSignInsHome(remotePlace(session.call), writes(local.json)).catch(() => []);
       const exported = await session.call("POST", "/api/workspace-backup/export", { password, clientState: {} });
       if (!exported.ok || typeof exported.body?.id !== "string") throw new Error(sentence(exported.body?.error) ?? "My Cloud could not make its backup.");
       const download = await session.fetch(`/api/workspace-backup/download/${exported.body.id}`);

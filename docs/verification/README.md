@@ -124,6 +124,11 @@ The [move to My Cloud fixture](cloud-send.md) runs this computer's server and a
 Cloud home with the desktop's own wiring between them, and runs and checks the
 one-time move as main does.
 
+The [connectors fixture](connector-sync.md) runs the same two servers with a
+fake connector service and checks that a server and its sign-in connected on
+one side are connected and usable on the other, through the move, a sign-out,
+the way home and a removal.
+
 The [server of the person's own as home fixture](own-home.md) runs this
 computer's server and servers of the person's own with main's wiring for
 **Make <server> my home**: the move, routines that run once, this computer then
