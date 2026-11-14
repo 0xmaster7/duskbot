@@ -60,7 +60,7 @@ describe("a signed-out AI reads signed out everywhere, from the workspace's own 
     expect(document.querySelector('button[data-funnel-ai="copilot"]')).not.toBeNull();
   });
 
-  it("the card's Sign in opens the in-app sign-in on that AI's card, never a terminal step or Settings", async () => {
+  it("the card's Sign in opens Connect an AI on that AI's card with nothing running, never a terminal step or Settings", async () => {
     fixture.instances = [copilot(false)];
     await mount(createElement(FailedReplyCard, { rows: trailingRows([ask, refused]), botId: "dusk", threadId: "main", onRetry: vi.fn() }));
     const card = document.querySelector("[data-chat-error]")!;
@@ -70,6 +70,10 @@ describe("a signed-out AI reads signed out everywhere, from the workspace's own 
     await act(async () => buttons[0]!.click());
     expect(fixture.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "toggleAppSettings" }));
     expect(document.querySelector("[data-ai-cards]")).not.toBeNull();
-    expect(document.querySelector('button[data-funnel-ai="copilot"]')?.getAttribute("aria-pressed")).toBe("true");
+    // the person presses the card to sign in: it only takes the focus
+    const copilotCard = document.querySelector<HTMLButtonElement>('button[data-funnel-ai="copilot"]')!;
+    expect(copilotCard.getAttribute("aria-pressed")).toBe("false");
+    expect(document.activeElement).toBe(copilotCard);
+    expect(document.querySelector("[data-funnel-ai-connect]")).toBeNull();
   });
 });

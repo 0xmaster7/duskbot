@@ -139,7 +139,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
     const target = claudeUpdateTarget(lead.engine);
     if (target) { detail = null; update = <ClaudeUpdatePrompt instance={target} onRetry={retry} />; }
   } else if (lead.kind === "signed_out") {
-    // the same in-app sign-in as Connect an AI, started on this AI's card
+    // Connect an AI, opened on this AI's card; the person presses it to sign in
     const tile = lead.engine && aiTileOf(lead.engine);
     if (canOfferSignIn(lead.kind, lead.engine) || signInNotice) actions.push({ label: t("chat.notice.signIn"), onClick: () => tile ? setConnecting(tile) : dispatch(openEngines) });
     if (retry) actions.push({ label: t("failedReply.tryAgain"), onClick: retry });

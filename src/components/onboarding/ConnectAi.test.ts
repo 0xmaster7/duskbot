@@ -216,6 +216,20 @@ describe("connecting an AI on the first screen", () => {
     delete window.duskDesktop;
   });
 
+  it.each([undefined, "grok", "claude"])("opens with nothing running, whatever AI it was opened for (%s), until the person presses a card (their press is tested above)", async (start) => {
+    const onConnected = vi.fn();
+    await act(async () => { root.render(createElement(ConnectAiDialog, { tested: null, onClose: () => {}, start: start as never, onConnected })); });
+    await act(async () => {});
+    const pressed = [...document.body.querySelectorAll("button[data-funnel-ai]")].map((card) => card.getAttribute("aria-pressed"));
+    expect(pressed.length).toBeGreaterThan(0);
+    expect(pressed.every((value) => value === "false")).toBe(true);
+    expect(document.body.querySelector("[data-funnel-ai-connect]")).toBeNull();
+    expect(onConnected).not.toHaveBeenCalled();
+    // the AI it was opened for only takes the focus
+    if (start) expect(document.activeElement).toBe(document.body.querySelector(`button[data-funnel-ai="${start}"]`));
+    else expect(document.activeElement).toBe(document.body.querySelector("[data-connect-ai]"));
+  });
+
   it("opens as the Connect an AI dialog, which Escape closes and a click outside never does", async () => {
     const onClose = vi.fn();
     await act(async () => { root.render(createElement(ConnectAiDialog, { tested: null, onClose })); });

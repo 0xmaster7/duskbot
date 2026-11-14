@@ -17,8 +17,8 @@ import type { AiTileId } from "./funnel";
 /** Connecting an AI: the grid of AIs people already use (AiCards), the organization's sign-in where there is one, and a
  * link to every other provider (`onMore`). Until one has answered a test message (`tested`, from useWelcomeAi) it says
  * how that went: one that didn't answer says why, with Check again; OpenCode's free model is only ever a backup. */
-export function ConnectAi({ tested, onMore, start, onConnected }: { tested: WelcomeAiNow | null; onMore?: () => void;
-  start?: AiTileId; onConnected?: (tile: AiTileId) => void }) {
+export function ConnectAi({ tested, onMore, onConnected }: { tested: WelcomeAiNow | null; onMore?: () => void;
+  onConnected?: (tile: AiTileId) => void }) {
   const { state, dispatch } = useStore();
   const organisation = organisationSignIn(window.duskDesktop);
   const [failed, setFailed] = useState(false);
@@ -95,7 +95,7 @@ export function ConnectAi({ tested, onMore, start, onConnected }: { tested: Welc
       )}
       {failed && <p role="alert" className="mt-2 text-[13px] text-danger">{t("onboarding.engines.error")}</p>}
 
-      <AiCards tested={tested} onMore={onMore} start={start} onConnected={onConnected} className={connected || tested ? "mt-4" : undefined} />
+      <AiCards tested={tested} onMore={onMore} onConnected={onConnected} className={connected || tested ? "mt-4" : undefined} />
 
       {organisation && (
         <div className="mt-3 w-full overflow-hidden rounded-xl text-left">
@@ -120,14 +120,18 @@ export function ConnectAi({ tested, onMore, start, onConnected }: { tested: Welc
 }
 
 /** "Connect an AI" over the first screen, the chat or settings: the grid of AIs, and behind its link the model directory
- * for every other provider and API keys (`directory`: open on that). `start` opens with that AI's connect running, and
- * `onConnected` hears when it is connected (the model picker's Connect). */
+ * for every other provider and API keys (`directory`: open on that). `start` is the AI it was opened for: its
+ * card takes the focus, and nothing runs until the person presses it. `onConnected` hears when it is connected (the
+ * model picker's Connect). */
 export function ConnectAiDialog({ tested, directory = false, onClose, start, onConnected }: { tested: WelcomeAiNow | null; directory?: boolean;
   onClose: () => void; start?: AiTileId; onConnected?: (tile: AiTileId) => void }) {
   const [more, setMore] = useState(directory);
   const box = useRef<HTMLDivElement>(null);
-  // focus starts on the sheet itself, so Close does not open with its tooltip already showing
-  useEffect(() => { box.current?.focus({ preventScroll: true }); }, []);
+  // focus starts on the AI it was opened for, else on the sheet itself, so Close does not open with its tooltip already showing
+  useEffect(() => {
+    const card = start ? box.current?.querySelector<HTMLElement>(`button[data-funnel-ai="${start}"]`) : null;
+    (card ?? box.current)?.focus({ preventScroll: true });
+  }, []);
   return (
     <ModalLayer><div
       className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4"
@@ -168,7 +172,7 @@ export function ConnectAiDialog({ tested, directory = false, onClose, start, onC
             ? <div data-connect-ai-directory=""><ModelDirectory /></div>
             : <>
                 <Art name="plug" size="lg" className="mx-auto mb-4 block" />
-                <ConnectAi tested={tested} onMore={() => setMore(true)} start={start} onConnected={onConnected} />
+                <ConnectAi tested={tested} onMore={() => setMore(true)} onConnected={onConnected} />
               </>}
         </div>
       </div>
