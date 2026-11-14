@@ -160,10 +160,10 @@ function Body({ detail, titleId, onChange, pending }: { detail: UserDetail; titl
 
       <div className="mt-5 grid grid-cols-2 rounded-[18px] bg-card">
         <Cell label="plan" value={<span className="inline-flex items-center gap-2">{live ? live.plan ?? "custom" : "free"}{live && <ModeChip mode={live.mode} live />}</span>}
-          note={live ? (live.comp ? "comp, no billing" : `billed ${live.interval === "year" ? "yearly" : "monthly"}`) : "no plan right now"} />
+          note={live ? (live.comp && !live.dodo ? "comp, no billing" : `${live.comp ? "operator grant, " : ""}billed ${live.interval === "year" ? "yearly" : "monthly"}`) : "no plan right now"} />
         <Cell label="mrr" value={usd(mrr)} money note={live && !live.comp ? `${usd(live.totalCents)} a ${live.interval}` : undefined} />
         <Cell label="lifetime" value={usd(lifetime)} money note={`${n(paid.length)} payment${paid.length === 1 ? "" : "s"}`} />
-        <Cell label={live?.cancelAtPeriodEnd ? "ends" : live?.comp ? "comp ends" : "renews"} value={live ? (live.openEnded ? "open-ended" : live.periodEnd ? shortDay(live.periodEnd) : "-") : "-"}
+        <Cell label={live?.cancelAtPeriodEnd ? "ends" : live?.comp && !live.dodo ? "comp ends" : "renews"} value={live ? (live.openEnded ? "open-ended" : live.periodEnd ? shortDay(live.periodEnd) : "-") : "-"}
           note={live ? live.status.replace(/_/g, " ") : undefined} />
       </div>
 
@@ -248,12 +248,13 @@ function PlanLength({ detail, live, onChange, pending }: { detail: UserDetail; l
     } catch (err) { setError(reason(err)); }
     finally { setBusy(null); }
   };
+  const free = live.comp && !live.dodo;
   const current = live.openEnded ? null : live.periodEnd;
   const base = Math.max(current ?? Date.now(), Date.now());
   const shift = (months: number) => setDate(addMonths(date ?? base, months));
   const chosen = date ?? current;
   const canPick = !preview && busy === null;
-  const dodo = detail.billing.provider === "dodo";
+  const dodo = !!live.dodo;
   return (
     <section aria-labelledby="sheet-length" className="mt-5 rounded-[18px] bg-card p-1.5">
       <div className="flex items-center justify-between gap-2 px-2 pb-1 pt-1">
@@ -261,7 +262,7 @@ function PlanLength({ detail, live, onChange, pending }: { detail: UserDetail; l
         <span className="t-meta">{endLabel(live)}</span>
       </div>
       <div className="rounded-[14px] bg-pop px-3 py-1">
-        {!live.comp && (
+        {!free && (
           <div className="flex flex-wrap items-center justify-between gap-2 py-2.5">
             <span className="text-13 text-ink-2">billed</span>
             <Segmented<"month" | "year"> label="billing period" value={change?.action === "interval" ? change.interval : live.interval}
@@ -271,7 +272,7 @@ function PlanLength({ detail, live, onChange, pending }: { detail: UserDetail; l
         )}
         <div className="py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <label htmlFor={dateId} className="text-13 text-ink-2">{live.comp ? "comp ends" : "next renewal"}</label>
+            <label htmlFor={dateId} className="text-13 text-ink-2">{free ? "comp ends" : "next renewal"}</label>
             <input id={dateId} type="date" min={isoDay(Date.now() + DAY)} value={chosen ? isoDay(chosen) : ""} disabled={!canPick}
               onChange={(e) => { if (e.target.value) setDate(endOfDay(e.target.value)); }} className="field !h-9 !w-[156px] !px-3 !text-13" />
           </div>
@@ -279,7 +280,7 @@ function PlanLength({ detail, live, onChange, pending }: { detail: UserDetail; l
             <button type="button" disabled={!canPick} onClick={() => shift(-1)} className="hover-ghost h-8 rounded-full px-3 text-12 text-ink-2 disabled:opacity-50">-1 month</button>
             <button type="button" disabled={!canPick} onClick={() => shift(1)} className="hover-ghost h-8 rounded-full px-3 text-12 text-ink-2 disabled:opacity-50">+1 month</button>
             <button type="button" disabled={!canPick} onClick={() => shift(12)} className="hover-ghost h-8 rounded-full px-3 text-12 text-ink-2 disabled:opacity-50">+1 year</button>
-            {live.comp && !live.openEnded && <button type="button" disabled={!canPick} onClick={() => void review({ action: "set_end", until: null, subscription: live.id })} className="hover-ghost h-8 rounded-full px-3 text-12 text-ink-2 disabled:opacity-50">open-ended</button>}
+            {free && !live.openEnded && <button type="button" disabled={!canPick} onClick={() => void review({ action: "set_end", until: null, subscription: live.id })} className="hover-ghost h-8 rounded-full px-3 text-12 text-ink-2 disabled:opacity-50">open-ended</button>}
             {date !== null && date !== current && !preview && (
               <Button size="sm" variant="primary" className="ms-auto" disabled={busy !== null || date <= Date.now()} aria-busy={busy === "preview"}
                 onClick={() => void review({ action: "set_end", until: date, subscription: live.id })}>{busy === "preview" ? "checking" : "review change"}</Button>
@@ -311,7 +312,7 @@ function PlanLength({ detail, live, onChange, pending }: { detail: UserDetail; l
         </AnimatePresence>
       </div>
       <p className="px-2 pb-1 pt-2 text-12 text-ink-4">
-        {live.comp ? "a comp has no billing, so only its end date here moves." : dodo ? "changes go through dodo first. a billing period change charges or credits the difference; moving the renewal charges nothing now." : "billing here runs on a test provider; nothing real is charged."}
+        {free ? "a comp has no billing, so only its end date here moves." : dodo ? "changes go through dodo first. a billing period change charges or credits the difference; moving the renewal charges nothing now." : "billing here runs on a test provider; nothing real is charged."}
         {" "}every change is kept in the audit log.
       </p>
     </section>

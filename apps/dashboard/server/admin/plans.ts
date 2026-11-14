@@ -22,6 +22,8 @@ const invalid = (): never => { throw new PlanError(400, "invalid_request", "Inva
 export interface PlanSubscriptionRow {
   id: string; plan: string | null; bundle: string | null; interval: "month" | "year"; status: StoredSubscription["status"]; totalCents: number;
   periodStart: number | null; periodEnd: number | null; openEnded: boolean; cancelAtPeriodEnd: boolean; cloudId: string | null; source: string | null; comp: boolean; createdAt: number;
+  /** dodo bills it (an ops grant on dodo test mode too): its length moves at dodo, never only here */
+  dodo: boolean;
   /** test or live money: the provider's mode when it was made, else this server's */
   mode: "test" | "live";
 }
@@ -46,6 +48,11 @@ function until(value: unknown, now: number) {
 export function createPlanEditor(deps: { billing: Billing; now: () => number; audit(actor: string, action: string, target: string | null, detail: Detail): Promise<void> }) {
   const { billing, now } = deps;
   const stored = (id: string) => billing.store.state.subscriptions.find(sub => sub.id === id) ?? null;
+  /** dodo bills it: this server runs dodo, and the plan came through a dodo checkout rather than a preview-era fake one */
+  const dodoBilled = (sub: StoredSubscription) => billing.operator.provider === "dodo" && !!sub.providerSubscriptionId && !sub.review
+    && !billing.store.state.checkouts.find(row => row.id === sub.checkoutId)?.providerSessionId?.startsWith("fake_");
+  /** a comp with nothing billing it: its end lives only here */
+  const freeHere = (sub: StoredSubscription) => !dodoBilled(sub) && isComp(sub);
   const bundleOf = (accountId: string, id: string) => billing.service.subscriptions(accountId).find(view => view.id === id)?.bundle ?? null;
 
   function describe(sub: StoredSubscription | null) {
@@ -58,7 +65,7 @@ export function createPlanEditor(deps: { billing: Billing; now: () => number; au
       const sub = stored(view.id)!;
       return { id: sub.id, plan: labelOf(view.bundle), bundle: view.bundle, interval: sub.cart.interval, status: sub.status, totalCents: sub.totalCents,
         periodStart: sub.currentPeriodStart, periodEnd: sub.currentPeriodEnd, openEnded: openEnded(sub), cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-        cloudId: sub.cloudId, source: sub.source ?? null, comp: sub.review === true || COMP_SOURCES.includes(sub.source ?? ""), createdAt: sub.createdAt, mode: sub.mode ?? billing.operator.mode };
+        cloudId: sub.cloudId, source: sub.source ?? null, comp: sub.review === true || COMP_SOURCES.includes(sub.source ?? ""), createdAt: sub.createdAt, dodo: dodoBilled(sub), mode: sub.mode ?? billing.operator.mode };
     });
   }
   function info(): PlanBillingInfo {
@@ -79,15 +86,15 @@ export function createPlanEditor(deps: { billing: Billing; now: () => number; au
 
   const intervalOf = (value: unknown) => value === "month" || value === "year" ? value : invalid();
   function intervalAllowed(sub: StoredSubscription, interval: "month" | "year") {
-    if (isComp(sub)) throw new PlanError(409, "comp_no_billing", "A comp has no billing period to change. Move its end date instead.");
+    if (freeHere(sub)) throw new PlanError(409, "comp_no_billing", "A comp has no billing period to change. Move its end date instead.");
     if (sub.status !== "active" || sub.cancelAtPeriodEnd) throw new PlanError(409, "not_active", "Only an active plan that isn't set to cancel can change its billing period.");
     if (sub.cart.interval === interval) throw new PlanError(409, "already_on_plan", "They already pay that often.");
   }
   /** a comp's end lives only here; a paid plan's next renewal moves at the provider (dodo) and here, or here alone where a fake provider holds it */
   function endChange(account: AccountRef, sub: StoredSubscription, end: number | null): () => Promise<string | null> {
-    if (isComp(sub)) return async () => { billing.operator.setEnd(account, sub.id, end ?? OPEN_ENDED_AT); return sub.id; };
+    if (freeHere(sub)) return async () => { billing.operator.setEnd(account, sub.id, end ?? OPEN_ENDED_AT); return sub.id; };
     if (end === null) throw new PlanError(400, "invalid_request", "A paid plan always renews on a date.");
-    if (billing.operator.provider === "dodo") return async () => { await billing.service.moveRenewal(account, sub.id, end); return sub.id; };
+    if (dodoBilled(sub)) return async () => { await billing.service.moveRenewal(account, sub.id, end); return sub.id; };
     needGrants();
     return async () => { billing.operator.setEnd(account, sub.id, end); return sub.id; };
   }
@@ -100,7 +107,7 @@ export function createPlanEditor(deps: { billing: Billing; now: () => number; au
       intervalAllowed(sub, interval);
       const next = billing.service.quote({ ...sub.cart, interval });
       const charge = billing.service.previewChange(account, sub.id, next.cart, true).chargeNowCents;
-      const dodo = billing.operator.provider === "dodo";
+      const dodo = dodoBilled(sub);
       return { action: "interval", subscription: sub.id, before: `${plan}, ${every(sub.cart.interval)}, ${money(sub.totalCents)} a ${sub.cart.interval}, renews ${renews}`,
         after: `${plan}, ${every(interval)}, ${money(next.totalCents)} a ${interval}`, chargeNowCents: charge,
         effects: interval === "year"
@@ -109,12 +116,12 @@ export function createPlanEditor(deps: { billing: Billing; now: () => number; au
     }
     if (input.action === "set_end") {
       const end = until(input.until, now());
-      if (isComp(sub)) return { action: "set_end", subscription: sub.id, before: `${plan} comp, ${openEnded(sub) ? "open-ended" : `until ${renews}`}`, after: `${plan} comp, ${end === null ? "open-ended" : `until ${isoDay(end)}`}`,
+      if (freeHere(sub)) return { action: "set_end", subscription: sub.id, before: `${plan} comp, ${openEnded(sub) ? "open-ended" : `until ${renews}`}`, after: `${plan} comp, ${end === null ? "open-ended" : `until ${isoDay(end)}`}`,
         chargeNowCents: null, effects: ["a comp has no billing: only its end date here changes.", sub.cloudId ? "their cloud keeps running to the new end." : "nothing else changes."] };
       if (end === null) throw new PlanError(400, "invalid_request", "A paid plan always renews on a date.");
       const later = sub.currentPeriodEnd !== null && end > sub.currentPeriodEnd;
       return { action: "set_end", subscription: sub.id, before: `${plan}, ${every(sub.cart.interval)}, renews ${renews}`, after: `${plan}, ${every(sub.cart.interval)}, renews ${isoDay(end)}`, chargeNowCents: 0,
-        effects: [billing.operator.provider === "dodo" ? "dodo moves the next billing date. nothing is charged or refunded now." : "the next renewal moves here. nothing is charged or refunded now.",
+        effects: [dodoBilled(sub) ? "dodo moves the next billing date. nothing is charged or refunded now." : "the next renewal moves here. nothing is charged or refunded now.",
           later ? `the next charge, ${money(sub.totalCents)}, happens on ${isoDay(end)} instead: the extra days are free.` : `the next charge, ${money(sub.totalCents)}, comes early, on ${isoDay(end)}.`] };
     }
     return invalid();

@@ -213,6 +213,8 @@ describe("admin plan edits", () => {
     const stored = app.billing.store.state.checkouts.find(item => item.id === answer.checkoutId)!;
     for (const delivery of app.billing.fake!.complete(stored.providerSessionId!)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
     const sub = app.billing.store.state.subscriptions[0]!;
+    // as if dodo's own checkout made it (fake_ sessions are the preview era's, which dodo never bills)
+    stored.providerSessionId = "cks_dodo_test";
     const preview = async (body: Record<string, unknown>, expected = 200) => {
       const res = await call(`/v1/admin/users/${personId}/plan/preview`, { body: { subscription: sub.id, ...body }, cookie: admin });
       expect(res.status).toBe(expected);

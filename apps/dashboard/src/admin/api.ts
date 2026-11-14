@@ -110,6 +110,8 @@ export interface PlanSubscription {
   id: string; plan: string | null; bundle: string | null; interval: "month" | "year"; status: "pending" | "active" | "payment_problem" | "cancelled" | "ended"; totalCents: number;
   periodStart: number | null; periodEnd: number | null; openEnded: boolean; cancelAtPeriodEnd: boolean; cloudId: string | null; source: string | null; comp: boolean; createdAt: number;
   mode?: "test" | "live";
+  /** dodo bills it, so its length moves at dodo */
+  dodo?: boolean;
 }
 export type PlanChange =
   | { action: "grant"; plan: string; until: number | null }
