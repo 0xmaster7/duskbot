@@ -24,7 +24,8 @@
   "overrides": [
     {
       "files": [
-        "apps/dashboard/tracker/*.js"
+        "apps/dashboard/tracker/*.js",
+        "apps/site/public/landing/a.js"
       ],
       "rules": {
         "no-unused-vars": [
