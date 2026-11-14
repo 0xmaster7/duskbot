@@ -129,6 +129,21 @@ describe("alert throttling", () => {
     expect(listed.find(item => item.name === "TooManyClientErrors")!.count).toBe(50);
   });
 
+  it("a save that fails says why, masked, and keeps the counts for the next try", async () => {
+    const { incidents, store, lines } = setup();
+    const record = store.record;
+    store.record = async () => { throw Object.assign(new Error("connection to mongodb://dusk:hunter2@127.0.0.1:27017 timed out"), { name: "MongoNetworkError" }); };
+    incidents.report({ source: "server", name: "TypeError", message: "x", stack: stackAt(1) });
+    await incidents.flushNew();
+    const said = lines.find(line => line.startsWith("incidents could not be saved"));
+    expect(said).toMatch(/^incidents could not be saved \(MongoNetworkError: connection to .*timed out\); they are kept/);
+    expect(said).not.toMatch(/hunter2/);
+    store.record = record;
+    await incidents.flushNew();
+    await incidents.tick();
+    expect([...store.all.values()].map(item => item.count)).toEqual([1]);
+  });
+
   it("does not mail a muted problem, and does not re-mail open problems after a restart", async () => {
     const { time, mailer, incidents, store } = setup();
     const id = incidents.report({ source: "server", name: "Muted", message: "x", key: "m" })!;

@@ -7,6 +7,9 @@ import { incidentEmail } from "./email.ts";
 import type { IncidentMailKind } from "./email.ts";
 import type { Incident, IncidentSample, IncidentStore } from "./store.ts";
 
+/** A failure as one masked line: its name and what it said, never a connection string or an address. */
+const failure = (error: unknown) => (error instanceof Error ? `${error.name}: ${maskText(error.message, 160)}` : maskText(error, 160));
+
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
 /** the throttle rules; docs/LAUNCH.md "alerts" repeats them for the owner */
 export const RULES = {
@@ -162,7 +165,7 @@ export function createIncidents(options: IncidentsOptions) {
   function markMailed(ids: string[]) {
     const at = now();
     for (const id of ids) { const entry = entries.get(id); if (entry) { entry.incident.notifiedAt = at; entry.fast = false; } }
-    void save().then(() => store.notified(ids, at)).catch(() => log("could not mark incidents as mailed"));
+    void save().then(() => store.notified(ids, at)).catch((error: unknown) => log(`could not mark incidents as mailed (${failure(error)})`));
   }
 
   /** one email for the problems that opened in the last few seconds, within the daily caps; the rest wait for the daily email */
@@ -199,9 +202,10 @@ export function createIncidents(options: IncidentsOptions) {
     if (!dirty.length) return;
     const batch = dirty.map(entry => ({ sample: { ...entry.incident }, add: entry.unsaved, firstSeen: entry.incident.firstSeen }));
     for (const entry of dirty) entry.unsaved = 0;
-    saving = store.record(batch).catch(() => {
+    saving = store.record(batch).catch((error: unknown) => {
       for (const [index, entry] of dirty.entries()) entry.unsaved += batch[index]!.add;
-      log("incidents could not be saved; they are kept in memory and tried again");
+      // why, masked: without it nine of these on dusk.bot (2026-11-12) said nothing anyone could act on
+      log(`incidents could not be saved (${failure(error)}); they are kept in memory and tried again`);
     }).finally(() => { saving = null; });
     return saving;
   }
