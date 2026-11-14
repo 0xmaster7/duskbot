@@ -37,6 +37,7 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
     verifyWebhook: (headers, body) => verifyWebhook(secret, headers, body, now()),
     async cancelAtPeriodEnd(subscriptionId: string, cancel: boolean) { cancelCalls.push({ subscriptionId, cancel }); const sub = subscriptions.get(subscriptionId); if (sub) sub.cancel = cancel; },
     async cancelNow(subscriptionId: string) { cancelNowCalls.push(subscriptionId); subscriptions.delete(subscriptionId); },
+    async setNextBillingDate(subscriptionId: string, at: number) { const sub = subscriptions.get(subscriptionId); if (!sub) throw new BillingProviderError("refused"); sub.nextBillingAt = at; },
     async refundPayment(paymentId: string, reason: string) { if (!payments.has(paymentId)) throw new BillingProviderError("refused"); refundCalls.push({ paymentId, reason }); },
     async changePlan(input: ChangePlanInput) {
       changeCalls.push(structuredClone(input)); if (provider.failChangePlan) throw new BillingProviderError("unavailable");

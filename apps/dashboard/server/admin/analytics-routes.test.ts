@@ -140,9 +140,17 @@ describe("admin analytics routes", () => {
     for (const delivery of app.billing.fake!.complete(stored.providerSessionId!)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
     const total = app.billing.store.state.subscriptions[0]!.totalCents;
     type Revenue = Awaited<ReturnType<Routes["revenue"]>>;
-    const revenue = await read<Revenue>("/v1/admin/revenue", admin);
+    // the fake provider is test money: the live view (the default) leaves it out, and the totals keep the two apart
+    const live = await read<Revenue>("/v1/admin/revenue", admin);
+    expect(live).toMatchObject({ mode: "live", serverMode: "test", headline: { mrr: 0, customers: 0 }, customers: [],
+      modes: { live: { mrr: 0, customers: 0, gross: 0, payments: 0 }, test: { mrr: total, customers: 1, payments: 1 } } });
+    expect(app.billing.store.state.subscriptions[0]!.mode).toBe("test");
+    expect(app.billing.store.state.invoices[0]!.mode).toBe("test");
+    expect((await call("/v1/admin/revenue?mode=both", { cookie: admin })).status).toBe(400);
+    const revenue = await read<Revenue>("/v1/admin/revenue?mode=test", admin);
     expect(revenue.headline).toMatchObject({ mrr: total, arr: total * 12, customers: 1, arpu: total });
-    expect(revenue.customers[0]).toMatchObject({ accountId, email: OTHER, status: "active", channel: "ai", source: "ChatGPT", country: "DE" });
+    expect(revenue.customers[0]).toMatchObject({ accountId, email: OTHER, mode: "test", status: "active", channel: "ai", source: "ChatGPT", country: "DE" });
+    expect((await read<Revenue>("/v1/admin/revenue?mode=all", admin)).headline.mrr).toBe(total);
     expect(revenue.feed[0]).toMatchObject({ kind: "new", accountId, amountCents: total });
     expect(revenue.funnel.steps.map(step => step.count)).toEqual([1, 1, 1, 1, 0]);
     expect(revenue.sync).toEqual({ available: false, last: null });

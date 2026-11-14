@@ -74,6 +74,7 @@ export function createDodoProvider(options: DodoProviderOptions): BillingProvide
     verifyWebhook: (headers, body) => verifyWebhook(options.webhookSecret, headers, body, now()),
     async cancelAtPeriodEnd(id, cancel) { await request(`/subscriptions/${encodeURIComponent(id)}`, "PATCH", { cancel_at_next_billing_date: cancel }); },
     async cancelNow(id) { await request(`/subscriptions/${encodeURIComponent(id)}`, "PATCH", { status: "cancelled" }); },
+    async setNextBillingDate(id, at) { await request(`/subscriptions/${encodeURIComponent(id)}`, "PATCH", { next_billing_date: new Date(at).toISOString() }); },
     async refundPayment(paymentId, reason) { await request("/refunds", "POST", { payment_id: paymentId, reason }); },
     async changePlan(input) { await request(`/subscriptions/${encodeURIComponent(input.subscriptionId)}/change-plan`, "POST", { product_id: input.productId, quantity: 1, proration_billing_mode: "difference_immediately", on_payment_failure: "prevent_change", addons: input.addons.map(addon => ({ addon_id: addon.addonId, quantity: addon.quantity })) }); },
     // dodo (2026-11) has no discount field on PATCH /subscriptions; change-plan takes discount_codes, so the same

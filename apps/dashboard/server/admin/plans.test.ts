@@ -207,13 +207,46 @@ describe("admin plan edits", () => {
     expect(app.billing.store.state.subscriptions).toEqual([]);
   });
 
+  it("moves a paid plan from monthly to yearly and its next renewal, each previewed first and audited", async () => {
+    const bundle = BILLING_CONFIG.bundles.find(item => item.id === "starter")!;
+    const answer = await app.billing.service.checkout({ id: personId, email: OTHER }, { kind: "cart", cart: app.billing.service.quote({ ...bundle.cart, interval: "month" }).cart });
+    const stored = app.billing.store.state.checkouts.find(item => item.id === answer.checkoutId)!;
+    for (const delivery of app.billing.fake!.complete(stored.providerSessionId!)) app.billing.service.handleWebhook(delivery.headers, delivery.body);
+    const sub = app.billing.store.state.subscriptions[0]!;
+    const preview = async (body: Record<string, unknown>, expected = 200) => {
+      const res = await call(`/v1/admin/users/${personId}/plan/preview`, { body: { subscription: sub.id, ...body }, cookie: admin });
+      expect(res.status).toBe(expected);
+      return await res.json() as { before: string; after: string; chargeNowCents: number | null; effects: string[]; code?: string };
+    };
+    expect((await call(`/v1/admin/users/${personId}/plan/preview`, { body: { action: "interval", interval: "year", subscription: sub.id }, cookie: other })).status).toBe(403);
+    const yearly = await preview({ action: "interval", interval: "year" });
+    expect(yearly).toMatchObject({ before: expect.stringContaining("plus, monthly"), after: expect.stringContaining("plus, yearly") });
+    expect(yearly.chargeNowCents).toBeGreaterThan(0);
+    expect((await preview({ action: "interval", interval: "month" }, 409)).code).toBe("already_on_plan");
+    let profile = await edit({ action: "interval", interval: "year", subscription: sub.id });
+    expect(live(profile)).toMatchObject({ interval: "year", comp: false, mode: "test" });
+    expect(lastAudit(profile)).toMatchObject({ action: "plan.interval", detail: { ok: true, from: "month", interval: "year" } });
+
+    // on dodo the renewal moves at the provider first (PATCH next_billing_date), then here
+    app.billing.operator.provider = "dodo";
+    const later = live(profile).periodEnd! + 20 * DAY;
+    expect((await preview({ action: "set_end", until: later })).effects.join(" ")).toContain("dodo moves the next billing date");
+    expect((await edit({ action: "set_end", until: null, subscription: sub.id }, 400)).code).toBe("invalid_request");
+    profile = await edit({ action: "set_end", until: later, subscription: sub.id });
+    expect(live(profile).periodEnd).toBe(later);
+    expect(app.billing.fake!.subscriptions.get(sub.providerSubscriptionId!)!.nextBillingAt).toBe(later);
+    expect(lastAudit(profile)).toMatchObject({ action: "plan.set_end", detail: { ok: true, until: later } });
+  });
+
   it("answers grants_unavailable where no fake provider completes grants", async () => {
     app.billing.operator.grants = false;
     expect((await edit({ action: "grant", plan: "starter", until: null }, 409)).code).toBe("grants_unavailable");
     app.billing.operator.grants = true;
     await edit({ action: "grant", plan: "starter", until: null });
     app.billing.operator.grants = false;
-    expect((await edit({ action: "set_end", until: null }, 409)).code).toBe("grants_unavailable");
+    // a comp's end lives only here, so it moves on any provider
+    const until = time + 40 * DAY;
+    expect(lastAudit(await edit({ action: "set_end", until })).detail).toMatchObject({ ok: true, until });
     expect((await call(`/v1/admin/users/${personId}`, { cookie: admin }).then(res => res.json()) as Profile).billing.grants).toBe(false);
   });
 });

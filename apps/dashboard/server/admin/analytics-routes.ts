@@ -25,6 +25,7 @@ export class AnalyticsRouteError extends Error {
   status: number; code: string;
   constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; }
 }
+type MoneyMode = "test" | "live";
 const bad = (message = "Invalid request.") => new AnalyticsRouteError(400, "invalid_request", message);
 
 /** a window from the caller: from and to in ms (the page sends its own local midnight), at most 400 days */
@@ -363,7 +364,28 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   function subscriptionInput(activity: ReadonlyMap<string, number>): SubscriptionsInput {
     const state = moneyState();
     return { subscriptions: state.subscriptions, invoices: state.invoices, refunds: state.refunds ?? [], ledger: state.ledger ?? [], checkouts: state.checkouts, customers: state.customers,
-      accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt }])), activity, planOf, planLabel, now: now() };
+      accounts: new Map(auth.directory().accounts.map(account => [account.id, { email: account.email, createdAt: account.createdAt, name: account.name ?? null }])), activity, planOf, planLabel, now: now(),
+      modeOf: sub => sub.mode ?? serverMode() };
+  }
+  /** the money records this server holds were made in its provider's mode unless stamped otherwise: preview's dodo is test */
+  const serverMode = (): MoneyMode => billing.operator.mode ?? "live";
+  /** the report's records for one mode: test money never counts toward live numbers, or the other way */
+  function scoped(input: SubscriptionsInput, want: MoneyMode | "all"): SubscriptionsInput {
+    if (want === "all") return input;
+    const fallback = serverMode();
+    const subMode = new Map(input.subscriptions.map(sub => [sub.id, sub.mode ?? fallback]));
+    const payMode = new Map(input.invoices.map(row => [row.providerPaymentId, row.mode ?? (row.subscriptionId ? subMode.get(row.subscriptionId) : undefined) ?? fallback]));
+    const of = (subscriptionId: string | null | undefined, paymentId?: string | null) =>
+      (subscriptionId ? subMode.get(subscriptionId) : undefined) ?? (paymentId ? payMode.get(paymentId) : undefined) ?? fallback;
+    return { ...input, subscriptions: input.subscriptions.filter(sub => subMode.get(sub.id) === want),
+      invoices: input.invoices.filter(row => payMode.get(row.providerPaymentId) === want),
+      refunds: input.refunds.filter(row => (payMode.get(row.paymentId) ?? fallback) === want),
+      ledger: input.ledger.filter(row => of(row.subscriptionId, row.providerPaymentId) === want),
+      checkouts: input.checkouts.filter(row => of(row.subscriptionId) === want) };
+  }
+  function moneyTotals(input: SubscriptionsInput) {
+    const report = subscriptionReport(input);
+    return { mrr: report.headline.mrr, customers: report.headline.customers, gross: report.cash.gross, payments: report.cash.payments };
   }
   /** each paying customer's first touch, kept on the billing record once known so it outlives the raw events */
   function attribute(paying: ReadonlySet<string>, events: readonly StoredEvent[]) {
@@ -412,9 +434,12 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   async function revenue(url: URL) {
     const days = Number(url.searchParams.get("days") ?? "90");
     if (!Number.isInteger(days) || days < 7 || days > 400) throw bad();
-    const { input, history } = await revenueData();
-    const state = billing.store.state;
-    return { ...subscriptionReport(input), funnel: revenueFunnel(input, history, days), sync: { available: billing.operator.provider === "dodo", last: state.lastSync ?? null },
+    const asked = url.searchParams.get("mode") ?? "live";
+    if (asked !== "live" && asked !== "test" && asked !== "all") throw bad();
+    const { input: every, history } = await revenueData();
+    const input = scoped(every, asked), state = billing.store.state;
+    return { ...subscriptionReport(input), funnel: revenueFunnel(input, history, days), mode: asked, serverMode: serverMode(),
+      modes: { live: moneyTotals(scoped(every, "live")), test: moneyTotals(scoped(every, "test")) }, sync: { available: billing.operator.provider === "dodo", last: state.lastSync ?? null },
       cancelFlow: cancelFlowSummary(state.retention ?? [], now() - 90 * DAY, now() + 1) };
   }
   function ledgerSteps(accountId: string): Step[] {
@@ -438,5 +463,5 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     return note;
   }
 
-  return { revenue, customers: () => subscriptionReport(subscriptionInput(new Map())).customers, syncRevenue: () => billing.service.syncFromProvider(), web, webDetails, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, product, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
+  return { revenue, customers: () => subscriptionReport(scoped(subscriptionInput(new Map()), serverMode())).customers, syncRevenue: () => billing.service.syncFromProvider(), web, webDetails, funnel: funnelRoute, journeys, profile, realtime, retention: retentionRoute, app, product, saveNote, deleteNote: (id: string) => sink.deleteNote(id), isDimension: (value: string): value is Dimension => (DIMENSIONS as readonly string[]).includes(value) };
 }

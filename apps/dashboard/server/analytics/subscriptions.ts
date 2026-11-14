@@ -16,8 +16,10 @@ export interface SubscriptionsInput {
   refunds: ReadonlyArray<{ id: string; paymentId: string; amountCents: number; currency: string }>;
   ledger: readonly LedgerEntry[];
   checkouts: readonly StoredCheckout[];
-  customers: ReadonlyArray<{ accountId: string; attribution?: Attribution }>;
-  accounts: ReadonlyMap<string, { email: string; createdAt: number }>;
+  customers: ReadonlyArray<{ accountId: string; email?: string; attribution?: Attribution }>;
+  accounts: ReadonlyMap<string, { email: string; createdAt: number; name?: string | null }>;
+  /** test or live money for a subscription: the mode it was made in, else the server's; live where absent */
+  modeOf?(sub: StoredSubscription): "test" | "live";
   /** active days in the last 14 days, by account */
   activity: ReadonlyMap<string, number>;
   /** a subscription's plan name, and a ledger row's plan id as a name */
@@ -36,6 +38,9 @@ export const addMonths = (t: number, n: number) => { const d = new Date(t); retu
 export const monthLabel = (t: number) => new Date(t).toISOString().slice(0, 7);
 const isComp = (sub: Pick<StoredSubscription, "source" | "totalCents" | "review">) => sub.review === true || sub.source === "admin_comp" || sub.source === "ops_grant" || sub.totalCents === 0;
 export const monthlyCents = (sub: Pick<StoredSubscription, "source" | "totalCents" | "cart" | "review">) => isComp(sub) ? 0 : sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
+/** the account's email, or the one billing kept for it when the account is gone from the directory */
+export const emailOf = (input: Pick<SubscriptionsInput, "accounts" | "customers">, id: string | null) =>
+  !id ? null : input.accounts.get(id)?.email ?? input.customers.find(row => row.accountId === id)?.email ?? null;
 const ratio = (part: number, whole: number) => whole > 0 ? part / whole : null;
 const median = (values: number[]) => { if (!values.length) return null; const s = [...values].sort((a, b) => a - b), m = Math.floor(s.length / 2); return s.length % 2 ? s[m]! : Math.round((s[m - 1]! + s[m]!) / 2); };
 
@@ -253,7 +258,7 @@ export function dunningOf(input: Pick<SubscriptionsInput, "invoices" | "ledger">
 
 export type Health = "good" | "watch" | "risk" | "gone";
 export interface CustomerRow {
-  accountId: string; email: string | null; plan: string; interval: "month" | "year" | null;
+  accountId: string; email: string | null; name: string | null; mode: "test" | "live"; plan: string; interval: "month" | "year" | null;
   status: "active" | "past_due" | "on_hold" | "cancelling" | "churned" | "comped";
   mrr: number; ltv: number; payments: number; failed: number; refunds: number; firstPaidAt: number | null; renewsAt: number | null; churnedAt: number | null;
   /** their newest payment, before tax */
@@ -315,7 +320,7 @@ export function subscriptionReport(input: SubscriptionsInput) {
     const renewsAt = live.length && !sub.cancelAtPeriodEnd && sub.status !== "ended" ? sub.currentPeriodEnd : null;
     const health: Health = status === "churned" ? "gone" : status === "past_due" || status === "on_hold" || status === "cancelling" ? "risk"
       : status !== "comped" && days !== null && days <= 1 ? "watch" : "good";
-    rows.push({ accountId, email: input.accounts.get(accountId)?.email ?? null, plan: input.planOf(sub), interval: sub.cart.interval, status, mrr: mrrNow.get(accountId) ?? 0,
+    rows.push({ accountId, email: emailOf(input, accountId), name: input.accounts.get(accountId)?.name ?? null, mode: input.modeOf?.(sub) ?? sub.mode ?? "live", plan: input.planOf(sub), interval: sub.cart.interval, status, mrr: mrrNow.get(accountId) ?? 0,
       ltv: (paidBy.get(accountId) ?? 0) - (refundedBy.get(accountId) ?? 0), payments: paymentsBy.get(accountId) ?? 0, failed: failedBy.get(accountId) ?? 0,
       refunds: refundedBy.get(accountId) ?? 0, firstPaidAt: firstPaid.get(accountId) ?? null, renewsAt, churnedAt: live.length ? null : Math.max(...list.map(life => life.end ?? 0)),
       lastPaidAt: lastPaid.get(accountId)?.at ?? null, lastPaidCents: lastPaid.get(accountId)?.amountCents ?? null,
@@ -364,7 +369,7 @@ export function subscriptionReport(input: SubscriptionsInput) {
   const upcoming = lives.filter(life => !life.comp && (life.end === null || life.end > now) && life.sub.status === "active" && !life.sub.cancelAtPeriodEnd
     && life.sub.currentPeriodEnd !== null && life.sub.currentPeriodEnd >= now && life.sub.currentPeriodEnd < now + 30 * DAY)
     .sort((a, b) => a.sub.currentPeriodEnd! - b.sub.currentPeriodEnd!)
-    .map(life => ({ accountId: life.accountId, email: input.accounts.get(life.accountId)?.email ?? null, plan: input.planOf(life.sub), interval: life.sub.cart.interval, amountCents: life.sub.totalCents,
+    .map(life => ({ accountId: life.accountId, email: emailOf(input, life.accountId), plan: input.planOf(life.sub), interval: life.sub.cart.interval, amountCents: life.sub.totalCents,
       mrr: valueAt(life, now), at: life.sub.currentPeriodEnd!, activeDays: input.activity.get(life.accountId) ?? null }));
 
   const risk: RiskRow[] = [];
@@ -417,7 +422,7 @@ export type SubscriptionReport = ReturnType<typeof subscriptionReport>;
 
 /** the newest money moments: payments (new, renewal), failures, refunds, disputes, cancellations and plan changes */
 export function feedOf(input: SubscriptionsInput, pays: readonly Pay[], refunds: readonly Refund[], label: (plan: string | null) => string, limit = 80): FeedItem[] {
-  const email = (id: string | null) => id ? input.accounts.get(id)?.email ?? null : null;
+  const email = (id: string | null) => emailOf(input, id);
   const firstOfAccount = new Map<string, string>(), seenSub = new Set<string>();
   const items: FeedItem[] = [];
   for (const pay of pays) {

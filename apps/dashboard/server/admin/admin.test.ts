@@ -216,7 +216,7 @@ describe("admin panel api", () => {
     const measured = { runningSeconds: 4 * 3600, vcpuSeconds: 8 * 3600, memGiBSeconds: 16 * 3600, diskGiBSeconds: 20 * 4 * 3600, egressBytes: 0 };
     const row = (day: string) => ({ day, cloudId, accountId, serverId: "m1", ...measured, ...costOf(measured), collectedAt: time });
     await infra.put([row("2026-11-11"), row("2026-11-12"), row("2026-10-31")]);
-    const revenue = await (await call("/v1/admin/revenue", { cookie: admin })).json() as { customers: Array<{ accountId: string; mrr: number }> };
+    const revenue = await (await call("/v1/admin/revenue?mode=test", { cookie: admin })).json() as { customers: Array<{ accountId: string; mrr: number }> };
     const mrr = revenue.customers.find(c => c.accountId === accountId)!.mrr;
     expect(mrr).toBeGreaterThan(0);
     const answer = await (await call("/v1/admin/revenue/infra", { cookie: admin })).json() as { collected: boolean; month: string; days: number; customers: Array<Record<string, number | string | null>>; worst: Array<{ accountId: string }>; totals: Record<string, number>; awake: Array<{ label: string; clouds: number }> };

@@ -289,7 +289,8 @@ export function createAdmin(options: AdminOptions) {
       plan: planOf(id),
       subscriptions: plans.subscriptions(id),
       billing: plans.info(),
-      payments: billingState.invoices.filter(i => i.accountId === id).map(({ id: invoiceId, amountCents, currency, status, createdAt }) => ({ id: invoiceId, amountCents, currency, status, createdAt })),
+      payments: billingState.invoices.filter(i => i.accountId === id).sort((a, b) => b.createdAt - a.createdAt).map(({ id: invoiceId, amountCents, currency, status, createdAt, description, mode, subscriptionId }) =>
+        ({ id: invoiceId, amountCents, currency, status, createdAt, description, mode: mode ?? billingState.subscriptions.find(s => s.id === subscriptionId)?.mode ?? billing.operator.mode })),
       devices: sessions.filter(session => session.accountId === id).sort((a, b) => b.lastSeenAt - a.lastSeenAt)
         .map(({ id: sessionId, kind, name, platform, appVersion, createdAt, lastSeenAt }) => ({ id: sessionId, kind, name, platform, appVersion, createdAt, lastSeenAt })),
       clouds: clouds.map(c => cloudRow(c, emails)),
@@ -503,6 +504,12 @@ export function createAdmin(options: AdminOptions) {
     }
     if (method === "POST") {
       const planRoute = /^\/users\/([A-Za-z0-9_-]{1,80})\/plan$/.exec(route);
+      const previewRoute = /^\/users\/([A-Za-z0-9_-]{1,80})\/plan\/preview$/.exec(route);
+      if (previewRoute) {
+        const account = directory().accounts.find(item => item.id === previewRoute[1]);
+        if (!account) throw new AdminError(404, "not_found", "Not found.");
+        try { return send(plans.preview({ id: account.id, email: account.email }, options.bodyObject(await options.readBody(req)))); } catch (error) { return rethrow(error); }
+      }
       if (planRoute) {
         const account = directory().accounts.find(item => item.id === planRoute[1]);
         if (!account) throw new AdminError(404, "not_found", "Not found.");

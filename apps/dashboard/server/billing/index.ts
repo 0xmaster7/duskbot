@@ -140,7 +140,8 @@ export function createBilling(options: BillingOptions) {
   });
   const store = createBillingStore(options.dataDir);
   billingStore = store;
-  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify, onLedger: options.onLedger, onRetention: options.onRetention });
+  const mode = billingProvider === "dodo" && dodoMode === "live" ? "live" as const : "test" as const;
+  const service = createBillingService({ store, provider, clouds, config, publicUrl: url.origin, now, notify: options.notify, onLedger: options.onLedger, onRetention: options.onRetention, mode });
   if (options.accountExists) service.scrubDeleted(options.accountExists);
   // a deleted account's clouds left over from before (or by a failed step) are destroyed at start, then every 10 minutes
   service.destroyDeleted();
@@ -199,7 +200,7 @@ export function createBilling(options: BillingOptions) {
       };
     },
     /** the owner's plan edits: grants only where the fake provider completes them */
-    operator: { provider: billingProvider as "preview" | "fake" | "dodo" | "off", grants: completer !== null, grant, setEnd },
+    operator: { provider: billingProvider as "preview" | "fake" | "dodo" | "off", grants: completer !== null, grant, setEnd, mode },
     enabled: context.enabled, appRoutes: context.appRoutes, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, store, fake, fakePool,
     close() { clouds.close(); service.close(); },
   };

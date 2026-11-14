@@ -62,6 +62,8 @@ export interface BillingProvider {
   /** refunds a payment in full */
   refundPayment(paymentId: string, reason: string): Promise<void>;
   changePlan(input: ChangePlanInput): Promise<void>;
+  /** moves a live subscription's next renewal (dodo: PATCH next_billing_date, future dates only); nothing is charged or credited */
+  setNextBillingDate?(subscriptionId: string, at: number): Promise<void>;
   /** puts a one-use discount on a live subscription's coming renewals; resolves with the provider's discount code */
   applyDiscount(input: ApplyDiscountInput): Promise<{ code: string }>;
   /** a url the owner's browser may open for this payment's invoice */

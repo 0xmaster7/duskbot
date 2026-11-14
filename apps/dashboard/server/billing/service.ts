@@ -5,7 +5,7 @@ import type { CloudsService, DesktopPlan } from "../clouds/types.ts";
 import { BILLING_CONFIG, catalogView } from "./plans.ts";
 import type { BillingConfig } from "./plans.ts";
 import { changeCharge, dodoCart, dodoCartKeys, parseCart, quote, sameCart } from "./pricing.ts";
-import type { BillingStore, CloudAction, PendingChange, StoredCheckout, StoredSubscription } from "./store.ts";
+import type { BillingMode, BillingStore, CloudAction, PendingChange, StoredCheckout, StoredSubscription } from "./store.ts";
 import { BillingProviderError, SYNC_PAGE } from "./types.ts";
 import type { AccountRef, BillingEvent, BillingProvider } from "./types.ts";
 import type { WebhookHeaders } from "./webhook-signature.ts";
@@ -25,6 +25,8 @@ export interface BillingServiceOptions {
   onLedger?: (entry: LedgerEntry) => void;
   /** each cancel flow step, after it is stored; never throws into billing */
   onRetention?: (entry: { accountId: string } & RetentionInput) => void;
+  /** the provider's mode, stamped on each new subscription and payment: dodo test or live; the fake provider is test */
+  mode?: BillingMode;
 }
 /** the stay-on discount: once per account, on a monthly plan's next three renewals */
 export const RETENTION_DISCOUNT = { percent: 30, cycles: 3 } as const;
@@ -61,7 +63,8 @@ export function createBillingService(options: BillingServiceOptions) {
   const now = options.now ?? Date.now, random = options.random ?? (bytes => randomBytes(bytes).toString("base64url"));
   const publicUrl = guarded(() => new URL(options.publicUrl).origin)();
   state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= []; state.ledger ??= []; state.retention ??= []; state.retentionDiscounts ??= [];
-  const confirmations = new Map<string, { accountId: string; subscriptionId: string; cart: Cart; total: number; expiresAt: number; version: number }>();
+  const confirmations = new Map<string, { accountId: string; subscriptionId: string; cart: Cart; total: number; expiresAt: number; version: number; interval: boolean }>();
+  const mode: BillingMode = options.mode ?? "test";
   const queues = new Map<string, Promise<unknown>>();
   const id = (prefix: string) => `${prefix}_${random(16)}`;
   const copy = <T>(value: T): T => structuredClone(value);
@@ -211,7 +214,7 @@ export function createBillingService(options: BillingServiceOptions) {
     let sub = state.subscriptions.find(sub => sub.providerSubscriptionId === providerId);
     if (!sub && checkout.cart) {
       sub = { id: id("sub"), accountId: checkout.accountId, providerSubscriptionId: providerId, checkoutId: checkout.id, cart: copy(checkout.cart), totalCents: checkout.amountCents, lines: copy(checkout.lines),
-        status: "ended", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: true, createdAt: now(), updatedAt: now(), version: 0 };
+        status: "ended", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: true, createdAt: now(), updatedAt: now(), version: 0, mode };
       state.subscriptions.push(sub); checkout.subscriptionId = sub.id;
       for (const invoice of state.invoices) if (invoice.checkoutId === checkout.id && !invoice.subscriptionId) invoice.subscriptionId = sub.id;
     }
@@ -418,7 +421,7 @@ export function createBillingService(options: BillingServiceOptions) {
         cloudAction({ kind: "order", cloudId: checkout.cloudId, input: { ...desktopPlan(checkout.cart), accountId: checkout.accountId, name: previousCloud.name, color: previousCloud.color, region: checkout.cart.desktop.region! } });
       }
       sub = { id: id("sub"), accountId: checkout.accountId, providerSubscriptionId: event.subscriptionId, checkoutId: checkout.id, cart: copy(checkout.cart), totalCents: checkout.amountCents, lines: copy(checkout.lines),
-        status: "pending", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, createdAt: now(), updatedAt: now(), version: 0 };
+        status: "pending", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, createdAt: now(), updatedAt: now(), version: 0, mode };
       state.subscriptions.push(sub); checkout.subscriptionId = sub.id;
       for (const invoice of state.invoices) if (invoice.checkoutId === checkout.id && !invoice.subscriptionId) invoice.subscriptionId = sub.id;
     }
@@ -475,7 +478,7 @@ export function createBillingService(options: BillingServiceOptions) {
     if (!invoice) {
       invoice = { id: id("inv"), accountId: checkout.accountId, providerPaymentId: event.paymentId, subscriptionId: sub?.id ?? checkout.subscriptionId, checkoutId: checkout.id,
         amountCents: event.amountCents, ...taxOf(event), currency: event.currency, status: event.type === "succeeded" ? "paid" : "failed",
-        description: (sub?.lines ?? checkout.lines).filter(line => line.kind !== "discount").map(line => line.label).join(", "), createdAt: now() };
+        description: (sub?.lines ?? checkout.lines).filter(line => line.kind !== "discount").map(line => line.label).join(", "), createdAt: now(), mode };
       state.invoices.push(invoice);
       if (invoice.status === "paid") receipt(invoice, sub ?? null);
     } else if (event.type === "succeeded" && invoice.status === "failed") { Object.assign(invoice, { status: "paid", amountCents: event.amountCents, ...taxOf(event), currency: event.currency }); receipt(invoice, sub ?? null); }
@@ -735,7 +738,8 @@ export function createBillingService(options: BillingServiceOptions) {
     const sub = cloudId ? state.subscriptions.find(sub => sub.accountId === account.id && sub.cloudId === cloudId) : null;
     saveFeedback(account, cloudId, sub?.id ?? null, surveyOf(input.survey));
   }
-  function changeAllowed(account: AccountRef, sub: StoredSubscription, cart: Cart) {
+  /** `interval`: the operator may also move a plan between monthly and yearly (dodo: change-plan to the other interval's product) */
+  function changeAllowed(account: AccountRef, sub: StoredSubscription, cart: Cart, interval = false) {
     if (sub.status !== "active" || sub.currentPeriodEnd === null || sub.currentPeriodEnd <= now()) fail(409, "not_subscribed");
     if (state.subscriptions.some(other => other.accountId === account.id && other.pendingChange)) fail(409, "plan_change_unavailable");
     purchasable(cart); licenseAvailable(account.id, cart, sub.id);
@@ -744,17 +748,17 @@ export function createBillingService(options: BillingServiceOptions) {
       if (open) throw new BillingError(409, "checkout_open", open.url);
     }
     if (sameCart(sub.cart, cart)) fail(409, "already_on_plan");
-    if (cart.interval !== sub.cart.interval || (cart.desktop.kind !== "none" && sub.cart.desktop.kind !== "none" && desktopPlan(cart).placement !== desktopPlan(sub.cart).placement && !(sub.cloudId && clouds.movable?.(sub.cloudId, desktopPlan(cart))))
+    if (cart.interval !== sub.cart.interval && !interval || (cart.desktop.kind !== "none" && sub.cart.desktop.kind !== "none" && desktopPlan(cart).placement !== desktopPlan(sub.cart).placement && !(sub.cloudId && clouds.movable?.(sub.cloudId, desktopPlan(cart))))
       || (cart.desktop.kind !== "none" && sub.cart.desktop.kind !== "none" && cart.desktop.region !== sub.cart.desktop.region)) fail(409, "plan_change_unavailable");
     if (cart.desktop.kind !== "none" && sub.cart.desktop.kind === "none") cap(account.id);
     const license = state.licenses.find(license => license.id === sub.licenseId);
     if (license && cart.license.kind !== "none" && license.members.length > quote(cart, config).members) fail(409, "seats_full");
   }
-  function previewChange(account: AccountRef, subscriptionId: string, input: unknown): ChangePreview {
-    const sub = editable(account.id, subscriptionId), cart = parsed(input); changeAllowed(account, sub, cart);
+  function previewChange(account: AccountRef, subscriptionId: string, input: unknown, interval = false): ChangePreview {
+    const sub = editable(account.id, subscriptionId), cart = parsed(input); changeAllowed(account, sub, cart, interval);
     const priced = quote(cart, config), expiresAt = now() + 600_000, confirmation = random(32);
     for (const [token, preview] of confirmations) if (preview.expiresAt <= now() || preview.accountId === account.id && preview.subscriptionId === sub.id) confirmations.delete(token);
-    confirmations.set(confirmation, { accountId: account.id, subscriptionId, cart, total: priced.totalCents, expiresAt, version: sub.version });
+    confirmations.set(confirmation, { accountId: account.id, subscriptionId, cart, total: priced.totalCents, expiresAt, version: sub.version, interval });
     return { v: 1, quote: priced, chargeNowCents: changeCharge(sub.totalCents, priced.totalCents), confirmation, expiresAt };
   }
   async function change(account: AccountRef, subscriptionId: string, confirmation: string) {
@@ -766,7 +770,7 @@ export function createBillingService(options: BillingServiceOptions) {
       if (preview.expiresAt <= now() || preview.version !== sub.version) fail(409, "confirmation_required");
       const cart = preview.cart, priced = quote(cart, config);
       if (priced.totalCents !== preview.total) fail(409, "price_changed");
-      changeAllowed(account, sub, cart);
+      changeAllowed(account, sub, cart, preview.interval);
       const lines = providerCart(cart);
       const pending: PendingChange = { cart: copy(cart), totalCents: priced.totalCents, lines: priced.lines, products: copy(lines[0]), cloudId: cart.desktop.kind !== "none" && sub.cart.desktop.kind === "none" ? `c${randomBytes(12).toString("hex")}` : sub.cloudId };
       sub.pendingChange = pending;
@@ -790,8 +794,8 @@ export function createBillingService(options: BillingServiceOptions) {
     });
   }
   /** the operator's change of a live plan: the owner's own preview and change, without the round trip through their page */
-  async function operatorChange(account: AccountRef, subscriptionId: string, input: unknown) {
-    const changed = await change(account, subscriptionId, previewChange(account, subscriptionId, input).confirmation);
+  async function operatorChange(account: AccountRef, subscriptionId: string, input: unknown, interval = false) {
+    const changed = await change(account, subscriptionId, previewChange(account, subscriptionId, input, interval).confirmation);
     const sub = owned(account.id, subscriptionId);
     if (sub.source === "admin_comp" && sub.totalCents !== 0) { sub.totalCents = 0; sub.updatedAt = now(); sub.version++; store.commit(); return view(sub); }
     return changed;
@@ -810,6 +814,17 @@ export function createBillingService(options: BillingServiceOptions) {
       store.commit();
     } catch (error) { Object.assign(state, before); throw error; }
     flushCloudActions(); return view(sub);
+  }
+  /** the operator's move of a paid plan's next renewal, either way: the provider reschedules it (nothing is charged or
+   *  credited), then the period here follows */
+  async function moveRenewal(account: AccountRef, subscriptionId: string, until: number) {
+    return serialized(account.id, async () => {
+      const sub = editable(account.id, subscriptionId);
+      if (sub.status !== "active" || !Number.isSafeInteger(until) || until <= now() || until >= OPEN_ENDED_AT) fail(400, "invalid_request");
+      if (!provider.setNextBillingDate) fail(503, "unavailable");
+      await provider.setNextBillingDate(sub.providerSubscriptionId!, until);
+      return setPeriodEnd(account, subscriptionId, until);
+    });
   }
   /** ends a live plan today: the provider stops billing, and its cloud gets the usual grace from now */
   async function endNow(account: AccountRef, subscriptionId: string) {
@@ -962,7 +977,7 @@ export function createBillingService(options: BillingServiceOptions) {
       status: "completed", source: "ops_grant", createdAt: now(), openUntil: now(), subscriptionId: null, amountCents: 0, lines: priced.lines };
     const sub: StoredSubscription = { id: id("sub"), accountId: account.id, providerSubscriptionId: null, checkoutId: checkout.id, cart: copy(cart), totalCents: 0, lines: priced.lines,
       status: "active", source: "ops_grant", review: true, licenseId: null, cloudId: cloud.id, currentPeriodStart: now(), currentPeriodEnd: OPEN_ENDED_AT, cancelAtPeriodEnd: false,
-      createdAt: now(), updatedAt: now(), version: 0 };
+      createdAt: now(), updatedAt: now(), version: 0, mode };
     checkout.subscriptionId = sub.id;
     state.checkouts.push(checkout); state.subscriptions.push(sub);
     refreshLicense(sub, account.email);
@@ -997,7 +1012,7 @@ export function createBillingService(options: BillingServiceOptions) {
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),
     cancel: guarded((account: AccountRef, subscriptionId: string, survey?: CancelSurvey) => setCancel(account, subscriptionId, true, survey)), keep: guarded((account: AccountRef, subscriptionId: string) => setCancel(account, subscriptionId, false)),
     feedback: guarded(feedback), retentionStep: guarded(retentionStep), retentionDiscount: guarded(retentionDiscount), previewChange: guarded(previewChange), change: guarded(change),
-    operatorChange: guarded(operatorChange), setPeriodEnd: guarded(setPeriodEnd), endNow: guarded(endNow),
+    operatorChange: guarded(operatorChange), setPeriodEnd: guarded(setPeriodEnd), moveRenewal: guarded(moveRenewal), endNow: guarded(endNow), mode,
     updateCard: guarded(async (account: AccountRef, subscriptionId: string, path?: string) => { const url = returnUrl(path), sub = editable(account.id, subscriptionId); return provider.updatePaymentMethod(sub.providerSubscriptionId!, url); }),
     invoices: guarded(invoices), invoiceDownload: guarded(invoiceDownload), overview: guarded(overview), appState: guarded(appState), close: guarded(() => { clearInterval(retryCloudActions); clearInterval(sweepDeleted); confirmations.clear(); store.close(); }),
   };
