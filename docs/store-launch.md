@@ -24,6 +24,11 @@ Left for you:
 1. Accept the TestFlight invite email, install the TestFlight app, install dusk bot, and test it on your iPhone.
 2. Keys (developer account): make an APNs key (.p8) for push and give it to the link service (`docs/phone-push.md`).
 3. App Privacy in App Store Connect (the API cannot set it): answers in "App Privacy" below.
+
+The listing text, URLs, categories, age rating answers, review notes and the 6.9-inch screenshots are already in App
+Store Connect, applied from `apps/mobile/store/app-store.json` with `node apps/mobile/scripts/asc.mjs metadata` and
+`node apps/mobile/scripts/asc.mjs screenshots docs/store/ios/6.9`. Change that file and rerun rather than editing in the
+browser, so the two stay the same.
 4. Fill the review contact (name, email, phone) and the demo account in App Review Information.
 5. Attach the build to version 1.0 and Submit for Review, when the checklist under "Review risks" is green.
 

@@ -1,0 +1,44 @@
+{
+  "_comment": "the App Store listing for bot.dusk.mobile; node apps/mobile/scripts/asc.mjs metadata applies it. Keep in step with docs/store-launch.md.",
+  "appInfo": {
+    "name": "dusk bot",
+    "subtitle": "Text your team of AI bots",
+    "privacyPolicyUrl": "https://dusk.bot/privacy",
+    "primaryCategory": "PRODUCTIVITY",
+    "secondaryCategory": "UTILITIES"
+  },
+  "version": {
+    "copyright": "2026 Siddharth Meena",
+    "description": "dusk bot is your own team of AI bots, and this app puts them in your pocket.\n\nYour bots run on your computer or server, where they do real work: read and answer email, book things, keep an eye on\nyour site, run your routines. This app is how you stay in touch with them when you are away from your desk.\n\nWHAT YOU CAN DO\n- Text any bot like a teammate and read its reply the moment it lands\n- Put a few bots in one room and let them split the work\n- Say yes or no when a bot asks before it does something that matters\n- Get a notification when a bot finishes or needs you\n- See your routines and switch them on or off\n- Keep writing with no signal: messages wait and send once you are back\n- Start a new bot from your phone\n\nHOW IT WORKS\nPair the app once by scanning the code dusk bot shows on your computer, or sign in to your dusk bot account. From then on\nyour phone talks to your bots directly, or through an end-to-end encrypted link when you are away.\n\nPRIVATE BY DESIGN\n- No ads, no tracking, no analytics\n- Your chats stay with your bots, not on our servers\n- Your pairing is kept in the iPhone Keychain\n\nYou choose which AI your bots use, on your computer. Before anything you write goes to an AI provider, the app tells you\nwho receives it and asks you first.",
+    "keywords": "ai,agents,assistant,automation,remote,tasks,routines,approvals,chat,team,productivity,companion",
+    "promotionalText": "Your AI bots keep working on your computer while you are out. Text them, approve what matters, and get a ping when the work is done.",
+    "supportUrl": "https://dusk.bot/support",
+    "marketingUrl": "https://dusk.bot"
+  },
+  "reviewNotes": "dusk bot for iPhone is the remote control for a person's own AI bots. The bots run on the person's own computer or\nserver, or on a dusk cloud computer we host, and do the work there; the phone sends messages, shows replies and lets\nthe person approve actions. Nothing runs on the phone except the interface, which is bundled in the app.\n\nPairing your own computer needs no account: the first screen offers \"scan QR code\" and \"enter a link or code\". Only a\ndusk cloud needs sign-in, through the quieter \"Have a dusk cloud? Log in\" link. The review account below has a dusk\ncloud with one demo bot, so you can use the app without a computer of your own.\n\nDEMO ACCOUNT\nEmail: [REVIEW EMAIL]\nSign-in code: [REVIEW CODE, 8 digits, fixed for this account; no email is sent]\nThe bot may take about 15 seconds to wake the first time.\n\nSTEPS\n1. Launch the app. Tap \"Have a dusk cloud? Log in\", then \"email\", enter the review email, then the code above.\n2. The home screen lists the demo bot. Tap it to open its chat and send a message.\n3. Before the first message goes out, the app shows \"before you chat\": who receives what you write (the computer\n   running the bots, the AI they use, apps connected to the bots, our relay). Tap \"allow\". \"not now\" keeps the app\n   usable for reading and settings.\n4. When the bot asks before acting, an approval card appears in the chat: tap \"Allow once\" or \"Deny\".\n5. Long-press a bot's reply and tap \"Report this reply\" to report it.\n6. Tap the profile button (top left) for Settings: routines, appearance, notifications, privacy policy, terms,\n   \"contact us\".\n7. Delete the account: Settings, \"delete account\", then \"delete my account\". It deletes the account right away and\n   revokes Sign in with Apple.\n\nNATIVE FEATURES\nCamera QR pairing (custom AVFoundation scanner), Keychain storage of the pairing, Sign in with Apple in the system\nsheet, push notifications for replies and approvals, haptics, the system share sheet, an offline outbox that sends when\nthe connection returns, a local network connection to the person's own computer on the same Wi-Fi.\n\nNOTES\n- Purchases: the app sells nothing and shows no prices, plans or links to buy. dusk cloud is set up on the website.\n- Camera: only for the pairing code and photos the person attaches. Microphone: only for dictation and voice notes.\n  Local network: only to reach the person's own computer.\n- AI: replies come from the AI provider connected on the computer running the bots. The app asks before sending.\n- Chats are private to the person; there is no public or person-to-person content.",
+  "ageRating": {
+    "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+    "contests": "NONE",
+    "gamblingSimulated": "NONE",
+    "gunsOrOtherWeapons": "NONE",
+    "horrorOrFearThemes": "NONE",
+    "matureOrSuggestiveThemes": "NONE",
+    "medicalOrTreatmentInformation": "NONE",
+    "profanityOrCrudeHumor": "NONE",
+    "sexualContentGraphicAndNudity": "NONE",
+    "sexualContentOrNudity": "NONE",
+    "violenceCartoonOrFantasy": "NONE",
+    "violenceRealistic": "NONE",
+    "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+    "advertising": false,
+    "ageAssurance": false,
+    "gambling": false,
+    "healthOrWellnessTopics": false,
+    "lootBox": false,
+    "messagingAndChat": true,
+    "parentalControls": false,
+    "socialMedia": false,
+    "unrestrictedWebAccess": true,
+    "userGeneratedContent": false
+  }
+}

@@ -3,13 +3,15 @@
 //
 //   node apps/mobile/scripts/asc.mjs status                  the app record and its latest builds
 //   node apps/mobile/scripts/asc.mjs testflight [email...]   make the internal group (all builds) and add testers
+//   node apps/mobile/scripts/asc.mjs metadata                listing, categories, age rating, review notes (store/app-store.json)
+//   node apps/mobile/scripts/asc.mjs screenshots <dir> [type] replace the en-US screenshots (default APP_IPHONE_67)
 //
 // Reads APPLE_API_KEY_ID, APPLE_API_ISSUER, APPLE_API_KEY_PATH from the environment, else ~/.config/duskbot/dusk.env.
 // Never prints the key or the token.
-import { createPrivateKey, sign } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash, createPrivateKey, sign } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 const BUNDLE_ID = "bot.dusk.mobile";
 const GROUP = "dusk team";
@@ -101,6 +103,69 @@ async function storeProfile(certId, outPath, name = "dusk bot App Store") {
   console.log(`profile ${data.id} "${data.attributes.name}" (${data.attributes.uuid}), expires ${data.attributes.expirationDate}, written to ${outPath}`);
 }
 
+/** the version being prepared (the one App Review will see) and its en-US localization */
+async function editableVersion(appId) {
+  const res = await call("GET", `/v1/apps/${appId}/appStoreVersions?filter[appStoreState]=PREPARE_FOR_SUBMISSION,DEVELOPER_REJECTED,REJECTED,METADATA_REJECTED&include=appStoreVersionLocalizations&limit=5`);
+  const version = res.data[0];
+  if (!version) throw new Error("no editable App Store version (one in Prepare for Submission)");
+  const local = (res.included ?? []).find((one) => one.type === "appStoreVersionLocalizations" && one.attributes.locale === "en-US");
+  if (!local) throw new Error("the version has no en-US localization");
+  return { version, local };
+}
+
+/** applies apps/mobile/store/app-store.json: name, subtitle, privacy URL, categories, age rating, the version's text and URLs, review notes */
+async function metadata(file) {
+  const want = JSON.parse(readFileSync(file, "utf8"));
+  const one = await app();
+  const infos = await call("GET", `/v1/apps/${one.id}/appInfos?include=appInfoLocalizations,ageRatingDeclaration`);
+  const info = infos.data.find((i) => (i.attributes.state ?? i.attributes.appStoreState) !== "READY_FOR_DISTRIBUTION") ?? infos.data[0];
+  const infoLocal = infos.included.find((i) => i.type === "appInfoLocalizations" && i.attributes.locale === "en-US");
+  const rating = infos.included.find((i) => i.type === "ageRatingDeclarations");
+  const { name, subtitle, privacyPolicyUrl, primaryCategory, secondaryCategory } = want.appInfo;
+  await call("PATCH", `/v1/appInfoLocalizations/${infoLocal.id}`, { data: { type: "appInfoLocalizations", id: infoLocal.id, attributes: { name, subtitle, privacyPolicyUrl } } });
+  console.log("app info: name, subtitle, privacy policy URL");
+  await call("PATCH", `/v1/appInfos/${info.id}`, { data: { type: "appInfos", id: info.id, relationships: {
+    primaryCategory: { data: { type: "appCategories", id: primaryCategory } }, secondaryCategory: { data: { type: "appCategories", id: secondaryCategory } } } } });
+  console.log(`categories: ${primaryCategory}, ${secondaryCategory}`);
+  await call("PATCH", `/v1/ageRatingDeclarations/${rating.id}`, { data: { type: "ageRatingDeclarations", id: rating.id, attributes: want.ageRating } });
+  console.log("age rating answers");
+  const { version, local } = await editableVersion(one.id);
+  const { copyright, ...text } = want.version;
+  await call("PATCH", `/v1/appStoreVersions/${version.id}`, { data: { type: "appStoreVersions", id: version.id, attributes: { copyright } } });
+  await call("PATCH", `/v1/appStoreVersionLocalizations/${local.id}`, { data: { type: "appStoreVersionLocalizations", id: local.id, attributes: text } });
+  console.log(`version ${version.attributes.versionString}: copyright, description, keywords, promotional text, support and marketing URLs`);
+  // only the notes: the contact and the demo account are filled by hand
+  const detail = await call("GET", `/v1/appStoreVersions/${version.id}/appStoreReviewDetail`).catch(() => ({ data: null }));
+  if (detail.data) await call("PATCH", `/v1/appStoreReviewDetails/${detail.data.id}`, { data: { type: "appStoreReviewDetails", id: detail.data.id, attributes: { notes: want.reviewNotes } } });
+  else await call("POST", "/v1/appStoreReviewDetails", { data: { type: "appStoreReviewDetails", attributes: { notes: want.reviewNotes }, relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: version.id } } } } });
+  console.log("review notes");
+}
+
+/** replaces the en-US screenshots of one display type with the PNGs in dir, in file name order */
+async function screenshots(dir, displayType) {
+  const files = readdirSync(dir).filter((name) => name.endsWith(".png")).sort().map((name) => join(dir, name));
+  if (!files.length) throw new Error(`no PNGs in ${dir}`);
+  const { local } = await editableVersion((await app()).id);
+  const sets = await call("GET", `/v1/appStoreVersionLocalizations/${local.id}/appScreenshotSets?include=appScreenshots`);
+  let set = sets.data.find((one) => one.attributes.screenshotDisplayType === displayType);
+  if (!set) ({ data: set } = await call("POST", "/v1/appScreenshotSets", { data: { type: "appScreenshotSets", attributes: { screenshotDisplayType: displayType }, relationships: { appStoreVersionLocalization: { data: { type: "appStoreVersionLocalizations", id: local.id } } } } }));
+  for (const old of set.relationships?.appScreenshots?.data ?? []) await call("DELETE", `/v1/appScreenshots/${old.id}`);
+  const ids = [];
+  for (const file of files) {
+    const body = readFileSync(file);
+    const { data: shot } = await call("POST", "/v1/appScreenshots", { data: { type: "appScreenshots", attributes: { fileName: basename(file), fileSize: statSync(file).size }, relationships: { appScreenshotSet: { data: { type: "appScreenshotSets", id: set.id } } } } });
+    for (const op of shot.attributes.uploadOperations) {
+      const res = await fetch(op.url, { method: op.method, headers: Object.fromEntries(op.requestHeaders.map((h) => [h.name, h.value])), body: body.subarray(op.offset, op.offset + op.length) });
+      if (!res.ok) throw new Error(`uploading ${basename(file)}: ${res.status}`);
+    }
+    await call("PATCH", `/v1/appScreenshots/${shot.id}`, { data: { type: "appScreenshots", id: shot.id, attributes: { uploaded: true, sourceFileChecksum: createHash("md5").update(body).digest("hex") } } });
+    ids.push(shot.id);
+    console.log(`uploaded ${basename(file)}`);
+  }
+  await call("PATCH", `/v1/appScreenshotSets/${set.id}/relationships/appScreenshots`, { data: ids.map((id) => ({ type: "appScreenshots", id })) });
+  console.log(`${displayType}: ${ids.length} screenshots, in order`);
+}
+
 const [verb, ...rest] = process.argv.slice(2);
 const run = {
   status: () => status(),
@@ -108,6 +173,8 @@ const run = {
   get: async () => console.log(JSON.stringify(await call("GET", rest[0]), null, 1)),
   "dist-cert": () => distCert(rest[0], rest[1]),
   "store-profile": () => storeProfile(rest[0], rest[1], rest[2]),
+  metadata: () => metadata(rest[0] ?? new URL("../store/app-store.json", import.meta.url).pathname),
+  screenshots: () => screenshots(rest[0], rest[1] ?? "APP_IPHONE_67"),
 }[verb];
-if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...] | get <path> | dist-cert <csr> <out.cer> | store-profile <certId> <out.mobileprovision> [name]"); process.exit(2); }
+if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...] | get <path> | dist-cert <csr> <out.cer> | store-profile <certId> <out.mobileprovision> [name] | metadata [app-store.json] | screenshots <dir> [displayType]"); process.exit(2); }
 run().catch((error) => { console.error(`error: ${error.message}`); process.exit(1); });
