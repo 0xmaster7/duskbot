@@ -14,6 +14,7 @@ import { createAcpDriver, type AccountErrorCode, type AcpConfig, type AcpSupport
 import { AcpDiscoveryRpcError, discoverAcpModels, DISCOVERY_CLIENT_NAME, type AcpDiscoveryOptions } from "./custom-model-catalog.ts";
 import { offeredModels } from "./config-options.ts";
 import { writeFileAtomicIfChanged } from "../../atomic.ts";
+import type { DeviceSignIn } from "../device-auth.ts";
 
 const AUTO = "auto";
 const MODELS: ModelCatalog = { default: AUTO, options: [{ id: AUTO, label: "Auto" }] };
@@ -182,6 +183,30 @@ function deleteEnv(env: Record<string, string | undefined>, name: string): void 
   for (const key of Object.keys(env)) if (key.toUpperCase() === name) delete env[key];
 }
 
+function copilotLoginFailure(output: string): string {
+  if (/(unexpected argument|unrecognized (argument|option)|unknown option).*device-code/i.test(output)) {
+    return "This GitHub Copilot is too old to sign in with a code. Update it, then try again.";
+  }
+  if (/expired/i.test(output)) return "The GitHub sign-in code expired. Start sign-in again for a new code.";
+  if (/denied|rejected|access_denied/i.test(output)) return "GitHub sign-in was declined in the browser. Start sign-in again to try once more.";
+  if (/subscription|not entitled|no access to copilot/i.test(output)) return "This GitHub account has no Copilot plan. Pick an account with Copilot, or another AI.";
+  return "GitHub Copilot could not finish signing in. Start sign-in again.";
+}
+
+/** `copilot login --device-code` (1.0.106) exits 0 once GitHub accepted the code; the stored login is in the OS
+ * credential store, which only the CLI reads. */
+export const COPILOT_DEVICE_SIGN_IN: DeviceSignIn = {
+  provider: "copilot",
+  product: "GitHub Copilot",
+  account: "GitHub",
+  homeEnv: "COPILOT_HOME",
+  homeDir: ".copilot",
+  loginArgs: ["login", "--device-code"],
+  install: "Install it with npm install -g @github/copilot, then try again.",
+  failure: copilotLoginFailure,
+  confirmedByExit: true,
+};
+
 const SUPPORT: AcpSupport = {
   driverKind: "copilotAgent",
   displayName: "GitHub Copilot",
@@ -196,6 +221,7 @@ const SUPPORT: AcpSupport = {
     docsUrl: "https://docs.github.com/en/copilot/reference/acp-server",
     signInCommand: SIGN_IN,
   },
+  deviceSignIn: COPILOT_DEVICE_SIGN_IN,
   spawnArgs: () => SPAWN_ARGS,
   transformEnv(env, _config, _instanceId, instanceEnvironment) {
     // COPILOT_ALLOW_ALL would approve every tool without asking the broker.

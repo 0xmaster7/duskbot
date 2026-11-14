@@ -1,11 +1,12 @@
 // Where a person enters the one-time code that signs an engine's CLI in on
 // the machine running dusk bot (`codex login --device-auth`, `grok login
-// --device-auth`, `kimi login`). The server reads the page and the code from
+// --device-auth`, `kimi login`, `copilot login --device-code`, `cursor-agent
+// login`). The server reads the page and the code from
 // the CLI's output with these rules, and the app checks them again before it
 // shows a link. Neither ever turns arbitrary output into a link, or lets a
 // token ride along in one.
 
-export type DeviceSignInProvider = "codex" | "grok" | "kimi";
+export type DeviceSignInProvider = "codex" | "grok" | "kimi" | "copilot" | "cursor";
 
 const CODEX_PAGE = "https://auth.openai.com/codex/device";
 
@@ -22,6 +23,10 @@ const RULES: Record<DeviceSignInProvider, {
   code: RegExp;
   /** The words a CLI prints before the page or the code on the same line. */
   label?: RegExp;
+  /** The page and the code on one line, in that order. */
+  inline?: boolean;
+  /** A one-time sign-in link and no code to type (the link itself carries the challenge). */
+  codeless?: boolean;
 }> = {
   codex: {
     page: (value) => (/^https:\/\/auth\.openai\.com\/codex\/device\/?$/.test(value) ? CODEX_PAGE : null),
@@ -52,13 +57,37 @@ const RULES: Record<DeviceSignInProvider, {
     code: /^[A-Z0-9]{4,12}(?:-[A-Z0-9]{2,12}){0,3}$/,
     label: /^[^:]*\b(?:login|code):\s+/i,
   },
+  copilot: {
+    // copilot 1.0.106: "To authenticate, visit https://github.com/login/device and enter code ABCD-1234"
+    page: (value) => (/^https:\/\/github\.com\/login\/device\/?$/.test(value) ? "https://github.com/login/device" : null),
+    code: /^[A-Z0-9]{4}-[A-Z0-9]{4}$/,
+    inline: true,
+  },
+  cursor: {
+    // cursor-agent 2026.10.22: "Open a browser and navigate to this link: https://cursor.com/loginDeepControl?…"; the
+    // CLI polls Cursor for the outcome, so the link works from any computer.
+    page: (value) => {
+      const url = providerPage(value, /^(www\.)?cursor\.com$/);
+      if (!url || url.pathname !== "/loginDeepControl") return null;
+      const allowed = ["challenge", "uuid", "mode", "redirectTarget", "supportsSelectedTeamLogin"];
+      return [...url.searchParams.keys()].every((key) => allowed.includes(key)) && url.searchParams.get("uuid") ? url.href : null;
+    },
+    code: /^$/,
+    codeless: true,
+  },
 };
+
+/** A provider whose sign-in is a link to open, with no code to type. */
+export function codelessSignIn(provider: DeviceSignInProvider): boolean {
+  return RULES[provider].codeless === true;
+}
 
 /** The provider's own page for entering `userCode`, or null for anything
  * else. A code carried in the page's link must be that same code. */
 export function deviceSignInLink(provider: DeviceSignInProvider, value: string | null | undefined, userCode?: string): string | null {
   const page = value ? RULES[provider].page(value) : null;
   if (!page) return null;
+  if (RULES[provider].codeless) return page;
   return [...new URL(page).searchParams.values()].every((carried) => carried === userCode) ? page : null;
 }
 
@@ -72,14 +101,33 @@ export function isDeviceSignInCode(provider: DeviceSignInProvider, value: string
  * code, so the last, unfinished line is never read. A CLI can print a new
  * pair when its code expires (kimi-code 2.4.1 does). `text` is already free
  * of terminal styling. */
-export function deviceSignInPrompt(provider: DeviceSignInProvider, text: string): { authorizationUrl: string; userCode: string } | null {
-  const { page, label } = RULES[provider];
+export function deviceSignInPrompt(provider: DeviceSignInProvider, text: string): { authorizationUrl: string; userCode?: string } | null {
+  const { page, label, inline, codeless } = RULES[provider];
   const lines = text.split(/\r?\n/).slice(0, -1).map((line) => (label ? line.trim().replace(label, "") : line.trim()));
+  if (inline || codeless) return lastInlinePrompt(provider, lines);
   let prompt: { authorizationUrl: string; userCode: string } | null = null;
   for (const [at, line] of lines.entries()) {
     if (page(line) === null) continue;
     const userCode = lines.slice(at + 1).map((next) => next.replace(/^code:\s*/i, "")).find((next) => isDeviceSignInCode(provider, next));
     const authorizationUrl = userCode ? deviceSignInLink(provider, line, userCode) : null;
+    if (authorizationUrl && userCode) prompt = { authorizationUrl, userCode };
+  }
+  return prompt;
+}
+
+function lastInlinePrompt(provider: DeviceSignInProvider, lines: string[]): { authorizationUrl: string; userCode?: string } | null {
+  let prompt: { authorizationUrl: string; userCode?: string } | null = null;
+  for (const line of lines) {
+    const words = line.split(/\s+/).map((word) => word.replace(/[.,;:)]+$/, ""));
+    const at = words.findIndex((word) => RULES[provider].page(word) !== null);
+    if (at < 0) continue;
+    if (RULES[provider].codeless) {
+      const authorizationUrl = deviceSignInLink(provider, words[at]);
+      if (authorizationUrl) prompt = { authorizationUrl };
+      continue;
+    }
+    const userCode = words.slice(at + 1).find((word) => isDeviceSignInCode(provider, word));
+    const authorizationUrl = userCode ? deviceSignInLink(provider, words[at], userCode) : null;
     if (authorizationUrl && userCode) prompt = { authorizationUrl, userCode };
   }
   return prompt;

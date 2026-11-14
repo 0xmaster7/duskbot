@@ -41,6 +41,10 @@ export interface DeviceSignIn {
   status?: { args: readonly string[]; read(code: number | null, output: string): DeviceSignInState };
   /** Without a status command: whether the sign-in a turn uses is now there. */
   signedIn?(env: Env): boolean;
+  /** The login command exits 0 only once the provider accepted the sign-in, and the CLI has no cheap status command. */
+  confirmedByExit?: boolean;
+  /** Added to the login command's environment (a CLI that would otherwise open a browser on the server). */
+  loginEnv?: Readonly<Record<string, string>>;
   logoutArgs?: readonly string[];
 }
 
@@ -217,6 +221,7 @@ export class DeviceAuthController {
       this.run(flow, [...status.args], env, home, (code, output) => done(status.read(code, output) === "signed-in"));
       return;
     }
+    if (this.spec.confirmedByExit) return done(true);
     let signedIn = false;
     try { signedIn = this.spec.signedIn?.(env) === true; } catch {}
     done(signedIn);
@@ -277,7 +282,7 @@ export class DeviceAuthController {
     if (flow.status.phase !== "waiting") return;
     let child: ReturnType<typeof spawnCli>;
     try {
-      child = spawnCli(this.options.cli, args, { env: { ...env, NO_COLOR: "1" }, cwd, stdio: ["pipe", "pipe", "pipe"] });
+      child = spawnCli(this.options.cli, args, { env: { ...env, ...(parsePrompt ? this.spec.loginEnv : {}), NO_COLOR: "1" }, cwd, stdio: ["pipe", "pipe", "pipe"] });
     } catch {
       this.finish(flow, "failed", `${product} could not start on this server. Install or update the configured ${product} CLI, then try again.`);
       return;

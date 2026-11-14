@@ -5,6 +5,7 @@ import type { ModelCatalog, ProviderErrorCode } from "../../contracts.ts";
 import { titleCaseModelId } from "../../contracts.ts";
 import { execCli } from "../../procs.ts";
 import { createAcpDriver, type AcpSupport } from "./core.ts";
+import type { DeviceSignIn } from "../device-auth.ts";
 import { discoverAcpModels } from "./custom-model-catalog.ts";
 import type { AcpQuestionRequest } from "./question-requests.ts";
 import {
@@ -436,6 +437,23 @@ async function setCursorFast(
   }
 }
 
+/** `cursor-agent login` (2026.10.22) prints a one-time link, polls Cursor until it is opened and approved, then exits 0.
+ * NO_OPEN_BROWSER keeps it from opening a browser on the machine it runs on. */
+export const CURSOR_SIGN_IN: DeviceSignIn = {
+  provider: "cursor",
+  product: "Cursor",
+  account: "Cursor",
+  homeEnv: "CURSOR_CONFIG_DIR",
+  homeDir: ".cursor",
+  loginArgs: ["login"],
+  loginEnv: { NO_OPEN_BROWSER: "1" },
+  install: "Install it with Cursor's installer (https://cursor.com/install), then try again.",
+  failure: (output) => /expired|timed? ?out/i.test(output)
+    ? "The Cursor sign-in link expired. Start sign-in again."
+    : "Cursor could not finish signing in. Start sign-in again.",
+  confirmedByExit: true,
+};
+
 const support = (run: typeof execCli): AcpSupport => ({
   driverKind: "cursorAgent",
   questionRequests: { "cursor/ask_question": CURSOR_ASK_QUESTION }, askTool: "AskQuestion",
@@ -446,6 +464,7 @@ const support = (run: typeof execCli): AcpSupport => ({
   nativeSource: "cursor.acp",
   loginNote: "Cursor CLI is not signed in: run `cursor-agent login` in a terminal, or set CURSOR_API_KEY",
 
+  deviceSignIn: CURSOR_SIGN_IN,
   install: {
     command: {
       darwin: "curl https://cursor.com/install -fsS | bash",

@@ -69,6 +69,13 @@ function windowsKnownDirs(): string[] {
   ];
 }
 
+/** CLIs other apps ship inside their bundle, ranked after every copy the person installed themselves. ChatGPT.app
+ * (macOS, 2026-10) carries codex-cli 0.166 in Contents/Resources/codex-cli/bin, laid out to be put on a PATH. */
+export function bundledAppDirs(platform: NodeJS.Platform = process.platform, home = homedir()): string[] {
+  if (platform !== "darwin" || sealedFixture()) return [];
+  return ["/Applications", join(home, "Applications")].map((apps) => join(apps, "ChatGPT.app", "Contents", "Resources", "codex-cli", "bin"));
+}
+
 let cached: string | null = null;
 let probed = false;
 let loginShellPath: string | null = null;
@@ -99,7 +106,7 @@ export function resetPathCache(): void {
 
 export function augmentedPath(): string {
   if (cached === null) {
-    const fallback = fallbackDirs.filter((d) => existsSync(d));
+    const fallback = [...bundledAppDirs(), ...fallbackDirs].filter((d) => existsSync(d));
     cached = mergePaths([
       ...registeredDirs.filter((d) => existsSync(d)),
       ...(process.env.DUSK_EXTRA_PATH ? process.env.DUSK_EXTRA_PATH.split(delimiter) : []),
@@ -133,7 +140,7 @@ function probeLoginShellPath(): void {
       if (!m || !m[1]) return;
       loginShellPath = m[1];
       // Fallback dirs stay last, behind what the person's shell adds.
-      const fallback = fallbackDirs.filter((d) => existsSync(d));
+      const fallback = [...bundledAppDirs(), ...fallbackDirs].filter((d) => existsSync(d));
       cached = mergePaths([...(cached ?? "").split(delimiter).filter((d) => !fallback.includes(d)), ...m[1].split(delimiter), ...fallback]);
     },
   );
