@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from "react";
+import { openSignIn } from "@/lib/sign-in-sheet";
 import { importFirst, previousOpenAt } from "@/lib/import-first";
 import { ChevronRight } from "../icons";
 import { useStore, type AppSettingsSection } from "@/state/store";
@@ -132,7 +133,8 @@ export function AccountRows() {
           </div>
         </div>
       )}
-      {!active && window.duskDesktop?.accounts && <NavRow data-settings-open="add-account" title={t("settings.grok.account.add")} onClick={() => setAdding(true)} />}
+      {/* signed out: sign in continues in the browser for its context (the account context redirect), never an in-app form */}
+      {!active && window.duskDesktop?.accounts && <NavRow data-settings-open="sign-in" title={t("accounts.signIn")} onClick={() => window.duskDesktop?.cloudAccount?.continueInBrowser ? openSignIn() : setAdding(true)} />}
       {editing && (
         <FormDialog data-panel-modal="profile" title={t("settings.w6.group.aboutYou")} width={460} onClose={() => setEditing(false)}>
           <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields /></div>

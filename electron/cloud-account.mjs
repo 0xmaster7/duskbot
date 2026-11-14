@@ -74,6 +74,15 @@ export function checkoutDestination(value, { fixture = false, staging = false, c
 const HANDOFF_PLANS = Object.freeze(["plus", "pro"]);
 /** The website pages a handoff opens (shared/account-api.ts HANDOFF_PAGES), and where each is when the browser signs in itself. */
 export const HANDOFF_PAGES = Object.freeze({ plans: "/billing", home: "/", workspace: "/", cloud: "/cloud", billing: "/billing", account: "/account", usage: "/usage" });
+/** The service's page for approving this app's sign-in: on its own origin, at /cloud/desktop under the page's base (a
+ *  service that shares its origin with the site serves the page at /dashboard), for exactly this code. */
+export function desktopApprovalLink(value, origin, userCode) {
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return url.origin === origin && /^(?:\/[a-z0-9-]+)?\/cloud\/desktop$/.test(url.pathname) && url.search === `?code=${userCode}` && !url.hash && !url.username && !url.password;
+  } catch { return false; }
+}
 /** An account step's context (shared/account-api.ts AccountIntent), checked the same way: signin, upgrade (plan, move) or billing. */
 export const ACCOUNT_INTENT_KINDS = Object.freeze(["signin", "upgrade", "billing"]);
 export function cleanAccountIntent(value) {
@@ -463,7 +472,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       const result = await request("authorize", { method: "POST", body: { deviceName, platform, ...(text(appVersion, 40) ? { appVersion } : {}), ...(account ? { intent: account } : {}) } });
       if (!current(stamp)) return state();
       if (result.cloudContractVersion !== 1 || !PRIVATE_CODE.test(result.deviceCode) || !CODE.test(result.userCode) ||
-        result.verificationUriComplete !== `${origin}/cloud/desktop?code=${result.userCode}` || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > MAX_ENROLL_SECONDS ||
+        !desktopApprovalLink(result.verificationUriComplete, origin, result.userCode) || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > MAX_ENROLL_SECONDS ||
         !Number.isSafeInteger(result.interval) || result.interval < 5 || result.interval > 60) throw new Error("Invalid Cloud authorization.");
       const next = intent ? `&${new URLSearchParams({ next: "checkout", plan: intent.plan, src: intent.source })}` : "";
       pending = { deviceCode: result.deviceCode, verificationUri: ["google", "apple", "x"].includes(provider) ? `${origin}/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(`/cloud/desktop?code=${result.userCode}`)}` : `${result.verificationUriComplete}${next}`, expiresAt: now() + result.expiresIn * 1000, interval: result.interval * 1000 };

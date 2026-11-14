@@ -1,0 +1,81 @@
+// The account steps of the desktop app, each as a person meets it (the account context redirect): a fresh app that is
+// not signed in (DUSK_ALLOW_SIGNED_OUT=1). Settings' "sign in to your cloud plan" and the You menu's "sign in" continue
+// in the browser (one calm sheet in the app, the website's sign-up and approval), and the app signs itself in with no
+// trip back; signed in, billing opens straight on the website with no second sign-in. Sink addresses only.
+//
+//   node scripts/smoke/flows/account-entry.mjs [--out DIR] [--profile DIR] [--email ADDRESS]
+import { join } from "node:path";
+import { until } from "../app.mjs";
+import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
+import { accountLinkFrom, webAccountStep } from "./web-account.mjs";
+
+const { root, out, profile, email } = flowArgs("acct");
+const flow = createFlow({ name: "account-entry", title: "account steps continue in the browser", root, out, profile, email, env: { DUSK_ALLOW_SIGNED_OUT: "1" } });
+const signedIn = () => flow.evaluate(`window.duskDesktop.cloudAccount.state().then((s) => Boolean(s.account) && s.status === "connected")`);
+const sheet = () => flow.evaluate(`document.querySelector("[data-continue-in-browser]")?.innerText ?? null`);
+
+async function browserHalf(since, label) {
+  const link = await until(() => accountLinkFrom(flow.opened(since)), { timeout: 30_000, what: `the browser page for ${label}` });
+  const web = await webAccountStep(link, { email, log: flow.log, shot: (name) => join(out, `${label}-${name}.png`) });
+  return { link, web };
+}
+
+await runFlow(flow, async () => {
+  await flow.step("launch", "a fresh app, not signed in, gets into the app", async () => {
+    await flow.launch();
+    await flow.waitText(/meet dusk bot|where should your bots live/i, "the welcome", { timeout: 120_000 });
+    // straight through the welcome on this Mac, without an account
+    await flow.click("get started", { timeout: 10_000 }).catch(() => {});
+    await sleep(800);
+    await flow.clickSelector("[data-funnel-account-skip]", 8_000).catch(() => {});
+    await flow.click("this Mac", { contains: true });
+    await flow.click("continue with this mac", { timeout: 8_000 }).catch(() => {});
+    await flow.click("start with the free model");
+    for (const word of ["continue", "skip", "not now"]) await flow.click(word, { timeout: 4_000 }).catch(() => {});
+    await flow.waitFor(`Boolean(document.querySelector('textarea[aria-label^="Message"]'))`, "the chat", 60_000);
+    if (await signedIn()) throw new Error("the app is already signed in");
+  }, { critical: true });
+
+  await flow.step("settings-sign-in", "Settings' sign in continues in the browser; the app signs itself in", async () => {
+    const since = Date.now();
+    await flow.openSettings();
+    await flow.clickSelector('[data-settings-open="sign-in"]');
+    const shown = await flow.waitFor(`document.querySelector("[data-continue-in-browser]")?.innerText ?? false`, "the continue-in-browser sheet", 20_000);
+    flow.facts.sheet = shown.replace(/\s+/g, " ").slice(0, 200);
+    await flow.shot("continue-sheet");
+    const { web } = await browserHalf(since, "settings");
+    await flow.waitFor(`window.duskDesktop.cloudAccount.state().then((s) => Boolean(s.account) && s.status === "connected")`, "the app signed in", 60_000);
+    await flow.waitFor(`!document.querySelector("[data-continue-in-browser]")`, "the sheet to close by itself", 20_000);
+    return web.steps.join("; ");
+  });
+
+  await flow.step("billing", "signed in, billing opens on the website with no second sign-in", async () => {
+    const since = Date.now();
+    const answer = await flow.app.send("Runtime.evaluate", { expression: `window.duskDesktop.cloudAccount.continueInBrowser({ kind: "billing" })`, awaitPromise: true, returnByValue: true, userGesture: true });
+    if (answer.result?.value?.outcome !== "opened") throw new Error(`billing answered ${JSON.stringify(answer.result?.value).slice(0, 120)}`);
+    const opened = await until(() => flow.opened(since).find((url) => /preview\.dusk\.bot/.test(url)), { timeout: 20_000, what: "the billing page" });
+    if (/cloud\/desktop\?code=/.test(opened)) throw new Error("signed in, yet the app asked to sign in again");
+    const { web } = await browserHalf(since, "billing");
+    if (!/\/billing/.test(web.landed)) throw new Error(`landed on ${web.landed}`);
+    return web.steps.join("; ");
+  });
+
+  await flow.step("menu-sign-in", "signed out again, the You menu's sign in continues in the browser too", async () => {
+    await flow.evaluate(`window.duskDesktop.cloudAccount.signOut()`);
+    await flow.waitFor(`window.duskDesktop.cloudAccount.state().then((s) => !s.account)`, "signed out", 30_000);
+    await flow.escape().catch(() => {});
+    const since = Date.now();
+    // the You menu: the account button, then its sign in row
+    await until(() => flow.evaluate(`(() => {
+      const shown = [...document.querySelectorAll("button")].filter((b) => b.getClientRects().length);
+      const apps = shown.find((b) => /^connect apps/i.test(b.innerText.trim()));
+      const account = apps?.parentElement?.querySelector("button:not(:last-child)") ?? shown.find((b) => /^[a-z]$/i.test(b.innerText.trim()));
+      if (!account) return false; account.click(); return true;
+    })()`), { what: "the account button" });
+    await flow.click("sign in", { contains: false });
+    await flow.waitFor(`Boolean(document.querySelector("[data-continue-in-browser]"))`, "the continue-in-browser sheet", 20_000);
+    const { web } = await browserHalf(since, "menu");
+    await flow.waitFor(`window.duskDesktop.cloudAccount.state().then((s) => Boolean(s.account) && s.status === "connected")`, "the app signed in", 60_000);
+    return web.steps.join("; ");
+  });
+});

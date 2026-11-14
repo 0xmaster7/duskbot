@@ -9,9 +9,11 @@ const js = (value) => JSON.stringify(value);
 export const TEST_CARD = { number: "4242424242424242", expiry: "12/30", cvc: "123", name: "Dusk Smoke" };
 
 /** checkoutUrl: a test.checkout.dodopayments.com page. Returns { url: the page it ended on, shots } */
-export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () => {}, timeout = 180_000 } = {}) {
+export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () => {}, timeout = 180_000, browser: given = null } = {}) {
   if (new URL(checkoutUrl).hostname !== "test.checkout.dodopayments.com") throw new Error(`not a Dodo test-mode checkout: ${new URL(checkoutUrl).hostname}`);
-  const browser = await launchBrowser();
+  // `browser`: an open tab to pay in (it stays open, on the page the payment came back to)
+  const browser = given ?? await launchBrowser();
+  const done = async () => { if (!given) await browser.close(); };
   const shots = [];
   const snap = async (label) => { if (!shot) return; const file = shot(label); if (file) { await browser.screenshot(file); shots.push(file); } };
   // react inputs: focus, select all, type through the protocol so the page's own handlers run
@@ -27,7 +29,7 @@ export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () =
   };
   try {
     // the page keeps loading trackers; the form below is what counts
-    await browser.goto(checkoutUrl).catch(() => {});
+    if (!given || !(await browser.url().catch(() => "")).startsWith(checkoutUrl.split("?")[0].replace(/\/session\/.*/, ""))) await browser.goto(checkoutUrl).catch(() => {});
     const stage = await until(() => browser.evaluate(`(() => { if (!/test mode/i.test(document.body.innerText)) return false;
       if (document.querySelector("input[name=fullName]")) return "contact";
       return [...document.querySelectorAll("iframe")].some((f) => /hs\\.dodopayments\\.com/.test(f.src)) ? "card" : false; })()`), { what: "the checkout in test mode", timeout: 60_000 });
@@ -73,7 +75,7 @@ export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () =
     // a card from an Indian address goes through 3-D Secure: the test page's own "complete" button passes it
     const complete = `(() => { const b = [...document.querySelectorAll("button,a,input[type=submit]")].find((e) => /complete( authentication)?$|authori[sz]e/i.test((e.innerText || e.value || "").trim()) && e.getClientRects().length); if (!b) return false; b.click(); return true; })()`;
     let authorized = false;
-    const done = await until(async () => {
+    const finished = await until(async () => {
       const url = await browser.url().catch(() => ""), text = await browser.text().catch(() => "");
       if (/payment (has )?failed|was declined/i.test(text)) throw Object.assign(new Error(`the test payment failed: ${text.slice(0, 200)}`), { final: true });
       if (/stripe\.com/.test(url) && !authorized) {
@@ -89,15 +91,16 @@ export async function payDodoTestCheckout(checkoutUrl, { shot = null, log = () =
     }, { what: "the payment confirmation", timeout, every: 1_500 });
     await snap("paid");
     card.close();
-    await browser.close();
-    return { url: done, shots };
+    const landed = finished;
+    await done();
+    return { url: landed, shots };
   } catch (error) {
     await snap("failed").catch(() => {});
     const frames = [];
     const walk = (node) => { frames.push(node.frame.url.slice(0, 90)); for (const child of node.childFrames ?? []) walk(child); };
     try { walk((await browser.send("Page.getFrameTree")).frameTree); } catch {}
     log(`stuck at ${(await browser.url().catch(() => "?")).slice(0, 90)}; frames: ${frames.join(" | ")}; text: ${(await browser.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 300)}`);
-    await browser.close();
+    await done();
     throw error;
   }
 }

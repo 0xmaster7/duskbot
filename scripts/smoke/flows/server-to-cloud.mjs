@@ -6,9 +6,8 @@
 //
 //   node scripts/smoke/flows/server-to-cloud.mjs [--out DIR] [--profile DIR] [--email ADDRESS] [--no-pay]
 import { join } from "node:path";
-import { testMailCode } from "../account.mjs";
 import { until } from "../app.mjs";
-import { payDodoTestCheckout } from "../dodo-test-pay.mjs";
+import { accountLinkFrom, webAccountStep } from "./web-account.mjs";
 import { createFlow, flowArgs, runFlow, sleep } from "./lib.mjs";
 import { createVm, leftoverVms, removeVm } from "./instabox-vm.mjs";
 
@@ -16,17 +15,6 @@ const { root, out, profile, email, stamp, flag } = flowArgs("s2c");
 const flow = createFlow({ name: "server-to-cloud", title: "server to dusk cloud, signed out", root, out, profile, email, env: { DUSK_ALLOW_SIGNED_OUT: "1" } });
 const js = (value) => JSON.stringify(value);
 
-/** another page of the app (the rail's view), driven over its own devtools socket */
-async function pageAt(pathPart) {
-  const target = await until(async () => (await flow.app.targets()).find((t) => t.type === "page" && t.url.includes(pathPart)), { timeout: 30_000, what: `the ${pathPart} page` });
-  const socket = new WebSocket(target.webSocketDebuggerUrl);
-  await new Promise((done, fail) => { socket.onopen = done; socket.onerror = () => fail(new Error("socket")); });
-  let next = 0; const waiting = new Map();
-  socket.onmessage = (event) => { const m = JSON.parse(String(event.data)); if (m.id) { waiting.get(m.id)?.(m); waiting.delete(m.id); } };
-  const send = (method, params = {}) => new Promise((done, fail) => { const id = ++next; waiting.set(id, (m) => m.error ? fail(new Error(m.error.message)) : done(m.result)); socket.send(JSON.stringify({ id, method, params })); });
-  const evaluate = async (expression) => { const r = await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true, userGesture: true }); if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description?.split("\n")[0] ?? "evaluate failed"); return r.result?.value; };
-  return { send, evaluate, close: () => socket.close() };
-}
 /** in the main window, as a person's click (user activation), awaiting the answer */
 const act = async (expression) => {
   const r = await flow.app.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true, userGesture: true });
@@ -44,13 +32,24 @@ await runFlow(flow, async () => {
   }, { critical: true });
 
   let line = null;
-  await flow.step("install-line", "skips the account, picks its own server", async () => {
+  await flow.step("install-line", "skips the account, picks its own server; linking signs in in the browser, then the line comes", async () => {
     await flow.click("get started", { timeout: 10_000 }).catch(() => {});
     await sleep(1000);
     await flow.clickSelector("[data-funnel-account-skip]", 8_000).catch(() => {});
     await flow.waitText(/where should your bots live/i, "where should your bots live", { timeout: 30_000 });
+    const since = Date.now();
     await flow.click("use your own server", { contains: true });
-    line = await flow.waitText(/curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
+    // signed out: linking needs the account, so the sign-in continues in the browser and the line comes by itself after
+    const signIn = await flow.waitFor(`Boolean(document.querySelector('[data-install-phase="sign-in"]'))`, "the sign-in state", 20_000).catch(() => false);
+    if (signIn) {
+      flow.facts.linkSignIn = (await flow.text('[data-install-phase="sign-in"]')).replace(/\s+/g, " ").slice(0, 200);
+      await flow.shot("link-continue-in-browser");
+      const link = await until(() => accountLinkFrom(flow.opened(since)), { timeout: 30_000, what: "the browser sign-in for linking" });
+      const web = await webAccountStep(link, { email, log: flow.log, shot: (label) => join(out, `link-${label}.png`) });
+      flow.facts.linkWeb = web.steps;
+    } else flow.friction("confusing", "own server", "signed out, linking did not ask for the account in the browser");
+    line = await flow.waitText(/curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 90_000 });
+    return signIn ? "continued in the browser, then the line came by itself" : "the line";
   }, { critical: true });
 
   await flow.step("server", "a throwaway server runs the line, and the app links it", async () => {
@@ -70,6 +69,11 @@ await runFlow(flow, async () => {
     return `linked after ${Math.round((Date.now() - started) / 1000)}s`;
   }, { critical: true });
 
+  await flow.step("sign-out", "signs out of the account (a server linked, the app signed out: the owner's case)", async () => {
+    await flow.evaluate(`window.duskDesktop.cloudAccount.signOut()`);
+    await flow.waitFor(`window.duskDesktop.cloudAccount.state().then((s) => !s.account)`, "signed out", 30_000);
+  }, { critical: true });
+
   await flow.step("server-page", "opens the server's own page", async () => {
     await flow.waitText(/is connected/i, "the connected screen", { timeout: 60_000 });
     await flow.click("open", { contains: true });
@@ -80,49 +84,33 @@ await runFlow(flow, async () => {
     return serverOrigin;
   }, { critical: true });
 
-  let since = 0;
-  await flow.step("get-cloud", "Get dusk cloud while signed out opens the sign-in right there (no 'sign in on this Mac's page first')", async () => {
+  let since = 0, web = null;
+  await flow.step("get-cloud", "Get dusk cloud while signed out continues in the browser (no 'sign in on this Mac's page first')", async () => {
     since = Date.now();
     let answer;
-    try { answer = await act(`window.duskDesktop.vpsCloudMove.buy("pro")`); }
+    try { answer = await act(`window.duskDesktop.vpsCloudMove.buy("plus")`); }
     catch (error) { throw new Error(`the buy refused: ${error.message}`); }
     flow.facts.afterBuy = answer;
-    if (answer?.signingIn !== true) throw new Error(`the move did not wait on a sign-in: ${JSON.stringify(answer).slice(0, 160)}`);
-    const rail = await pageAt("/rail");
-    try {
-      await until(() => rail.evaluate(`Boolean(document.querySelector("[data-sign-in-sheet]"))`), { timeout: 30_000, what: "the sign-in sheet over the server's page" });
-      flow.facts.sheet = (await rail.evaluate(`document.querySelector("[data-sign-in-sheet]").innerText`)).replace(/\s+/g, " ").slice(0, 200);
-      await flow.shot("sign-in-sheet");
-      // the person signs in with an emailed code, in the sheet
-      await rail.evaluate(`(() => { const box = document.querySelector("[data-sign-in-sheet] input[type=email]"); box.focus(); return true; })()`);
-      await rail.send("Input.insertText", { text: email });
-      const asked = Date.now();
-      await rail.evaluate(`document.querySelector("[data-sign-in-sheet] form").requestSubmit(); true`);
-      const code = await until(() => testMailCode(email, asked), { timeout: 60_000, every: 1_000, what: "the sign-in code" });
-      await until(() => rail.evaluate(`Boolean(document.querySelector("[data-sign-in-sheet] input[inputmode=numeric]"))`), { what: "the code boxes" });
-      await rail.evaluate(`document.querySelector("[data-sign-in-sheet] input[inputmode=numeric]").focus(); true`);
-      await rail.send("Input.insertText", { text: code });
-      await rail.evaluate(`document.querySelector("[data-sign-in-sheet] form")?.requestSubmit(); true`).catch(() => {});
-      await until(() => rail.evaluate(`!document.querySelector("[data-sign-in-sheet]")`), { timeout: 30_000, what: "the sheet to close once signed in" });
-    } finally { rail.close(); }
-    return flow.facts.sheet;
+    if (answer?.signingIn !== true) throw new Error(`the move did not wait in the browser: ${JSON.stringify(answer).slice(0, 160)}`);
+    await sleep(1500);
+    if (/own page|first, then come back/i.test(await flow.text())) throw new Error("the old 'sign in elsewhere first' error is back");
+    return "continue in your browser";
   }, { critical: true });
 
-  let checkoutUrl = null;
-  await flow.step("checkout", "signed in, the checkout opens by itself", async () => {
-    checkoutUrl = await until(() => flow.opened(since).find((url) => /checkout\.dodopayments\.com/.test(url)), { timeout: 90_000, what: "the checkout to open by itself" });
-    if (!/^https:\/\/test\./.test(checkoutUrl)) throw new Error("the checkout is not in test mode; refusing to pay");
-    const view = await flow.evaluate(`window.duskDesktop.vpsCloudMove.view()`);
-    flow.facts.afterSignIn = view;
-    return `opened ${new URL(checkoutUrl).host}; the sheet: ${view.stage}${view.signingIn ? " (still signing in)" : ""}`;
+  await flow.step("browser", "in the browser: sign up, approve, the plan's checkout, paid in test mode, you're all set", async () => {
+    const link = await until(() => accountLinkFrom(flow.opened(since)), { timeout: 30_000, what: "the browser sign-in the app opened" });
+    flow.facts.opened = link.replace(/code=[^&]+/, "code=<code>");
+    web = await webAccountStep(link, { email, pay: !flag("--no-pay"), log: flow.log, shot: (label) => join(out, `${label}.png`) });
+    if (!flag("--no-pay") && !web.allSet) flow.friction("confusing", "after paying", "the website did not show \"you're all set\" with the way back to the app");
+    return web.steps.join("; ");
   }, { critical: true });
+
+  await flow.step("app-signed-in", "the app signed itself in, without coming back to it", async () => {
+    const view = await until(async () => { const v = await flow.evaluate(`window.duskDesktop.vpsCloudMove.view()`); return v && !v.signingIn ? v : false; }, { timeout: 60_000, what: "the app to pick up the sign-in" });
+    return `move: ${view.stage}`;
+  });
 
   if (flag("--no-pay")) return;
-  await flow.step("pay", "pays with the test card", async () => {
-    let n = 0;
-    await payDodoTestCheckout(checkoutUrl, { log: flow.log, shot: (label) => join(out, `pay-${++n}-${label}.png`) });
-  }, { critical: true });
-
   await flow.step("move", "the server's bots move to the new cloud by themselves", async () => {
     const started = Date.now(), seen = new Set();
     for (;;) {
