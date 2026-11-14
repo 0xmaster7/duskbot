@@ -145,3 +145,77 @@ if (!enabled) console.log("skipping voice input screenshots: set DUSK_UI_E2E=1 f
     await fixture?.close();
   }
 }, 300_000);
+
+(enabled ? it : it.skip)("shows the voice keys and Voice input settings", async () => {
+  let fixture: VerificationServer | undefined;
+  let preview: MountedPreview | undefined;
+  let chrome: ChildProcess | undefined;
+  let cdp: Awaited<ReturnType<typeof connect>> | undefined;
+  const evidence = join(process.env.DUSK_UI_EVIDENCE_DIR || join(REPO_ROOT, ".dusk-scratch", "verify-evidence"), "voice-settings");
+  mkdirSync(evidence, { recursive: true });
+  try {
+    const tools = await ensureUiBrowser();
+    if (!tools.chrome) throw new Error("needs the pinned Chrome for Testing");
+    fixture = await launchVerificationServer(process.env);
+    const api = fixtureApi(fixture.info.url);
+    await api("PATCH", "/api/config", { language: "en" });
+    preview = await mountPreview(fixture, { entry: "/scripts/testing/voice-settings-preview.tsx", route: "/__voice-settings.html", title: "Voice settings", logLevel: "warn", hmr: false });
+    const profile = join(fixture.info.dataDir, "chrome");
+    mkdirSync(profile, { recursive: true });
+    const mouse = "--blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2";
+    chrome = spawn(tools.chrome, ["--headless=new", "--no-sandbox", "--no-first-run", "--no-default-browser-check", "--disable-background-networking", "--password-store=basic", "--use-mock-keychain", "--hide-scrollbars", "--deny-permission-prompts", mouse, "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"], {
+      env: { PATH: process.env.PATH, HOME: fixture.info.dataDir, USERPROFILE: fixture.info.dataDir }, stdio: "ignore",
+    });
+    const portFile = join(profile, "DevToolsActivePort");
+    await expect.poll(() => existsSync(portFile), { timeout: 30_000 }).toBe(true);
+    const [port, endpoint] = readFileSync(portFile, "utf8").trim().split("\n");
+    cdp = await connect(`ws://127.0.0.1:${port}${endpoint}`);
+    const target = await cdp.request("Target.createTarget", { url: "about:blank" });
+    const { sessionId } = await cdp.request("Target.attachToTarget", { targetId: target.targetId, flatten: true });
+    const request = (method: string, params: unknown = {}) => cdp!.request(method, params, sessionId);
+    const evaluate = async (expression: string) => {
+      const response = await request("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
+      if (response.exceptionDetails) throw new Error(response.exceptionDetails.exception?.description || response.exceptionDetails.text);
+      return response.result.value;
+    };
+    const errors: string[] = [];
+    cdp.on((method, params) => {
+      if (method === "Runtime.exceptionThrown") errors.push(params.exceptionDetails?.exception?.description?.split("\n")[0] ?? params.exceptionDetails?.text);
+    });
+    await request("Page.enable");
+    await request("Runtime.enable");
+    await request("Page.addScriptToEvaluateOnNewDocument", { source: `try { for (const notice of ${JSON.stringify(NOTICES)}) localStorage.setItem(notice, "1"); } catch {}` });
+    const wait = (ms: number) => evaluate(`new Promise((done) => setTimeout(done, ${ms}))`);
+    const click = (label: string) => evaluate(`(() => { const b = document.querySelector('button[aria-label=${JSON.stringify(label)}]'); if (!b) throw new Error('no button ${label}'); b.click(); return true; })()`);
+    const shot = async (name: string) => {
+      const { data } = await request("Page.captureScreenshot", { format: "png" });
+      writeFileSync(join(evidence, `${name}.png`), Buffer.from(data, "base64"));
+    };
+    const open = async (query: string, width: number, height: number, touch = false) => {
+      await request("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 2, mobile: touch });
+      await request("Page.navigate", { url: `${preview!.previewUrl}?${query}` });
+      await expect.poll(() => evaluate(`Boolean(document.querySelector('[data-key-row="deepgram"]'))`), { timeout: 60_000, interval: 300 }).toBe(true);
+      await evaluate(`document.fonts.ready`);
+      await wait(300);
+    };
+    await open("skin=grok", 760, 1500);
+    await wait(1200);
+    await evaluate(`document.querySelector('[data-keys-section="voice"]').scrollIntoView()`);
+    await wait(300);
+    await shot("01-voice-and-calls-keys");
+    const rows = await evaluate(`[...document.querySelectorAll('[data-keys-section="voice"] [data-key-row]')].map((row) => row.getAttribute('data-key-row'))`);
+    expect(rows).toEqual(expect.arrayContaining(["openaiVoice", "groqWhisper", "deepgram", "assemblyAi", "cartesia", "elevenlabs", "fishAudio", "geminiTts"]));
+    await open("skin=grok&input=1", 760, 2400);
+    await wait(1200);
+    await shot("02-voice-input-settings");
+    await open("skin=grok-dark", 760, 1500);
+    await wait(1200);
+    await shot("03-voice-and-calls-keys-dark");
+    expect(errors).toEqual([]);
+  } finally {
+    cdp?.close();
+    if (chrome && chrome.exitCode === null) { chrome.kill(); await waitForExit(chrome).catch(() => undefined); }
+    await preview?.close();
+    await fixture?.close();
+  }
+}, 300_000);
