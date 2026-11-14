@@ -275,6 +275,22 @@ export class ProviderRegistry {
     return reads.length ? Promise.all(reads).then(() => undefined) : null;
   }
 
+  /** One engine's status: the start-up read's own probe while that is still to come, else this run's last read, or a new
+   * probe with `fresh`. Null for an engine no longer configured. */
+  readEngine(instanceId: InstanceId, fresh: boolean): Promise<ProviderSnapshot | null> {
+    const instance = this.get(instanceId);
+    if (!instance) return Promise.resolve(null);
+    const shared = this.engineRead(instanceId);
+    if (shared) return shared.then(() => this.lastSnapshots.get(instanceId) ?? null);
+    const last = this.lastSnapshots.get(instanceId);
+    return !fresh && last ? Promise.resolve(last) : this.read(instance);
+  }
+
+  /** Every engine as `describe` lists it, with the statuses given here; one not among them reads as still being checked. */
+  describeFrom(statuses: ReadonlyMap<InstanceId, ProviderSnapshot>) {
+    return this.describeWith(async (instance) => statuses.get(instance.instanceId) ?? { state: "unavailable", reason: "Checking engine status" });
+  }
+
   /** While the start-up read runs, or for engines described from the last run's status, a choice made from them would rest on that older status. */
   provisional(described?: ReadonlyArray<{ snapshot: ProviderSnapshot }>): boolean {
     return this.unread !== null || Boolean(described?.some((instance) => this.seedObjects.has(instance.snapshot)));

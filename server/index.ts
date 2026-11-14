@@ -285,6 +285,7 @@ import { RESTART_EXIT_CODE } from "./restart.ts";
 import { applyIncludedXMessage, holdIncludedServices, researchCredential, xCredential, xResearchStatus } from "./included-services.ts"; import { createResearchAvailability } from "./research.ts";
 import { createRoutineHoldsHost } from "./host/routine-holds-host.ts";
 import type { McpServerSpec, ProviderInstance } from "./contracts.ts";
+import { rankAis } from "../shared/ai-ranking.ts"; import type { ProviderSnapshot } from "./contracts.ts";
 import { freeBackupOverConnected, readyToRun, selectDefaultModelSelection, withInstanceConfig, withNewBotEffort, type SelectableInstance } from "./default-model-selection.ts"; import { configIdentity, createTestedAi } from "./tested-ai.ts"; import { instanceIcon } from "./provider-icon.ts";
 import { threadModelFallback, type ThreadEngine } from "./thread-model.ts";
 import { computerEngineMoveText, removedComputerInstanceIds, writeComputerEngineMoveLines } from "./computer-engine-removal.ts";
@@ -2517,6 +2518,66 @@ function knownGoodSelection(): ModelSelection | null {
   const snapshot = registry.lastSnapshot(bootSelection.instanceId);
   if (!instance || snapshot?.state !== "available" || snapshot.authenticated === false) return null;
   return withNewBotEffort(bootSelection, cfg.newBots?.effort, instance.adapter.capabilities.effortLevels);
+}
+
+/** How long a send with no AI chosen waits for an engine that would come first once another one is found working. */
+const FIRST_ENGINE_GRACE_MS = 1_000;
+
+/** The AI a send with no AI chosen runs on, as soon as one is found working: each engine is read on its own (the
+ * start-up read's own probes while it runs, `fresh` probes otherwise), and the first working one is taken unless one
+ * that would come before it is still being read, which gets FIRST_ENGINE_GRACE_MS. `settled` is every engine once all
+ * are read, for the default to settle on in full. */
+function firstWorkingSelection(fresh: boolean): { pick: Promise<ModelSelection | null>; settled: Promise<SelectableInstance[]> } {
+  const ids = registry.instances().map((instance) => instance.instanceId);
+  const statuses = new Map<string, ProviderSnapshot>();
+  const pending = new Set(ids);
+  let version = 0;
+  let wake: () => void = () => {};
+  const reads = ids.map((id) => registry.readEngine(id, fresh)
+    .then((snapshot) => { if (snapshot) statuses.set(id, snapshot); }, () => {})
+    .finally(() => { pending.delete(id); version += 1; wake(); }));
+  const settled = Promise.all(reads).then(async () => selectableInstances(await registry.describeFrom(statuses)));
+  const pick = (async () => {
+    let graceEnds: number | null = null;
+    for (;;) {
+      const seen = version;
+      const described = selectableInstances(await registry.describeFrom(statuses));
+      const choice = await defaultSelection(undefined, described.filter((instance) => readyToRun(instance, selectionContext)));
+      const found = choice.instanceId && choice.model ? choice : null;
+      if (!pending.size) return found;
+      if (found) {
+        const ranked = rankAis(described.map((instance) => ({ instanceId: instance.instanceId, driverKind: instance.driverKind,
+          snapshot: { freeFallback: (instance.snapshot as { freeFallback?: boolean }).freeFallback } })));
+        const at = ranked.findIndex((instance) => instance.instanceId === found.instanceId);
+        const before = ranked.slice(0, Math.max(0, at)).some((instance) => pending.has(instance.instanceId));
+        if (!before) return found;
+        graceEnds ??= Date.now() + FIRST_ENGINE_GRACE_MS;
+        if (Date.now() >= graceEnds) return found;
+      }
+      if (version !== seen) continue;
+      await new Promise<void>((resolve) => {
+        const timer = graceEnds === null ? null : setTimeout(resolve, Math.max(0, graceEnds - Date.now()));
+        wake = () => { if (timer) clearTimeout(timer); resolve(); };
+      });
+    }
+  })();
+  return { pick, settled };
+}
+
+/** A send that took the first working AI before every engine was read: once the default settles on one that comes before
+ * it, the bot moves to that one for its next turns, after the turn on the first one ends, unless the person chose since. */
+function followSettledDefault(botId: string, threadId: string, applied: ModelSelection): void {
+  const same = (a: ModelSelection, b: ModelSelection) => a.instanceId === b.instanceId && a.model === b.model;
+  const follow = (): boolean => {
+    const bot = store.bot(botId);
+    const settled = knownGoodSelection();
+    if (!bot || !same(bot.modelSelection, applied) || !settled || same(settled, applied)) return true;
+    if (threadBusy(botId, threadId)) return false;
+    store.applyModelDefault(botId, settled);
+    return true;
+  };
+  if (follow()) return;
+  const stop = store.onChange(() => { if (follow()) stop(); });
 }
 
 let unsetRecheck: Promise<void> | null = null;
@@ -7758,14 +7819,23 @@ async function acceptDirectSend(
           engines = "known";
           store.applyModelDefault(profile.id, known);
           void recheckUnsetModelSelections();
-        } else if (enginesRead) {
-          // the start-up read just probed every engine: probing them all again would only double the wait
-          engines = "startup";
-          await enginesRead;
-          await refreshUnsetModelSelections();
         } else {
-          engines = "probed";
-          registry.forgetSnapshots(); await refreshUnsetModelSelections();
+          // the start-up read's probes are this run's own, so they are waited on, never repeated; with none running every
+          // engine is probed afresh, for one installed or signed in since
+          const startup = enginesRead;
+          engines = startup ? "startup" : "probed";
+          if (!startup) registry.forgetSnapshots();
+          const first = firstWorkingSelection(!startup);
+          const found = await first.pick;
+          const settle = async () => { if (startup) await startup; await refreshUnsetModelSelections(startup ? undefined : await first.settled); };
+          if (found) {
+            const applied = withNewBotEffort(found, cfg.newBots?.effort, registry.get(found.instanceId)?.adapter.capabilities.effortLevels);
+            store.applyModelDefault(profile.id, applied);
+            void settle().then(() => followSettledDefault(profile.id, threadId, applied))
+              .catch((error) => console.warn(`[engines] settling the default after a send failed: ${error instanceof Error ? error.message : String(error)}`));
+          } else {
+            await settle();
+          }
         }
       }
       const checksMs = Date.now() - checksAt;
