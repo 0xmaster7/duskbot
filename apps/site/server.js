@@ -195,6 +195,15 @@ function zipped(file, body) {
   return zips.get(key);
 }
 
+// the ?v= stamp build-pages.mjs puts on an asset url: the first 8 hex of the sha256 of its content
+const stampOf = (url) => /[?&]v=([0-9a-f]{8})\b/.exec(url || '')?.[1] ?? null;
+const stamps = new Map();
+function contentStamp(file, body) {
+  const key = `${file}:${body.length}:${fs.statSync(file).mtimeMs}`;
+  if (!stamps.has(key)) stamps.set(key, createHash('sha256').update(body).digest('hex').slice(0, 8));
+  return stamps.get(key);
+}
+
 const server = http.createServer((req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -257,7 +266,9 @@ const server = http.createServer((req, res) => {
     // the installer, its checksum and the update manifest must never be served stale after a refresh; a url
     // stamped with its content hash never changes, so it can be kept for good. pages are checked on every load too, so
     // a deploy shows at once instead of after a cached page (and the old asset hashes it points at) runs out
-    'Cache-Control': status >= 400 ? 'no-store' : /\.(sh|sha256|json|html)$/.test(file) ? 'no-cache' : /[?&]v=[0-9a-f]{8}\b/.test(req.url || '') ? 'public, max-age=31536000, immutable' : file.endsWith('.woff2') ? 'public, max-age=86400' : 'public, max-age=300',
+    // only when the stamp is this file's own: a page from before a deploy asking for its old stamp gets today's file, and
+    // that must not be kept for a year under the old address (a browser or the edge would then mix two builds)
+    'Cache-Control': status >= 400 ? 'no-store' : /\.(sh|sha256|json|html)$/.test(file) ? 'no-cache' : stampOf(req.url) ? (stampOf(req.url) === contentStamp(file, body) ? 'public, max-age=31536000, immutable' : 'no-cache') : file.endsWith('.woff2') ? 'public, max-age=86400' : 'public, max-age=300',
   };
   if (/^text\/|svg|json/.test(type) && body.length > 1024) {
     headers.Vary = 'Accept-Encoding';

@@ -124,7 +124,7 @@ for (const bot of BOTS) {
   rec.rowSelected = await grab(page, `[data-bot-reorder-row="${await page.evaluate((k) => window.__ids[k], bot.key)}"]`);
   rec.exchanges = [];
   const extras = [
-    ...bot.chips.map((chip, i) => ({ id: `x${i}`, steps: exchangeSteps(chip) })),
+    ...(bot.chips ?? []).map((chip, i) => ({ id: `x${i}`, steps: exchangeSteps(chip) })),
     ...Object.entries(bot.answers ?? {}).map(([answer, a], i) => ({ id: `a${i}`, answer, steps: [{ u: answer }, ...a.reply] })),
   ];
   for (const extra of extras) {

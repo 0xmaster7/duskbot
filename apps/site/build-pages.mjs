@@ -133,7 +133,7 @@ const withParts = (html) => html.replace(/\{\{include ([\w-]+)\}\}/g, (_, name) 
   // other scripts (safari holds async scripts until deferred ones finish, so this one is a plain script)
   // {{stamp file}} in a partial is that file's stamped address
   const part = fs.readFileSync(file, 'utf8').replace(/\{\{stamp ([\w./-]+)\}\}/g, (_, f) => stamped(f));
-  return part + (name === 'app-demo' && has('app-demo.js') ? `<script src="${stamped('app-demo.js')}"></script>` : '');
+  return part + (name === 'home-window' && has('home-window.js') ? `<script src="${stamped('home-window.js')}"></script>` : '');
 });
 const has = (file) => fs.existsSync(path.join(site, file));
 // the first-party analytics tracker (apps/dashboard/tracker/dusk.js in the Dusk Bot repo), served as /a.js; its beacons go to
@@ -266,7 +266,7 @@ export function layout({ title, description, body, page, at, section = page, og 
   const links = (list) => list.map(([href, label]) => `<a href="${href}"${here_(href)}>${label}</a>`).join('');
   const foot = ([head, list]) => `<div><h2>${head}</h2>${list.map(([href, label]) => `<a href="${href}"${href === address ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</div>`;
   const brand = '<a class="brand" href="/"><img src="/art/logo-96.webp" alt="" width="28" height="28">dusk bot</a>';
-  const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('app-demo.css') ? ['app-demo.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
+  const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('home-window.css') ? ['home-window.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
   const tail = home
     ? `<script src="${stamped('motion.min.js')}" defer></script>\n<script src="${stamped('motion-kit-v2.js')}" defer></script>\n<script src="${stamped('home.js')}" defer></script>${has('mascot.js') ? `\n<script src="${stamped('mascot.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
     : ['mascot.js', 'site.js', 'pages.js', ...scripts].filter(has).map((file) => `<script src="${stamped(file)}" defer></script>`).join('\n');

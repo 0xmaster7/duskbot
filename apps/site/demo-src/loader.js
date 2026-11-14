@@ -1,8 +1,8 @@
 // the hero demo's first script, right after its markup: fits the 1180 by 680 window to the hero's width (phones get the
 // app's phone layout at real size), and fetches the demo itself once the window is near the screen
 (function start() {
-  const win = document.querySelector('[data-ad]');
-  const host = win && win.querySelector('[data-ad-host]');
+  const win = document.querySelector('[data-dw]');
+  const host = win && win.querySelector('[data-dw-host]');
   if (!host) return;
   // browsers without declarative shadow roots get the same first frame from the template
   if (!host.shadowRoot && host.attachShadow) {
@@ -12,8 +12,8 @@
   const PHONE = 760;
   const fit = () => {
     const w = win.clientWidth;
-    host.style.setProperty('--ad-scale', w >= PHONE ? String(w / 1180) : '1');
-    win.toggleAttribute('data-ad-phone', w < PHONE);
+    host.style.setProperty('--dw-scale', w >= PHONE ? String(w / 1180) : '1');
+    win.toggleAttribute('data-dw-phone', w < PHONE);
   };
   fit();
   if ('ResizeObserver' in window) new ResizeObserver(fit).observe(win);
@@ -29,4 +29,6 @@
   if (!('IntersectionObserver' in window)) return load();
   const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); load(); } }, { rootMargin: '400px 0px' });
   io.observe(win);
+  // a browser whose observer never reports still gets the demo, a little later
+  setTimeout(() => { io.disconnect(); load(); }, 4000);
 })();

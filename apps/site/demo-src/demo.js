@@ -1,12 +1,12 @@
 // the hero demo: the real app's markup (captured.json, drawn already as the first frame) brought to life. a click on a
-// bot opens its chat, a suggestion is sent as the person's message and answered with the app's own working line, its
-// timing and the reply rows the app drew for it. the panel opens and closes as the app's docked pane does, keeps its
+// bot opens its chat; a choice on a question card is sent as the person's message and answered with the app's own
+// working line, its timing and the reply rows the app drew for it. the panel opens and closes as the app's docked pane does, keeps its
 // tab across bots and swaps its content in place; a model change only changes the label. nothing leaves the page.
 import data from '@demo-data';
 import { createPixel, stillFrame } from '../../../src/pixel/engine.ts';
 import { BOTS, MODELS } from './content.mjs';
 
-const host = document.querySelector('[data-ad-host]');
+const host = document.querySelector('[data-dw-host]');
 const root = host && host.shadowRoot;
 if (root && !host.dataset.live) start();
 
@@ -46,7 +46,7 @@ function start() {
       if (live.has(mark)) continue;
       const box = mark.firstElementChild;
       if (!box) continue;
-      box.querySelector('.ad-still')?.remove();
+      box.querySelector('.dw-still')?.remove();
       const size = parseFloat(getComputedStyle(box).width) || parseFloat(getComputedStyle(mark).width) || 24;
       const bot = createPixel(box, { body: mark.dataset.body, size, colour: mark.dataset.colour, eyes: mark.dataset.eyes, state: mark.dataset.pixelState || 'idle', follow: size >= 36 });
       live.set(mark, bot);
@@ -93,12 +93,12 @@ function start() {
   const log = () => $('[data-simple-rows]');
   const slot = () => $('[data-panel-slot]');
   const dock = () => $('[data-grok-inset]');
-  const rowOf = (key) => $(`[data-ad-bot="${key}"]`);
+  const rowOf = (key) => $(`[data-dw-bot="${key}"]`);
 
   // ---------- state ----------
   const S = { bot: BOTS[0].key, panel: true, tab: 'details', drawer: false };
   const chat = {};
-  for (const b of BOTS) chat[b.key] = { rows: data.bots[b.key].log.slice(), used: new Set(), busy: false, card: true, model: b.model, preview: null, unread: Boolean(b.unread), waiting: Boolean(b.waiting), routines: b.routines.map(() => null) };
+  for (const b of BOTS) chat[b.key] = { rows: data.bots[b.key].log.slice(), busy: false, card: Boolean(b.answers), model: b.model, preview: null, unread: Boolean(b.unread), waiting: Boolean(b.answers), routines: b.routines.map(() => null) };
 
   // ---------- the sidebar ----------
   const SEL = 'bg-ink/[0.08] [--row:color-mix(in_srgb,var(--color-panel),var(--color-ink)_8%)]';
@@ -117,7 +117,7 @@ function start() {
   function paintRow(key) {
     const old = rowOf(key);
     const wrap = el(rowHtml(key));
-    wrap.dataset.adBot = key;
+    wrap.dataset.dwBot = key;
     const row = $('[data-sidebar-bot-row]', wrap);
     const c = chat[key];
     if (c.preview != null) $('span.truncate[dir="auto"]', row).textContent = c.preview;
@@ -184,7 +184,6 @@ function start() {
     slotEl.textContent = '';
     if (c.busy && c.line) slotEl.append(c.line);
     paintComposer();
-    paintChips();
     wake($('main'));
     sweep();
     pillState();
@@ -195,44 +194,11 @@ function start() {
     const key = S.bot, d = data.bots[key];
     const row = el(d.composer);
     if (chat[key].busy) $('[data-composer-actions]', row).replaceWith(el(d.composerBusy));
-    // the message box only shows what to ask; the suggestions are how this demo is spoken to
+    // the message box only shows what to ask: this demo is spoken to through its question cards
     const ta = $('textarea', row);
     if (ta) { ta.readOnly = true; ta.tabIndex = -1; ta.setAttribute('aria-hidden', 'true'); }
     $('[data-composer-row]').replaceWith(row);
   }
-  function suggestions(key) {
-    const b = ids[key], c = chat[key];
-    // a question card waiting in the chat is answered on the card itself, as in the app
-    if (b.answers && c.card) return [];
-    return b.chips.map((ch, i) => ({ text: ch.u, kind: 'chip', i })).filter((s) => !c.used.has(s.i));
-  }
-  function paintChips() {
-    const d = dock();
-    let box = $('.ad-chips', d);
-    if (!box) {
-      box = document.createElement('div');
-      box.className = 'ad-chips pointer-events-auto';
-      box.setAttribute('role', 'group');
-      box.setAttribute('aria-label', 'Suggestions');
-      const composerWrap = $('[data-composer-row]', d).closest('.pointer-events-none.relative');
-      composerWrap.before(box);
-    }
-    box.textContent = '';
-    box.removeAttribute('data-leaving');
-    const c = chat[S.bot];
-    if (c.busy) { box.hidden = true; return; }
-    const list = suggestions(S.bot);
-    box.hidden = !list.length;
-    for (const s of list) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'ui-pill';
-      b.textContent = s.text;
-      b.addEventListener('click', () => (s.kind === 'answer' ? answer(S.bot, s.text) : ask(S.bot, s.i)));
-      box.append(b);
-    }
-  }
-
   // a row arriving: inserted whole, rising 12px into place over 240ms, as the app's transcript does
   function arrive(nodes) {
     const sc = scroller(), clip = log().parentElement;
@@ -302,9 +268,6 @@ function start() {
   function play(key, userRow, replyRows, steps) {
     const c = chat[key];
     c.busy = true;
-    c.used ??= new Set();
-    const chips = $('.ad-chips');
-    if (chips && key === S.bot) { chips.dataset.leaving = ''; later(160, () => { if (S.bot === key) paintChips(); }); }
     addRows(key, [userRow]);
     if (key === S.bot) paintComposer();
     sidebarPhrase(key, 'Thinking');
@@ -338,16 +301,9 @@ function start() {
       c.preview = plain(replyRows).slice(0, 200);
       if (key !== S.bot) c.unread = true;
       paintRow(key);
-      if (key === S.bot) { paintComposer(); paintChips(); requestAnimationFrame(setDock); }
+      if (key === S.bot) { paintComposer(); requestAnimationFrame(setDock); }
     }]);
     for (const [at, fn] of seq) later(at, fn);
-  }
-  function ask(key, i) {
-    const c = chat[key];
-    if (c.busy) return;
-    c.used.add(i);
-    const ex = data.bots[key].exchanges.find((e) => e.id === `x${i}`);
-    play(key, ex.rows[0], ex.rows.slice(1), ids[key].chips[i].steps);
   }
   function answer(key, text) {
     const c = chat[key];
@@ -542,7 +498,7 @@ function start() {
   function openMenu(btn) {
     if (menu) return closeMenu();
     const m = buildMenu();
-    const box = $('.ad-root');
+    const box = $('.dw-root');
     const k = parseFloat(getComputedStyle(host).scale) || 1;
     const ar = box.getBoundingClientRect(), br = btn.getBoundingClientRect();
     const right = (ar.right - br.right) / k, bottom = (ar.bottom - br.top) / k + 6;
@@ -564,10 +520,10 @@ function start() {
 
   // ---------- a bot's screen ----------
   const SCREENS = {
-    dusk: { url: 'calendar.google.com', title: 'Thursday, Nov 13', rows: [['9:00', 'Inbox replies'], ['9:30', 'Pitch deck, focus time'], ['12:00', 'Lunch'], ['2:00', 'Priya, moved from 11:30', 1], ['4:00', 'Review checkout fix']] },
+    dusk: { url: 'calendar.google.com', title: 'Thursday, Nov 13', rows: [['9:00', 'Inbox replies'], ['9:30', 'Pitch deck, focus time'], ['12:00', 'Lunch'], ['2:00', 'Megan, moved from 11:30', 1], ['4:00', 'Review checkout fix']] },
     researcher: { url: 'hatch.app/pricing', title: 'Pricing', rows: [['Starter', '$12 / seat'], ['Team', '$20 / seat', 1], ['Business', '$34 / seat'], ['Gmail plugin', 'All plans'], ['Free trial', '14 days']] },
     writer: { url: 'docs.google.com', title: 'Thursday newsletter', rows: [['Same-day delivery is live.', ''], ['Order by 2 PM, it arrives tonight.', '', 1], ['Free over $40.', ''], ['Also new: gift wrap.', '']] },
-    inbox: { url: 'mail.google.com', title: 'Inbox', rows: [['Priya S.', 'Can we move to 2?'], ['Daniel (landlord)', 'Lease renewal', 1], ['Sam', 'Final logo files'], ['Bank', 'Your new card shipped'], ['Weekly digest', '12 new posts']] },
+    inbox: { url: 'mail.google.com', title: 'Inbox', rows: [['Megan S.', 'Can we move to 2?'], ['Daniel (landlord)', 'Lease renewal', 1], ['Sam', 'Final logo files'], ['Bank', 'Your new card shipped'], ['Weekly digest', '12 new posts']] },
     maya: { url: 'grocer.example/cart', title: 'Your cart, 23 items', rows: [['Chickpeas x2', '$2.40'], ['Halloumi', '$5.90', 1], ['Tortillas', '$3.20'], ['Lemons x4', '$2.00'], ['Pizza flour', '$4.50']] },
     books: { url: 'sheets.google.com', title: 'October close', rows: [['Revenue', '$18,420'], ['Costs', '$11,230'], ['Profit', '$7,190', 1], ['Receipts matched', '41 of 43'], ['Unused software', '$89 / mo']] },
     coder: { url: 'github.com/shop/checkout.js', mono: 1, rows: ['function startCheckout(cart) {', '  const expires = new Date(', "    cart.expires_at.replace(' ', 'T')", '  )', '  if (expires < Date.now()) return renew(cart)', '  button.disabled = false', '}'] },
@@ -577,20 +533,20 @@ function start() {
   function screenFor(key) {
     const sc = SCREENS[key];
     const box = document.createElement('div');
-    box.className = 'ad-screen';
+    box.className = 'dw-screen';
     box.setAttribute('role', 'img');
     box.setAttribute('aria-label', `${ids[key].name}'s screen: ${sc.title || sc.url}`);
     const colour = /data-colour="([^"]+)"/.exec(unpack(data.bots[key].head))[1];
-    box.style.setProperty('--ad-hue', colour);
+    box.style.setProperty('--dw-hue', colour);
     const bar = document.createElement('div');
-    bar.className = 'ad-screen-bar';
+    bar.className = 'dw-screen-bar';
     bar.append(document.createElement('i'), document.createElement('i'), document.createElement('i'));
     const url = document.createElement('span');
-    url.className = 'ad-screen-url';
+    url.className = 'dw-screen-url';
     url.textContent = sc.url;
     bar.append(url);
     const page = document.createElement('div');
-    page.className = 'ad-screen-page';
+    page.className = 'dw-screen-page';
     if (sc.mono) { page.dataset.mono = ''; page.textContent = sc.rows.join('\n'); }
     else {
       const h = document.createElement('h4');
@@ -598,7 +554,7 @@ function start() {
       page.append(h);
       for (const [a, b, hot] of sc.rows) {
         const r = document.createElement('div');
-        r.className = 'ad-screen-row';
+        r.className = 'dw-screen-row';
         if (hot) r.dataset.hot = '';
         const x = document.createElement('b'); x.textContent = a;
         const y = document.createElement('span'); y.textContent = b;
@@ -607,7 +563,7 @@ function start() {
       }
     }
     const pointer = document.createElement('span');
-    pointer.className = 'ad-screen-pointer';
+    pointer.className = 'dw-screen-pointer';
     const body = /data-body="([^"]+)"/.exec(unpack(data.bots[key].head))[1];
     const holder = document.createElement('span');
     const mark = document.createElement('span');
@@ -620,7 +576,7 @@ function start() {
       live.set(pointer, createPixel(mark, { body, size: 22, colour, eyes: '#fff', state: 'working' }));
       const move = () => {
         if (!pointer.isConnected) return;
-        const rows = $$('.ad-screen-row, h4', page);
+        const rows = $$('.dw-screen-row, h4', page);
         const target = rows[Math.floor(Math.random() * rows.length)] || page;
         const pr = box.getBoundingClientRect(), tr = target.getBoundingClientRect();
         const k = pr.width / box.offsetWidth || 1;
@@ -648,8 +604,8 @@ function start() {
     if (!t) return;
     if (menu && menu.contains(t)) { const r = t.closest('[data-menu-row][data-model]'); if (r) pickModel(r.dataset.model); return; }
     if (menu) { closeMenu(); if (t.closest('#bot-panel button[aria-haspopup]')) return; return; }
-    const row = t.closest('[data-ad-bot]');
-    if (row && !t.closest('[data-bot-actions]')) return select(row.dataset.adBot);
+    const row = t.closest('[data-dw-bot]');
+    if (row && !t.closest('[data-bot-actions]')) return select(row.dataset.dwBot);
     if (t.closest('[data-chathead-pill]')) return openPanel(!(S.panel && (!phone() || host.hasAttribute('data-phone-panel'))));
     if (t.closest('#bot-panel button[aria-label="Close"]')) return openPanel(false);
     if (t.closest('button[aria-label="Open bot list"]')) return drawer(!S.drawer);
@@ -693,7 +649,7 @@ function start() {
     const wrapRows = $$('[data-bot-reorder-row]');
     wrapRows.forEach((r) => r.remove());
     paintSidebar();
-    for (const r of $$('[data-sidebar-bot-row]')) r.tabIndex = r.closest('[data-ad-bot]').dataset.adBot === S.bot ? 0 : -1;
+    for (const r of $$('[data-sidebar-bot-row]')) r.tabIndex = r.closest('[data-dw-bot]').dataset.dwBot === S.bot ? 0 : -1;
     paintChat(true);
     const s = slot();
     if (s) { s.style.width = `${PANEL_W}px`; }
