@@ -216,7 +216,7 @@ it("shows nothing for a checkout left unpaid, lets a new one open, and makes the
   await f.complete(1);
   const listed = parseCloudList((await f.session()).clouds);
   expect(listed).toMatchObject([{ status: "setting_up" }]);
-  expect(listed[0].id).not.toBe(second.cloudId);
+  expect(listed?.[0]?.id).not.toBe(second.cloudId);
 });
 
 it("enforces Admin ownership, one-time confirmations, typed bodies, and the desktop error codes", async () => {

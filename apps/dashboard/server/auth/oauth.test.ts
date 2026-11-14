@@ -404,10 +404,10 @@ describe("OAuth over isolated HTTP", () => {
   it("signs the desktop app up by magic link: the website signs in, approves without a click, and the app follows; tracked to the install", async () => {
     let saved: unknown = null;
     const opened: string[] = [];
-    let wait: (() => Promise<void>) | null = null;
+    let wait: (() => void) | null = null;
     const client = createCloudAccountClient({ origin: url, fixture: true, deviceName: "Fixture Mac", platform: "darwin", appVersion: "1.2.3", now: () => time,
       store: { async read() { return saved; }, async write(value: unknown) { saved = value; } }, async openBrowser(target: string) { opened.push(target); },
-      setTimer: (run: () => Promise<void>) => { wait = run; return 1; }, clearTimer: () => {} });
+      setTimer: (run: () => void) => { wait = run; return 1; }, clearTimer: () => {} });
     try {
       await client.start();
       const asked = await client.begin(null, { email: "magic-new@example.test" });

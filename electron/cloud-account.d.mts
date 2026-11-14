@@ -303,7 +303,7 @@ export declare function createCloudAccountStore(options: {
 export interface CloudAccountClient {
   state(): CloudAccountState;
   start(): Promise<CloudAccountState>;
-  begin(intent?: { plan: string; source: string } | null, options?: { provider?: string }): Promise<CloudAccountState>;
+  begin(intent?: { plan: string; source: string } | null, options?: { provider?: string; account?: string | null; email?: string }): Promise<CloudAccountState>;
   enrollGrant(): Promise<{ enrollToken: string; dashboardUrl: string } | null>;
   /** Takes a workspace this account owns off its dashboard; true once gone, null when signed out or unanswered. */
   unlinkWorkspace(workspaceId: string): Promise<true | null>;
