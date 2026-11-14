@@ -54,4 +54,8 @@ when replaced), and nothing junk or secret was stored in either build. *After*, 
 one in About me at once (the capture step names it), and a fact about the person is stored once instead of in
 About me and again in the bot's notes, which is most of the drop from 28 lines to 12.
 
+Claude, once the gateway's sign-in was back: one run on main after the change, with `claude-sonnet-5-5` for the
+bots and the judge, scored recall 15/15, precision checks 12/12, stored lines worth keeping 11/11, nothing stored
+twice, 11 lines in all (`results/after-claude.json`). It kept and replaced the same facts as the GPT runs.
+
 The scenario is narrow (one person, two bots, two weeks); treat these as a regression check, not a benchmark.
