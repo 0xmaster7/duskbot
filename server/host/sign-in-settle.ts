@@ -1,5 +1,5 @@
 // How a sign-in card settles: Done or Cancel on the card, a saved login filling it, the person's own line in the
-// conversation, which answers every sign-in request still open there, an answer passed on by another bot, or the bot
+// conversation unless it is a question, which answers every sign-in request still open there, an answer passed on by another bot, or the bot
 // carrying on with the site after asking, which shows the sign-in went through. Work handed on that waited on the card
 // carries on with the person's line; a person's own conversation goes on with the turn their line starts.
 import { savedLoginResumePrompt } from "../../shared/logins.ts";
@@ -28,6 +28,15 @@ export type SignInSettled = { status: number; body: Record<string, unknown> };
 /** The line that resumes work handed on when the person answered its sign-in in the chat instead of pressing Done. */
 export function signInChatPrompt(site: string, line: string): string {
   return `dusk bot sign-in update: instead of pressing Done on the sign-in to ${site}, the person wrote in the chat: ${JSON.stringify(line.slice(0, 400))}. Check you are signed in, then continue the task that paused for it. Never ask them for a password or a one-time code in chat.`;
+}
+
+const SETTLES_SIGN_IN = /\b(done|signed in|logged in|login worked|i'?m in|skip|cancel|never ?mind|forget it|stop)\b/iu;
+const ASKS = /\?|^\s*(where|what|how|why|which|who|when|can|could|is|are|do|does|did|should|will|would|have|has)\b/iu;
+
+/** A question, such as "where is the browser tab?", leaves the sign-in card open; a clear done, skip or cancel, or any
+ * other line (a new task), settles it. */
+export function lineSettlesSignIn(line: string): boolean {
+  return SETTLES_SIGN_IN.test(line) || !ASKS.test(line);
 }
 
 export function createSignInSettle(deps: SignInSettleDeps) {

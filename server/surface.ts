@@ -166,6 +166,10 @@ const YOUR_COMPUTER_ALONE =
 const CONNECTED_APP_FIRST =
   " When a connected app can do the task, use it before any browser or screen. If that app is refused or fails, say so in one plain line with what fixes it (connecting it, or who can), and ask before doing the task on a screen instead.";
 
+/** Page work the person cannot watch, or files made in place of it, leave them nothing to check. */
+const BROWSER_FIRST =
+  " Do web work yourself in your built-in browser, so the person can watch it and look at the pages afterwards: open, read, check, compare and fill in pages there, not with WebFetch, a web-fetch helper agent, curl or wget, a Playwright, Puppeteer or Selenium script of your own, or open or AppleScript in another browser. Web search may find which pages to open. Open each site of a task in its own new tab (agent_browser_tab_new, or agent_browser_tabs on the new browser) instead of reusing a tab from another task. Do as much of the task as you can; ask the person only for what only they can do: a sign-in, approving a payment, or a real decision. Never make local files or drafts in place of work the person asked for on a website you can reach. Show what you did with pictures, not long descriptions: agent_browser_screenshot shows the page to you alone, so in every web task call attach_file with screen true at least once before you reply, and at each moment that matters: the result found, a form filled in, just before you send or submit, and when you stop at a sign-in. When the task is done, close the tabs you opened for it (agent_browser_tab_close, or agent_browser_close with its tab), never the whole browser: other tasks' tabs live in it. The person sees your browser in the Computer tab of your panel, with your tabs and the live page, where they can take control or open it big; name only that place, never another panel or menu. To have them sign in, call request_sign_in, which posts a sign-in card, instead of giving directions.";
+
 const RESTATE_SENTENCE =
   " Before your first action on a screen or page in a task, say in one short sentence where you are working, using that same name.";
 
@@ -200,17 +204,17 @@ export function surfacePrompt(
   let text = "";
   if (mounted.computer === "local" && !opts.cloudHome) {
     text = mounted.browser
-      ? ` Two surfaces are mounted this turn: the built-in browser (the browser server's browser_navigate, browser_snapshot, browser_click, browser_fill and friends) and this computer (the computer server's tools). Web tasks → the built-in browser. Desktop apps, files and shell → this computer tools. Pick one surface for a task and stay on it; if you need the user to sign in, say which surface: the Browser tab or this computer.${YOUR_COMPUTER_BESIDE_BROWSER}`
+      ? ` Two surfaces are mounted this turn: the built-in browser (the browser server's agent_browser_* tools) and this computer (the computer server's tools). Web tasks → the built-in browser. Desktop apps, files and shell → this computer tools. Pick one surface for a task and stay on it.${YOUR_COMPUTER_BESIDE_BROWSER}`
       : YOUR_COMPUTER_ALONE;
   } else if (computer && mounted.browser) {
     text =
-      ` Two surfaces are mounted this turn: the built-in browser (the browser server's browser_navigate, browser_snapshot, browser_click, browser_fill and friends) and ${computer} (the computer server's tools). Web tasks → the built-in browser. Desktop apps, files and shell → ${computer} tools. Pick one surface for a task and stay on it; if you need the user to sign in, say which surface: the Browser tab or ${computer}.`;
+      ` Two surfaces are mounted this turn: the built-in browser (the browser server's agent_browser_* tools) and ${computer} (the computer server's tools). Web tasks → the built-in browser. Desktop apps, files and shell → ${computer} tools. Pick one surface for a task and stay on it; if you need the user to sign in on ${computer}, say so.`;
   } else if (computer) {
     text =
       ` Everything you do on screen happens on ${computer}, web pages included, through its own browser; there is no separate built-in browser this turn. If you need the user to sign in, tell them it is on ${computer}.`;
   } else if (mounted.browser) {
     text =
-      " Everything you do on screen happens in the built-in browser tab; there is no desktop computer this turn, but your own shell and file tools still work for ordinary code and file tasks, if you have them. If you need the user to sign in, tell them it is in the Browser tab of the Screen panel.";
+      " Everything you do on screen happens in the built-in browser tab; there is no desktop computer this turn, but your own shell and file tools still work for ordinary code and file tasks, if you have them.";
   }
   if (text) text += RESTATE_SENTENCE + (opts.canSelect
     ? SURFACE_AUTHORITY.replace(ASK_TO_SWITCH, "inspect connected choices with select_computer and select the requested available place; on a pending result end this turn so dusk bot can reconnect the correct tools and continue the original request")
@@ -225,6 +229,7 @@ export function surfacePrompt(
   if (opts.canSelect) text += " If no suitable computer is running but its provider is configured, select_computer can provision one for this computer task; reuse existing resources first. Do not provision merely for ordinary chat or inspection.";
   if (opts.canSelect && !computer && !mounted.browser) text += " No computer or browser tools are mounted yet; select_computer is the way to connect them before screen work, not a reason to claim you already performed it.";
   if (computer || mounted.browser) text += CONNECTED_APP_FIRST;
+  if (mounted.browser) text += BROWSER_FIRST;
   if (computer || mounted.browser) text += " For online research, use the selected dusk bot browser when a search service is unavailable. A failed tool proves only that this attempt failed, not that every browser is unavailable. Inspect the current page after navigation; report a sign-in page, redirect or error as such. A completed model turn is not proof that the user's task succeeded.";
   if (opts.cloudHome) for (const [desktop, cloudHome] of CLOUD_HOME_WORDING) text = text.replace(desktop, cloudHome);
   return text + (opts.note ?? "");

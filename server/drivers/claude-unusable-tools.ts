@@ -8,3 +8,9 @@ export const BUILT_INS_NO_BOT_CAN_USE = ["Workflow", "ScheduleWakeup", "ReportFi
 export function unusableBuiltIns(turn: { isolated: boolean; listsTools: boolean; guest: boolean }): readonly string[] {
   return turn.isolated && !turn.listsTools && !turn.guest ? BUILT_INS_NO_BOT_CAN_USE : [];
 }
+
+/** Claude Code's WebFetch, and its built-in web-fetch agent that runs on it, read pages around dusk bot's browser, where the
+ * person cannot watch them; with that browser mounted, pages are read there. */
+export function toolsAroundBrowser(turn: { browser: boolean; guest: boolean; listed?: readonly string[] }): readonly string[] {
+  return turn.browser && !turn.guest && (!turn.listed || turn.listed.includes("WebFetch")) ? ["WebFetch"] : [];
+}

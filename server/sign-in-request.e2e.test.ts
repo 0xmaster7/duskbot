@@ -12,7 +12,7 @@ const ASKED_REPLY = "I asked you to sign in to example.com; I will continue once
 const SIGNED_IN_REPLY = "You are signed in, so I opened the dashboard.";
 
 /** A server whose bot asks for a sign-in on its first turn and reports the dashboard on its second. */
-async function signInFixture() {
+async function signInFixture(repliesBetween: readonly string[] = []) {
   const tools = mkdtempSync(join(tmpdir(), "dusk-sign-in-e2e-"));
   const binaryPath = join(tools, "agent-browser");
   // Answers the saved-login check the mount makes; every other command succeeds silently.
@@ -42,6 +42,7 @@ async function signInFixture() {
     writeFileSync(planPath, JSON.stringify({ [bot.id]: { turns: [
       { steps: [{ tool: "request_sign_in", arguments: { site: "https://www.example.com/dashboard", reason: "The dashboard is behind a login." } }],
         reply: ASKED_REPLY },
+      ...repliesBetween.map((reply) => ({ reply })),
       { reply: SIGNED_IN_REPLY },
     ] } }));
     const messages = async () => (await api("GET", `/api/threads/${bot.threadId}/messages`)).body.messages as any[];
@@ -113,6 +114,28 @@ it.skipIf(process.platform === "win32")("a reply in the chat answers the sign-in
       .toMatchObject({ status: 409, body: { error: "this sign-in request was already answered in the chat" } });
     await new Promise((resolve) => setTimeout(resolve, 1_000));
     expect(evidence()).toHaveLength(2);
+  } finally {
+    await close();
+  }
+}, 90_000);
+
+it.skipIf(process.platform === "win32")("a question in the chat leaves the sign-in card open, and a later done settles it", async () => {
+  const WHERE_REPLY = "My browser is in the Computer tab of my panel.";
+  const { api, bot, evidence, messages, send, close } = await signInFixture([WHERE_REPLY]);
+  try {
+    await send("Check my example.com dashboard.");
+    await expect.poll(async () => (await messages()).some((message) => message.text === ASKED_REPLY), { timeout: 20_000 }).toBe(true);
+    const card = (await messages()).find((message) => message.kind === "signin");
+
+    await send("where is the browser tab?");
+    await expect.poll(async () => (await messages()).some((message) => message.text === WHERE_REPLY), { timeout: 20_000 }).toBe(true);
+    const open = (await messages()).find((message) => message.id === card.id)?.signIn;
+    expect(open.answeredInChat).toBeUndefined();
+    expect(open.done).toBeUndefined();
+
+    expect(await api("POST", `/api/bots/${bot.id}/sign-in-cards/${card.id}/done`, { threadId: bot.threadId })).toMatchObject({ status: 200, body: { done: true } });
+    await expect.poll(async () => (await messages()).some((message) => message.text === SIGNED_IN_REPLY), { timeout: 20_000 }).toBe(true);
+    expect(evidence()).toHaveLength(3);
   } finally {
     await close();
   }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { HandoffView } from "../coordinator.ts";
 import type { BotRecord, Message } from "../store.ts";
-import { createSignInSettle, signInChatPrompt, type SignInSettleDeps } from "./sign-in-settle.ts";
+import { createSignInSettle, lineSettlesSignIn, signInChatPrompt, type SignInSettleDeps } from "./sign-in-settle.ts";
 
 function world(parked?: Partial<HandoffView>) {
   let rows: Message[] = [];
@@ -50,6 +50,15 @@ describe("a sign-in the person answers in the chat", () => {
     expect(w.settle.answerInChat("dachs", "work", "Bin angemeldet")).toBe(false);
     expect(w.released).toEqual(["m1"]);
     expect(w.answered).toEqual([]);
+  });
+});
+
+describe("which of the person's lines settle an open sign-in card", () => {
+  it("keeps the card open for a question and settles it for done, skip, cancel or a new task", () => {
+    for (const line of ["where is the browser tab", "Where do I sign in?", "how do I see your browser", "is it open?"]) expect(lineSettlesSignIn(line), line).toBe(false);
+    for (const line of ["done", "I signed in, go on.", "logged in", "skip PayPal", "cancel that", "never mind", "Bin angemeldet", "Find me a flight to Rome instead"]) {
+      expect(lineSettlesSignIn(line), line).toBe(true);
+    }
   });
 });
 

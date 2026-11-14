@@ -81,9 +81,9 @@ const BUDGET_BASELINE: Record<string, number> = {
   "voice": 20276,
   "skills": 19525,
   "skills+voice": 20303,
-  "non-chief": 19412,
+  "non-chief": 19801,
   "voice+non-chief": 20190,
-  "skills+non-chief": 19439,
+  "skills+non-chief": 19828,
   "skills+voice+non-chief": 20217,
   "skills+voice+cloud-home": 20320,
   "skills+voice+non-chief+cloud-home": 20234,
@@ -92,9 +92,9 @@ const BUDGET_BASELINE: Record<string, number> = {
   "default+legacy-switches": 19498,
   "default+dusk": 19550,
   "skills+voice+dusk": 20355,
-  "default+no-computer-pick": 18291,
-  "default+room": 18230,
-  "non-chief+room": 18144,
+  "default+no-computer-pick": 18680,
+  "default+room": 18619,
+  "non-chief+room": 18533,
 };
 
 type RpcAnswer = { id: number; result?: { tools?: unknown[]; content?: Array<{ text: string }>; isError?: boolean }; error?: { code: number; message: string } };

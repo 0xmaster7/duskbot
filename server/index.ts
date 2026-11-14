@@ -45,7 +45,7 @@ import { createApprovalModeSupport } from "./harness-capabilities.ts";
 import { signInOutcome, signInResumePrompt, signInWaits } from "../shared/sign-in-request.ts";
 
 import { createRoomTurnLevels } from "./room-turn-level.ts";
-import { createSignInSettle } from "./host/sign-in-settle.ts"; import { createPersonLanguages, THIS_COMPUTER } from "./host/person-languages.ts"; import "./server-line-packs.ts"; import { conversationLanguage, serverLine, setConversationLanguage } from "./server-lines.ts";
+import { createSignInSettle, lineSettlesSignIn } from "./host/sign-in-settle.ts"; import { createPersonLanguages, THIS_COMPUTER } from "./host/person-languages.ts"; import "./server-line-packs.ts"; import { conversationLanguage, serverLine, setConversationLanguage } from "./server-lines.ts";
 import { RoomMemberLock } from "./room-member-lock.ts";
 import { conversationOfRun, memberRunThreadId, parseMemberRun } from "./room-member-runs.ts";
 import { approvalHeldNote, approvalHeldReason, approvalModeForOrigin, autoVerdict, deliverFullAccessApproval, undeliveredApprovalTool } from "./auto-approve.ts"; import { readsOwnFiles } from "./own-file-reads.ts";
@@ -7971,7 +7971,7 @@ async function acceptDirectSend(
           store.setTaskAskedAt(botId, threadId, message.at);
           askCards.movedOn(threadId);
           handoffs.steered(threadId, steerTarget, instance?.instanceId, message.id);
-          signInSettle.answerInChat(botId, threadId);
+          if (lineSettlesSignIn(text)) signInSettle.answerInChat(botId, threadId);
           if (personsOwn) personFirst.wait(threadId, { requeue: (note) => void queueSteeredMessage(current.id, threadId, text, { prompt: note ? `${queuedPrompt}\n\n${note}` : queuedPrompt, rowId: message.id, first: true, queuedAt: message.at, replyToId: replyTo?.id, dataContext, sender, trigger, via, callId, mentions }) });
           return { ok: true as const, steered: true as const, threadId, message };
         }
@@ -8098,6 +8098,15 @@ function startScreenPoller(
   });
   entry.timer = setInterval(() => void entry.capture(), SCREEN_POLL_MS);
   screenPollers.set(threadId, entry);
+}
+
+/** The screen this turn works on, as it is now: its browser tab or its computer. */
+async function screenNow(threadId: string): Promise<Frame> {
+  const entry = screenPollers.get(threadId);
+  if (!entry) throw new Error("No browser or computer screen is open in this conversation yet: open the page first, then post it.");
+  await entry.capture(true);
+  if (!entry.last) throw new Error("The screen could not be captured just now. Carry on and try again after the next step.");
+  return entry.last;
 }
 
 function pokeScreenPoller(threadId: string, touches: boolean, surface?: "browser" | "computer") {
@@ -8330,7 +8339,7 @@ async function beginTurn(
   const personLine = !opts?.coordination && !opts?.cardContinuation && !opts?.automationSource && !opts?.compactOnly
     && !opts?.computerSelectionContinuation && !opts?.editedMessageId && !commsDepth && !opts?.peerAsk && !userMessage.peerAsk; if (personLine) cloudConnections.personTurn(bot, threadId);
   if (personLine && !userMessage.relayed) askCards.movedOn(threadId);
-  if (personLine && !userMessage.relayed && (coordinator.answer(threadId, text) || signInSettle.answerInChat(bot.id, threadId, text))) {
+  if (personLine && !userMessage.relayed && (coordinator.answer(threadId, text) || (lineSettlesSignIn(text) && signInSettle.answerInChat(bot.id, threadId, text)))) {
     askCards.answeredInWords(threadId, text);
     store.appendMessage(threadId, { role: "bot", kind: "activity", tool: { name: serverLine(threadLanguage(threadId), "server.teammates.answerPassed"), ok: true } });
     opts?.onTurnSettled?.();
@@ -13996,6 +14005,24 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         const body = await readInternalBody();
         const requestedPath = typeof body.path === "string" ? body.path : "";
         const requestedName = typeof body.name === "string" ? body.name : undefined;
+        if (body.screen === true) {
+          try {
+            const outcome = await attachForTurn(internalCapability, MAX_ATTACHED_FILES_PER_TURN, {
+              save: () => screenNow(threadId),
+              stillLive: () => internalCapabilityIsActive(internalCapability) && connectorThread(from.id, threadId) !== null,
+              publish: (frame) => {
+                store.appendMessage(threadId, { role: "bot", kind: "screen", png: frame.png, mime: frame.mime,
+                  ...(source.group ? { from: { botId: from.id, name: from.name, color: from.color } } : {}) });
+              },
+              discard: () => {},
+            });
+            if (outcome.status === "limit") return json(res, 429, { error: `You already attached ${MAX_ATTACHED_FILES_PER_TURN} files this turn. Show only the screens that matter.` });
+            if (outcome.status === "ended") return json(res, 409, { error: "This turn ended before the screenshot could be posted, so nothing was posted." });
+            return json(res, 200, { ok: true, name: "screenshot", bytes: Math.floor(outcome.saved.png.length * 3 / 4) });
+          } catch (error) {
+            return json(res, 409, { error: error instanceof Error ? error.message : String(error) });
+          }
+        }
         try {
           const vm = await attachmentVmForTurn(internalCapability);
           const outcome = await withVpsGuestFile(async () => vm ? undefined : vpsTurnFiles(internalCapability), requestedPath, (vpsGuest) => attachForTurn(internalCapability, MAX_ATTACHED_FILES_PER_TURN, {

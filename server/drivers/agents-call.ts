@@ -234,9 +234,10 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
   if (name === "attach_file") {
     const { ok, body } = await apiResponse("/api/internal/attach-file", {
       method: "POST",
-      body: JSON.stringify({ path: args.path, ...(typeof args.name === "string" ? { name: args.name } : {}) }),
+      body: JSON.stringify(args.screen === true ? { screen: true } : { path: args.path, ...(typeof args.name === "string" ? { name: args.name } : {}) }),
     });
     if (!ok) return { text: String(body.error ?? "Could not attach that file."), isError: true };
+    if (args.screen === true) return { text: "Posted a picture of your screen to the chat." };
     return { text: `Attached ${String(body.name ?? "the file")} (${Number(body.bytes ?? 0)} bytes). It now appears in the chat with a preview.` };
   }
   if (CARD_TOOL_NAMES.has(name)) return callCardTool(name, args, context);

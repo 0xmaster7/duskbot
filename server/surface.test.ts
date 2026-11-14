@@ -186,7 +186,7 @@ describe("surfacePrompt", () => {
     expect(text).toMatch(/Web tasks → the built-in browser/);
     expect(text).toMatch(/Desktop apps, files and shell → the cloud computer tools/);
     expect(text).toMatch(/Pick one surface for a task and stay on it/);
-    expect(text).toMatch(/say which surface: the Browser tab or the cloud computer/);
+    expect(text).toMatch(/if you need the user to sign in on the cloud computer, say so/);
   });
 
   it("names only the computer when it is the only surface", () => {
@@ -222,7 +222,7 @@ describe("surfacePrompt", () => {
     // The browser is only the screen: a coding engine's own shell and file tools still work.
     expect(text).not.toMatch(/file or shell computer/);
     expect(text).toContain("your own shell and file tools still work for ordinary code and file tasks");
-    expect(text).toMatch(/Browser tab of the Screen panel/);
+    expect(text).toMatch(/Computer tab of your panel/);
     expect(text).toMatch(/say in one short sentence where you are working/);
     expect(text).not.toMatch(/happens on the cloud computer/);
   });
@@ -335,6 +335,22 @@ describe("surface parsing", () => {
 it("does not instruct use of a selected browser when no surface is mounted", () => {
   expect(surfacePrompt({ computer: null, browser: false }, { canSelect: true })).not.toContain("For online research");
   expect(surfacePrompt({ computer: null, browser: true })).toContain("For online research");
+});
+
+it("sends web work to the built-in browser, with its own tabs, pictures and sign-in card, only when that browser is mounted", () => {
+  for (const mounted of [{ computer: null, browser: true }, { computer: "local", browser: true }] as const) {
+    const text = surfacePrompt(mounted);
+    expect(text).toContain("not with WebFetch, a web-fetch helper agent, curl or wget");
+    expect(text).toContain("Open each site of a task in its own new tab");
+    expect(text).toContain("never the whole browser");
+    expect(text).toContain("agent_browser_screenshot shows the page to you alone, so in every web task call attach_file with screen true");
+    expect(text).toContain("close the tabs you opened for it");
+    expect(text).toContain("the Computer tab of your panel");
+    expect(text).toContain("call request_sign_in");
+    expect(text).toContain("Never make local files or drafts in place of work the person asked for on a website");
+  }
+  expect(surfacePrompt({ computer: "cloud", browser: false })).not.toContain("not with WebFetch");
+  expect(surfacePrompt({ computer: null, browser: false })).not.toContain("not with WebFetch");
 });
 
 describe("cloudPlaceRefusal", () => {
