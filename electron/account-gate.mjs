@@ -11,7 +11,7 @@ export function installAccountGate({ ipcMain, guard, client, required, window, r
     const needed = required();
     return { required: needed, blocked: needed && gateBlocks(state), status: state?.status ?? "signed-out",
       ...(state?.message === undefined ? {} : { message: state.message }), ...(state?.enrollment ? { enrollment: { userCode: state.enrollment.userCode, expiresAt: state.enrollment.expiresAt } } : {}),
-      ...(state?.status === "connecting" && state.browser ? { browser: state.browser } : {}), ...(plainStorage() ? { plainStorage: true } : {}) };
+      ...(state?.status === "connecting" && state.browser ? { browser: state.browser } : {}), ...(state?.status === "connecting" && state.magic ? { magic: state.magic } : {}), ...(plainStorage() ? { plainStorage: true } : {}) };
   };
   const state = () => view(client().state());
   const handle = (method, handler) => ipcMain.handle(`account-gate:${method}`, guard(`account-gate:${method}`, handler));
@@ -25,6 +25,8 @@ export function installAccountGate({ ipcMain, guard, client, required, window, r
   });
   handle("signInCancel", () => { client().emailCancel(); });
   handle("browser", async (_event, provider) => { await client().begin(null, { provider: plain(provider) }); return state(); });
+  // the email way: a magic link to the website, and this app waits on the same sign-in code as the browser's
+  handle("magicLink", async (_event, email) => { await client().begin(null, { email: plain(email) }); return state(); });
   handle("cancel", async () => { await client().cancel(); return state(); });
   handle("reopen", async () => { await client().reopen(); return state(); });
   return { changed(value) { const target = window(); if (target && !target.isDestroyed()) target.webContents.send("account-gate:changed", view(value)); } };

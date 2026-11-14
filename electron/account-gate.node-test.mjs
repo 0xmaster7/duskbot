@@ -34,7 +34,7 @@ function fixture() {
 
 test("every gate channel is guarded, accepts plain strings only, and strips identity and tokens from answers and changes", async () => {
   const f = fixture();
-  assert.deepEqual([...f.handlers.keys()], ["state", "signInStart", "options", "signInVerify", "signInCancel", "browser", "cancel", "reopen"].map(name => `account-gate:${name}`));
+  assert.deepEqual([...f.handlers.keys()], ["state", "signInStart", "options", "signInVerify", "signInCancel", "browser", "magicLink", "cancel", "reopen"].map(name => `account-gate:${name}`));
   const expected = { required: true, blocked: true, status: "connecting", message: "waiting", enrollment: { userCode: "ABCDE-FGHJK", expiresAt: 100 } };
   assert.deepEqual(await f.call("state"), expected);
   await f.call("signInStart", { email: "x" }); await f.call("signInStart", "a@example.test"); await f.call("signInStart", "a@example.test", { recover: true }); await f.call("signInStart", "a@example.test", { recover: "yes" });
@@ -44,6 +44,7 @@ test("every gate channel is guarded, accepts plain strings only, and strips iden
   assert.deepEqual(await f.call("signInVerify", "12345678"), { outcome: "wrong-code", triesLeft: 3 });
   await f.call("signInCancel", "ignored");
   assert.deepEqual(await f.call("browser", "google"), expected); await f.call("browser", { provider: "x" });
+  await f.call("magicLink", "a@example.test"); await f.call("magicLink", { email: "x" });
   f.gate.changed(f.state); assert.deepEqual(f.sent, [["account-gate:changed", expected]]);
   f.alive = false; f.gate.changed(f.state); f.noWindow = true; f.gate.changed(f.state); assert.equal(f.sent.length, 1);
   assert.deepEqual(await f.call("cancel", "ignored"), { required: true, blocked: true, status: "signed-out" });
@@ -51,8 +52,10 @@ test("every gate channel is guarded, accepts plain strings only, and strips iden
   await f.call("reopen");
   f.state = { status: "connecting", browser: "google", token: "private" };
   assert.deepEqual(await f.call("state"), { required: false, blocked: false, status: "connecting", browser: "google" });
-  assert.deepEqual(f.calls, [["emailStart", "", { recover: false }], ["emailStart", "a@example.test", { recover: false }], ["emailStart", "a@example.test", { recover: true }], ["emailStart", "a@example.test", { recover: false }], ["emailVerify", ""], ["emailVerify", "12345678"], ["emailCancel"], ["begin", null, { provider: "google" }], ["begin", null, { provider: "" }], ["cancel"], ["reopen"]]);
-  assert.equal(f.guarded.length, 15); assert.ok(!JSON.stringify(f.sent).includes("private"));
+  assert.deepEqual(f.calls, [["emailStart", "", { recover: false }], ["emailStart", "a@example.test", { recover: false }], ["emailStart", "a@example.test", { recover: true }], ["emailStart", "a@example.test", { recover: false }], ["emailVerify", ""], ["emailVerify", "12345678"], ["emailCancel"], ["begin", null, { provider: "google" }], ["begin", null, { provider: "" }], ["begin", null, { email: "a@example.test" }], ["begin", null, { email: "" }], ["cancel"], ["reopen"]]);
+  f.state = { status: "connecting", enrollment: { userCode: "ABCDE-FGHJK", expiresAt: 1 }, magic: "a@example.test", token: "private" };
+  assert.deepEqual(await f.call("state"), { required: false, blocked: false, status: "connecting", enrollment: { userCode: "ABCDE-FGHJK", expiresAt: 1 }, magic: "a@example.test" });
+  assert.equal(f.guarded.length, 18); assert.ok(!JSON.stringify(f.sent).includes("private"));
 });
 
 function preload({ enabled = true, remote = false } = {}) {

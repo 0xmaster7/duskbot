@@ -10,7 +10,7 @@ import { AUTH_LIMITS } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { pictureUrl, providersFromEnv } from "./providers.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
-import { APP_AUTH_REDIRECT, APP_LANDING_PATH, CSRF_HEADER, NEW_SIGNUP_PARAM, type AccountAnswer, type AppGrant, type OAuthProvider, type WebSignInAnswer } from "../../../../shared/account-api.ts";
+import { APP_AUTH_REDIRECT, APP_LANDING_PATH, CSRF_HEADER, type AccountAnswer, type AppGrant, type OAuthProvider, type WebSignInAnswer } from "../../../../shared/account-api.ts";
 
 class CookieJar {
   values = new Map<string, string>();
@@ -109,7 +109,7 @@ describe("OAuth over isolated HTTP", () => {
     app.close(); expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8")).identities).toEqual([]);
   });
   it("handles Apple form_post from Apple's origin, verifies its secret and saves the first name", async () => {
-    const response = await oauth("apple"); expect(location(response)).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
+    const response = await oauth("apple"); expect(location(response)).toBe("/");
     const first = await account(); expect(first.account.name).toBe("Apple Fixture"); expect(first.identities[0]?.email).toBe("sid@privaterelay.appleid.test");
     jar = new CookieJar(); const auth = await authorization("apple"); expect(new URLSearchParams(auth.body).has("user")).toBe(false);
     await callback(auth); expect((await account()).account).toEqual(first.account);
@@ -211,7 +211,7 @@ describe("OAuth over isolated HTTP", () => {
     expect((await account()).account.id).toBe(victim.account.id);
     jar = new CookieJar();
     fake.setUser("google", { subject: "gmail-google", email: "someone@gmail.com", emailVerified: true, label: null, name: "Someone" });
-    expect(location(await oauth("google"))).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
+    expect(location(await oauth("google"))).toBe("/");
     expect((await account()).account.email).toBe("someone@gmail.com");
   });
   it.each(["google", "apple", "x"] as const)("maps %s denial and clears the binding", async provider => {
@@ -231,8 +231,8 @@ describe("OAuth over isolated HTTP", () => {
     const duplicate = await authorization("google"); duplicate.callback += "&code=other"; expect(error(await callback(duplicate))).toBe("oauth_failed");
     const expired = await authorization("google"); time += 600_000; expect(error(await callback(expired))).toBe("oauth_expired");
   });
-  it.each(["//evil.example", "/a/..//evil.example", "https://evil.example", "/\\evil.example", "/a\nb", "/" + "a".repeat(512)])("falls back to / (pricing for a new account) for next=%s", async next => {
-    expect(location(await oauth("google", `?next=${encodeURIComponent(next)}`))).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
+  it.each(["//evil.example", "/a/..//evil.example", "https://evil.example", "/\\evil.example", "/a\nb", "/" + "a".repeat(512)])("falls back to / for next=%s", async next => {
+    expect(location(await oauth("google", `?next=${encodeURIComponent(next)}`))).toBe("/");
   });
   it("encodes valid Unicode next paths for HTTP redirects", async () => {
     const next = "/account/नाम?q=hello world#profile";
@@ -357,12 +357,6 @@ describe("OAuth over isolated HTTP", () => {
     const fragment = new URLSearchParams(landing.hash.slice(1)); expect(fragment.get("state")).toBe(flow.state);
     expect((await redeem(fragment.get("code")!, flow.verifier)).status).toBe(200);
   });
-  it("sends a brand-new website sign-up on to pricing (/?new=1), never an existing account or one with somewhere to go", async () => {
-    expect(location(await oauth("google"))).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
-    jar = new CookieJar(); expect(location(await oauth("google"))).toBe("/");
-    jar = new CookieJar(); fake.setUser("google", { subject: "new-google", email: "new@gmail.com", emailVerified: true, label: null, name: "New" });
-    expect(location(await oauth("google", "?next=/billing"))).toBe("/billing");
-  });
   it("returns app errors to the exact deep link with its state", async () => {
     fake.deny("google"); const flow = await appAuthorization();
     expect(flow.target.protocol).toBe("duskbot:"); expect(flow.target.searchParams.get("error")).toBe("oauth_denied"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
@@ -406,6 +400,44 @@ describe("OAuth over isolated HTTP", () => {
       expect(opened).toHaveLength(1);
       expect((await client.finishLink(link)).outcome).toBe("ignored");
     } finally { client.close(); }
+  });
+  it("signs the desktop app up by magic link: the website signs in, approves without a click, and the app follows; tracked to the install", async () => {
+    let saved: unknown = null;
+    const opened: string[] = [];
+    let wait: (() => Promise<void>) | null = null;
+    const client = createCloudAccountClient({ origin: url, fixture: true, deviceName: "Fixture Mac", platform: "darwin", appVersion: "1.2.3", now: () => time,
+      store: { async read() { return saved; }, async write(value: unknown) { saved = value; } }, async openBrowser(target: string) { opened.push(target); },
+      setTimer: (run: () => Promise<void>) => { wait = run; return 1; }, clearTimer: () => {} });
+    try {
+      await client.start();
+      const asked = await client.begin(null, { email: "magic-new@example.test" });
+      expect(asked).toMatchObject({ status: "connecting", magic: "magic-new@example.test" });
+      expect(opened).toHaveLength(0);
+      const userCode = asked.enrollment!.userCode;
+      // the mail: one button to the website's sign-in, carrying this app's code on to its page
+      const mail = mailer.outbox.findLast(message => message.to === "magic-new@example.test")!;
+      const link = new URL(/https?:\/\/\S+\/sign-in\?\S+/.exec(mail.text)![0]);
+      expect(link.searchParams.get("next")).toBe(`/cloud/desktop?code=${userCode}`);
+      const code = new URLSearchParams(link.hash.slice(1)).get("code")!;
+      // the website: the link signs up, then the app's page finds this browser signed in after the app asked
+      time += 1000;
+      expect((await call("/v1/auth/verify", { attempt: link.searchParams.get("attempt"), code })).status).toBe(200);
+      const looked = await (await call(`/v1/auth/device?code=${userCode}`)).json() as { fresh: boolean };
+      expect(looked.fresh).toBe(true);
+      expect((await call("/v1/auth/device/approve", { userCode }, { [CSRF_HEADER]: jar.values.get("dusk_csrf")! })).status).toBe(200);
+      time += 6000; wait!();
+      for (let i = 0; i < 50 && client.state().status !== "connected"; i++) await new Promise(resolve => setTimeout(resolve, 20));
+      expect(client.state()).toMatchObject({ status: "connected", account: { email: "magic-new@example.test" } });
+      app.close(); const state = JSON.parse(readFileSync(join(dataDir, "auth.json"), "utf8")) as { accounts: { email: string; signedUpFrom?: unknown }[] };
+      expect(state.accounts.find(item => item.email === "magic-new@example.test")?.signedUpFrom).toMatchObject({ name: "Fixture Mac", platform: "darwin", appVersion: "1.2.3" });
+    } finally { client.close(); }
+  });
+  it("asks again on the app's page when this browser was signed in before the app asked", async () => {
+    await emailLogin("before@example.test");
+    time += 1000;
+    const answer = await (await call("/api/cloud/desktop/authorize", { deviceName: "Fixture Mac", platform: "darwin" })).json() as { userCode: string };
+    const looked = await (await call(`/v1/auth/device?code=${answer.userCode}`)).json() as { fresh: boolean };
+    expect(looked.fresh).toBe(false);
   });
   it("ends the desktop's provider sign-in on a denied link and keeps the code flow where the app has no link", async () => {
     let saved: unknown = null;

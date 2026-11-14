@@ -33,8 +33,6 @@ export const APP_AUTH_REDIRECT = "duskbot://auth";
 /** the desktop app's provider sign-in (app start with landing=page) ends on this website page instead: it hands the deep
  * link (in the fragment, #code=...&state=...) to the app and says to head back, rather than leaving the provider's page up */
 export const APP_LANDING_PATH = "/app-signed-in";
-/** a brand-new account made on the website (no app, nothing asked for) lands at /?new=1, which goes on to pricing */
-export const NEW_SIGNUP_PARAM = "new";
 
 export interface AccountView {
   id: string;
@@ -159,7 +157,7 @@ export interface NotificationPrefs {
 export const NOTIFICATION_DEFAULTS: NotificationPrefs = { cloudStatus: true, product: true };
 /** `onboarded`: the page's first-run steps were finished, in any browser */
 export interface AccountAnswer { account: AccountView; identities: IdentityView[]; sessions: SessionView[]; notifications: NotificationPrefs; onboarded: boolean }
-export interface DeviceLookupAnswer { device: { name: string; platform: string }; userCode: string; expiresAt: number; /** the app's account step, bound to this sign-in */ intent?: AccountIntent; /** where the website goes once approved */ next?: string }
+export interface DeviceLookupAnswer { /** this browser signed in after the app asked: approved without a click */ fresh?: boolean; device: { name: string; platform: string }; userCode: string; expiresAt: number; /** the app's account step, bound to this sign-in */ intent?: AccountIntent; /** where the website goes once approved */ next?: string }
 /** what an app sign-in ends in (Admin contract v1's verify answer). */
 export interface AppGrant {
   cloudContractVersion: 1;

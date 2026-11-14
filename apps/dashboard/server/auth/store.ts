@@ -7,7 +7,9 @@ import type { AccountIntent, NotificationPrefs, OAuthProvider, SessionView } fro
 /** `notifications`: only what the owner changed (NOTIFICATION_DEFAULTS fill the rest); `onboardedAt`: first-run steps done;
  *  `avatarUrl`: the photo of the newest google or x sign-in that had one; `avatar`: the person's choice of avatar
  *  (shared/user-avatar.ts), absent for the default */
-export interface Account { id: string; email: string; name: string | null; avatarUrl?: string; avatar?: string; createdAt: number; notifications?: Partial<NotificationPrefs>; onboardedAt?: number }
+export interface Account { id: string; email: string; name: string | null; avatarUrl?: string; avatar?: string; createdAt: number; notifications?: Partial<NotificationPrefs>; onboardedAt?: number;
+  /** the app install whose sign-in made this account (its hand-back: the desktop sign-in code it opened the website with) */
+  signedUpFrom?: { name: string; platform: string; appVersion: string | null; at: number } }
 /** `revoke`: Apple's newest refresh token per client id (json), sealed with the auth secret, for the revoke on deletion;
  *  never sent to a client */
 export interface Identity { accountId: string; provider: OAuthProvider; subject: string; email: string | null; label: string | null; addedAt: number; revoke?: string }
@@ -17,7 +19,7 @@ export interface Session extends Omit<SessionView, "current"> { accountId: strin
 export interface StoredCode { id: string; email: string; codeHash: string; pending?: string; device: { name: string; platform: string; appVersion: string | null } | null; expiresAt: number; tries: number }
 /** a desktop sign-in waiting for its approval, keyed by the device code's hash, kept so a restart between the app opening the
  *  approve page and the person approving it does not end it */
-export interface StoredDevice { id: string; userCode: string; device: { name: string; platform: string; appVersion: string | null }; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean; intent?: AccountIntent }
+export interface StoredDevice { id: string; userCode: string; device: { name: string; platform: string; appVersion: string | null }; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean; intent?: AccountIntent; createdAt?: number }
 interface AuthState { accounts: Account[]; identities: Identity[]; sessions: Session[]; codes?: StoredCode[]; devices?: StoredDevice[] }
 
 export function createAuthStore(dataDir: string) {

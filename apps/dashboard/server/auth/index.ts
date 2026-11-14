@@ -1,13 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { accountIntentPath, cleanAccountIntent, type AccountIntent } from "../../../../shared/account-api.ts";
-import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, APP_LANDING_PATH, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NEW_SIGNUP_PARAM, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
+import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, APP_LANDING_PATH, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, NotificationPrefs, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
 import { parseUserAvatarChoice } from "../../../../shared/user-avatar.ts";
 import { createAuthStore } from "./store.ts";
 import type { Account, Identity, Session } from "./store.ts";
-import { codeMessage, isTestAddress, recoveryMessage } from "./mail.ts";
+import { codeMessage, isTestAddress, magicLinkMessage, recoveryMessage } from "./mail.ts";
 import type { Mailer } from "./mail.ts";
 import { emailConfig } from "../email/templates.ts";
 import type { EmailConfig } from "../email/templates.ts";
@@ -79,7 +79,7 @@ export function isAppCorsRoute(path: string) {
 }
 interface DeviceInfo { name: string; platform: string; appVersion: string | null }
 interface Attempt { email: string; codeHash: string; pending?: string; device: DeviceInfo | null; expiresAt: number; tries: number }
-interface DeviceAuthorization { userCode: string; device: DeviceInfo; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean; intent?: AccountIntent }
+interface DeviceAuthorization { userCode: string; device: DeviceInfo; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean; intent?: AccountIntent; createdAt?: number }
 interface AppFlow { challenge: string; state: string; landing?: true; expiresAt: number }
 interface OAuthState { provider: OAuthProvider; nonce: string; verifier: string; bindingHash: string; next: string; linkAccount: string | null; linkSession: string | null; appFlow?: string; expiresAt: number }
 interface PendingIdentity { provider: OAuthProvider; profile: ProviderProfile; next: string; appFlow?: string; bindingHash: string; expiresAt: number }
@@ -258,7 +258,8 @@ export function createAuth(options: AuthOptions) {
       || ((versionRequired || data.appVersion !== undefined) && (typeof data.appVersion !== "string" || !/^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/.test(data.appVersion)))) return fail(400, "invalid_request");
     return { name: data.deviceName, platform: data.platform, appVersion: typeof data.appVersion === "string" ? data.appVersion : null };
   }
-  async function start(req: IncomingMessage, data: Record<string, unknown>, app: boolean) {
+  /** `magicNext`: the desktop app's email sign-in: a one-time link to the website that signs in (or up) and goes on there */
+  async function start(req: IncomingMessage, data: Record<string, unknown>, app: boolean, magicNext?: string) {
     const email = cleanEmail(data.email);
     if (!email) return fail(400, app ? "invalid_request" : "invalid_email");
     if (data.pending !== undefined && (app || !opaque(data.pending) || !pendingFor(req, data.pending))) fail(400, "invalid_request");
@@ -295,6 +296,11 @@ export function createAuth(options: AuthOptions) {
       // the attempt (not a secret without its code) rides in the query so a page that only opens for a real flow can check it
       const link = owner && !app ? `${pages}/sign-in?${new URLSearchParams({ attempt })}#${new URLSearchParams({ code })}` : null;
       void options.mailer.send(recoveryMessage(email, { code, link, ways: owner ? view(owner).providers : null }, emailCfg)).catch(() => console.error("Email delivery failed."));
+    } else if (magicNext) {
+      if (options.signupOpen || state.accounts.some(item => item.email === email)) {
+        const link = `${pages}/sign-in?${new URLSearchParams({ attempt, next: magicNext })}#${new URLSearchParams({ code })}`;
+        try { await options.mailer.send(magicLinkMessage(email, link, emailCfg)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
+      }
     } else if (options.signupOpen) {
       try { await options.mailer.send(codeMessage(email, code, emailCfg)); } catch { attempts.delete(hash(attempt)); fail(502, "failed"); }
     } else if (state.accounts.some(item => item.email === email)) {
@@ -459,8 +465,7 @@ export function createAuth(options: AuthOptions) {
       if (item.appFlow) { const location = appRedirect(item.appFlow, owner); oauthCookie(res); return redirect(res, location); }
       const { token, session } = makeSession(owner, null);
       cookies(res, token, csrfFor(session)); oauthCookie(res);
-      // a brand-new account made on the website with nothing else asked for goes on to pricing (the page decides, at /?new=1)
-      redirect(res, `${pageBase}${created && item.next === "/" ? `/?${NEW_SIGNUP_PARAM}=1` : item.next}`);
+      redirect(res, `${pageBase}${item.next}`);
     } catch { oauthError(res, "oauth_failed", item?.next, item?.appFlow); }
   }
   /** the iphone app's sign in with apple: a verified identity token and its code make an app session, linking by apple's
@@ -662,13 +667,22 @@ export function createAuth(options: AuthOptions) {
         requireWeb(req, { mutation: false });
         const device = [...devices.values()].find(item => item.userCode === url.searchParams.get("code") && !item.accountId && !item.denied);
         if (!device) return fail(404, "not_found");
-        json({ device: { name: device.device.name, platform: device.device.platform }, userCode: device.userCode, expiresAt: device.expiresAt, ...(device.intent ? { intent: device.intent, next: accountIntentPath(device.intent) } : {}) });
+        // this browser signed in (or up) after the app asked, through the page the app opened: that was the approval, the
+        // page goes on without asking. one signed in before is still asked, so a code sent to someone is never one click
+        const session = webSession(req)?.session;
+        const fresh = Boolean(session && !session.parentId && device.createdAt !== undefined && session.createdAt > device.createdAt);
+        json({ fresh, device: { name: device.device.name, platform: device.device.platform }, userCode: device.userCode, expiresAt: device.expiresAt, ...(device.intent ? { intent: device.intent, next: accountIntentPath(device.intent) } : {}) });
       } else if (method === "POST" && (path === R.deviceApprove || path === R.deviceDeny)) {
         const owner = requireWeb(req, { mutation: true });
         const device = [...devices.values()].find(item => item.userCode === data.userCode && !item.accountId && !item.denied);
         if (!device) return fail(404, "not_found");
         device.accountId = owner.id;
         device.denied = path === R.deviceDeny;
+        // which app install a new account came from: its sign-up started in that app and came back to it here
+        if (!device.denied && device.createdAt !== undefined && owner.createdAt >= device.createdAt && !owner.signedUpFrom) {
+          owner.signedUpFrom = { name: device.device.name, platform: device.device.platform, appVersion: device.device.appVersion, at: now() }; store.changed();
+          console.log(`desktop sign-up ${owner.id} from ${device.device.platform} ${device.device.appVersion ?? "dev"} (hand-back ${device.userCode})`);
+        }
         saveDevices();
         json({ ok: true });
       } else if (method === "POST" && path === R.desktopAuthorize) {
@@ -682,7 +696,12 @@ export function createAuth(options: AuthOptions) {
         // what the app was doing (shared/account-api.ts AccountIntent): bound to this sign-in, so the website trusts it, not the URL
         const intent = data.intent === undefined ? null : cleanAccountIntent(data.intent);
         if (data.intent !== undefined && !intent) return fail(400, "invalid_request");
-        devices.set(hash(deviceCode), { userCode, device, expiresAt: now() + 900_000, interval: 5, lastPollAt: null, accountId: null, denied: false, ...(intent ? { intent } : {}) });
+        if (data.email !== undefined && typeof data.email !== "string") return fail(400, "invalid_request");
+        devices.set(hash(deviceCode), { userCode, device, expiresAt: now() + 900_000, interval: 5, lastPollAt: null, accountId: null, denied: false, createdAt: now(), ...(intent ? { intent } : {}) });
+        // an email instead of a browser: the magic link opens the website at this sign-in, and the app keeps polling
+        if (typeof data.email === "string") {
+          try { await start(req, { email: data.email }, false, `/cloud/desktop?code=${userCode}`); } catch (error) { devices.delete(hash(deviceCode)); throw error; }
+        }
         json({ cloudContractVersion: 1, deviceCode, userCode, verificationUri: `${pages}/cloud/desktop`, verificationUriComplete: `${pages}/cloud/desktop?code=${userCode}`, expiresIn: 900, interval: 5 });
       } else if (method === "POST" && path === R.desktopToken) {
         const key = opaque(data.deviceCode) ? hash(data.deviceCode) : "", device = devices.get(key);

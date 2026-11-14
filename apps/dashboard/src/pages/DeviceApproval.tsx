@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Monitor } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { useSession } from "../data/session";
@@ -8,13 +8,13 @@ import { PRELAUNCH } from "../lib/prelaunch";
 import { Button, ButtonLink, Card } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
-import { appSignInFor, forgetAppSignIn, FROM_APP_KEY } from "../lib/from-app";
+import { FROM_APP_KEY } from "../lib/from-app";
 import { setFlowNote } from "../lib/flow-note";
 
 /** the app's sign-in from linking its own server (electron/vps-link-main) */
 export const SERVER_LINK_SOURCE = "server_link";
 
-type Device = { device: { name: string; platform: string }; userCode: string; expiresAt: number; intent?: { kind: string; source?: string }; next?: string };
+type Device = { fresh?: boolean; device: { name: string; platform: string }; userCode: string; expiresAt: number; intent?: { kind: string; source?: string }; next?: string };
 
 /** the app's own link: it brings dusk bot forward (the app already signed itself in, so coming back is optional) */
 export const APP_LINK = "duskbot://open";
@@ -34,8 +34,8 @@ export function DeviceApprovalPage() {
   const [state, setState] = useState<"loading" | "ask" | "approved" | "denied" | "missing">("loading");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // signed in (or up) just now on this very sign-in page, in this tab: that was the approval, so no second click
-  const fresh = useMemo(() => appSignInFor(code), [code]);
+  // signed in (or up) after the app asked, through the page it opened (the server says): that was the approval
+  const fresh = found?.fresh === true;
   const auto = useRef(false);
 
   useEffect(() => {
@@ -59,7 +59,6 @@ export function DeviceApprovalPage() {
 
   const answer = async (yes: boolean) => {
     if (!found) return;
-    forgetAppSignIn();
     setBusy(true); setError(null);
     try {
       if (yes) {
@@ -71,6 +70,9 @@ export function DeviceApprovalPage() {
           if (cloud.account && !cloud.account.profile.onboarded) await cloud.finishOnboarding().catch(() => {});
           navigate(found.next, { replace: true }); return;
         }
+        // a new account: the app is signed in already; the website goes on with its usual first steps (name, plan), minus
+        // getting the app, which they are in
+        if (cloud.account && !cloud.account.profile.onboarded) { try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {} navigate("/", { replace: true }); return; }
         setState("approved"); tryAppLink(APP_LINK);
       }
       else { await api.deviceDeny(found.userCode); setState("denied"); }

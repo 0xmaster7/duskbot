@@ -6,6 +6,7 @@ export interface AccountGateState {
   message?: string;
   enrollment?: CloudAccountState["enrollment"];
   browser?: CloudAccountState["browser"];
+  magic?: string;
 }
 export declare function accountGateRequired(options: { env: Record<string, string | undefined>; packaged: boolean; remote: boolean; custom: boolean }): boolean;
 export declare function gateBlocks(state: CloudAccountState | null | undefined): boolean;

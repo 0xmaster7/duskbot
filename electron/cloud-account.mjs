@@ -477,7 +477,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     try { return parseProviders(await request(null, { path: APP_PROVIDERS, timeoutMs: 8_000, signal: AbortSignal.timeout(8_000) })); }
     catch { return { providers: [], recovery: false }; }
   }
-  async function begin(intent = null, { provider, account = null } = {}) {
+  async function begin(intent = null, { provider, account = null, email } = {}) {
     if (!intent || typeof intent !== "object" || !text(intent.plan, 24) || !CHECKOUT_SOURCES.includes(intent.source)) intent = null;
     // the checkout a signed-out purchase leads to is bound to the sign-in on the service as an upgrade intent, never put in the
     // page's URL: the website's sign-in reads a plan in the URL as a plan pick and goes to billing, so the person never
@@ -487,7 +487,9 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     const stamp = reset();
     opened = intent ? { plan: intent.plan, source: intent.source, startedAt: now(), signIn: true } : null;
     // the packaged app owns duskbot://, so the browser comes back here signed in: no code to compare, no page to approve
-    const link = appLinks && LINK_PROVIDERS.includes(provider) ? linkSignIn(origin, provider) : null;
+    const magic = typeof email === "string" ? cleanEmail(email) : null;
+    if (typeof email === "string" && !magic) throw new Error("Invalid email.");
+    const link = !magic && appLinks && LINK_PROVIDERS.includes(provider) ? linkSignIn(origin, provider) : null;
     if (link) {
       pending = { link: { verifier: link.verifier, state: link.state }, verificationUri: link.url, expiresAt: now() + LINK_MS };
       publish({ status: "connecting", browser: provider });
@@ -498,15 +500,16 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
     publish({ status: "connecting" });
     try {
       if (!text(deviceName, 100) || !["darwin", "win32", "linux"].includes(platform)) throw new Error("Invalid desktop.");
-      const result = await request("authorize", { method: "POST", body: { deviceName, platform, ...(text(appVersion, 40) ? { appVersion } : {}), ...(account ? { intent: account } : {}) } });
+      const result = await request("authorize", { method: "POST", body: { deviceName, platform, ...(text(appVersion, 40) ? { appVersion } : {}), ...(account ? { intent: account } : {}), ...(magic ? { email: magic } : {}) } });
       if (!current(stamp)) return state();
       if (result.cloudContractVersion !== 1 || !PRIVATE_CODE.test(result.deviceCode) || !CODE.test(result.userCode) ||
         !desktopApprovalLink(result.verificationUriComplete, origin, result.userCode) || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > MAX_ENROLL_SECONDS ||
         !Number.isSafeInteger(result.interval) || result.interval < 5 || result.interval > 60) throw new Error("Invalid Cloud authorization.");
       const next = "";
       pending = { deviceCode: result.deviceCode, verificationUri: ["google", "apple", "x"].includes(provider) ? `${origin}/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(`/cloud/desktop?code=${result.userCode}`)}` : `${result.verificationUriComplete}${next}`, expiresAt: now() + result.expiresIn * 1000, interval: result.interval * 1000 };
-      publish({ status: "connecting", enrollment: { userCode: result.userCode, expiresAt: pending.expiresAt } });
-      await openBrowser(pending.verificationUri);
+      publish({ status: "connecting", enrollment: { userCode: result.userCode, expiresAt: pending.expiresAt }, ...(magic ? { magic } : {}) });
+      // a magic link: the person opens it from their mail, so no page opens here
+      if (!magic) await openBrowser(pending.verificationUri);
       if (current(stamp)) schedule(poll, pending.interval);
     } catch { if (current(stamp)) { pending = null; opened = null; publish({ status: "signed-out", message: "signin-failed" }); } }
     return state();

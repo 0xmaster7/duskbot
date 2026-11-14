@@ -11,6 +11,8 @@ export type GateState = {
   enrollment?: { userCode: string; expiresAt: number };
   /** Signing in at this provider in the browser, which comes back to the app signed in. */
   browser?: OAuthProvider;
+  /** a magic link went to this address; opening it signs the app in */
+  magic?: string;
   /** No system keyring: the sign-in is kept in a file only this computer's user account can read. */
   plainStorage?: true;
 };
@@ -22,6 +24,8 @@ export interface AccountGateBridge {
   signInVerify(code: string): Promise<SignInVerify>;
   signInCancel(): Promise<unknown>;
   browser(provider: OAuthProvider): Promise<GateState>;
+  /** emails a magic link that signs in (or up) on the website, and this app with it; absent on an older app build's bridge */
+  magicLink?(email: string): Promise<GateState>;
   cancel(): Promise<GateState>;
   reopen(): Promise<GateState>;
   onChange(cb: (state: GateState) => void): () => void;

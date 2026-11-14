@@ -348,7 +348,7 @@ describe("local account service", () => {
     expect(await body(poll(authorization))).toEqual({ error: "authorization_pending" });
     expect(await body(poll(authorization))).toEqual({ error: "slow_down", interval: 10 });
     expect((await call(`/v1/auth/device?code=${authorization.userCode}`)).status).toBe(401);
-    expect(await body(call(`/v1/auth/device?code=${authorization.userCode}`, undefined, browserHeaders(browser)))).toEqual({ device: { name: device.deviceName, platform: "darwin" }, userCode: authorization.userCode, expiresAt: time + 900_000 });
+    expect(await body(call(`/v1/auth/device?code=${authorization.userCode}`, undefined, browserHeaders(browser)))).toEqual({ fresh: false, device: { name: device.deviceName, platform: "darwin" }, userCode: authorization.userCode, expiresAt: time + 900_000 });
     expect((await call("/v1/auth/device?code=unknown", undefined, browserHeaders(browser))).status).toBe(404);
     // an account step's context is bound to the sign-in (never the URL): the website reads where to land from here
     const upgrading = await body<Authorization>(call("/api/cloud/desktop/authorize", { ...device, intent: { kind: "upgrade", plan: "pro", source: "app_computer_move", move: "ws_abc" } }));

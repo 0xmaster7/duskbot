@@ -542,6 +542,7 @@ const bridge = {
     signInVerify: code => ipcRenderer.invoke("account-gate:signInVerify", String(code)),
     signInCancel: () => ipcRenderer.invoke("account-gate:signInCancel"),
     browser: provider => ipcRenderer.invoke("account-gate:browser", String(provider)),
+    magicLink: email => ipcRenderer.invoke("account-gate:magicLink", String(email)),
     cancel: () => ipcRenderer.invoke("account-gate:cancel"),
     onChange: cb => {
       const handler = (_event, state) => cb(state);

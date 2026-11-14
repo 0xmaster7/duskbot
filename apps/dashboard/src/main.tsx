@@ -5,7 +5,7 @@ import { CloudDataProvider, useCloud } from "./data/cloud";
 import { SessionProvider, useSession } from "./data/session";
 import { navigate, useLocation } from "./lib/router";
 import { initTheme } from "./lib/theme";
-import { planIntent, planQuery, siteUrl } from "./lib/site";
+import { planIntent, planQuery } from "./lib/site";
 import { reportPageErrors } from "./lib/page-errors";
 import { reloadForStaleChunk } from "./lib/stale-chunk";
 import { trackPage } from "./lib/analytics";
@@ -21,7 +21,7 @@ import { HomePage } from "./pages/Home";
 import { AuthScreen } from "./pages/Auth";
 import { HANDOFF_PATH, handoffArrived, stashHandoff } from "./data/handoff";
 import { appReturn, stashAppReturn } from "./data/app-return";
-import { APP_LANDING_PATH, NEW_SIGNUP_PARAM } from "../../../shared/account-api.ts";
+import { APP_LANDING_PATH } from "../../../shared/account-api.ts";
 import { PRELAUNCH, prelaunchAllowed } from "./lib/prelaunch";
 import "./app.css";
 
@@ -113,15 +113,12 @@ function SignedIn() {
   const next = query.get("next");
   const intent = planIntent(query);
   const welcome = path === "/welcome";
-  // a brand-new account made on the website, nothing asked for: pricing is next, not the dashboard
-  const fresh = path === "/" && query.get(NEW_SIGNUP_PARAM) === "1" && !intent;
-  useEffect(() => { if (fresh) location.replace(siteUrl("/pricing")); }, [fresh]);
   // a plan picked on the site: someone signed in already goes to the plan step, or straight to plans once onboarded
   const moved = MOVED[path]
     ? (intent && SIGN_IN_PATHS.includes(path) ? `/welcome?${planQuery(intent)}` : path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path])
     : welcome && intent && account?.profile.onboarded ? `/billing?${planQuery(intent)}` : null;
   useEffect(() => { if (moved) navigate(moved, { replace: true }); }, [moved]);
-  if (moved || fresh) return null;
+  if (moved) return null;
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (path === "/admin" || path.startsWith("/admin/")) return <Suspense fallback={blank}><AdminApp /></Suspense>;
   const exempt = path === "/claim" || path === "/cloud/desktop" || deletePageId(path) !== null;

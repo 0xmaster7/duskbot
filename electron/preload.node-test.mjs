@@ -171,10 +171,10 @@ test("a Cloud link arriving before React subscriptions is delivered exactly once
 
 test("the account gate forwards text only and removes its changed listener", async () => {
   const before = invocations.length, gate = exposed.api.accountGate;
-  await gate.state(); await gate.signInStart("person@example.test"); await gate.signInStart("person@example.test", { recover: "yes", extra: 1 }); await gate.signInVerify(12345678); await gate.signInCancel(); await gate.browser("x"); await gate.cancel();
+  await gate.state(); await gate.signInStart("person@example.test"); await gate.signInStart("person@example.test", { recover: "yes", extra: 1 }); await gate.signInVerify(12345678); await gate.signInCancel(); await gate.browser("x"); await gate.magicLink("person@example.test"); await gate.cancel();
   await gate.options(); await gate.reopen();
   assert.deepEqual(invocations.slice(before), [["account-gate:state"], ["account-gate:signInStart", "person@example.test", { recover: false }], ["account-gate:signInStart", "person@example.test", { recover: false }],
-    ["account-gate:signInVerify", "12345678"], ["account-gate:signInCancel"], ["account-gate:browser", "x"], ["account-gate:cancel"], ["account-gate:options"], ["account-gate:reopen"]]);
+    ["account-gate:signInVerify", "12345678"], ["account-gate:signInCancel"], ["account-gate:browser", "x"], ["account-gate:magicLink", "person@example.test"], ["account-gate:cancel"], ["account-gate:options"], ["account-gate:reopen"]]);
   const states = [], unsubscribe = gate.onChange(state => states.push(state));
   emit("account-gate:changed", { status: "connecting" }); assert.deepEqual(states, [{ status: "connecting" }]);
   unsubscribe(); assert.equal(subscriberCount("account-gate:changed"), 0);

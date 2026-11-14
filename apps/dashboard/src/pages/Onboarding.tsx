@@ -18,6 +18,8 @@ import { points } from "./Billing";
 import { CHECKOUT_SOON } from "./cloud-offer";
 import { track } from "../lib/analytics";
 import { per, planSelection, type PaidPlan } from "./plan-sheet";
+import { fromApp } from "../lib/from-app";
+import { APP_LINK, tryAppLink } from "./DeviceApproval";
 
 const STEPS = ["name", "plan", "app"] as const;
 type Step = (typeof STEPS)[number];
@@ -117,6 +119,8 @@ export function Onboarding() {
   const scene = useRef<SceneHandle>(null);
   const leaving = useRef(false);
   const shownName = name ?? guess;
+  // signed up from the app (its sign-in brought them here): they have it, so the last step sends them back to it
+  const [inApp] = useState(fromApp);
 
   const search = query.toString();
   const address = (to: Step) => {
@@ -175,7 +179,7 @@ export function Onboarding() {
       step={at}
       scene={scene}
       snug
-      card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{LABELS[at]}</span></p>}
+      card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{inApp && step === "app" ? "all set" : LABELS[at]}</span></p>}
       aside={<button type="button" onClick={() => void finish()} disabled={busy} className="text-link -me-2 h-11 rounded-full px-2 text-14">skip</button>}
     >
       <Rail at={at} />
@@ -206,6 +210,14 @@ export function Onboarding() {
           {error && <p role="alert" className="mt-3 text-14 text-bad">{error}</p>}
           <Button variant="primary" className={cx("mt-5", big)} onClick={() => void choose()} disabled={busy || !catalog}>{busy ? <Busy>opening checkout</Busy> : home === "cloud" && price ? `continue to checkout, ${price.amount}${price.unit}` : "continue with free"}</Button>
           <div className="mt-2 flex items-center justify-between gap-3">{back("name")}{home === "cloud" && <span className="t-meta">cancel any time</span>}</div>
+        </div>
+      ) : inApp ? (
+        <div key="app" className="step-in">
+          {bought && <p className="tag mb-4 !bg-lime !text-ink" role="status"><span className="live-dot text-good" data-live />your dusk cloud is being set up</p>}
+          <h1 className="t-title">you're all set.</h1>
+          <p className="mt-3 text-16 text-ink-2">head back to dusk bot. it's signed in already.</p>
+          <Button variant="primary" className={cx("mt-6", big)} onClick={() => { tryAppLink(APP_LINK); void finish(); }} disabled={busy} data-back-to-app="">back to dusk bot</Button>
+          {!bought && <div className="mt-1">{back("plan")}</div>}
         </div>
       ) : (
         <div key="app" className="step-in">

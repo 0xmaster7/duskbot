@@ -66,6 +66,20 @@ export function codeEmail(cfg: EmailConfig, { code }: { code: string }): Rendere
   });
 }
 
+/** the desktop app's sign-in or sign-up by email: one button that opens the website signed in, and the app follows */
+export function magicLinkEmail(cfg: EmailConfig, { link }: { link: string }): Rendered {
+  return render(cfg, {
+    subject: "your dusk bot sign-in link", preheader: "open it to finish signing in. it works for 10 minutes.", tag: "sign in", ...SAY.code, transactional: true,
+    blocks: [
+      { t: "h1", text: "here's your sign-in link" },
+      { t: "button", label: "continue to dusk bot", href: link },
+      { t: "p", text: "it signs you in (or makes your account), and the app signs itself in too. it works for 10 minutes." },
+      { t: "p", small: true, text: "didn't ask for this? you can ignore it. nobody gets in without the link." },
+    ],
+    reason: "you got this because someone typed this address into dusk bot.",
+  });
+}
+
 const WAYS: Record<string, string> = { email: "an emailed code", google: "google", apple: "apple", x: "x" };
 /** "can't sign in?": the code, a one-time link for the website, and the ways this address signs in. `ways` null: no
  *  account uses the address, so no code goes out */

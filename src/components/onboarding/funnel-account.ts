@@ -11,6 +11,8 @@ export interface FunnelAccountState {
   required: boolean;
   /** a browser sign-in is under way */
   browser: boolean;
+  /** a magic link went to this address, and the app waits for it */
+  magic?: string;
 }
 
 export interface FunnelAccount {
@@ -20,6 +22,8 @@ export interface FunnelAccount {
   emailVerify(code: string): Promise<SignInVerify>;
   emailCancel(): Promise<void>;
   browser(provider: OAuthProvider): Promise<void>;
+  /** emails a magic link; absent where the bridge can't (the code is typed here instead) */
+  magicLink?(email: string): Promise<void>;
   cancelBrowser(): Promise<void>;
   onChange(callback: () => void): () => void;
 }
@@ -37,7 +41,7 @@ export function funnelAccount(desktop: Window["duskDesktop"] = window.duskDeskto
         const [view, account] = await Promise.all([gate.state(), cloud?.state().catch(() => null) ?? Promise.resolve(null)]);
         const email = account?.account?.email;
         return { signedIn: signedIn(view.status) || (view.required && !view.blocked), ...(email ? { email } : {}), required: view.required,
-          browser: view.status === "connecting" && Boolean(view.browser || view.enrollment) };
+          browser: view.status === "connecting" && Boolean(view.browser || view.enrollment), ...(view.status === "connecting" && view.magic ? { magic: view.magic } : {}) };
       },
       providers: async () => {
         if (!gate.options) return [...OAUTH_PROVIDERS];
@@ -48,6 +52,7 @@ export function funnelAccount(desktop: Window["duskDesktop"] = window.duskDeskto
       emailVerify: (code) => gate.signInVerify(code),
       emailCancel: async () => { await gate.signInCancel(); },
       browser: async (provider) => { await gate.browser(provider); },
+      ...(gate.magicLink ? { magicLink: async (email: string) => { await gate.magicLink!(email); } } : {}),
       cancelBrowser: async () => { await gate.cancel(); },
       onChange: (callback) => gate.onChange(() => callback()),
     };

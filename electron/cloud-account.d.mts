@@ -7,6 +7,8 @@ export interface CloudAccountState {
   enrollment?: { userCode: string; expiresAt: number };
   /** Signing in at this provider in the browser, which comes back to the app's own link (packaged app only). */
   browser?: import("./cloud-signin.mjs").CloudLinkProvider;
+  /** the address a magic link went to; the app waits for it to be opened */
+  magic?: string;
   /** `name`, `avatarUrl` (https): from an Admin that knows them */
   account?: { id: string; email: string; name?: string; avatarUrl?: string; avatar?: string };
   deviceId?: string;

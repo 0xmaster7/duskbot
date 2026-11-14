@@ -1,6 +1,6 @@
 // Signing in to a dusk bot account, as one step of the first run: Google (and any other provider the account service
 // offers) in the browser, or an emailed one-time code. The attempt and the token stay in main (funnel-account.ts).
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactElement } from "react";
 import { phoneAppEnabled } from "@/lib/feature-flags";
 import { Check, LoaderCircle } from "../../icons";
 import { CodeBoxes, codeDigits } from "@/components/cloud-buy/CodeBoxes";
@@ -24,6 +24,25 @@ function GoogleMark() {
   );
 }
 
+// the official marks, in the text colour: black on light, white on dark, as Apple's and X's guidelines ask
+function AppleMark() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+    </svg>
+  );
+}
+
+function XMark() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+    </svg>
+  );
+}
+
+const PROVIDER_MARK: Record<OAuthProvider, () => ReactElement> = { google: GoogleMark, apple: AppleMark, x: XMark };
+
 const PROVIDER_LABEL: Record<OAuthProvider, Parameters<typeof t>[0]> = {
   google: "funnel.account.google", apple: "funnel.account.apple", x: "funnel.account.x",
 };
@@ -44,6 +63,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [browser, setBrowser] = useState<OAuthProvider | null>(null);
+  const [magic, setMagic] = useState<string | null>(null);
   const [problem, setProblem] = useState<CloudSignInProblem | null>(null);
   const [triesLeft, setTriesLeft] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -73,8 +93,16 @@ export function AccountStep({ account, known, onDone, onSkip }: {
     if (result.outcome === "sent") { setSent(result); setEmail(result.email); setCode(""); setNow(Date.now()); }
     else setProblem(result.outcome);
   });
+  // a magic link: the website signs them in (or up), runs its first steps, and this app follows on its own
+  const sendLink = () => run(async () => {
+    const to = email.trim();
+    await account.magicLink!(to);
+    const now = await account.state();
+    if (now.magic || now.browser) setMagic(now.magic ?? to); else setProblem("failed");
+  });
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (!sent && account.magicLink) { if (email.trim()) void sendLink(); return; }
     if (!sent) { if (email.trim()) void send(); return; }
     if (code.length !== 8) return;
     void run(async () => {
@@ -93,6 +121,19 @@ export function AccountStep({ account, known, onDone, onSkip }: {
     );
   }
 
+  const waitingFor = magic ?? known?.magic ?? null;
+  if (waitingFor && known?.signedIn !== true) {
+    return (
+      <StepFrame art={<StepArt art="key" />} title={t("funnel.account.magicTitle")} sub={t("funnel.account.magic", { email: waitingFor })}
+        footer={<>
+          <p role="status" className="flex items-center gap-2 text-[13px] leading-[18px] text-ink-secondary">
+            <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />{t("funnel.account.magicWaiting")}
+          </p>
+          <button type="button" className={QUIET} onClick={() => void account.cancelBrowser().catch(() => {}).finally(() => setMagic(null))}>{t("funnel.cancel")}</button>
+        </>} />
+    );
+  }
+
   if (browser) {
     return (
       <StepFrame art={<StepArt art="key" />} title={t("funnel.account.browserTitle")} sub={t("funnel.account.browser")}
@@ -107,8 +148,13 @@ export function AccountStep({ account, known, onDone, onSkip }: {
 
   return (
     <div ref={host} className="w-full">
-      <StepFrame art={<StepArt art="key" />} title={t("funnel.account.title")} sub={t(sent ? "funnel.account.codeSub" : phoneAppEnabled() ? "funnel.account.sub" : "funnel.account.subNoPhone", { email: sent?.email ?? "" })}
-        footer={onSkip && !sent ? <button type="button" data-funnel-account-skip="" onClick={onSkip} className={cn(QUIET, "text-[12px] opacity-40 hover:opacity-70 focus-visible:opacity-100")}>{t("funnel.account.skip")}</button> : undefined}>
+      {/* top right, across from Back, and quiet: the account is the way on */}
+      {onSkip && !sent && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-14 items-center justify-end px-4">
+          <button type="button" data-funnel-account-skip="" onClick={onSkip} className={cn(QUIET, "pointer-events-auto text-[12px] opacity-40 hover:opacity-70 focus-visible:opacity-100")}>{t("funnel.account.skip")}</button>
+        </div>
+      )}
+      <StepFrame art={<StepArt art="key" />} title={t("funnel.account.title")} sub={t(sent ? "funnel.account.codeSub" : phoneAppEnabled() ? "funnel.account.sub" : "funnel.account.subNoPhone", { email: sent?.email ?? "" })}>
         <div className="flex w-full max-w-[320px] flex-col gap-3">
           {!sent && providers && providers.length > 0 && (
             <>
@@ -116,7 +162,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
                 <button key={provider} type="button" data-funnel-provider={provider} disabled={busy}
                   onClick={() => void run(async () => { setBrowser(provider); await account.browser(provider); })}
                   className={cn(TILE, "flex min-h-11 w-full items-center justify-center gap-2.5 px-5 text-[14px] text-ink disabled:opacity-50")}>
-                  {provider === "google" && <GoogleMark />}
+                  {(() => { const Mark = PROVIDER_MARK[provider]; return <Mark />; })()}
                   {t(PROVIDER_LABEL[provider])}
                 </button>
               ))}
@@ -139,7 +185,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
               </>
             )}
             <button type="submit" data-primary="" disabled={busy || (sent ? code.length !== 8 : !email.trim())} className={cn(PRIMARY, "w-full")}>
-              {busy ? t("funnel.account.checking") : sent ? t("funnel.account.verify") : t("funnel.account.send")}
+              {busy ? t("funnel.account.checking") : sent ? t("funnel.account.verify") : t(account.magicLink ? "funnel.account.sendLink" : "funnel.account.send")}
             </button>
             {sent && (
               <div className="flex items-center justify-center gap-1">

@@ -1,4 +1,4 @@
-import { codeEmail, emailConfig, recoveryEmail } from "../email/templates.ts";
+import { codeEmail, emailConfig, magicLinkEmail, recoveryEmail } from "../email/templates.ts";
 import type { EmailConfig } from "../email/templates.ts";
 import { createMailRouter, mailCapsFromEnv, memoryMailUsage, type MailUsageStore, type RoutedMailer } from "./mail-router.ts";
 /** transactional: a code, a receipt or "cloud ready" (templates.ts); it goes through resend first (auth/mail-router.ts) */
@@ -118,6 +118,9 @@ export function codeMessage(to: string, code: string, cfg: EmailConfig = emailCo
 }
 /** "Can't sign in?": the code (and, for the website, a one-time link), plus the ways this address signs in. `ways` null: no
  * account uses the address, so no code goes out, only that answer. */
+export function magicLinkMessage(to: string, link: string, cfg: EmailConfig = emailConfig(process.env, { publicUrl: "https://dusk.bot" })): MailMessage {
+  return { to, ...magicLinkEmail(cfg, { link }) };
+}
 export function recoveryMessage(to: string, input: { code: string; link?: string | null; ways: string[] | null },
   cfg: EmailConfig = emailConfig(process.env, { publicUrl: "https://dusk.bot" })): MailMessage {
   return { to, ...recoveryEmail(cfg, input) };

@@ -6,8 +6,7 @@ import { api, ApiError, FIXTURE, type Account } from "../lib/api";
 import { appPath, Link, navigate, useLocation } from "../lib/router";
 import { planIntent, planQuery, SITE_NAME, SITE_URL, siteUrl } from "../lib/site";
 import { ProviderMark, PROVIDER_NAME } from "../ui/BrandMarks";
-import { markAppSignIn } from "../lib/from-app";
-import { APP_LANDING_PATH, NEW_SIGNUP_PARAM } from "../../../../shared/account-api.ts";
+import { APP_LANDING_PATH } from "../../../../shared/account-api.ts";
 import { SplitFrame } from "../ui/Frame";
 import { Button, cx } from "../ui/kit";
 import { Mascot, useReducedMotion } from "../ui/Mascot";
@@ -214,9 +213,7 @@ export function AuthScreen({ mode, note, forApp = false }: { mode: Mode; note?: 
       if (r.redirect?.startsWith("duskbot://auth?")) { window.location.assign(r.redirect); return; }
       // the desktop app's sign-in that needed an email: the page that opens the app and says so
       if (r.redirect && new URL(r.redirect, window.location.origin).pathname.endsWith(APP_LANDING_PATH)) { window.location.assign(r.redirect); return; }
-      if (forApp) markAppSignIn(query.get("code") ?? "");
-      // a brand-new account from the website's own sign-in: pricing comes next (main.tsx)
-      enter(r.account, r.created && home === "/" && !forApp ? `/?${NEW_SIGNUP_PARAM}=1` : home);
+      enter(r.account, home);
     }
     catch (e) { fail(e); setCode(""); codeRef.current?.focus(); if (e instanceof ApiError && e.code === "expired") setAttempt(null); }
     finally { setBusy(null); }
@@ -231,7 +228,7 @@ export function AuthScreen({ mode, note, forApp = false }: { mode: Mode; note?: 
     // a provider without keys yet keeps its button and says so, instead of vanishing
     if (!enabled(p)) { setSoon(p); return; }
     setSoon(null);
-    if (!FIXTURE) { if (forApp) markAppSignIn(query.get("code") ?? ""); window.location.assign(api.oauthUrl(p, mode, { next: home })); return; }
+    if (!FIXTURE) { window.location.assign(api.oauthUrl(p, mode, { next: home })); return; }
     // fixtures have no provider page to bounce through: sign the demo account in
     setBusy(p);
     try { const s = await api.start("sid@duskbot.test", mode); const r = await api.verify(s.attempt, "123456"); enter(r.account, intent ? home : "/"); }
