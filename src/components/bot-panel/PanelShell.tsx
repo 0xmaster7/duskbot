@@ -15,6 +15,7 @@ import { lazyScreen } from "../lazy-screen";
 import { linkTarget, usePanelLink, type PanelLink } from "./panel-link";
 import { PanelHero } from "./PanelHero";
 import { PanelShareMenu } from "./PanelShareMenu";
+import { StartFreshButton } from "./StartFresh";
 import { roundButtonCls } from "./rows";
 import { SegmentedTabs } from "../ui/SegmentedTabs";
 
@@ -213,7 +214,8 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
       <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge max-md:hidden" />
       <div {...dragProps} className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
         {page === null ? (
-          <span className="ms-auto">
+          <span className="ms-auto flex items-center gap-2">
+            <StartFreshButton />
             <PanelShareMenu bot={bot} />
           </span>
         ) : (

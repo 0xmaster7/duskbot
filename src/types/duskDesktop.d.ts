@@ -180,6 +180,15 @@ const __APP_VERSION__: string;
       vpsCloudMove?: import("../lib/vps-cloud-move").VpsCloudMoveBridge;
       /** This computer's page only: Add your VPS, its install, sign-in, move, and the Transfer pane (electron/vps-link.mjs). */
       vpsLink?: import("../lib/vps-link").VpsLinkBridge;
+      /** The bot panel's Start fresh: deletes everything this person has with dusk bot (electron/start-fresh.mjs). Absent on an older app. */
+      startFresh?: {
+        available(): Promise<boolean>;
+        preview(): Promise<import("../../electron/start-fresh.mjs").StartFreshView>;
+        run(typed: string): Promise<import("../../electron/start-fresh.mjs").StartFreshView>;
+        retry(): Promise<import("../../electron/start-fresh.mjs").StartFreshView>;
+        finish(): Promise<import("../../electron/start-fresh.mjs").StartFreshView>;
+        onChanged(cb: (view: import("../../electron/start-fresh.mjs").StartFreshView) => void): () => void;
+      };
       /** Settings on the person's own Cloud: the plan, read only. */
       cloudPlan?: import("../../electron/cloud-account.mjs").CloudPlanBridge;
       /** This computer's page, and My Cloud's own page once it is the person's home: the window onto My Cloud. */

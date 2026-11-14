@@ -699,6 +699,19 @@ const bridge = {
   },
   // This computer's page only (never in REMOTE_SAFE, and main refuses any other): Add your VPS, its AI sign-in, the move
   // there and back, and the backups made on the way. No secret ever comes through here.
+  // Start fresh (the bot panel's reset): main checks the page and acts as this app's own sign-ins; the page sends only the typed words.
+  startFresh: {
+    available: () => ipcRenderer.invoke("start-fresh:available"),
+    preview: () => ipcRenderer.invoke("start-fresh:preview"),
+    run: typed => ipcRenderer.invoke("start-fresh:run", String(typed)),
+    retry: () => ipcRenderer.invoke("start-fresh:retry"),
+    finish: () => ipcRenderer.invoke("start-fresh:finish"),
+    onChanged: cb => {
+      const handler = (_event, view) => cb(view);
+      ipcRenderer.on("start-fresh:changed", handler);
+      return () => ipcRenderer.removeListener("start-fresh:changed", handler);
+    },
+  },
   vpsLink: {
     state: () => ipcRenderer.invoke("vps-link:state"),
     start: () => ipcRenderer.invoke("vps-link:start"),

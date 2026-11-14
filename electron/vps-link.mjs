@@ -1268,8 +1268,17 @@ export function createVpsLink(deps) {
     return { ok: true };
   }
 
-  async function forget() {
-    const link = currentLink();
+  const forget = () => forgetLink(currentLink());
+  /** Start fresh: the linked server this saved place is, forgotten as Forget does (after its data was deleted, so there is
+   * no session left there to sign out of: `quiet`); false when no link is that place. */
+  async function forgetServer(envId) {
+    const link = state.links.find((entry) => entry.envId === envId);
+    if (!link) return false;
+    await forgetLink(link, { quiet: true });
+    return true;
+  }
+
+  async function forgetLink(link, how = {}) {
     if (!link) return view();
     // the server drops this app's ssh key now; its agent also does once the link service says the tunnel is gone
     const proxy = proxies.get(link.id);
@@ -1278,7 +1287,8 @@ export function createVpsLink(deps) {
     await proxyStarts.get(link.id)?.catch(() => {});
     await proxies.get(link.id)?.close();
     proxies.delete(link.id);
-    if (link.envId) deps.forgetServer(link.envId);
+    const leaving = link.envId ? deps.forgetServer(link.envId, how.quiet ? { quiet: true } : undefined) : null;
+    if (how.quiet) await leaving;
     peers.delete(link.id);
     state.links = state.links.filter((entry) => entry.id !== link.id);
     state.current = state.links.at(-1)?.id ?? null;
@@ -1328,10 +1338,10 @@ export function createVpsLink(deps) {
     view, start, cancel, resume, accountReady, sealTrust, nudge, directSetting, setDirect, updateLink, pathAt,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
-    preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,
+    preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, forgetServer, where,
     open: async () => { const link = needLink(); await deps.switchTo(link.envId); },
     /** the servers linked here with the install line, by their saved place; `key` is the server's own id when it sent one */
-    servers: () => state.links.filter((link) => link.envId).map((link) => ({ id: link.envId, key: link.environmentId ?? link.envId, name: link.name })),
+    servers: () => state.links.filter((link) => link.envId).map((link) => ({ id: link.envId, key: link.environmentId ?? link.envId, name: link.name, uninstall: `curl -fsSL ${link.base ?? base}/uninstall | sh` })),
     /** a request at a linked server as this app, its owner, signing in again through its agent when that lapsed */
     async ownerCall(envId, method, route, body) {
       const link = state.links.find((entry) => entry.envId === envId);
