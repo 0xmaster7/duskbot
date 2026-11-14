@@ -98,7 +98,7 @@ export function SidebarCloudCard() {
   useEffect(() => { if (visible) return watchUpsell(source); }, [visible, source]);
   if (!visible) return null;
   return <SidebarCloudNudge invested={invested && by ? { by, count: invested[by] } : null}
-    onDismiss={() => { trackUpsell("dismiss", source); endNudge(); }}
+    onDismiss={() => { trackUpsell("dismiss", source); endNudge(true); }}
     onStart={() => { trackUpsell("click", source); endNudge(); open(source); }} />;
 }
 

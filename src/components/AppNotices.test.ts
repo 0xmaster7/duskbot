@@ -177,7 +177,8 @@ describe("the card after the update", () => {
     expect(await settle()).toContain(INTRO);
     expect(await launch()).toBe("");
     now = NOW + 3 * 3600_000; expect(await launch()).toBe("");
-    now = NOW + DAY; account = free;
+    now = NOW + DAY; expect(await launch(), "an ignored card rests the next day").toBe("");
+    now = NOW + 2 * DAY; account = free;
     const again = await launch();
     expect(again).toContain(INTRO); expect(again).not.toContain("Sign in to your cloud plan");
     expect(track).toHaveBeenCalledWith("cloud_card_shown", { variant: "free" });
@@ -252,13 +253,13 @@ describe("the card after the update", () => {
     press("Sign in to your cloud plan");
     expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_card", signIn: true });
     expect(storage.get(CLOUD_INTRO)).toBeUndefined(); expect(render()).toBe("");
-    now = NOW + DAY; expect(await launch()).toContain(INTRO);
+    now = NOW + 2 * DAY; expect(await launch()).toContain(INTRO);
   });
 
   it("shows on at most three days, or one for someone who closed the earlier Pro card", async () => {
     returning();
-    for (let day = 0; day < 3; day++) { now = NOW + day * DAY; expect(await relaunch(), `day ${day}`).toContain(INTRO); }
-    now = NOW + 3 * DAY;
+    for (let day = 0; day < 3; day++) { now = NOW + day * 2 * DAY; expect(await relaunch(), `day ${day}`).toContain(INTRO); }
+    now = NOW + 6 * DAY;
     const after = await relaunch();
     expect(after).not.toContain(INTRO); expect(after).not.toContain(STAR);
     storage.clear(); launchCardsSeen(); f.state.config.onboarding.hintsSeen = ["pro-introduction-dismissed-v3"];

@@ -106,13 +106,19 @@ function introDays(): string[] {
   } catch { return []; }
 }
 
-export function introStage(record: OnboardingStatus | undefined, now: number): "due" | "shown-today" | "done" {
+const dayNumber = (day: string) => { const [y, m, d] = day.split("-").map(Number); return Math.round(Date.UTC(y!, m! - 1, d!) / 86_400_000); };
+/** an ignored showing rests: the next one waits until at least two calendar days later, not the next launch */
+const INTRO_REST_DAYS = 2;
+
+export function introStage(record: OnboardingStatus | undefined, now: number): "due" | "resting" | "shown-today" | "done" {
   if (noticeSeen(record, CLOUD_INTRO)) return "done";
   const days = introDays();
   if (days.includes(localDay(now))) return "shown-today";
   const counted = Math.max(days.length, recordedDays(record));
   const limit = OLD_PRO_DISMISSALS.some(id => noticeSeen(record, id)) ? 1 : MAX_INTRO_DAYS;
-  return counted >= limit ? "done" : "due";
+  if (counted >= limit) return "done";
+  const last = days.at(-1);
+  return last && dayNumber(localDay(now)) - dayNumber(last) < INTRO_REST_DAYS ? "resting" : "due";
 }
 
 export function introShown(record: OnboardingStatus | undefined, now: number): { onboarding: { hintsSeen: string[] } } | null {

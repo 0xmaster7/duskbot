@@ -111,6 +111,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     if (!buyOfferAllowed(view) || !usedBefore(state.bots) || !isInvested(state)) return false;
     if (offer === undefined) return null;
     if (offerTrialDays(offer) === null) return false;
+    if (stage === "resting" && !introOpen) return false;
     return introOpen || stage === "due" ? true : null;
   };
   // a routine here that ran late or not at all while this computer slept: the plainest case for dusk cloud, said once

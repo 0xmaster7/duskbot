@@ -82,8 +82,10 @@ it("the card after the update shows at most once a calendar day, on at most thre
   expect(introStage(record(hints), NOON + 3 * 3600_000)).toBe("shown-today");
   expect(introShown(record(hints), NOON + 3 * 3600_000)).toBeNull();
   const midnight = new Date(2026, 9, 10, 0, 30).getTime();
-  expect(introStage(record(hints), midnight)).toBe("due");
-  show(midnight); show(NOON + 5 * DAY);
+  expect(introStage(record(hints), midnight), "an ignored card rests the next day").toBe("resting");
+  const twoDays = NOON + 2 * DAY;
+  expect(introStage(record(hints), twoDays)).toBe("due");
+  show(twoDays); show(NOON + 5 * DAY);
   expect(hints).toEqual([`${CLOUD_INTRO}:day-1`, `${CLOUD_INTRO}:day-2`, `${CLOUD_INTRO}:day-3`]);
   expect(introStage(record(hints), NOON + 5 * DAY + 3600_000)).toBe("shown-today");
   expect(introStage(record(hints), NOON + 6 * DAY)).toBe("done");
@@ -109,7 +111,7 @@ it("someone who closed the earlier Pro card sees this one on one day only", () =
   }
   storage.clear();
   introShown(record(["pro-introduction-dismissed"]), NOON);
-  expect(introStage(record(["pro-introduction-dismissed"]), NOON + DAY)).toBe("due");
+  expect(introStage(record(["pro-introduction-dismissed"]), NOON + 2 * DAY)).toBe("due");
 });
 
 it("someone has used the app before when a conversation from before this launch has had a reply", () => {
