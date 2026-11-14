@@ -224,10 +224,10 @@ export function SkillReviewDialog({
     >
       <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col rounded-2xl bg-card p-5 shadow-2xl">
         <div id="skill-review-title" className="text-[16px] font-semibold text-ink">
-          review {skill.name} before enabling
+          Review {skill.name} before enabling
         </div>
         <div className="mt-1 break-all text-[12px] text-ink-secondary">
-          source: {skill.source}
+          Source: {skill.source}
         </div>
         {skill.warnings.length > 0 && (
           <div className="mt-2 text-[12px] text-warning">
@@ -236,7 +236,7 @@ export function SkillReviewDialog({
         )}
         <pre
           tabIndex={0}
-          aria-label={`full SKILL.md for ${skill.name}`}
+          aria-label={`Full SKILL.md for ${skill.name}`}
           className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-inset p-3 font-mono text-[12px] leading-relaxed text-ink"
         >
           {text}
@@ -249,7 +249,7 @@ export function SkillReviewDialog({
             onClick={onCancel}
             className="rounded-lg px-4 py-2 text-[13px] font-medium text-ink-secondary hover:bg-raised disabled:opacity-40"
           >
-            cancel
+            Cancel
           </button>
           <button
             type="button"
@@ -257,7 +257,7 @@ export function SkillReviewDialog({
             onClick={onEnable}
             className="rounded-lg bg-ink px-4 py-2 text-[13px] font-semibold text-app disabled:opacity-40"
           >
-            enable reviewed skill
+            Enable reviewed skill
           </button>
         </div>
       </div>
@@ -469,24 +469,24 @@ export function SkillsSection({ bot }: { bot: Bot }) {
                         className="ml-1.5 rounded bg-control px-1 py-px font-mono text-[10px] uppercase tracking-wide text-ink-secondary"
                         title={skill.origin === "imported" ? t("skills.origin.importedHint") : skill.origin === "native" ? t("skills.origin.nativeHint") : undefined}
                       >
-                        {skill.origin === "imported" ? t("skills.origin.imported") : skill.origin === "native" ? t("skills.origin.native") : skill.origin === "library" ? "library" : "private"}
+                        {skill.origin === "imported" ? t("skills.origin.imported") : skill.origin === "native" ? t("skills.origin.native") : skill.origin === "library" ? "Library" : "Private"}
                       </span>
                     )}
                     <div className="mt-0.5 line-clamp-2 text-[12px] text-ink-secondary">{skill.description}</div>
-                    <div className="mt-0.5 text-[11px] text-ink-secondary">used when the bot decides it's relevant</div>
+                    <div className="mt-0.5 text-[11px] text-ink-secondary">Used when the bot decides it's relevant</div>
                   </button>
                   {skill.origin !== "native" && (
                     <Switch
                       checked={skill.enabled}
-                      aria-label={`${skill.enabled ? "disable" : "enable"} ${skill.name}`}
+                      aria-label={`${skill.enabled ? "Disable" : "Enable"} ${skill.name}`}
                       disabled={Boolean(working)}
                       onClick={() => void toggle(skill)}
                     />
                   )}
                   {skill.origin !== "imported" && skill.origin !== "native" && (
                     <button
-                      aria-label={`remove ${skill.name}`}
-                      title="remove skill"
+                      aria-label={`Remove ${skill.name}`}
+                      title="Remove skill"
                       disabled={Boolean(working)}
                       onClick={() => void remove(skill)}
                       className="flex size-8 shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-danger/10 hover:text-danger disabled:opacity-40"
@@ -495,7 +495,7 @@ export function SkillsSection({ bot }: { bot: Bot }) {
                     </button>
                   )}
                 </div>
-                <div className="mt-1 truncate text-[11px] text-ink-secondary" title={skill.source}>source: {skill.source}</div>
+                <div className="mt-1 truncate text-[11px] text-ink-secondary" title={skill.source}>Source: {skill.source}</div>
                 {skill.warnings.length > 0 && (
                   <div className="mt-1 text-[11px] text-warning">{skill.warnings.join(" · ")}</div>
                 )}
@@ -543,12 +543,12 @@ export function SkillsSection({ bot }: { bot: Bot }) {
                 onClick={() => setViewing(null)}
                 className="rounded-md px-2 py-1 text-[13px] text-ink-secondary hover:bg-control hover:text-ink"
               >
-                close
+                Close
               </button>
             </div>
             <pre
               tabIndex={0}
-              aria-label={`full SKILL.md for ${viewing.name}`}
+              aria-label={`Full SKILL.md for ${viewing.name}`}
               className="mt-3 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-inset p-3 font-mono text-[12px] leading-relaxed text-ink"
             >
               {viewing.text}

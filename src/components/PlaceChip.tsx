@@ -1,3 +1,4 @@
+import { lowerFirst } from "@/lib/lower-first";
 import { Check } from "../icons";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -67,7 +68,7 @@ export function usePlaceMenuItem({ bot, task, disabled = false, onPin }: {
       {
         key: "place:follow",
         label: followsAuto ? t("place.auto") : t("place.followBot"),
-        note: followsAuto ? t("place.autoDetail") : t("place.followBotDetail", { place: t(placeLabelKey(botDefault)) }),
+        note: followsAuto ? t("place.autoDetail") : t("place.followBotDetail", { place: lowerFirst(t(placeLabelKey(botDefault))) }),
         icon: <PlaceIcon place={botDefault} size={16} aria-hidden="true" />,
         active: !pinned,
         trailing: !pinned ? check : undefined,
@@ -162,7 +163,7 @@ export function PlaceChip({ bot, task, live, disabled = false, onPin }: {
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] leading-[18px] text-ink">{followsAuto ? t("place.auto") : t("place.followBot")}</span>
                 <span className="block text-[12px] leading-4 text-ink-secondary">
-                  {followsAuto ? t("place.autoDetail") : t("place.followBotDetail", { place: t(placeLabelKey(botDefault)) })}
+                  {followsAuto ? t("place.autoDetail") : t("place.followBotDetail", { place: lowerFirst(t(placeLabelKey(botDefault))) })}
                 </span>
               </span>
               {!pinned && <Check size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />}

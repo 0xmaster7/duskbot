@@ -79,7 +79,7 @@ const TILES: ReadonlyArray<{ id: AiTileId; label: string; ids: readonly string[]
   { id: "cursor", label: "Cursor", ids: ["cursor"], drivers: ["cursorAgent"] },
   { id: "copilot", label: "GitHub Copilot", ids: ["githubCopilot"], drivers: ["copilotAgent"] },
   { id: "openrouter", label: "OpenRouter", ids: ["openrouter"], drivers: [] },
-  { id: "local", label: "local model", ids: ["openaiCompat"], drivers: [] },
+  { id: "local", label: "Local model", ids: ["openaiCompat"], drivers: [] },
 ];
 
 export interface AiTile<Instance> { id: AiTileId; label: string; instance: Instance }

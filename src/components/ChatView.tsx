@@ -36,6 +36,7 @@ import { MacCuaRecoveryActions } from "./MacCuaRecoveryActions";
 import { macCuaPermissionMessage, missingMacCuaPermissions } from "@/lib/mac-cua-permissions";
 import { claudeUpdateTarget, failedTurnCause, signedOutEngine } from "@/lib/failed-turn";
 import { plainErrorLine } from "@/lib/plain-error";
+import { lowerFirst } from "@/lib/lower-first";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import type { PlaceRow } from "../../shared/place-view";
 import { PartlyDoneRow } from "./PartlyDoneRow";
@@ -250,7 +251,7 @@ function PlaceFailedRow({ place, botId, threadId, onRetry }: {
   const { capabilities } = useDesktopCapabilities();
   const seat = usePlaceSeat(state.config, capabilities.host.platform);
   const bot = state.bots.find((candidate) => candidate.id === botId);
-  const view = placeRowViewFor(place, seat, worksOnSimpleLabel(bot?.computer, capabilities.host.platform));
+  const view = placeRowViewFor(place, seat, lowerFirst(worksOnSimpleLabel(bot?.computer, capabilities.host.platform)));
   const id = view.action?.id;
   const onClick = !id ? undefined
     : id === "try-again" ? onRetry
@@ -1177,7 +1178,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               "flex size-8 items-center justify-center rounded-full transition-colors hover:bg-ink/[0.06]",
               "text-ink-secondary hover:text-ink",
             )}
-            title={t("chat.computer")} aria-label={busy && place === "browser" ? `${t("chat.computer")}, ${t("place.live")}` : t("chat.computer")}
+            title={t("chat.computer")} aria-label={busy && place === "browser" ? `${t("chat.computer")}, ${lowerFirst(t("place.live"))}` : t("chat.computer")}
           >
             <Monitor size={18} />{busy && place === "browser" && <span aria-hidden="true" className="absolute right-1 top-1 size-1.5 animate-pulse rounded-full bg-success" data-testid="computer-button-live" />}
           </button>}

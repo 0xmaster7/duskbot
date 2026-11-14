@@ -5,6 +5,7 @@ import { BotAvatar } from "@/components/Avatar";
 import { WorkingDots } from "@/components/WorkingIndicator";
 import { t } from "@/lib/i18n";
 import { routineDateTime, routineNextLabel, routineRunLabel, routineRunTime } from "@/lib/routine-display";
+import { upperFirst } from "@/lib/lower-first";
 import { scheduleLabel } from "@/lib/schedule-label";
 import type { Routine, RoutineRun } from "@/lib/routines";
 import { api, useStore } from "@/state/store";
@@ -89,7 +90,7 @@ export function RoutinesSheet({ sheet, open, onClose, onOpenChat }: SheetPagePro
         {!selected && loadFailed && routines.length === 0 && !loading && <EmptyState tone="error" art="clock" title={t("mobile.routines.loadErrorTitle")} body={t("mobile.routines.loadErrorBody")} action={{ label: t("mobile.routines.retry"), onClick: () => void load() }} className="pt-16" />}
         {selected ? (
           <div className="flex flex-col gap-5 px-3">
-            <div><h2 className="text-[14px] font-medium text-ink-secondary">{t("mobile.routines.schedule")}</h2><p className="mt-1 text-[16px] text-ink">{scheduleLabel(selected.schedule)}</p><p className="mt-1 text-[14px] text-ink-secondary">{routineNextLabel(selected)}</p></div>
+            <div><h2 className="text-[14px] font-medium text-ink-secondary">{t("mobile.routines.schedule")}</h2><p className="mt-1 text-[16px] text-ink">{upperFirst(scheduleLabel(selected.schedule))}</p><p className="mt-1 text-[14px] text-ink-secondary">{routineNextLabel(selected)}</p></div>
             <p className="whitespace-pre-wrap text-[16px] text-ink-secondary">{selected.prompt}</p>
             <button type="button" disabled={busy.includes(selected.id)} onClick={() => void work(selected, "run")} className="mobile-press flex h-12 items-center justify-center gap-2 rounded-full bg-ink text-[16px] font-semibold text-app disabled:opacity-40">{busy.includes(selected.id) && <WorkingDots size={4} />}{t("mobile.routines.run")}</button>
             {notice && <p role="status" className="text-[14px] text-ink-secondary">{t("mobile.routines.started")}</p>}
@@ -106,7 +107,7 @@ export function RoutinesSheet({ sheet, open, onClose, onOpenChat }: SheetPagePro
                 <div className="flex items-center">
                   <button type="button" onClick={() => { setSelectedId(routine.id); setError(null); setNotice(false); setArmed(null); }} className="mobile-row flex min-h-[84px] min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-3 text-left">
                     {owner && <BotAvatar bot={owner} size={36} animated={false} label="" />}
-                    <span className="min-w-0 flex-1"><span className="block truncate text-[16px] font-semibold text-ink">{routine.name}</span><span className="mt-0.5 block text-[14px] text-ink-secondary">{scheduleLabel(routine.schedule)}</span><span className="block text-[14px] text-ink-secondary">{routineNextLabel(routine)}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-[16px] font-semibold text-ink">{routine.name}</span><span className="mt-0.5 block text-[14px] text-ink-secondary">{upperFirst(scheduleLabel(routine.schedule))}</span><span className="block text-[14px] text-ink-secondary">{routineNextLabel(routine)}</span></span>
                     <ChevronRight aria-hidden size={16} className="shrink-0 text-ink-tertiary" />
                   </button>
                   <div className="w-[68px] shrink-0 [&_button>span:first-child]:sr-only [&_button]:justify-center [&_button]:gap-0 [&_button]:px-2"><SettingsSwitch label={t("mobile.routines.enable", { name: routine.name })} checked={routine.enabled} onChange={() => { if (!pending.current.has(routine.id)) { haptic("selection"); void work(routine, "toggle"); } }} /></div>

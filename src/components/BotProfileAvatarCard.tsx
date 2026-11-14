@@ -140,7 +140,7 @@ export function BotProfileAvatarCard({
                     activeState === expression && "bg-ink/8 hover:bg-ink/8",
                   )}
                   title={expression}
-                  aria-label={`use ${expression} expression`}
+                  aria-label={`Use ${expression} expression`}
                 >
                   <MausAvatar color={bot.color} faceColor={bot.mascotFaceColor} bodyId={bot.mascotBody ?? undefined} state={expression} size={32} animated={false} />
                 </button>
@@ -160,7 +160,7 @@ export function BotProfileAvatarCard({
                   onClick={() => onPatch({ color })}
                   className={cn("flex size-8 cursor-pointer items-center justify-center rounded-full border border-transparent hover:border-transparent disabled:opacity-50", FOCUS)}
                   title={t(MAUS_COLOR_LABEL[color])}
-                  aria-label={`use ${color} mascot color`}
+                  aria-label={`Use ${color} mascot color`}
                 >
                   <span
                     className="block size-6 rounded-full"
@@ -209,7 +209,7 @@ function BodyButton({ id, name, bot, busy, onPatch }: {
       type="button"
       disabled={busy}
       aria-pressed={selected}
-      aria-label={`use the ${name} body`}
+      aria-label={`Use the ${name} body`}
       onClick={() => onPatch({ mascotBody: id })}
       className={cn(
         "flex h-12 cursor-pointer items-center justify-center rounded-[10px] transition-colors duration-[120ms] ease-[ease] disabled:opacity-50",

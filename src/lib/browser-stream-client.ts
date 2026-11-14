@@ -616,5 +616,5 @@ const decodeHostSetup = (reason: string): PreviewStreamHostSetup => {
 /** What a viewer tells the person; `command` is shown beside it, ready to copy. */
 export const previewStreamHostSetupMessage = (setup: PreviewStreamHostSetup) =>
   setup.need === "sandbox"
-    ? "this server's host blocks the sandbox its browser runs in. run this once on the host, then try again:"
-    : "this server's host is missing libraries its browser needs. run this once on the host, then try again:";
+    ? "This server's host blocks the sandbox its browser runs in. Run this once on the host, then try again:"
+    : "This server's host is missing libraries its browser needs. Run this once on the host, then try again:";

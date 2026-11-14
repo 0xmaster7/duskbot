@@ -1,3 +1,4 @@
+import { upperFirst } from "@/lib/lower-first";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
 import { t } from "@/lib/i18n";
@@ -420,7 +421,7 @@ function AccountRow({ account, service, busy, isDefault, onMakeDefault, onReconn
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const title = account.alias || t("connectApps.account.fallback");
+  const title = account.alias || upperFirst(t("connectApps.account.fallback"));
   const stale = needsReconnect(account);
   return (
     <>
@@ -445,7 +446,7 @@ function AccountRow({ account, service, busy, isDefault, onMakeDefault, onReconn
         )}
         {confirming ? (
           <button type="button" className="ca-pill" data-tone="danger-solid" disabled={busy || removing}
-            aria-label={t("connectApps.account.confirmAria", { title })}
+            aria-label={t("connectApps.account.confirmAria", { title: account.alias || t("connectApps.account.fallback") })}
             onClick={() => {
               setConfirming(false);
               setFailed(false);

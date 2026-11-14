@@ -33,7 +33,7 @@ export function timelineEvents(messages: TimelineMessage[], run?: LiveToolRun): 
       events.push({
         id: message.id,
         at: message.at,
-        label: sawUserInput ? "user input" : "task started",
+        label: sawUserInput ? "User input" : "Task started",
         state: "observed",
         kind: "task",
       });
@@ -50,9 +50,9 @@ export function timelineEvents(messages: TimelineMessage[], run?: LiveToolRun): 
         kind: "tool",
       });
     } else if (message.kind === "screen") {
-      events.push({ id: message.id, at: message.at, label: "screen observed", state: "observed", kind: "screen" });
+      events.push({ id: message.id, at: message.at, label: "Screen observed", state: "observed", kind: "screen" });
     } else if (message.kind === "text" && message.role === "bot" && message.text?.trim()) {
-      events.push({ id: message.id, at: message.at, label: "response recorded", state: "complete", kind: "result" });
+      events.push({ id: message.id, at: message.at, label: "Response recorded", state: "complete", kind: "result" });
     }
   }
   return events;

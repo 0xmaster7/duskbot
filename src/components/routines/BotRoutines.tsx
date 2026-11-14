@@ -7,7 +7,7 @@ import { appWhen } from "@/lib/app-automations";
 import { useAppTriggers } from "@/lib/app-triggers";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { upperFirst } from "@/lib/lower-first";
+import { lowerFirst, upperFirst } from "@/lib/lower-first";
 import { routineRunsOn } from "@/lib/routine-display";
 import { fetchForecast, forecastLine, pauseLine, useLoaded } from "@/lib/spend";
 import { formatCost } from "@/lib/usage-trace";
@@ -141,7 +141,7 @@ function AutomationRow({ bot, automation, routine, open, editing, onOpen, onClos
           <BotSwitch
             color={bot.color}
             checked={automation.enabled}
-            aria-label={t(automation.enabled ? "botPanel.routine.pause" : "botPanel.routine.resume", { name, schedule: when })}
+            aria-label={t(automation.enabled ? "botPanel.routine.pause" : "botPanel.routine.resume", { name, schedule: lowerFirst(when) })}
             disabled={actions.busy === `toggle:${automation.id}`}
             onClick={() => void actions.toggle(automation)}
             className="relative z-[1]"

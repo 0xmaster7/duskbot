@@ -3,6 +3,7 @@ import { t } from "@/lib/i18n";
 import { botEngine, claudeUpdateTarget } from "@/lib/failed-turn";
 import { blockerDetail, canOfferSignIn, currentFailureWords, failedReplyDetail, failedReplyKind, failedReplyTitle, mostActionable, restartAlreadyDid, trailingRows } from "@/lib/failed-reply";
 import { statusActivity } from "@/lib/activity-runs";
+import { lowerFirst } from "@/lib/lower-first";
 import { openPlaceAction, placeRowViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import { useStore, type Message } from "@/state/store";
 import { failedTurnCause } from "../../shared/failed-turn";
@@ -113,7 +114,7 @@ export function FailedReplyCard({ rows, group = false, botId: ownBotId, threadId
   const retry = onRetry;
   let update = null;
   if (lead.kind === "place" && tool.place && leadBotId) {
-    const view = placeRowViewFor(tool.place, seat, worksOnSimpleLabel(lead.bot?.computer, platform));
+    const view = placeRowViewFor(tool.place, seat, lowerFirst(worksOnSimpleLabel(lead.bot?.computer, platform)));
     detail = currentFailureWords(view.line);
     const id = view.action?.id;
     if (id === "try-again") { if (retry) actions.push({ label: t("failedReply.tryAgain"), onClick: retry }); }

@@ -52,6 +52,7 @@ import {
   writeComputerPanelView,
   type ComputerPanelView,
 } from "@/lib/computer-panel-view";
+import { lowerFirst } from "@/lib/lower-first";
 import { openPlaceAction, placeBlocked, placeFacts, placeViewFor, usePlaceSeat, worksOnSimpleLabel } from "@/lib/place-view";
 import { type PlaceActionId, type PlaceFacts, type PlaceView } from "../../shared/place-view";
 import { t } from "@/lib/i18n";
@@ -1589,7 +1590,7 @@ export function ComputerPanel({
               data-testid="place-unpin"
             >
               {t("place.unpinSimple", {
-                place: placeOptions.find(({ selected }) => selected)?.simpleLabel ?? t(placeLabelKey(profileBot.computer ?? "auto")),
+                place: lowerFirst(placeOptions.find(({ selected }) => selected)?.simpleLabel ?? t(placeLabelKey(profileBot.computer ?? "auto"))),
               })}
             </button>
           </div>

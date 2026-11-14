@@ -248,7 +248,7 @@ export class Speaker {
         this.set({ status: "speaking", botId: opts.botId, messageId: opts.messageId, caption: pending[at]! });
         const played = await this.play(rendered.blob, live, opts.messageId, at);
         if (!played || !live()) {
-          if (live()) this.set({ ...IDLE, error: "the generated voice clip couldn't be played." });
+          if (live()) this.set({ ...IDLE, error: "The generated voice clip couldn't be played." });
           controller.abort();
           return;
         }

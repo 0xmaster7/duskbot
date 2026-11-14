@@ -53,7 +53,7 @@ const base: AmbientBot[] = [
 const set = (id: string, fields: Partial<AmbientBot>) => (bot: AmbientBot) => (bot.id === id ? { ...bot, ...fields } : bot);
 const mood = (status: AmbientStatus, detail = "") => base.map(set("nova", { status, detail, at: now - 20_000, unread: status === "done", waits: status === "needs-you" ? "approval" : null }));
 const busy = base
-  .map(set("quill", { status: "needs-you", waits: "approval", detail: "wants to run a command", asks: 1, at: now - 40_000, approval: { requestId: "r1", threadId: "t-quill", title: "npm run build" } }))
+  .map(set("quill", { status: "needs-you", waits: "approval", detail: "Wants to run a command", asks: 1, at: now - 40_000, approval: { requestId: "r1", threadId: "t-quill", title: "npm run build" } }))
   .map(set("juno", { status: "needs-you", waits: "question", asks: 1, at: now - 4 * min, question: { requestId: "q1", threadId: "t-juno", title: "Aisle or window for the flight home?", choices: ["Aisle", "Window", "Either"], custom: true } }))
   .map(set("lark", { status: "needs-you", waits: "sign-in", asks: 1, detail: "Sign in to Gmail", at: now - 9 * min }))
   .map(set("nova", { status: "working", step: "web", detail: "Comparing 14 flights to Lisbon", at: now - 2 * min }))
@@ -133,10 +133,10 @@ function Desktop() {
       </div>
       {!external && <div style={{ position: "absolute", top: 0, left: (1512 - 192) / 2, width: 192, height: 37, background: "#000", borderRadius: "0 0 10px 10px" }} />}
       {withIsland && (
-        <iframe ref={(node) => { if (node) frames.current[0] = node; }} title="island" src={frameUrl("island")}
+        <iframe ref={(node) => { if (node) frames.current[0] = node; }} title="Island" src={frameUrl("island")}
           style={{ position: "absolute", left: island.window.x, top: island.window.y, width: island.window.width, height: island.window.height, border: 0, background: "transparent", colorScheme: "dark" }} />
       )}
-      <iframe ref={(node) => { if (node) frames.current[1] = node; }} title="dock" src={frameUrl("dock")}
+      <iframe ref={(node) => { if (node) frames.current[1] = node; }} title="Dock" src={frameUrl("dock")}
         style={{ position: "absolute", left: dock.window.x, top: dock.window.y, width: dock.window.width, height: dock.window.height, border: 0, background: "transparent", colorScheme: "dark" }} />
     </div>
   );

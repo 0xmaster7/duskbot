@@ -10,7 +10,7 @@ export function ImageLoading({ name, className, style }: { name: string; classNa
   return (
     <span ref={tile} style={style} className={cn("flex items-center justify-center", moving && "animate-pulse", className)} role="status">
       <LoaderCircle size={17} className={cn("text-ink-tertiary", moving && "animate-spin")} />
-      <span className="sr-only">loading {name}</span>
+      <span className="sr-only">Loading {name}</span>
     </span>
   );
 }
