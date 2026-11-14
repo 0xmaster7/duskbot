@@ -127,9 +127,9 @@ export function WelcomeFlow({
   const [notesLine, setNotesLine] = useState<string | null>(null);
 
   const saved = initialBeat ?? draft?.beat;
-  // the desktop app works without an account: it is asked for in the browser where something needs one (dusk cloud's
-  // checkout, a server's link), so the run has an account step only where the install requires one
-  const accountStep = Boolean(account) && !firstKnown.current?.signedIn && (!desktop || firstKnown.current?.required === true);
+  // every first run asks for an account (sign up or sign in); skipping stays possible but quiet, except where the install
+  // requires one
+  const accountStep = Boolean(account) && !firstKnown.current?.signedIn;
   const stepsFor = (picked: FunnelPath | null) => funnelSteps({ account: accountStep, desktop, bring: offersMove,
     path: picked, hello: window.duskDesktop?.remoteClient?.active !== true, phone: phoneAppEnabled() });
   const steps = stepsFor(path);

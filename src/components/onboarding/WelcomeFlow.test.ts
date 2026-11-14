@@ -457,11 +457,14 @@ describe("on the desktop app", () => {
     expect(f.onDone).toHaveBeenCalledOnce();
   });
 
-  it("never asks for an account on this Mac's way where the app works without one", async () => {
+  it("asks every first run for an account on this Mac's way, with a quiet Skip for now", async () => {
     desktop({ accountGate: { state: async () => ({ required: false, blocked: false, status: "signed-out" }), options: async () => ({ providers: ["google"], recovery: true }), onChange: () => () => {} } });
     await show();
     await choose("[data-funnel-place=mac]");
-    expect(step(), "straight on to the AI, signed out").toBe("ai");
+    expect(step(), "the account comes before the AI").toBe("account");
+    expect(title()).toBe("Create your dusk bot account");
+    await press("Skip for now");
+    expect(step()).toBe("ai");
   });
 
   it("where the install requires an account, asks for it by Google or an emailed code, and goes on once signed in", async () => {
@@ -478,10 +481,10 @@ describe("on the desktop app", () => {
     expect(step(), "where bots live comes first").toBe("place");
     await choose("[data-funnel-place=mac]");
     expect(step()).toBe("account");
-    expect(title()).toBe("Sign in to dusk bot");
-    expect(text(), "no phone in the pitch while its app is hidden").toContain("Your account keeps dusk cloud and your bots in sync.");
+    expect(title()).toBe("Create your dusk bot account");
+    expect(text(), "no phone in the pitch while its app is hidden").toContain("Free. Already have one? Sign in the same way.");
     expect(button("Continue with Google")).toBeDefined();
-    expect(button("Continue without an account"), "required here").toBeUndefined();
+    expect(button("Skip for now"), "required here").toBeUndefined();
     await type(document.body.querySelector<HTMLInputElement>("input[type=email]")!, "person@example.com");
     await press("Email me a code");
     expect(gate.signInStart).toHaveBeenCalledWith("person@example.com");
@@ -497,7 +500,7 @@ describe("on the desktop app", () => {
     await show();
     await choose("[data-funnel-place=mac]");
     expect(step()).toBe("account");
-    expect(button("Continue without an account")).toBeUndefined();
+    expect(button("Skip for now")).toBeUndefined();
     await key("Escape");
     expect(step()).toBe("account");
   });

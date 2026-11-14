@@ -108,7 +108,7 @@ export function AccountStep({ account, known, onDone, onSkip }: {
   return (
     <div ref={host} className="w-full">
       <StepFrame art={<StepArt art="key" />} title={t("funnel.account.title")} sub={t(sent ? "funnel.account.codeSub" : phoneAppEnabled() ? "funnel.account.sub" : "funnel.account.subNoPhone", { email: sent?.email ?? "" })}
-        footer={onSkip && !sent ? <button type="button" data-funnel-account-skip="" onClick={onSkip} className={QUIET}>{t("funnel.account.skip")}</button> : undefined}>
+        footer={onSkip && !sent ? <button type="button" data-funnel-account-skip="" onClick={onSkip} className={cn(QUIET, "text-[12px] opacity-40 hover:opacity-70 focus-visible:opacity-100")}>{t("funnel.account.skip")}</button> : undefined}>
         <div className="flex w-full max-w-[320px] flex-col gap-3">
           {!sent && providers && providers.length > 0 && (
             <>
