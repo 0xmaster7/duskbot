@@ -685,7 +685,7 @@ export function createAuth(options: AuthOptions) {
         // which app install a new account came from: its sign-up started in that app and came back to it here
         if (!device.denied && device.createdAt !== undefined && owner.createdAt >= device.createdAt && !owner.signedUpFrom) {
           owner.signedUpFrom = { name: device.device.name, platform: device.device.platform, appVersion: device.device.appVersion, at: now() }; store.changed();
-          console.log(`desktop sign-up ${owner.id} from ${device.device.platform} ${device.device.appVersion ?? "dev"} (hand-back ${device.userCode})`);
+          console.log(`desktop sign-up ${owner.id} from ${device.device.platform} ${device.device.appVersion ?? "dev"}`);
         }
         saveDevices();
         json({ ok: true });
