@@ -10,7 +10,7 @@ import { AUTH_LIMITS } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { pictureUrl, providersFromEnv } from "./providers.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
-import { APP_AUTH_REDIRECT, CSRF_HEADER, type AccountAnswer, type AppGrant, type OAuthProvider, type WebSignInAnswer } from "../../../../shared/account-api.ts";
+import { APP_AUTH_REDIRECT, APP_LANDING_PATH, CSRF_HEADER, NEW_SIGNUP_PARAM, type AccountAnswer, type AppGrant, type OAuthProvider, type WebSignInAnswer } from "../../../../shared/account-api.ts";
 
 class CookieJar {
   values = new Map<string, string>();
@@ -109,7 +109,7 @@ describe("OAuth over isolated HTTP", () => {
     app.close(); expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8")).identities).toEqual([]);
   });
   it("handles Apple form_post from Apple's origin, verifies its secret and saves the first name", async () => {
-    const response = await oauth("apple"); expect(location(response)).toBe("/");
+    const response = await oauth("apple"); expect(location(response)).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
     const first = await account(); expect(first.account.name).toBe("Apple Fixture"); expect(first.identities[0]?.email).toBe("sid@privaterelay.appleid.test");
     jar = new CookieJar(); const auth = await authorization("apple"); expect(new URLSearchParams(auth.body).has("user")).toBe(false);
     await callback(auth); expect((await account()).account).toEqual(first.account);
@@ -211,7 +211,7 @@ describe("OAuth over isolated HTTP", () => {
     expect((await account()).account.id).toBe(victim.account.id);
     jar = new CookieJar();
     fake.setUser("google", { subject: "gmail-google", email: "someone@gmail.com", emailVerified: true, label: null, name: "Someone" });
-    expect(location(await oauth("google"))).toBe("/");
+    expect(location(await oauth("google"))).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
     expect((await account()).account.email).toBe("someone@gmail.com");
   });
   it.each(["google", "apple", "x"] as const)("maps %s denial and clears the binding", async provider => {
@@ -231,8 +231,8 @@ describe("OAuth over isolated HTTP", () => {
     const duplicate = await authorization("google"); duplicate.callback += "&code=other"; expect(error(await callback(duplicate))).toBe("oauth_failed");
     const expired = await authorization("google"); time += 600_000; expect(error(await callback(expired))).toBe("oauth_expired");
   });
-  it.each(["//evil.example", "/a/..//evil.example", "https://evil.example", "/\\evil.example", "/a\nb", "/" + "a".repeat(512)])("falls back to / for next=%s", async next => {
-    expect(location(await oauth("google", `?next=${encodeURIComponent(next)}`))).toBe("/");
+  it.each(["//evil.example", "/a/..//evil.example", "https://evil.example", "/\\evil.example", "/a\nb", "/" + "a".repeat(512)])("falls back to / (pricing for a new account) for next=%s", async next => {
+    expect(location(await oauth("google", `?next=${encodeURIComponent(next)}`))).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
   });
   it("encodes valid Unicode next paths for HTTP redirects", async () => {
     const next = "/account/नाम?q=hello world#profile";
@@ -350,12 +350,25 @@ describe("OAuth over isolated HTTP", () => {
     const deep = new URL(signed.redirect!); expect(deep.protocol).toBe("duskbot:"); expect(deep.searchParams.get("state")).toBe(flow.state);
     expect((await redeem(deep.searchParams.get("code")!, flow.verifier)).status).toBe(200);
   });
+  it("ends a desktop sign-up that needed an email on the landing page, with the app's code in the fragment only", async () => {
+    const flow = await appAuthorization("x", { landing: "page" }); expect(flow.target.pathname).toBe("/sign-in");
+    const signed = await (await emailLogin("new-desk@example.test", flow.target.searchParams.get("pending")!)).json() as WebSignInAnswer;
+    const landing = new URL(signed.redirect!, url); expect(landing.pathname).toBe(APP_LANDING_PATH); expect(landing.search).toBe("");
+    const fragment = new URLSearchParams(landing.hash.slice(1)); expect(fragment.get("state")).toBe(flow.state);
+    expect((await redeem(fragment.get("code")!, flow.verifier)).status).toBe(200);
+  });
+  it("sends a brand-new website sign-up on to pricing (/?new=1), never an existing account or one with somewhere to go", async () => {
+    expect(location(await oauth("google"))).toBe(`/?${NEW_SIGNUP_PARAM}=1`);
+    jar = new CookieJar(); expect(location(await oauth("google"))).toBe("/");
+    jar = new CookieJar(); fake.setUser("google", { subject: "new-google", email: "new@gmail.com", emailVerified: true, label: null, name: "New" });
+    expect(location(await oauth("google", "?next=/billing"))).toBe("/billing");
+  });
   it("returns app errors to the exact deep link with its state", async () => {
     fake.deny("google"); const flow = await appAuthorization();
     expect(flow.target.protocol).toBe("duskbot:"); expect(flow.target.searchParams.get("error")).toBe("oauth_denied"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
   });
   it.each([
-    { provider: "missing" }, { provider: "email" }, { code_challenge: "bad" }, { code_challenge_method: "plain" }, { state: "short" }, { state: "x".repeat(257) }, { redirect_uri: "https://evil.example" }, { redirect_uri: "duskbot://auth/" }, { link: "1" },
+    { provider: "missing" }, { provider: "email" }, { code_challenge: "bad" }, { code_challenge_method: "plain" }, { state: "short" }, { state: "x".repeat(257) }, { redirect_uri: "https://evil.example" }, { redirect_uri: "duskbot://auth/" }, { link: "1" }, { landing: "app" },
   ])("rejects invalid app authorization parameters %j", async change => {
     const params = new URLSearchParams({ provider: "google", code_challenge: random(), code_challenge_method: "S256", state: random(), redirect_uri: APP_AUTH_REDIRECT });
     for (const [key, value] of Object.entries(change)) if (value !== undefined) params.set(key, value);
@@ -377,7 +390,10 @@ describe("OAuth over isolated HTTP", () => {
       expect(`${start.origin}${start.pathname}`).toBe(`${url}/v1/auth/app/start`);
       expect(start.searchParams.get("redirect_uri")).toBe(APP_AUTH_REDIRECT);
       const providerResponse = await fetch(location(await call(`${start.pathname}${start.search}`)), { redirect: "manual" });
-      const link = location(await call(location(providerResponse)));
+      // the browser ends on the website's "you're signed in, head back" page, which hands the app its link
+      const landing = new URL(location(await call(location(providerResponse))), url);
+      expect(landing.pathname).toBe(APP_LANDING_PATH); expect(landing.search).toBe("");
+      const link = `${APP_AUTH_REDIRECT}?${landing.hash.slice(1)}`;
       expect(link.startsWith(`${APP_AUTH_REDIRECT}?code=`)).toBe(true);
       // a link this app did not start, or a forged state, does nothing
       expect((await client.finishLink(`${APP_AUTH_REDIRECT}?code=${"c".repeat(43)}&state=${"s".repeat(43)}`)).outcome).toBe("ignored");

@@ -223,7 +223,7 @@ test("the app's sign-in link: PKCE start address, strict link reading, the servi
   const url = new URL(link.url);
   assert.equal(`${url.origin}${url.pathname}`, "https://dusk.bot/v1/auth/app/start");
   assert.deepEqual(Object.fromEntries(url.searchParams), { provider: "google", code_challenge: createHash("sha256").update(link.verifier).digest("base64url"),
-    code_challenge_method: "S256", state: link.state, redirect_uri: APP_LINK });
+    code_challenge_method: "S256", state: link.state, redirect_uri: APP_LINK, landing: "page" });
   assert.equal(link.url.includes(link.verifier), false, "the verifier never leaves main");
   assert.equal(linkSignIn("https://dusk.bot", "email"), null);
   const state = "s".repeat(43), code = "c".repeat(43);

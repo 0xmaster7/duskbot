@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { accountIntentPath, cleanAccountIntent, type AccountIntent } from "../../../../shared/account-api.ts";
-import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
+import { ACCOUNT_ROUTES as R, APP_AUTH_REDIRECT, APP_LANDING_PATH, CSRF_COOKIE, CSRF_HEADER, EMAIL_CODE_DIGITS, EMAIL_CODE_TRIES, EMAIL_CODE_TTL_SECONDS, EMAIL_RESEND_SECONDS, HANDOFF_PAGES, HANDOFF_PLANS, NEW_SIGNUP_PARAM, NOTIFICATION_DEFAULTS, OAUTH_PROVIDERS, SESSION_COOKIE } from "../../../../shared/account-api.ts";
 import type { AccountAnswer, AccountErrorCode, AccountView, AppGrant, NotificationPrefs, AppSessionIdentity, HandoffAnswer, OAuthErrorCode, OAuthProvider, WebHandoffAnswer } from "../../../../shared/account-api.ts";
 import { CHECKOUT_SOURCES } from "../../../../shared/billing-api.ts";
 import { parseUserAvatarChoice } from "../../../../shared/user-avatar.ts";
@@ -80,7 +80,7 @@ export function isAppCorsRoute(path: string) {
 interface DeviceInfo { name: string; platform: string; appVersion: string | null }
 interface Attempt { email: string; codeHash: string; pending?: string; device: DeviceInfo | null; expiresAt: number; tries: number }
 interface DeviceAuthorization { userCode: string; device: DeviceInfo; expiresAt: number; interval: number; lastPollAt: number | null; accountId: string | null; denied: boolean; intent?: AccountIntent }
-interface AppFlow { challenge: string; state: string; expiresAt: number }
+interface AppFlow { challenge: string; state: string; landing?: true; expiresAt: number }
 interface OAuthState { provider: OAuthProvider; nonce: string; verifier: string; bindingHash: string; next: string; linkAccount: string | null; linkSession: string | null; appFlow?: string; expiresAt: number }
 interface PendingIdentity { provider: OAuthProvider; profile: ProviderProfile; next: string; appFlow?: string; bindingHash: string; expiresAt: number }
 interface Handoff { accountId: string; sessionId: string; next: string; expiresAt: number }
@@ -393,7 +393,9 @@ export function createAuth(options: AuthOptions) {
     appFlows.delete(id);
     const code = random();
     appCodes.set(hash(code), { challenge: flow.challenge, accountId: owner.id, expiresAt: now() + 300_000 });
-    return `${APP_AUTH_REDIRECT}?${new URLSearchParams({ code, state: flow.state })}`;
+    const query = new URLSearchParams({ code, state: flow.state });
+    // the desktop app: a page of ours that opens the app and says so, never the provider's page left up in the browser
+    return flow.landing ? `${pageBase}${APP_LANDING_PATH}#${query}` : `${APP_AUTH_REDIRECT}?${query}`;
   }
   function oauthStart(req: IncomingMessage, res: ServerResponse, url: URL, id: string, flowId?: string) {
     const next = nextPath(url.searchParams.get("next")), provider = providers.get(id as OAuthProvider);
@@ -457,7 +459,8 @@ export function createAuth(options: AuthOptions) {
       if (item.appFlow) { const location = appRedirect(item.appFlow, owner); oauthCookie(res); return redirect(res, location); }
       const { token, session } = makeSession(owner, null);
       cookies(res, token, csrfFor(session)); oauthCookie(res);
-      redirect(res, `${pageBase}${item.next}`);
+      // a brand-new account made on the website with nothing else asked for goes on to pricing (the page decides, at /?new=1)
+      redirect(res, `${pageBase}${created && item.next === "/" ? `/?${NEW_SIGNUP_PARAM}=1` : item.next}`);
     } catch { oauthError(res, "oauth_failed", item?.next, item?.appFlow); }
   }
   /** the iphone app's sign in with apple: a verified identity token and its code make an app session, linking by apple's
@@ -583,9 +586,9 @@ export function createAuth(options: AuthOptions) {
         const provider = url.searchParams.get("provider"), challenge = url.searchParams.get("code_challenge"), appState = url.searchParams.get("state");
         if (!provider || !providers.has(provider as OAuthProvider) || !challenge || !/^[A-Za-z0-9_-]{43,128}$/.test(challenge)
           || url.searchParams.get("code_challenge_method") !== "S256" || !appState || !/^[A-Za-z0-9_-]{16,256}$/.test(appState)
-          || url.searchParams.get("redirect_uri") !== APP_AUTH_REDIRECT || url.searchParams.has("link") || [...url.searchParams.keys()].some(key => url.searchParams.getAll(key).length !== 1)) return fail(400, "invalid_request");
+          || url.searchParams.get("redirect_uri") !== APP_AUTH_REDIRECT || url.searchParams.has("link") || (url.searchParams.has("landing") && url.searchParams.get("landing") !== "page") || [...url.searchParams.keys()].some(key => url.searchParams.getAll(key).length !== 1)) return fail(400, "invalid_request");
         const flowId = random();
-        appFlows.set(flowId, { challenge, state: appState, expiresAt: now() + 600_000 });
+        appFlows.set(flowId, { challenge, state: appState, ...(url.searchParams.get("landing") === "page" ? { landing: true as const } : {}), expiresAt: now() + 600_000 });
         oauthStart(req, res, url, provider, flowId); return true;
       }
       const mutation = ["POST", "PUT", "PATCH", "DELETE"].includes(method);

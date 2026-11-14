@@ -139,7 +139,7 @@ const NO_FLOW: PrelaunchLive = { device: () => false, attempt: () => false };
 export function prelaunchOpen(path: string, query: URLSearchParams = new URLSearchParams(), live: PrelaunchLive = NO_FLOW, depth = 0): boolean {
   const is = (page: string) => path === page || path === `${page}/`;
   if (is("/cloud/desktop")) return live.device(query.get("code") ?? "");
-  if (is("/handoff") || is("/claim") || /^\/clouds\/[^/]+\/delete\/?$/.test(path)) return true;
+  if (is("/handoff") || is("/app-signed-in") || is("/claim") || /^\/clouds\/[^/]+\/delete\/?$/.test(path)) return true;
   if (is("/sign-in") || is("/signin")) {
     if (live.attempt(query.get("attempt") ?? "")) return true;
     const next = query.get("next");

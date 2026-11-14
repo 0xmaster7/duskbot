@@ -30,6 +30,11 @@ export function readCsrfCookie(cookies: string): string | undefined {
 
 /** the deep link a phone sign-in returns to: duskbot://auth?code=...&state=... or ?error=...&state=... */
 export const APP_AUTH_REDIRECT = "duskbot://auth";
+/** the desktop app's provider sign-in (app start with landing=page) ends on this website page instead: it hands the deep
+ * link (in the fragment, #code=...&state=...) to the app and says to head back, rather than leaving the provider's page up */
+export const APP_LANDING_PATH = "/app-signed-in";
+/** a brand-new account made on the website (no app, nothing asked for) lands at /?new=1, which goes on to pricing */
+export const NEW_SIGNUP_PARAM = "new";
 
 export interface AccountView {
   id: string;

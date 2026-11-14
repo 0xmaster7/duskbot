@@ -6,6 +6,7 @@ export function linkSignIn(origin, provider, random = randomBytes) {
   if (!LINK_PROVIDERS.includes(provider)) return null;
   const verifier = random(32).toString("base64url"), state = random(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
-  const query = new URLSearchParams({ provider, code_challenge: challenge, code_challenge_method: "S256", state, redirect_uri: APP_LINK });
+  // landing=page: the browser ends on the website's "you're signed in, head back to the app" page, which opens this link
+  const query = new URLSearchParams({ provider, code_challenge: challenge, code_challenge_method: "S256", state, redirect_uri: APP_LINK, landing: "page" });
   return { url: `${origin}${APP_START}?${query}`, verifier, state };
 }

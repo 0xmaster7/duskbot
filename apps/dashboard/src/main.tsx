@@ -5,7 +5,7 @@ import { CloudDataProvider, useCloud } from "./data/cloud";
 import { SessionProvider, useSession } from "./data/session";
 import { navigate, useLocation } from "./lib/router";
 import { initTheme } from "./lib/theme";
-import { planIntent, planQuery } from "./lib/site";
+import { planIntent, planQuery, siteUrl } from "./lib/site";
 import { reportPageErrors } from "./lib/page-errors";
 import { reloadForStaleChunk } from "./lib/stale-chunk";
 import { trackPage } from "./lib/analytics";
@@ -20,6 +20,8 @@ import { deletePageId, deleteSignInNote, deleteToken, stashDeleteToken } from ".
 import { HomePage } from "./pages/Home";
 import { AuthScreen } from "./pages/Auth";
 import { HANDOFF_PATH, handoffArrived, stashHandoff } from "./data/handoff";
+import { appReturn, stashAppReturn } from "./data/app-return";
+import { APP_LANDING_PATH, NEW_SIGNUP_PARAM } from "../../../shared/account-api.ts";
 import { PRELAUNCH, prelaunchAllowed } from "./lib/prelaunch";
 import "./app.css";
 
@@ -51,6 +53,7 @@ const DeviceApprovalPage = page(() => import("./pages/DeviceApproval"), (m) => m
 const DeleteDataPage = page(() => import("./pages/DeleteData"), (m) => m.DeleteDataPage);
 const Onboarding = page(() => import("./pages/Onboarding"), (m) => m.Onboarding);
 const HandoffPage = page(() => import("./pages/Handoff"), (m) => m.HandoffPage);
+const AppSignedInPage = page(() => import("./pages/AppSignedIn"), (m) => m.AppSignedInPage);
 const AdminApp = page(() => import("./admin/AdminApp"), (m) => m.AdminApp);
 
 // after the first page has painted, fetch the others in idle time so moving between them never waits;
@@ -66,6 +69,7 @@ function prefetchPages() {
 
 // before anything else reads the address: the handoff token must never reach an error report or a page view
 stashHandoff();
+stashAppReturn();
 initTheme();
 reportPageErrors();
 stashClaim();
@@ -109,12 +113,15 @@ function SignedIn() {
   const next = query.get("next");
   const intent = planIntent(query);
   const welcome = path === "/welcome";
+  // a brand-new account made on the website, nothing asked for: pricing is next, not the dashboard
+  const fresh = path === "/" && query.get(NEW_SIGNUP_PARAM) === "1" && !intent;
+  useEffect(() => { if (fresh) location.replace(siteUrl("/pricing")); }, [fresh]);
   // a plan picked on the site: someone signed in already goes to the plan step, or straight to plans once onboarded
   const moved = MOVED[path]
     ? (intent && SIGN_IN_PATHS.includes(path) ? `/welcome?${planQuery(intent)}` : path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path])
     : welcome && intent && account?.profile.onboarded ? `/billing?${planQuery(intent)}` : null;
   useEffect(() => { if (moved) navigate(moved, { replace: true }); }, [moved]);
-  if (moved) return null;
+  if (moved || fresh) return null;
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (path === "/admin" || path.startsWith("/admin/")) return <Suspense fallback={blank}><AdminApp /></Suspense>;
   const exempt = path === "/claim" || path === "/cloud/desktop" || deletePageId(path) !== null;
@@ -123,6 +130,8 @@ function SignedIn() {
   if (welcome && intent && account === null && !error) return blank;
   const onboard = welcome || (account !== null && !account.profile.onboarded && !exempt);
   if (onboard) return <Suspense fallback={blank}><Onboarding /></Suspense>;
+  // the desktop app's sign-in: its own clean page, not the dashboard around it
+  if (path === "/cloud/desktop") return <main className="min-h-[100dvh] bg-bg px-6 py-10"><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></main>;
   return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;
 }
 
@@ -134,16 +143,17 @@ function App() {
   useEffect(() => {
     // the admin panel names its own tabs
     if (account && (path === "/admin" || path.startsWith("/admin/"))) return;
-    const page = path === HANDOFF_PATH ? "signing in" : account === null ? (path === "/signup" ? "make your account" : "sign in")
+    const page = path === HANDOFF_PATH ? "signing in" : path === APP_LANDING_PATH ? "signed in" : account === null ? (path === "/signup" ? "make your account" : "sign in")
       : TITLES[path] ?? (path.startsWith("/bots/") ? "bot" : path.startsWith("/workspaces/") ? "workspace" : deletePageId(path) !== null ? "delete cloud data" : "not found");
     document.title = `${page} / dusk bot`;
   }, [path, account]);
   // before launch only a real flow's pages show; any other move (a link, the sidebar, after signing in) goes to the waitlist
-  const away = PRELAUNCH && !prelaunchAllowed(path, query, { handoff: handoffArrived(), claim: hasClaim(), deleting: (id) => deleteToken(id) !== null });
+  const away = PRELAUNCH && !prelaunchAllowed(path, query, { handoff: handoffArrived(), appReturn: appReturn() !== null, claim: hasClaim(), deleting: (id) => deleteToken(id) !== null });
   useEffect(() => { if (away) location.replace("/"); }, [away]);
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (away) return blank;
   if (path === HANDOFF_PATH) return <Suspense fallback={blank}><HandoffPage /></Suspense>;
+  if (path === APP_LANDING_PATH) return <Suspense fallback={blank}><AppSignedInPage /></Suspense>;
   if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty art="cat" title="can't reach your account right now." action={<Button variant="primary" onClick={retryAccount}>try again</Button>} className="w-full max-w-[520px]">check your connection. your bots are fine, they live on your own computers.</SkyEmpty></main>;
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} forApp={path === "/cloud/desktop"} note={path === "/claim" ? "sign in to connect the workspace you opened this from." : path === "/cloud/desktop" ? "sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
