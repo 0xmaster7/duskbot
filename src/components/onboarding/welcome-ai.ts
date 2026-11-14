@@ -12,6 +12,14 @@ const keyOf = (instance: InstanceInfo) => `${instance.instanceId}\n${aiSignInKey
 const runs = (instance: InstanceInfo) =>
   engineReady(instance) && Boolean(instance.models.default.trim() || instance.models.options.some((option) => option.id.trim()));
 
+/** How long the first run waits on an AI's test message before it shows the cards instead. */
+export const WELCOME_CHECK_MS = 20_000;
+
+/** A check that ran out of time is an AI that didn't answer (the cards, with Check again); any other failure to ask trusts it. */
+export function checkFailed(error: unknown): Known {
+  return error instanceof DOMException && error.name === "TimeoutError" ? { state: "failed" } : { state: "untestable" };
+}
+
 export type WelcomeAiNow = NonNullable<ReturnType<typeof welcomeAi<InstanceInfo>>> & {
   /** The plain reason its test failed, when it gave one (signed out, a used-up limit…). */
   error?: string;
@@ -36,9 +44,9 @@ export function useWelcomeAi(instances: readonly InstanceInfo[], enabled = true)
     if (asked.current.has(key)) return;
     asked.current.add(key);
     const instanceId = key.slice(0, key.indexOf("\n"));
-    void api<Answer>(`/api/instances/${encodeURIComponent(instanceId)}/check`, { method: "POST", body: "{}", timeoutMs: 120_000 })
+    void api<Answer>(`/api/instances/${encodeURIComponent(instanceId)}/check`, { method: "POST", body: "{}", timeoutMs: WELCOME_CHECK_MS })
       .then((answer): Known => answer?.ok === true ? { state: "passed" } : answer?.ok === false
-        ? { state: "failed", ...(answer.error ? { error: answer.error } : {}) } : { state: "untestable" }, (): Known => ({ state: "untestable" }))
+        ? { state: "failed", ...(answer.error ? { error: answer.error } : {}) } : { state: "untestable" }, checkFailed)
       .then((known) => {
         asked.current.delete(key);
         if (live.current) setAnswers((current) => ({ ...current, [key]: known }));

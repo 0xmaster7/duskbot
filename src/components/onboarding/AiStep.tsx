@@ -1,7 +1,8 @@
 // Connecting an AI, as one step of the first run: the grid of AIs people already use (AiCards), and the free model or
 // later when none is connected yet. More ways opens every other provider and API keys. An AI already signed in here
-// that answers its test message is used without asking: the step says so for a moment and goes on.
-import { useEffect, useRef, useState } from "react";
+// that answers its test message is used without asking: the step says so for a moment and goes on, with Continue to go at once
+// and Skip while it is still being checked.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, LoaderCircle, RefreshCw } from "../../icons";
 import { engineReady } from "@/components/EngineLibrary";
 import { t } from "@/lib/i18n";
@@ -20,12 +21,15 @@ export function AiStep({ tested, cloud = false, auto = true, onNext }: { tested:
   const [more, setMore] = useState(false);
   const free = freeModel(state.instances, engineReady);
   const connected = aiTiles(state.instances, engineReady).filter((tile) => engineReady(tile.instance));
-  const using = useFoundAi(auto ? tested : null, onNext);
+  const { using, goOn, skip } = useFoundAi(auto ? tested : null, onNext);
 
   if (using !== "none") {
     const name = tested ? aiName(tested.instance) : "";
     return (
-      <StepFrame art={<StepArt art="plug" />} title={using === "found" ? t("funnel.ai.using", { name }) : t("funnel.ai.looking")}>
+      <StepFrame art={<StepArt art="plug" />} title={using === "found" ? t("funnel.ai.using", { name }) : t("funnel.ai.looking")}
+        footer={using === "found"
+          ? <button type="button" data-primary="" data-funnel-ai-continue="" onClick={goOn} className={PRIMARY}>{t("funnel.next")}</button>
+          : <button type="button" data-funnel-ai-skip="" onClick={skip} className={SECONDARY}>{t("funnel.skip")}</button>}>
         {using === "checking"
           ? <p role="status" data-ai-checking="" className="flex items-center gap-2 text-[14px] text-ink-secondary">
               <LoaderCircle size={15} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
@@ -65,9 +69,11 @@ export function AiStep({ tested, cloud = false, auto = true, onNext }: { tested:
 }
 
 /** On arriving at the step: "checking" while an AI already signed in here gets its test message, "found" once it
- * answered (then the step goes on by itself), "none" for the cards. Only on arrival, so Back to this step stays. */
-function useFoundAi(tested: WelcomeAiNow | null, onNext: (how: "connected") => void): "checking" | "found" | "none" {
+ * answered (then the step goes on by itself, or at once with `goOn`), "none" for the cards, also after `skip`. Only on
+ * arrival, so Back to this step stays. */
+function useFoundAi(tested: WelcomeAiNow | null, onNext: (how: "connected") => void): { using: "checking" | "found" | "none"; goOn(): void; skip(): void } {
   const decided = useRef<"checking" | "found" | "none">(tested?.state === "testing" || tested?.state === "passed" ? "checking" : "none");
+  const [, rerender] = useState(0);
   if (decided.current === "checking") {
     if (tested?.state === "passed") decided.current = "found";
     else if (tested?.state !== "testing") decided.current = "none";
@@ -75,10 +81,20 @@ function useFoundAi(tested: WelcomeAiNow | null, onNext: (how: "connected") => v
   const found = decided.current === "found";
   const next = useRef(onNext);
   next.current = onNext;
+  const gone = useRef(false);
+  const goOn = useCallback(() => {
+    if (gone.current) return;
+    gone.current = true;
+    next.current("connected");
+  }, []);
   useEffect(() => {
     if (!found) return;
-    const timer = window.setTimeout(() => next.current("connected"), 1_400);
+    const timer = window.setTimeout(goOn, 1_400);
     return () => window.clearTimeout(timer);
-  }, [found]);
-  return decided.current;
+  }, [found, goOn]);
+  const skip = useCallback(() => {
+    decided.current = "none";
+    rerender((n) => n + 1);
+  }, []);
+  return { using: decided.current, goOn, skip };
 }

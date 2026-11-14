@@ -165,6 +165,40 @@ describe("the welcome", () => {
 });
 
 describe("connecting an AI", () => {
+  it("an AI found answering goes on at once with Continue, not only after its pause", async () => {
+    await show();
+    await press("Get started");
+    expect(text()).toContain("Using your Claude account");
+    await press("Continue");
+    expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(f.onDone, "the pause doesn't go on a second time").toHaveBeenCalledOnce();
+  });
+
+  it("while an AI is still being checked, Skip shows the cards; a check that runs out of time shows them with why", async () => {
+    let fail: (error: unknown) => void = () => {};
+    const base = f.api.getMockImplementation()!;
+    f.api.mockImplementation((path: string, init?: { body?: string; method?: string; timeoutMs?: number }) => {
+      if (path.endsWith("/check")) { expect(init?.timeoutMs).toBe(20_000); return new Promise((_, reject) => { fail = reject; }); }
+      return base(path, init);
+    });
+    f.state = { ...f.state, instances: [claude(true, "testing")] };
+    await show({ initialBeat: "ai" });
+    expect(title()).toBe("Looking for an AI you already use");
+    await press("Skip");
+    expect(title()).toBe("Connect an AI");
+    expect(document.body.querySelector("[data-funnel-ai=claude]")).not.toBeNull();
+
+    await act(async () => root.unmount());
+    root = createRoot(host);
+    await show({ initialBeat: "ai" });
+    expect(title()).toBe("Looking for an AI you already use");
+    await act(async () => { fail(new DOMException("timed out", "TimeoutError")); });
+    await settle();
+    expect(title()).toBe("Connect an AI");
+    expect(document.body.querySelector("[data-ai-silent]"), "says Claude didn't answer, with Check again").not.toBeNull();
+  });
+
   it("shows every AI as a button with its name, and opens the picked one's own sign-in under the grid", async () => {
     f.state = { ...f.state, instances: nothingSignedIn() };
     await show();
