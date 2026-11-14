@@ -279,7 +279,7 @@ describe("Settings → General → Appearance", () => {
   it("offers personal Cloud in Usage and Billing, only through the local desktop bridge", () => {
     fixture.section = "cloudAccount";
     vi.stubGlobal("window", { duskDesktop: { cloudAccount: {} } });
-    expect(render()).toContain("Free local use");
+    expect(render()).toContain('data-settings-block="cloudAccount"');
     vi.stubGlobal("window", {});
     expect(render()).not.toContain('data-settings-block="cloudAccount"');
   });
