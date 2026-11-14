@@ -3064,10 +3064,11 @@ const startFresh = createStartFresh({
   log: slog,
 });
 const startFreshPage = (channel, handler) => (event, ...args) => {
-  if (desktopRemoteAccess || cloudPageAsking(event) === null) throw new Error(`${channel} is only available in this app's window`);
+  if (desktopRemoteAccess || (cloudPageAsking(event) === null && !homeWindow.homePage(event))) throw new Error(`${channel} is only available in this app's window`);
   return handler(...args);
 };
-ipcMain.handle("start-fresh:available", event => !desktopRemoteAccess && cloudPageAsking(event) !== null);
+// this app's own page, or the person's own home (My Cloud or their own server) shown in this window
+ipcMain.handle("start-fresh:available", event => !desktopRemoteAccess && (cloudPageAsking(event) !== null || homeWindow.homePage(event)));
 ipcMain.handle("start-fresh:preview", startFreshPage("start-fresh:preview", () => startFresh.preview()));
 ipcMain.handle("start-fresh:run", startFreshPage("start-fresh:run", typed => startFresh.run(typeof typed === "string" ? typed : "")));
 ipcMain.handle("start-fresh:retry", startFreshPage("start-fresh:retry", () => startFresh.retry()));
