@@ -1,5 +1,4 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
@@ -8,8 +7,7 @@ import { waitForExit } from "../../server/testing/cleanup.ts";
 import { runControlDusk } from "../control-dusk.ts";
 import { request } from "../mcp-server.ts";
 import { UI_TOOLS_DIR } from "./control-dusk-ui.ts";
-import { openAdvancedSettings } from "./grok-nav.ts";
-import { openTemplatesWhenFree, waitStill } from "./grok-templates.ts";
+import { openTemplatesWhenFree } from "./grok-templates.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const binary = resolveAgentBrowserBinary({ dataDir: UI_TOOLS_DIR, env: process.env });
@@ -23,7 +21,7 @@ describe("Preset bots in the real renderer", () => {
   let child: ChildProcess | undefined;
   afterAll(async () => { await waitForExit(child, { signal: "SIGINT", graceMs: 30_000 }); });
 
-  (enabled ? it : it.skip)("shares New bot defaults as a preset file, adds it back, and makes bots from file and organization presets in a ready-made bot's review", async () => {
+  (enabled ? it : it.skip)("imports a preset file made from New bot defaults, with its skills and notes and none of its approvals or apps", async () => {
     let stdout = "";
     let stderr = "";
     let info: { ui: string; url: string; botId: string; dataDir: string; logPath: string };
@@ -52,96 +50,30 @@ describe("Preset bots in the real renderer", () => {
         text: "---\nname: follow-up\ndescription: Write a short follow-up.\n---\n\n# Follow-up\n" }],
       routines: [],
     } });
-    // Capture the saved file instead of letting the headless browser download it.
-    await evaluate(`(() => {
-      URL.createObjectURL = (blob) => { window.__presetBlob = blob; return "blob:preset-fixture"; };
-      HTMLAnchorElement.prototype.click = function () { window.__presetDownload = this.download; };
-      return true;
-    })()`);
-
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain('button "You"');
-    await openAdvancedSettings(ui, "Bots");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Share as preset…");
-    await waitStill(ui, "Share as preset…");
-    await click("Share as preset…");
-    await expect.poll(snapshot, { timeout: 20_000 }).toContain("What's in the file");
-    let dialog = await snapshot();
-    for (const line of ["Share New bot defaults as a preset", "follow-up", "Never included: model choices, folders, where bots work, approval levels"]) expect(dialog).toContain(line);
-    await ui("screenshot", "--out", evidence("share"));
-    await click("Save file");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Saved sky-1.0.0.dusk.json");
-    await evaluate("window.__presetBlob.text().then((text) => { window.__presetText = text; }); true");
-    await expect.poll(async () => typeof (await evaluate("window.__presetText")), { timeout: 5_000 }).toBe("string");
-    const saved = JSON.parse(await evaluate("window.__presetText") as string);
-    expect(await evaluate("window.__presetDownload")).toBe("sky-1.0.0.dusk.json");
+    // Sharing a preset from the app left with the Bots pane on purpose (faa8efdbb), and making a bot from a preset left
+    // with the ready-made bot's review (89d92585f). The file is made by the server's own export, the call the share
+    // dialog made, and the app still imports it from Templates.
+    const exported = await api("/api/teams/export", "POST", { format: "package", version: 2, kind: "library", name: "Sky", presetName: "Sky", includeMemory: true }) as { filename: string; document: Record<string, any> };
+    const saved = exported.document;
+    expect(exported.filename).toBe("sky-1.0.0.dusk.json");
     expect(saved.package).toMatchObject({ id: "sky", agents: [], presets: [{ key: "new-bot-defaults", name: "Sky", skills: ["follow-up"], seed: { memory: { "MEMORY.md": "- Customers first.\n" } } }] });
     expect(JSON.stringify(saved)).not.toMatch(/"approvalMode"|"composio"|"modelSelection"|"enabled"/);
-    await click("Done");
-    await expect.poll(snapshot).not.toContain("Share New bot defaults as a preset");
-    // The chat's first question card has its own Close: press Escape for the Settings dialog.
-    await ui("press", "--keys", "Escape");
-    await expect.poll(snapshot).not.toContain('dialog "Settings"');
+    const presetText = `${JSON.stringify(saved, null, 2)}\n`;
 
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain('button "You"');
     await openTemplatesWhenFree(ui);
     await click("Import");
-    await evaluate(`(() => { const input = document.querySelector('[role=dialog] input[type=file]'); const transfer = new DataTransfer(); transfer.items.add(new File([window.__presetText], 'sky-1.0.0.dusk.json', { type: 'application/json' })); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await evaluate(`(() => { const input = document.querySelector('[role=dialog] input[type=file]'); const transfer = new DataTransfer(); transfer.items.add(new File([${JSON.stringify(presetText)}], 'sky-1.0.0.dusk.json', { type: 'application/json' })); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
     await expect.poll(snapshot, { timeout: 10_000 }).toContain("Preset bots and skills · no department");
     const preview = await snapshot();
-    expect(preview).toContain("Preset bots: 1 · appear in New bot");
+    expect(preview).toContain("Preset bots: 1 · appear in new bot");
     expect(preview).not.toContain("Team members");
-    expect(preview).toContain("Preset bots (added to New bot)");
+    expect(preview).toContain("Preset bots (added to new bot)");
     await ui("screenshot", "--out", evidence("import-preview"));
     await click("Add presets");
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Preset bots added to New bot: 1");
-    const [filePreset] = (await api("/api/bot-presets")).presets as Array<{ id: string }>;
-
-    // An organization preset, as the organization library stores one.
-    const presetsFile = join(info!.dataDir, "org-library", "presets.json");
-    const stored = JSON.parse(readFileSync(presetsFile, "utf8"));
-    const orgRow = { ...stored.presets[0], id: "org-preset-1", source: "org", installId: "0123456789abcdef0123456789abcdef", publisherName: "Acme Partners",
-      publisher: { organizationId: "org-acme", slug: "acme", name: "Acme Partners" }, ref: "acme/sky", sha256: "a".repeat(64), name: "Acme closer" };
-    stored.presets.push(orgRow);
-    stored.content[orgRow.installId] = stored.content[stored.presets[0].installId];
-    writeFileSync(presetsFile, JSON.stringify(stored));
-
-    await openTemplatesWhenFree(ui);
-    await click("Share");
-    await click("Share the General department");
-    await expect.poll(snapshot, { timeout: 20_000 }).toContain("What's in the file");
-    expect(await snapshot()).not.toContain('term "Preset bots"');
-    await click("Include my New bot defaults as a preset");
-    await expect.poll(snapshot, { timeout: 20_000 }).toContain('term "Preset bots"');
-    expect(await snapshot()).toContain('StaticText "1 · Sky"');
-    expect(await snapshot()).toContain("Never their model, folder, computer, approval level or connected apps.");
-    await ui("screenshot", "--out", evidence("share-team"));
-    await click("Cancel");
-    await click("Close templates");
-
-    const bots = async () => (await api("/api/bots")).bots as Array<{ id: string; name: string; installedPackage?: Record<string, unknown> }>;
-    const create = async (value: string, expected: string, shot: string) => {
-      const before = await bots();
-      await openTemplatesWhenFree(ui);
-      await expect.poll(snapshot, { timeout: 20_000 }).toContain("Add Scout, Researcher");
-      await click("Add Scout, Researcher");
-      await expect.poll(async () => (await ui("eval", "--js", "[...document.querySelectorAll('[role=dialog] button')].find(button => button.textContent.trim() === 'Create bot')?.disabled")).result, { timeout: 20_000 }).toBe(false);
-      await expect.poll(() => evaluate("[...document.querySelectorAll('[role=dialog] select optgroup')].map(group => group.label).join(' | ')"), { timeout: 10_000 })
-        .toBe("From Acme Partners | Imported presets | Built-in roles");
-      // Native select popups do not take routed keys reliably in headless
-      // Chrome; the real select's change handler runs without the OS popup.
-      await evaluate(`(() => { const select = [...document.querySelectorAll('[role=dialog] select')].find(item => item.querySelector('optgroup')); select.value = ${JSON.stringify(value)}; select.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
-      await expect.poll(snapshot, { timeout: 10_000 }).toContain(expected);
-      await ui("screenshot", "--out", evidence(shot));
-      await click("Create bot");
-      await expect.poll(async () => (await bots()).length, { timeout: 15_000 }).toBe(before.length + 1);
-      return (await bots()).find((bot) => !before.some((old) => old.id === bot.id))!;
-    };
-    const fromFile = await create(`preset:${filePreset!.id}`, "Skills, added switched off: follow-up", "new-bot-file");
-    expect(fromFile).toMatchObject({ name: expect.stringMatching(/^Sky/), installedPackage: { source: "file", presetKey: "new-bot-defaults" } });
-    expect((await api(`/api/bots/${fromFile.id}/skills`)).skills).toEqual([expect.objectContaining({ name: "follow-up", enabled: false })]);
-    expect((await api(`/api/bots/${fromFile.id}/memory/file?path=MEMORY.md`)).text).toBe("- Customers first.\n");
-    const fromOrg = await create("preset:org-preset-1", "Skills, added switched on: follow-up", "new-bot-org");
-    expect(fromOrg.installedPackage).toMatchObject({ source: "org", presetKey: "new-bot-defaults", ref: "acme/sky" });
-    expect((await api(`/api/bots/${fromOrg.id}/skills`)).skills).toEqual([expect.objectContaining({ name: "follow-up", enabled: true })]);
-    process.stdout.write(`${JSON.stringify({ fixture: info!, savedFile: true, presetsInNewBot: 2 })}\n`);
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Preset bots added to new bot: 1");
+    const presets = (await api("/api/bot-presets")).presets as Array<{ id: string; name: string; source?: string }>;
+    expect(presets).toEqual([expect.objectContaining({ name: "Sky" })]);
+    process.stdout.write(`${JSON.stringify({ fixture: info!, imported: presets.length })}\n`);
   }, launchTimeout + 180_000);
 });
