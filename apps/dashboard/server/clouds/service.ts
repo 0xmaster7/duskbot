@@ -329,10 +329,11 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       c.spec = { ...c.desiredSpec }; c.status = "provisioning"; c.setupStep = "reserving"; c.provisionedAt = now(); save(c); kick();
     },
     changePlan(id, plan) { const c = requireCloud(id); if (c.status === "destroyed" || c.status === "destroying" || c.ended) throw new CloudError(409, "unavailable"); applyPlan(c, plan); c.nextAttemptAt = 0; save(c); },
-    setPaymentProblem(id, problem) { const c = requireCloud(id); c.paymentProblem = problem; save(c); },
-    scheduleDestroy(id, at) { const c = requireCloud(id); if (c.status === "destroyed" || c.status === "destroying") return; c.destroyAt = c.ended && c.destroyAt !== null ? Math.min(c.destroyAt, at) : at; save(c); },
+    setPaymentProblem(id, problem) { const c = requireCloud(id); if (problem && c.review) return; c.paymentProblem = problem; save(c); },
+    setReview(id, review) { const c = requireCloud(id); if (!!c.review === review) return; if (review) c.review = true; else delete c.review; save(c); },
+    scheduleDestroy(id, at) { const c = requireCloud(id); if (c.status === "destroyed" || c.status === "destroying" || c.review) return; c.destroyAt = c.ended && c.destroyAt !== null ? Math.min(c.destroyAt, at) : at; save(c); },
     cancelDestroy(id) { const c = requireCloud(id); if (c.status === "destroyed" || c.status === "destroying" || c.ended || c.paymentProblem || c.destroyAt !== null && c.destroyAt <= now()) return; c.destroyAt = null; save(c); },
-    end(id, at, from) { const c = requireCloud(id); if (c.status === "destroyed") return;
+    end(id, at, from) { const c = requireCloud(id); if (c.status === "destroyed" || c.review) return;
       if (from !== undefined && from > now() && !c.ended) { c.endsAt = c.endsAt === undefined ? from : Math.min(c.endsAt, from); c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); save(c); return; }
       delete c.endsAt; if (!c.ended) c.endedAt = now(); c.ended = true; c.wantPower = "off"; c.destroyAt = c.destroyAt === null ? at : Math.min(c.destroyAt, at); c.nextAttemptAt = 0; save(c); kick(); },
     abandon(id) { const c = requireCloud(id); if (c.status === "checkout") { c.status = "destroyed"; save(c); } },

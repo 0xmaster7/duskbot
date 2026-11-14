@@ -22,9 +22,11 @@ export interface Entitlement { active: boolean; until: number | null; known?: bo
  * `endedAt`: a desktop taken off the plan, an account closed with "stop my desktops now"), else the latest period end. A
  * subscription that will not renew counts only to its period end, whatever its status says later (an account closed
  * before then gets no more webhooks). Event times never count: a late or replayed event cannot move the date.
- * `known` is false when no subscription ever paid for the cloud: nothing is deleted on that.
+ * `known` is false when no subscription ever paid for the cloud: nothing is deleted on that. App Review's demo cloud
+ * (`review`) is always paid for, so it never sleeps for a plan, is never archived and never reaches a deletion verdict.
  */
-export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean; endedAt?: number }, now: number): Entitlement {
+export function entitlementOf(subscriptions: readonly StoredSubscription[], cloud: { id: string; subscriptionId: string | null; endsAt?: number; ended?: boolean; endedAt?: number; review?: true }, now: number): Entitlement {
+  if (cloud.review) return { active: true, until: null, known: true };
   const mine = subscriptions.filter(s => s.id === cloud.subscriptionId || s.cloudId === cloud.id);
   if (!mine.length) return { active: false, until: null, known: false };
   // a plan whose period end passed before its end was recorded (a late expiry) ended at that period end

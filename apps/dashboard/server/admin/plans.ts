@@ -49,7 +49,7 @@ export function createPlanEditor(deps: { billing: Billing; now: () => number; au
       const sub = stored(view.id)!;
       return { id: sub.id, plan: labelOf(view.bundle), bundle: view.bundle, interval: sub.cart.interval, status: sub.status, totalCents: sub.totalCents,
         periodStart: sub.currentPeriodStart, periodEnd: sub.currentPeriodEnd, openEnded: openEnded(sub), cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-        cloudId: sub.cloudId, source: sub.source ?? null, comp: COMP_SOURCES.includes(sub.source ?? ""), createdAt: sub.createdAt };
+        cloudId: sub.cloudId, source: sub.source ?? null, comp: sub.review === true || COMP_SOURCES.includes(sub.source ?? ""), createdAt: sub.createdAt };
     });
   }
   function info(): PlanBillingInfo {

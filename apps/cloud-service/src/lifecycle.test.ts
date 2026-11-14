@@ -7,7 +7,7 @@ import { homeBackupKey } from "./backups.ts";
 import { INSTABOX_BOOT_FILE, INSTABOX_PACKAGE_FILE, INSTABOX_SETUP_FILE } from "./home.ts";
 import { OWNER_SLEEP_GRACE_MS } from "./lifecycle.ts";
 import { pooledCostProfile } from "./power/pooled-profile.ts";
-import { DAY_MS, entitlementOf } from "./retention.ts";
+import { DAY_MS, deletionVerdict, entitlementOf } from "./retention.ts";
 import { createSealer } from "../../dashboard/server/clouds/seal.ts";
 import { BACKUP_SECRET, homeFixture, plan, SHA } from "./test-fixture.ts";
 
@@ -527,3 +527,16 @@ it("never flags a day the person's own routines and checks kept the cloud up", a
   expect(c.status).toBe("running");
   expect(f.audit.entries(c.id).filter(e => e.action === "awake_without_work")).toHaveLength(0);
 }, 120_000);
+
+it("treats App Review's demo cloud as always paid for, so no plan end, retention, archive or delete verdict reaches it", () => {
+  const now = 1_800_000_000_000;
+  const ended = [{ id: "s1", cloudId: "c1", status: "ended", cancelAtPeriodEnd: true, currentPeriodEnd: now - 90 * DAY_MS } as StoredSubscription];
+  const cloud = { id: "c1", subscriptionId: "s1", ended: true, endedAt: now - 90 * DAY_MS };
+  expect(entitlementOf(ended, cloud, now)).toMatchObject({ active: false });
+  const review = entitlementOf(ended, { ...cloud, review: true }, now);
+  expect(review).toEqual({ active: true, until: null, known: true });
+  expect(entitlementOf([], { id: "c2", subscriptionId: null, review: true }, now).active).toBe(true);
+  const verdict = deletionVerdict({ now, retentionDays: 30, entitlement: review, finalBackup: { at: now - 80 * DAY_MS, verifiedAt: now - 80 * DAY_MS }, lastStopAt: now - 85 * DAY_MS,
+    ownerRequest: { requestedAt: now - 20 * DAY_MS, confirmedAt: now - 20 * DAY_MS, executeAfter: now - DAY_MS, cancelledAt: null }, hold: false });
+  expect(verdict).toMatchObject({ delete: false, reason: "subscribed" });
+});

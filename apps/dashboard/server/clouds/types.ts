@@ -158,6 +158,10 @@ export interface StoredCloud {
   managed?: ManagedCloudState;
   /** when this service last pushed a signed entitlement to the cloud's home */
   entitledAt?: number;
+  /** App Review's demo cloud (POST /v1/billing/ops/review): billing never ends, destroys or flags it, and the managed
+   *  backend treats it as paid for, so no retention, archive or delete job takes it. Only its owner's account deletion
+   *  (which clears the flag) or an operator's delete ends it. */
+  review?: true;
 }
 
 /** a managed backend's own per-cloud record (apps/cloud-service adds its fields to this interface) */
@@ -183,6 +187,8 @@ export interface CloudsService {
   /** whether a plan change can take this cloud to `plan`: same placement, or a managed cloud whose backend runs that kind */
   movable?(cloudId: string, plan: DesktopPlan): boolean;
   setPaymentProblem(cloudId: string, problem: boolean): void;
+  /** marks or clears App Review's demo cloud */
+  setReview(cloudId: string, review: boolean): void;
   /** destroyed at `at` unless cancelled (keep plan, renewed) */
   scheduleDestroy(cloudId: string, at: number): void;
   cancelDestroy(cloudId: string): void;

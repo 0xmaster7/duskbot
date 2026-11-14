@@ -34,6 +34,8 @@ export interface StoredSubscription {
   /** where its checkout started (CHECKOUT_SOURCES), copied from the checkout */
   source?: string | null;
   lastEventAt?: number;
+  /** App Review's demo plan (POST /v1/billing/ops/review): never counted as revenue */
+  review?: true;
   cancelAtPeriodEnd: boolean; createdAt: number; updatedAt: number; version: number;
 }
 export interface StoredInvoice {

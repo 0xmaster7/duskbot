@@ -23,6 +23,7 @@ function fakeClouds() {
     activate: vi.fn((id: string, subscriptionId: string, plan: DesktopPlan) => { Object.assign(get(id)!, plan, { subscriptionId, status: "provisioning" }); }),
     changePlan: vi.fn((id: string, plan: DesktopPlan) => { Object.assign(get(id)!, plan); }),
     setPaymentProblem: vi.fn((id: string, problem: boolean) => { get(id)!.paymentProblem = problem; }),
+    setReview: vi.fn((id: string, review: boolean) => { const cloud = get(id)!; if (review) cloud.review = true; else delete cloud.review; }),
     scheduleDestroy: vi.fn((id: string, at: number) => { get(id)!.destroyAt = at; }),
     cancelDestroy: vi.fn((id: string) => { get(id)!.destroyAt = null; }),
     end: vi.fn((id: string, destroyAt: number) => { Object.assign(get(id)!, { status: "stopped", destroyAt, ended: true, endedAt: time }); }),
@@ -671,5 +672,36 @@ describe("cancel flow and the stay-on discount", () => {
     expect(store.state.feedback.at(-1)).toMatchObject({ answer: "switching", subscriptionId: sub.id });
     await service.cancel(owner, sub.id, { answer: "switching" });
     expect(store.state.retention).toHaveLength(3);
+  });
+});
+
+describe("App Review's demo plan", () => {
+  it("marks the account's plans and clouds, and clears them again", async () => {
+    const { sub, answer } = await buy();
+    expect(service.markReview(owner.id, true)).toEqual({
+      subscriptions: [{ id: sub.id, status: "active", cloudId: answer.cloudId, review: true }],
+      clouds: [expect.objectContaining({ id: answer.cloudId, review: true })] });
+    expect(clouds.setReview).toHaveBeenCalledWith(answer.cloudId, true);
+    expect(service.markReview(owner.id, true).subscriptions[0]!.review).toBe(true);
+    expect(service.markReview(owner.id, false).clouds[0]).toMatchObject({ review: false });
+    expect(store.state.subscriptions[0]!.review).toBeUndefined();
+  });
+  it("is never revenue: its ledger rows carry no mrr and it is never offered the stay-on discount", async () => {
+    const { sub } = await buy();
+    service.markReview(owner.id, true);
+    expect(service.overview(owner).retention?.offer).toBeNull();
+    const before = store.state.ledger!.length;
+    time += 31 * day; deliver(provider.renew(sub.providerSubscriptionId!));
+    const rows = store.state.ledger!.slice(before).filter(row => row.subscriptionId === sub.id && typeof row.mrrCents === "number");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.map(row => row.mrrCents)).toEqual(rows.map(() => 0));
+  });
+  it("its owner's account deletion still ends the cloud: the flag is cleared before the desktops step", async () => {
+    const { answer } = await buy();
+    service.markReview(owner.id, true);
+    await service.closeAccount(owner, { destroyDesktopsNow: true });
+    expect(clouds.setReview).toHaveBeenLastCalledWith(answer.cloudId, false);
+    expect(clouds.end).toHaveBeenCalledWith(answer.cloudId, expect.any(Number));
+    expect(clouds.get(answer.cloudId!)!.review).toBeUndefined();
   });
 });

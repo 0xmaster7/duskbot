@@ -74,7 +74,7 @@ export function createBillingService(options: BillingServiceOptions) {
     for (const row of rows) try { options.onLedger?.(row); } catch { console.warn("billing: a ledger listener failed"); }
   }
   function record(input: LedgerDraft) { const row = appendLedger(state.ledger!, input, now()); if (row) recorded.push(row); return row; }
-  const monthlyOf = (sub: Pick<StoredSubscription, "totalCents" | "cart" | "source">) => sub.source === "admin_comp" || sub.source === "ops_grant" ? 0 : sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
+  const monthlyOf = (sub: Pick<StoredSubscription, "totalCents" | "cart" | "source" | "review">) => sub.review || sub.source === "admin_comp" || sub.source === "ops_grant" ? 0 : sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
   const subFields = (sub: StoredSubscription) => ({ accountId: sub.accountId, subscriptionId: sub.id, providerSubscriptionId: sub.providerSubscriptionId,
     plan: quote(sub.cart, config).bundle ?? "custom", interval: sub.cart.interval, mrrCents: monthlyOf(sub) });
   const planLabel = (sub: StoredSubscription) => config.bundles.find(bundle => bundle.id === quote(sub.cart, config).bundle)?.label.toLowerCase() ?? "custom";
@@ -124,6 +124,7 @@ export function createBillingService(options: BillingServiceOptions) {
       await step("desktops", () => {
         for (const cloud of clouds.list(account.id, true)) if (cloud.status !== "destroyed") {
           if (cloud.status === "checkout") { clouds.abandon(cloud.id); continue; }
+          clouds.setReview(cloud.id, false);
           const sub = state.subscriptions.find(sub => sub.id === cloud.subscriptionId);
           if (closure.destroyDesktopsNow) clouds.end(cloud.id, closure.startedAt + config.graceDays * day);
           else clouds.scheduleDestroy(cloud.id, (sub?.currentPeriodEnd ?? closure.startedAt) + config.graceDays * day);
@@ -688,7 +689,7 @@ export function createBillingService(options: BillingServiceOptions) {
     return { ok: true as const };
   }
   const discountable = (sub: StoredSubscription) => sub.status === "active" && !sub.cancelAtPeriodEnd && !sub.pendingChange && sub.cart.interval === "month" && sub.totalCents > 0
-    && !!sub.providerSubscriptionId && sub.source !== "admin_comp" && sub.source !== "ops_grant" && sub.currentPeriodEnd !== null && sub.currentPeriodEnd > now();
+    && !!sub.providerSubscriptionId && !sub.review && sub.source !== "admin_comp" && sub.source !== "ops_grant" && sub.currentPeriodEnd !== null && sub.currentPeriodEnd > now();
   function retentionView(accountId: string): RetentionView {
     const taken = state.retentionDiscounts!.find(entry => entry.accountId === accountId);
     if (taken) return { offer: null, applied: { percent: taken.percent, cycles: taken.cycles, at: taken.at } };
@@ -928,6 +929,19 @@ export function createBillingService(options: BillingServiceOptions) {
     })().finally(() => { syncing = null; });
     return syncing;
   }
+  /** App Review's demo account: its plans and clouds are marked (or cleared) so no billing, retention or revenue path counts them */
+  function markReview(accountId: string, review: boolean) {
+    for (const sub of state.subscriptions) if (sub.accountId === accountId && !!sub.review !== review) {
+      if (review) sub.review = true; else delete sub.review;
+      sub.updatedAt = now(); sub.version++;
+    }
+    store.commit();
+    for (const cloud of clouds.list(accountId, true)) if (cloud.status !== "destroyed" && cloud.status !== "checkout") clouds.setReview(cloud.id, review);
+    return {
+      subscriptions: state.subscriptions.filter(sub => sub.accountId === accountId).map(sub => ({ id: sub.id, status: sub.status, cloudId: sub.cloudId, review: sub.review === true })),
+      clouds: clouds.list(accountId, true).filter(cloud => cloud.status !== "destroyed").map(cloud => ({ id: cloud.id, name: cloud.name, status: cloud.status, origin: cloud.origin, review: cloud.review === true })),
+    };
+  }
   /** keeps a customer's first touch once; later calls never move it */
   function setAttribution(accountId: string, attribution: Attribution) {
     const row = state.customers.find(item => item.accountId === accountId);
@@ -936,7 +950,7 @@ export function createBillingService(options: BillingServiceOptions) {
   }
   return {
     syncFromProvider: guarded(syncFromProvider), setAttribution: guarded(setAttribution),
-    funnel: guarded(funnel),
+    funnel: guarded(funnel), markReview: guarded(markReview),
     deletionBlockers: guarded(deletionBlockers), closeAccount: guarded(closeAccount), accountDeleted: guarded(accountDeleted), scrubDeleted: guarded(scrubDeleted), drainProviderCancels: guarded(drainProviderCancels),
     catalog: guarded(() => catalogView(now(), config)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),

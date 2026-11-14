@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { StoredCheckout, StoredInvoice, StoredSubscription } from "../billing/store.ts";
 import { draft, ledgerId, type LedgerEntry } from "../billing/ledger.ts";
-import { movementOf, subscriptionReport, type SubscriptionsInput } from "./subscriptions.ts";
+import { monthlyCents, movementOf, paysOf, subscriptionReport, type SubscriptionsInput } from "./subscriptions.ts";
 
 const at = (month: number, day: number) => Date.UTC(2026, month - 1, day, 12);
 const now = at(6, 15);
@@ -115,5 +115,20 @@ describe("subscription metrics", () => {
     expect(feed.find(item => item.accountId === "A" && item.kind === "new")).toBeTruthy();
     expect(feed.filter(item => item.accountId === "A" && item.kind === "renewal")).toHaveLength(1);
     expect(feed.find(item => item.kind === "refund")).toMatchObject({ amountCents: -24000, accountId: "C" });
+  });
+});
+
+describe("App Review's demo plan", () => {
+  it("is never revenue: neither its payments nor its plan count", () => {
+    const base = fixture();
+    const review = sub("review", "acct_review", 2000, { createdAt: at(5, 1), currentPeriodStart: at(6, 1), review: true });
+    const paid = invoice("review", "acct_review", at(6, 2), 2000);
+    const withReview = { ...base, subscriptions: [...base.subscriptions, review], invoices: [...base.invoices, paid],
+      ledger: [...base.ledger, row({ key: "pay:review", type: "payment.succeeded", at: at(6, 2), accountId: "acct_review", subscriptionId: "review", providerPaymentId: paid.providerPaymentId, amountCents: 2000 })] };
+    expect(paysOf(withReview).some(pay => pay.subscriptionId === "review")).toBe(false);
+    expect(monthlyCents(review)).toBe(0);
+    const before = subscriptionReport(base), after = subscriptionReport(withReview);
+    expect(after.headline).toEqual(before.headline);
+    expect(after.months).toEqual(before.months);
   });
 });

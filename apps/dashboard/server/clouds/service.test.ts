@@ -313,3 +313,14 @@ it("revives an ended cloud with its machine and data for a new subscription, and
   expect(c.status).toBe("destroyed");
   expect(f.service.revivable(c.id, dedicatedPlan)).toBe(false); expect(f.service.revive(c.id, "sub3", dedicatedPlan)).toBe(false);
 });
+it("never ends, schedules the destruction of or flags a payment problem on App Review's demo cloud, until the flag is cleared", async () => {
+  const f = fixture(), c = f.order();
+  f.service.activate(c.id, "sub1", dedicatedPlan); await f.ready(c);
+  f.service.setReview(c.id, true); expect(c.review).toBe(true);
+  f.service.end(c.id, f.now() + 1_000); f.service.scheduleDestroy(c.id, f.now() + 1_000); f.service.setPaymentProblem(c.id, true);
+  f.advance(5_000); await f.service.reconcile();
+  expect(c).toMatchObject({ status: "running", destroyAt: null, paymentProblem: false }); expect(c.ended).toBeUndefined();
+  f.service.setReview(c.id, false); expect(c).not.toHaveProperty("review");
+  f.service.end(c.id, f.now() + 1_000);
+  expect(c.ended).toBe(true);
+});

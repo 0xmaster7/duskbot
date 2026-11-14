@@ -382,7 +382,7 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
     const [recent, history] = await Promise.all([sink.scan(time - 14 * DAY, time + 60_000), sink.scan(time - 400 * DAY, time + 60_000, ["site_view", "page_view", "identify"])]);
     const activity = new Map([...activeDays(recent)].map(([id, days]) => [id, days.size]));
     const input = subscriptionInput(activity);
-    const pays = paysOf(input), paying = new Set([...pays.map(pay => pay.accountId), ...input.subscriptions.filter(sub => sub.status !== "pending").map(sub => sub.accountId)]);
+    const pays = paysOf(input), paying = new Set([...pays.map(pay => pay.accountId), ...input.subscriptions.filter(sub => sub.status !== "pending" && !sub.review).map(sub => sub.accountId)]);
     attribute(paying, history);
     return { input: subscriptionInput(activity), history };
   }

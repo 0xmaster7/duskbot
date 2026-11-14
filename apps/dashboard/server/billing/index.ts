@@ -170,7 +170,8 @@ export function createBilling(options: BillingOptions) {
   }
   const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
     checkoutOpen: billingProvider !== "preview", endTrials: billingProvider === "preview" || env.DUSK_OPS_END_TRIAL === "1", grants: billingProvider === "preview" ? fake : null, grant,
-    testPurchases: billingProvider === "dodo" && dodoMode === "test", findAccount: options.findAccount ?? (() => null) };
+    testPurchases: billingProvider === "dodo" && dodoMode === "test", findAccount: options.findAccount ?? (() => null),
+    reviewEmail: env.DUSK_REVIEW_EMAIL?.trim().toLowerCase() || null };
   const routes = createBillingRoutes(context), admin = createAdminRoutes(context);
   return {
     async handle(req: IncomingMessage, res: ServerResponse, target: URL) { return await routes(req, res, target) || await admin.handle(req, res, target); },
@@ -215,4 +216,6 @@ export type BillingContext = {
   /** a plan given through the same checkout, webhook and provisioning code, completed by the fake provider */
   grant(owner: AccountRef, input: { bundle: string; interval: "month" | "year"; name?: string; source: OperatorGrant["source"]; amountCents?: number; until?: number }): Promise<{ checkoutId: string; subscriptionId: string | null }>;
   findAccount(email: string): AccountRef | null;
+  /** DUSK_REVIEW_EMAIL: the one account POST /v1/billing/ops/review may mark */
+  reviewEmail?: string | null;
 };

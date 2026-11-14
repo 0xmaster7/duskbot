@@ -50,6 +50,16 @@ export function createBillingRoutes(ctx: BillingContext) {
         const { checkoutId } = await ctx.grant(owner, { bundle: data.bundle, interval: data.interval === "year" ? "year" : "month", source: "ops_grant", ...(data.name === undefined ? {} : { name: cloudName(data.name) }) });
         json(res, 200, { ok: true, checkoutId, subscriptions: service.subscriptions(owner.id).map(sub => ({ id: sub.id, status: sub.status, cloudId: sub.cloudId })) }); return true;
       }
+      if (path === "/v1/billing/ops/review" && method === "POST") {
+        if (!ctx.opsToken || !ctx.reviewEmail || !opsAllowed(req.headers.authorization, ctx.opsToken)) throw new BillingError(404, "not_found");
+        const data = await body(req), email = text(data.email).trim().toLowerCase();
+        // only App Review's own address: an ops token alone can never make another account's cloud free for good
+        if (email !== ctx.reviewEmail) throw new BillingError(403, "forbidden");
+        const owner = ctx.findAccount(email);
+        if (data.review !== undefined && typeof data.review !== "boolean") invalid();
+        if (!owner) throw new BillingError(404, "not_found");
+        json(res, 200, { ok: true, accountId: owner.id, ...service.markReview(owner.id, data.review !== false) }); return true;
+      }
       const purge = /^\/v1\/billing\/ops\/clouds\/(c[0-9a-f]{24})\/delete$/.exec(path);
       if (purge && method === "POST") {
         const managed = clouds.managed, cloud = clouds.get(purge[1]!);

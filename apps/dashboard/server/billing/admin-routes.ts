@@ -62,7 +62,7 @@ export function createAdminRoutes(ctx: BillingContext) {
   function cloudEntry(account: AccountRef, c: StoredCloud) {
     const view = clouds.view(c), sub = service.subscriptions(account.id).find(s => s.id === c.subscriptionId);
     const isPrimary = primary(account)?.id === c.id, power = managedPower(c);
-    const ended = ["destroyed", "destroying", "error"].includes(view.status) || sub?.status === "ended";
+    const ended = ["destroyed", "destroying", "error"].includes(view.status) || sub?.status === "ended" && !c.review;
     const status = ended ? "ended" : power ? "ready" : view.status === "provisioning" ? "setting_up" : view.status === "running" ? "ready" : ["sleeping", "suspended"].includes(view.status) ? "stopped" : view.status;
     const tier = sub?.bundle ?? config.bundles.find(b => b.cart.desktop.kind === c.kind)?.id ?? "custom";
     const runs = sub && sub.status !== "ended" && sub.status !== "pending" && sub.currentPeriodEnd !== null && sub.currentPeriodEnd > now();

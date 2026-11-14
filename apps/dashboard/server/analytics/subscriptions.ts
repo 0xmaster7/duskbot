@@ -34,8 +34,8 @@ export interface Refund { id: string; paymentId: string; accountId: string; at: 
 export const monthStart = (t: number) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
 export const addMonths = (t: number, n: number) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1); };
 export const monthLabel = (t: number) => new Date(t).toISOString().slice(0, 7);
-const isComp = (sub: Pick<StoredSubscription, "source" | "totalCents">) => sub.source === "admin_comp" || sub.source === "ops_grant" || sub.totalCents === 0;
-export const monthlyCents = (sub: Pick<StoredSubscription, "source" | "totalCents" | "cart">) => isComp(sub) ? 0 : sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
+const isComp = (sub: Pick<StoredSubscription, "source" | "totalCents" | "review">) => sub.review === true || sub.source === "admin_comp" || sub.source === "ops_grant" || sub.totalCents === 0;
+export const monthlyCents = (sub: Pick<StoredSubscription, "source" | "totalCents" | "cart" | "review">) => isComp(sub) ? 0 : sub.cart.interval === "year" ? Math.round(sub.totalCents / 12) : sub.totalCents;
 const ratio = (part: number, whole: number) => whole > 0 ? part / whole : null;
 const median = (values: number[]) => { if (!values.length) return null; const s = [...values].sort((a, b) => a - b), m = Math.floor(s.length / 2); return s.length % 2 ? s[m]! : Math.round((s[m - 1]! + s[m]!) / 2); };
 
@@ -45,11 +45,13 @@ export const taxIn = (chargedCents: number, taxCents: number | null | undefined)
 export const refundBeforeTax = (refundCents: number, pay: Pick<Pay, "amountCents" | "chargedCents">) => pay.chargedCents > 0 ? Math.round(refundCents * pay.amountCents / pay.chargedCents) : refundCents;
 
 /** every money-in moment: paid invoices, then ledger payments the invoices do not know (read back by the backfill) */
-export function paysOf(input: Pick<SubscriptionsInput, "invoices" | "ledger">): Pay[] {
-  const ledgerOf = new Map(input.ledger.filter(row => row.type === "payment.succeeded" && row.providerPaymentId).map(row => [row.providerPaymentId!, row]));
+export function paysOf(input: Pick<SubscriptionsInput, "invoices" | "ledger"> & Partial<Pick<SubscriptionsInput, "subscriptions">>): Pay[] {
+  // App Review's demo plan is paid with a test card where it is paid at all: never revenue
+  const review = new Set((input.subscriptions ?? []).filter(sub => sub.review).map(sub => sub.id));
+  const ledgerOf = new Map(input.ledger.filter(row => row.type === "payment.succeeded" && row.providerPaymentId && !(row.subscriptionId && review.has(row.subscriptionId))).map(row => [row.providerPaymentId!, row]));
   const out: Pay[] = [];
   for (const invoice of input.invoices) {
-    if (invoice.status === "failed" || invoice.amountCents <= 0) continue;
+    if (invoice.status === "failed" || invoice.amountCents <= 0 || invoice.subscriptionId && review.has(invoice.subscriptionId)) continue;
     const row = ledgerOf.get(invoice.providerPaymentId);
     const tax = taxIn(invoice.amountCents, invoice.taxCents ?? row?.taxCents);
     out.push({ paymentId: invoice.providerPaymentId, accountId: invoice.accountId, subscriptionId: invoice.subscriptionId, at: invoice.createdAt, amountCents: invoice.amountCents - tax,
@@ -90,7 +92,7 @@ export function livesOf(input: Pick<SubscriptionsInput, "subscriptions" | "ledge
   for (const row of input.ledger) if (row.subscriptionId) (rows.get(row.subscriptionId) ?? rows.set(row.subscriptionId, []).get(row.subscriptionId)!).push(row);
   const lives: Life[] = [];
   for (const sub of input.subscriptions) {
-    if (sub.status === "pending") continue;
+    if (sub.status === "pending" || sub.review) continue;
     const mine = (rows.get(sub.id) ?? []).sort((a, b) => a.at - b.at);
     const start = firstPay.get(sub.id) ?? mine.find(row => row.type === "subscription.active")?.at ?? (sub.currentPeriodStart !== null ? Math.min(sub.createdAt, sub.currentPeriodStart) : null);
     if (start === null) continue;

@@ -485,6 +485,34 @@ it("dodo test mode: the operator's grant opens a real test-mode checkout for a h
   }
 });
 
+it("the operator marks App Review's demo account only, and only with its token, also where billing is off", async () => {
+  const token = "o".repeat(40);
+  const findAccount = (email: string) => ["review@example.test", "a@example.test"].includes(email) ? { id: email === "a@example.test" ? "a" : "r", email } : null;
+  const unset = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "preview", DUSK_OPS_TOKEN: token }, findAccount })); cleanup.push(() => unset.close());
+  const billing = createBilling(options({ env: { DUSK_BILLING_PROVIDER: "preview", DUSK_OPS_TOKEN: token, DUSK_REVIEW_EMAIL: "Review@example.test" }, findAccount })); cleanup.push(() => billing.close());
+  const off = createBilling(options({ env: { DUSK_OPS_TOKEN: token, DUSK_REVIEW_EMAIL: "review@example.test" }, findAccount })); cleanup.push(() => off.close());
+  const serve = async (b: typeof billing) => listen(createServer(async (req, res) => { if (!await b.handle(req, res, new URL(req.url!, "https://dashboard.example.test"))) { res.writeHead(404); res.end(); } }));
+  const [none, origin, billingOff] = await Promise.all([serve(unset), serve(billing), serve(off)]);
+  const mark = (at: string, data: unknown, auth = token) => fetch(`${at}/v1/billing/ops/review`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${auth}` }, body: JSON.stringify(data) });
+  expect((await mark(none, { email: "review@example.test" })).status).toBe(404);
+  expect((await mark(origin, { email: "review@example.test" }, "x".repeat(40))).status).toBe(404);
+  expect((await mark(origin, { email: "a@example.test" })).status).toBe(403);
+  expect((await mark(origin, { email: "review@example.test", review: "yes" })).status).toBe(400);
+  await billing.operator.grant({ id: "r", email: "review@example.test" }, { bundle: "starter", interval: "month", source: "ops_grant", name: "Review Cloud" });
+  const marked = await mark(origin, { email: " REVIEW@example.test " });
+  expect(marked.status).toBe(200);
+  const answer = await marked.json() as { accountId: string; subscriptions: Array<{ review: boolean }>; clouds: Array<{ name: string; review: boolean }> };
+  expect(answer).toMatchObject({ ok: true, accountId: "r", subscriptions: [{ review: true }], clouds: [{ name: "Review Cloud", review: true }] });
+  expect(billing.clouds.list("r")[0]!.review).toBe(true);
+  // its plan ending (a test-mode renewal that lapsed, say) never shows the demo cloud as ended in the apps
+  const reviewer = { id: "r", email: "review@example.test" }, cloudStatus = () => (billing.sessionFields(reviewer).clouds as Array<{ status: string }>)[0]!.status;
+  const status = cloudStatus();
+  billing.store.state.subscriptions.find(sub => sub.accountId === "r")!.status = "ended";
+  expect(cloudStatus()).toBe(status); expect(status).not.toBe("ended");
+  expect((await (await mark(origin, { email: "review@example.test", review: false })).json() as typeof answer).clouds[0]!.review).toBe(false);
+  expect((await mark(billingOff, { email: "review@example.test" })).status).toBe(200);
+});
+
 it("walks the cancel flow over HTTP: steps, the one-time discount, then an online cancel with no contact needed", async () => {
   const f = await fixture(), { cookie } = await f.login();
   const checkout = await f.answer<CheckoutAnswer>("/v1/billing/checkout", { kind: "cart", cart: bundle("pro") }, cookie);

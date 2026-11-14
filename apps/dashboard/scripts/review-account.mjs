@@ -1,0 +1,196 @@
+#!/usr/bin/env node
+// App Review's demo account on preview.dusk.bot or dusk.bot: creates or repairs it, its dusk cloud, the cloud's review
+// flag (never billed, never reclaimed, never revenue) and one friendly demo bot, then checks the bot replies. Idempotent:
+// run it again any time (after a reviewer deleted the account, say) and it only fills in what is missing.
+//
+//   node apps/dashboard/scripts/review-account.mjs preview|production [--no-reply] [--measure-wake]
+//
+// Reads DUSK_REVIEW_EMAIL, DUSK_REVIEW_CODE and DUSK_OPS_TOKEN_<TARGET> from ~/.config/duskbot/dusk.env (DUSK_ENV
+// overrides) and never prints them. It signs in the way the phone does (the fixed review code, no email), pairs with the
+// cloud the way the phone does (waking it if asleep), and signs both sessions out at the end. A cloud is granted through
+// the operator's grant: in process where the fake provider completes it, else Dodo's TEST-mode checkout paid with the
+// test card in a headless Chrome (scripts/smoke/dodo-test-pay.mjs refuses any live page). Live billing has no grant.
+// --measure-wake waits for the cloud's idle sleep (up to 75 minutes) and times a phone send that wakes it.
+import { readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+
+const TARGETS = { preview: "https://preview.dusk.bot", production: "https://dusk.bot" };
+const CLOUD_NAME = "Demo Cloud";
+const BOT = {
+  name: "Sunny",
+  title: "friendly demo helper",
+  description: "A cheerful, patient helper for quick everyday things: answering questions, explaining ideas simply, drafting short messages, "
+    + "making lists and plans, and brainstorming. Keeps replies short, warm and clear, uses plain words, and asks a quick question when a request is unclear.",
+};
+const PROMPT = "Hi Sunny! In one short sentence, what can you help me with?";
+
+const [target, ...flags] = process.argv.slice(2);
+const origin = TARGETS[target];
+if (!origin) { console.error("usage: review-account.mjs preview|production [--no-reply] [--measure-wake]"); process.exit(2); }
+const log = (line) => console.log(`[review ${target}] ${line}`);
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+
+function secrets() {
+  const file = process.env.DUSK_ENV || join(homedir(), ".config", "duskbot", "dusk.env");
+  if ((statSync(file).mode & 0o777) !== 0o600) throw new Error(`${file} must be mode 600`);
+  const values = new Map();
+  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
+    const m = /^(?:export\s+)?([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+    if (m) values.set(m[1], m[2].replace(/^(["'])(.*)\1$/, "$2"));
+  }
+  const need = (name) => { const v = values.get(name); if (!v) throw new Error(`${name} is not set in ${file}`); return v; };
+  return { email: need("DUSK_REVIEW_EMAIL").trim().toLowerCase(), code: need("DUSK_REVIEW_CODE").trim(), ops: need(`DUSK_OPS_TOKEN_${target.toUpperCase()}`) };
+}
+
+async function call(base, path, { method = "GET", body, token, timeoutMs = 30_000, headers = {} } = {}) {
+  const response = await fetch(`${base}${path}`, { method, signal: AbortSignal.timeout(timeoutMs), redirect: "error",
+    headers: { ...(body === undefined ? {} : { "content-type": "application/json" }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const text = await response.text();
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch {}
+  return { status: response.status, ok: response.ok, data };
+}
+const must = (answer, what) => { if (!answer.ok) throw new Error(`${what} answered ${answer.status} (${answer.data?.code ?? answer.data?.error ?? "no detail"})`); return answer.data; };
+
+const { email, code, ops } = secrets();
+const device = { deviceName: "dusk review setup", platform: "ios", appVersion: "1.0.0" };
+let appToken = null, home = null;
+
+async function signIn() {
+  const started = must(await call(origin, "/api/cloud/app/sign-in/start", { method: "POST", body: { email, ...device } }), "the review sign-in start");
+  const granted = must(await call(origin, "/api/cloud/app/sign-in/verify", { method: "POST", body: { attempt: started.attempt, code } }), "the review code");
+  if (typeof granted?.accessToken !== "string") throw new Error("the review code signed nothing in");
+  appToken = granted.accessToken;
+  log(`signed in with the review code as account ${granted.account?.id ?? "?"}`);
+}
+const session = async () => must(await call(origin, "/api/cloud/desktop/session", { token: appToken }), "the app session");
+const ownCloud = (s) => (s.clouds ?? []).find((c) => c.status !== "ended" && c.status !== "checkout") ?? null;
+
+async function grant() {
+  const answer = await call(origin, "/v1/billing/ops/grant", { method: "POST", token: ops, body: { email, bundle: "starter", name: CLOUD_NAME }, timeoutMs: 60_000 });
+  if (answer.status === 404) throw new Error(`${target} has no operator grant (live billing, billing off or no DUSK_OPS_TOKEN): a review cloud cannot be made there yet`);
+  const data = must(answer, "the operator grant");
+  if (answer.status === 202) {
+    if (!/^https:\/\/test\./.test(data.checkoutUrl ?? "")) throw new Error("the grant's checkout is not in test mode; refusing to pay");
+    log(`test-mode checkout ${data.checkoutId} for cloud ${data.cloudId}; paying with the test card`);
+    const { payDodoTestCheckout } = await import("../../../scripts/smoke/dodo-test-pay.mjs");
+    await payDodoTestCheckout(data.checkoutUrl, { log: (line) => log(`pay: ${line}`) });
+  } else log("granted in process");
+}
+
+async function markReview() {
+  const marked = must(await call(origin, "/v1/billing/ops/review", { method: "POST", token: ops, body: { email } }), "the review flag");
+  log(`review flag on: ${marked.subscriptions.filter((s) => s.review).length} plan(s), clouds ${marked.clouds.map((c) => `${c.id} ${c.status} review=${c.review}`).join(", ") || "none"}`);
+  return marked;
+}
+
+async function readyCloud() {
+  const since = Date.now();
+  for (;;) {
+    const cloud = ownCloud(await session());
+    if (cloud?.status === "ready") { log(`cloud ${cloud.id} "${cloud.name}" is ready${Date.now() - since > 5_000 ? ` after ${Math.round((Date.now() - since) / 1000)}s` : ""}`); return cloud; }
+    if (Date.now() - since > 20 * 60_000) throw new Error(`the cloud is not ready after 20 minutes (${cloud?.status ?? "none"} ${cloud?.setup?.step ?? ""})`);
+    await sleep(5_000);
+  }
+}
+
+/** the phone's way in: a pairing grant, waking the cloud first when it is asleep; returns the seconds it took to wake */
+async function pair(cloud) {
+  let answer = await call(origin, "/api/cloud/desktop/pairing", { method: "POST", token: appToken, body: { cloudId: cloud.id } });
+  let wokeIn = null;
+  if (answer.status === 409 && answer.data?.code === "not_running") {
+    const since = Date.now();
+    must(await call(origin, "/api/cloud/desktop/wake", { method: "POST", token: appToken, body: { intent: "click" } }), "the wake");
+    for (let tries = 0; tries < 60 && answer.status === 409; tries++) { await sleep(2_000); answer = await call(origin, "/api/cloud/desktop/pairing", { method: "POST", token: appToken, body: { cloudId: cloud.id } }); }
+    wokeIn = Math.round((Date.now() - since) / 1000);
+    log(`the cloud was asleep; the phone's pairing wake took ${wokeIn}s`);
+  }
+  const grantCode = must(answer, "the cloud pairing");
+  const paired = must(await call(grantCode.origin, "/api/pair", { method: "POST", body: { code: grantCode.code.replace(/-/g, ""), deviceName: device.deviceName } }), "pairing with the cloud");
+  home = { origin: grantCode.origin, token: paired.token };
+  log(`paired with the cloud at ${new URL(grantCode.origin).host}`);
+  return wokeIn;
+}
+
+async function demoBot() {
+  const roster = must(await call(home.origin, "/api/bots?messages=0", { token: home.token }), "the bot list");
+  const existing = (roster.bots ?? []).find((bot) => bot.name === BOT.name);
+  if (!existing) {
+    const made = must(await call(home.origin, "/api/bots", { method: "POST", token: home.token, body: BOT }), "making the demo bot");
+    log(`made the demo bot ${made.bot.id} (${BOT.name})`);
+    return made.bot.id;
+  }
+  if (existing.title !== BOT.title || existing.description !== BOT.description) {
+    must(await call(home.origin, `/api/bots/${existing.id}`, { method: "PATCH", token: home.token, body: { title: BOT.title, description: BOT.description } }), "repairing the demo bot");
+    log(`repaired the demo bot ${existing.id}`);
+  } else log(`the demo bot ${existing.id} (${BOT.name}) is there`);
+  return existing.id;
+}
+
+/** sends as the phone does (a POST with its bearer, which through the edge wakes a sleeping cloud) and waits for the reply */
+async function reply(botId) {
+  const since = Date.now(), text = `${PROMPT} (${randomUUID().slice(0, 6)})`;
+  let sent = null, accepted = null;
+  for (let tries = 0; tries < 40 && !sent?.ok; tries++) {
+    sent = await call(home.origin, `/api/bots/${botId}/messages`, { method: "POST", token: home.token, body: { text, sendId: randomUUID() }, timeoutMs: 40_000 }).catch((error) => ({ ok: false, status: 0, data: { error: error.message } }));
+    if (!sent.ok) { if (![0, 502, 503, 504].includes(sent.status)) must(sent, "sending to the demo bot"); await sleep(2_000); }
+  }
+  must(sent, "sending to the demo bot");
+  accepted = Math.round((Date.now() - since) / 1000);
+  for (;;) {
+    const roster = must(await call(home.origin, "/api/bots?messages=20", { token: home.token }), "reading the chat");
+    const messages = (roster.bots ?? []).find((bot) => bot.id === botId)?.messages ?? [];
+    const asked = messages.findIndex((m) => m.role === "user" && m.text === text);
+    const answer = asked >= 0 ? messages.slice(asked + 1).find((m) => m.role !== "user" && m.kind === "text" && m.text?.trim()) : null;
+    if (answer) return { accepted, total: Math.round((Date.now() - since) / 1000), text: answer.text.trim() };
+    if (Date.now() - since > 180_000) throw new Error("the demo bot did not reply within 3 minutes");
+    await sleep(2_000);
+  }
+}
+
+async function measureWake(botId) {
+  log("waiting for the cloud's idle sleep (no activity from here)");
+  await call(home.origin, "/api/auth/logout", { method: "POST", token: home.token }).catch(() => {});
+  home = null;
+  const since = Date.now();
+  for (;;) {
+    const cloud = ownCloud(await session());
+    if (cloud?.power?.state === "asleep") break;
+    if (Date.now() - since > 75 * 60_000) throw new Error("the cloud did not sleep within 75 minutes");
+    await sleep(60_000);
+  }
+  log(`asleep after ${Math.round((Date.now() - since) / 60_000)} minutes idle`);
+  const woke = await pair(ownCloud(await session()));
+  const timed = await reply(botId);
+  log(`after sleep: pairing wake ${woke ?? 0}s, then send accepted in ${timed.accepted}s, reply in ${timed.total}s`);
+}
+
+async function cleanup() {
+  if (home) await call(home.origin, "/api/auth/logout", { method: "POST", token: home.token }).catch(() => {});
+  if (appToken) await call(origin, "/api/cloud/desktop/session", { method: "DELETE", token: appToken, body: {} }).catch(() => {});
+  log("signed out of the cloud and the account");
+}
+
+try {
+  await signIn();
+  let cloud = ownCloud(await session());
+  if (!cloud) { log("no live cloud on the account; granting one"); await grant(); }
+  cloud = await readyCloud();
+  await markReview();
+  if (!cloud.entitlement) log("warning: the session carries no entitlement for the cloud");
+  await pair(cloud);
+  const botId = await demoBot();
+  if (!flags.includes("--no-reply")) {
+    const answered = await reply(botId);
+    log(`the demo bot replied in ${answered.total}s: "${answered.text.slice(0, 160).replace(/\s+/g, " ")}"`);
+  }
+  if (flags.includes("--measure-wake")) await measureWake(botId);
+  log("done");
+} catch (error) {
+  console.error(`[review ${target}] FAILED: ${error instanceof Error ? error.message : error}`);
+  process.exitCode = 1;
+} finally {
+  await cleanup();
+}
