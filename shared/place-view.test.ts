@@ -29,7 +29,7 @@ describe("one line and at most one action for every place", () => {
       else if (["start", "wake"].includes(admin.action.id)) expect(user, state).toEqual({ ...admin, action: null });
       else {
         expect(user.action, state).toBeNull();
-        expect(user.line, state).toBe(`${admin.line} Ask an Admin to change it.`);
+        expect(user.line, state).toBe(`${admin.line} Ask an admin to change it.`);
       }
     }
   });
@@ -46,7 +46,7 @@ describe("one line and at most one action for every place", () => {
   it("routes stored provider and billing states to VPS setup", () => {
     for (const state of ["cc-no-hours", "cc-at-once", "cc-ended", "cc-provider", "cc-on-my-cloud", "cc-needs-key"] as const) {
       expect(placeViewOf(state, { ...params, words: "Old provider billing", hours: 50 }, { role: "admin", server: "mac" })).toMatchObject({
-        short: "Add your own machine", line: "Connect your own machine in Settings to give bots their own private desktops.",
+        short: "Add your own machine", line: "Connect your own machine in settings to give bots their own private desktops.",
         action: { id: "add-vps", label: "Add your own machine" },
       });
     }
@@ -93,13 +93,13 @@ describe("a failed place and its source", () => {
     expect(view("works-on").action?.id).toBe("try-again");
     expect(view("pin", "advanced").action).toEqual({ id: "clear-pin", label: "Clear this conversation's place" });
     expect(view("pin", "simple").action).toEqual({ id: "clear-pin", label: "Use Auto" });
-    expect(view("auto-pin").line).toContain("This conversation is back on Auto.");
+    expect(view("auto-pin").line).toContain("This conversation is back on auto.");
     expect(view("routine").action?.id).toBe("change-routine");
     expect(view("room").action).toBeNull();
   });
   it("keeps a missing VPS fix across every source and gives phones the same action", () => {
     for (const source of ["works-on", "pin", "auto-pin", "routine", "room"] as const) expect(placeRowView(row(source, "cc-needs-key"), { role: "admin" }).action?.id).toBe("add-vps");
-    expect(placeRowText(row("works-on", "cc-needs-key"))).toBe("Connect your own machine in Settings to give bots their own private desktops. Add your own machine in Settings → Computer.");
+    expect(placeRowText(row("works-on", "cc-needs-key"))).toBe("Connect your own machine in settings to give bots their own private desktops. Add your own machine in Settings → Computer.");
     expect(placeRowText(row("routine"))).toContain("Change where this routine runs.");
     expect(placeRowText(row("room"))).not.toContain("Try again.");
   });
