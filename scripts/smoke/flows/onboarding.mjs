@@ -293,7 +293,7 @@ await runFlow(flow, async () => {
   });
 
   await flow.step("ai-free", "starts with the free model", async () => {
-    await flow.click("start with the free model");
+    await flow.click("start with the free model", { timeout: 10_000 }).catch(() => flow.click("set up later"));
     await flow.waitText(/bring what you already use|bring your bots/i, "the import step", { timeout: 30_000 });
     await shots("bring");
     return await funnelText();

@@ -56,6 +56,7 @@ await runFlow(flow, async () => {
     await sleep(600);
     await flow.escape().catch(() => {});
     await flow.openSettings();
+    await flow.waitFor(`document.querySelectorAll("[data-settings-page]").length > 0`, "the Settings pages", 20_000);
     const page = await flow.evaluate(`(() => { const b = [...document.querySelectorAll("[data-settings-page]")].find((e) => /model|^ai\\b/i.test(e.innerText.trim()) || /model/i.test(e.getAttribute("data-settings-page"))); if (!b) return null; b.click(); return b.innerText.trim(); })()`);
     if (!page) throw new Error(`no Models page in Settings (pages: ${(await flow.evaluate(`[...document.querySelectorAll("[data-settings-page]")].map((e) => e.innerText.trim()).join(", ")`))})`);
     walkthrough.did(`clicks "${page}" in Settings`);

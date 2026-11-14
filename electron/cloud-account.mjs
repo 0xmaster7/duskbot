@@ -85,11 +85,13 @@ export function desktopApprovalLink(value, origin, userCode) {
 }
 /** An account step's context (shared/account-api.ts AccountIntent), checked the same way: signin, upgrade (plan, move) or billing. */
 export const ACCOUNT_INTENT_KINDS = Object.freeze(["signin", "upgrade", "billing"]);
+/** where a plain sign-in started, so the website can say what is going on: linking the person's own server */
+const SIGNIN_SOURCES = Object.freeze(["server_link"]);
 export function cleanAccountIntent(value) {
   if (!value || typeof value !== "object" || !ACCOUNT_INTENT_KINDS.includes(value.kind)) return null;
   const kind = value.kind;
   const plan = kind === "upgrade" && (value.plan === "plus" || value.plan === "pro") ? value.plan : undefined;
-  const source = CHECKOUT_SOURCES.includes(value.source) ? value.source : undefined;
+  const source = CHECKOUT_SOURCES.includes(value.source) || (kind === "signin" && SIGNIN_SOURCES.includes(value.source)) ? value.source : undefined;
   const move = kind === "upgrade" && typeof value.move === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value.move) ? value.move : undefined;
   return { kind, ...(plan ? { plan } : {}), ...(source ? { source } : {}), ...(move ? { move } : {}) };
 }
