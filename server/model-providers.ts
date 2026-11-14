@@ -60,7 +60,7 @@ export function catalogGroups(catalog: ModelCatalog, connected: ReadonlySet<stri
   for (const def of [...MODEL_PROVIDERS, ...moreProviders(catalog)]) {
     const entry = def.catalogId ? catalog.providers[def.catalogId] : undefined;
     if (!entry) continue;
-    groups.push({ providerId: def.id, label: def.label, connected: connected.has(def.id), words: def.words,
+    groups.push({ providerId: def.id, label: def.label, connected: connected.has(def.id), words: def.words, featured: def.section !== "more",
       models: Object.values(entry.models).map(searchModelOf) });
   }
   return groups;

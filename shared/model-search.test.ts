@@ -51,6 +51,12 @@ describe("searchModels", () => {
     expect(searchModels(groups, "fast")[0]!.total).toBe(2);
   });
 
+  it("puts the app's own providers ahead of resellers on an equal match", () => {
+    const tail: SearchGroup = { providerId: "catalog:reseller", label: "Aaa Reseller", connected: false, models: [{ id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5" }] };
+    const own: SearchGroup = { providerId: "anthropic", label: "Anthropic", connected: false, featured: true, models: [{ id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5" }] };
+    expect(searchModels([tail, own], "sonnet").map((hit) => hit.group.providerId)).toEqual(["anthropic", "catalog:reseller"]);
+  });
+
   it("caps each group and counts what it left out", () => {
     const many: SearchGroup = { providerId: "big", label: "Big", connected: false, models: Array.from({ length: 20 }, (_, i) => ({ id: `m-${i}`, name: `Model ${i}` })) };
     const [hit] = searchModels([many], "model", { perGroup: 5 });

@@ -22,6 +22,8 @@ export interface SearchGroup {
   /** The instance a connected group's models run on. */
   instanceId?: string;
   words?: readonly string[];
+  /** One of the app's own providers, ranked ahead of the long tail of resellers. */
+  featured?: boolean;
   models: readonly SearchModel[];
 }
 
@@ -76,7 +78,7 @@ export function searchModels(groups: readonly SearchGroup[], query: string, opti
       .sort((a, b) => b.score - a.score || newerFirst(a.model, b.model) || a.model.name.localeCompare(b.model.name));
     if (!scored.length) continue;
     hits.push({ group, models: scored.slice(0, perGroup).map((entry) => entry.model), total: scored.length,
-      score: scored[0]!.score + (group.connected ? 30 : 0) });
+      score: scored[0]!.score + (group.connected ? 30 : 0) + (group.featured ? 15 : 0) });
   }
   hits.sort((a, b) => b.score - a.score || Number(b.group.connected) - Number(a.group.connected) || a.group.label.localeCompare(b.group.label));
   return hits.slice(0, options.maxGroups ?? 12).map(({ score: _score, ...hit }) => hit);
