@@ -1,6 +1,5 @@
-// renders the README images from the pages in this folder, using the landing's own css, fonts and art.
-//   node docs/readme/src/render.mjs            every image, light and dark
-//   node docs/readme/src/render.mjs header hero only these
+// renders the README hero image from hero.html, using the landing's own css, fonts and art.
+//   node docs/readme/src/render.mjs            the hero, light and dark
 // needs playwright with chromium. it is not a repo dependency: install it anywhere and point at it with
 //   PLAYWRIGHT_DIR=/path/to/node_modules node docs/readme/src/render.mjs
 import { createServer } from "node:http";
@@ -15,24 +14,7 @@ const out = fileURLToPath(new URL("../", import.meta.url));
 
 // name: [page, width in css px, themes, { scale, quality }]
 const IMAGES = {
-  header: ["header.html", 1040, ["light", "dark"], { scale: 3, quality: 0.96 }],
-  hint: ["hint.html", 1040, ["light", "dark"]],
-  "btn-mac": ["button.html?os=mac", 0, ["light", "dark"]],
-  "btn-windows": ["button.html?os=windows", 0, ["light", "dark"]],
-  "btn-linux": ["button.html?os=linux", 0, ["light", "dark"]],
-  "btn-site": ["button.html?os=site", 0, ["light", "dark"]],
   hero: ["hero.html", 1040, ["light", "dark"]],
-  say: ["section.html?s=.say", 1040, ["light", "dark"]],
-  many: ["section.html?s=.many", 1040, ["light", "dark"]],
-  routines: ["routines.html", 1040, ["light", "dark"]],
-  computer: ["computer.html", 1040, ["light", "dark"]],
-  where: ["section.html?s=.where", 1240, ["light", "dark"]],
-  ai: ["section.html?s=.byo", 1040, ["light", "dark"]],
-  tools: ["tools.html", 1040, ["light", "dark"]],
-  phone: ["phone.html", 1040, ["light", "dark"]],
-  free: ["section.html?s=.free", 1040, ["light", "dark"]],
-  how: ["section.html?s=.how", 1040, ["light", "dark"]],
-  link: ["link.html", 1040, ["light", "dark"]],
 };
 
 const TYPES = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript", ".svg": "image/svg+xml",

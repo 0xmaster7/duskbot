@@ -1,53 +1,68 @@
 <div align="center">
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/header-dark.webp"><img src="docs/readme/header-light.webp" alt="meet dusk bot. your own crew of ai helpers, on the chatgpt, claude, gemini or grok you already use. they work on their own computer and remember you and your stuff." width="100%"></picture>
+<img src="apps/site/public/landing/brand/bots/kit.svg" alt="" width="72">
 
-<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><img src="docs/readme/btn-mac-light.webp#gh-light-mode-only" alt="download for mac" height="44"></a><a href="https://github.com/DuskBotAI/duskbot/releases/latest"><img src="docs/readme/btn-mac-dark.webp#gh-dark-mode-only" alt="download for mac" height="44"></a>
-<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><img src="docs/readme/btn-windows-light.webp#gh-light-mode-only" alt="download for windows" height="44"></a><a href="https://github.com/DuskBotAI/duskbot/releases/latest"><img src="docs/readme/btn-windows-dark.webp#gh-dark-mode-only" alt="download for windows" height="44"></a>
-<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><img src="docs/readme/btn-linux-light.webp#gh-light-mode-only" alt="download for linux" height="44"></a><a href="https://github.com/DuskBotAI/duskbot/releases/latest"><img src="docs/readme/btn-linux-dark.webp#gh-dark-mode-only" alt="download for linux" height="44"></a>
-<a href="https://dusk.bot"><img src="docs/readme/btn-site-light.webp#gh-light-mode-only" alt="dusk.bot" height="44"></a><a href="https://dusk.bot"><img src="docs/readme/btn-site-dark.webp#gh-dark-mode-only" alt="dusk.bot" height="44"></a>
+<h1>dusk bot</h1>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/hint-dark.webp"><img src="docs/readme/hint-light.webp" alt="free forever for personal use. source available. dusk cloud runs them 24/7." width="100%"></picture>
+<p><b>your own crew of ai helpers, on the chatgpt, claude, gemini or grok you already use.</b><br>
+they work on their own computer, run on a schedule, and remember you and your stuff.</p>
+
+<p>
+<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><b>download for mac</b></a> &nbsp;·&nbsp;
+<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><b>windows</b></a> &nbsp;·&nbsp;
+<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><b>linux</b></a> &nbsp;·&nbsp;
+<a href="https://dusk.bot">dusk.bot</a> &nbsp;·&nbsp;
+<a href="https://dusk.bot/docs">docs</a>
+</p>
+
+<sub>v0.2.0 "first light" · free forever for personal use · source available</sub>
 
 </div>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.webp"><img src="docs/readme/hero-light.webp" alt="the dusk bot app on the landing's pixel sky: a list of bots, nova's chat with a price table and a csv file, and nova's live screen" width="100%"></picture>
-
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/say-dark.webp"><img src="docs/readme/say-light.webp" alt="text a bot what you need. it does the work on its own computer and remembers how you like things done." width="100%"></picture>
-
-<p align="center"><sub><a href="#install">install</a> · <a href="#how-it-fits-together">how it fits together</a> · <a href="#where-your-data-lives">your data</a> · <a href="#security">security</a> · <a href="#self-hosting">self-hosting</a> · <a href="#configuration">configuration</a> · <a href="#run-from-source">run from source</a> · <a href="#faq">faq</a></sub></p>
-
 <br>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/many-dark.webp"><img src="docs/readme/many-light.webp" alt="work with many bots at once. each bot gets its own computer, routines, memory, and rooms where bots hand work to each other. they plug into 60+ apps." width="100%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.webp"><img src="docs/readme/hero-light.webp" alt="the dusk bot app on a pixel sky: a list of bots, nova's chat with a price table and a csv file, and nova's live screen" width="100%"></picture>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/routines-dark.webp"><img src="docs/readme/routines-light.webp" alt="how a routine runs: a schedule, an app event or a webhook starts it, the bot does the work, and you get a card when it needs a yes" width="100%"></picture>
+## what it is
 
-routines run inside the dusk bot server, next to the bot: `once`, `daily` on chosen weekdays, `interval` every n minutes inside a window, or `cron`. app events come through composio, and webhooks land on `POST /hooks/<id>` on the webhook port. a sleeping computer runs nothing, so while it's plugged in the desktop app keeps it awake for the hour before a due routine, and a missed run can still start up to 12 hours late. more in [routine schedules](docs/routine-schedules.md).
+dusk bot is a desktop app where your ai helpers live as contacts. make a bot, give it a job in plain words, and text it like you would a friend. it does the work on a computer of its own, keeps notes on how you like things done, and stops to ask when something needs a person.
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/computer-dark.webp"><img src="docs/readme/computer-light.webp" alt="a computer of its own: the bot looks, decides and acts; you can watch it live, take the mouse, do the human part and hand it back" width="100%"></picture>
+it runs on the ai you already pay for, with your own sign-in. bots, chats and files stay on your machine, or on a server you choose.
 
-every bot has a bundled browser (agent-browser with chromium). for anything without an api it gets a full desktop: a cloud desktop on dusk cloud, a private container per bot on your server, a linux vm in docker on this computer, or your own screen on macos and ubuntu (xorg) when you turn that on. only a person can take or release control, and the bot's actions are refused while you hold it. more in [computer use](docs/computer-use-integration.md).
+## what bots can do
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/where-dark.webp"><img src="docs/readme/where-light.webp" alt="where your bots live: on your computer, on a dusk cloud server, or on your own server" width="100%"></picture>
+| | |
+| --- | --- |
+| **work on their own computer** | a browser and a desktop per bot. watch it live, take the mouse for a sign-in or a captcha, hand it back. |
+| **run on a schedule** | ask once and it becomes a routine: every weekday at 8, every two hours, or the moment an app event or webhook arrives. |
+| **ask before the scary stuff** | real questions and risky steps come to you as a card you answer in one tap. you pick how much each bot may do alone. |
+| **remember you** | every bot keeps notes on how you like things and who's who. every note is yours to read and edit. |
+| **work together** | put bots in a room and they hand work to each other. you step in when one needs a yes. |
+| **use your apps** | github, notion, linear, stripe and more in one click on your own account, hundreds more through composio, and any mcp server. |
+| **keep secrets** | save a login once. a bot signs in with it but never sees it. 1password works too. |
+| **move in** | bring bots from openclaw, hermes agent and grok bot, or from chatgpt and claude with one prompt. |
+| **live in your notch** | on a mac, your bots sit in the notch: who is working, and what needs you. |
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/ai-dark.webp"><img src="docs/readme/ai-light.webp" alt="bring the ai you already pay for: claude, chatgpt, gemini, grok, cursor, copilot, deepseek, kimi, qwen, opencode, cline, or your own api key" width="100%"></picture>
+a phone app to text your bots from anywhere is coming soon.
 
-sign-in engines (claude code, codex, gemini, grok, copilot, cursor, kimi, qwen, opencode, hermes, cline, deepseek, droid, antigravity) run their own tool loop, and dusk bot hands them its tools through an mcp server it mounts for each turn. api keys (anthropic, xai, mistral, groq, cerebras, minimax, or any openai-compatible endpoint like openrouter) and local models (ollama, lm studio) run in dusk bot's own loop. a custom acp agent or provider works too.
+## where bots live
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/tools-dark.webp"><img src="docs/readme/tools-light.webp" alt="plug in your tools: one-click apps on your own account, hundreds more through composio, and any mcp server" width="100%"></picture>
+| | |
+| --- | --- |
+| **this computer** | free, no account. bots work while it's awake. |
+| **dusk cloud** | we host it. bots keep working with your laptop shut. from $20 a month. |
+| **your own server** | free. one line on ubuntu or debian, and bots stay on as long as it does. |
 
-one click covers github, notion, linear, airtable, todoist, trello, clickup, hubspot, jira, shopify, stripe and cloudflare, plus gmail with an app password. tokens are encrypted on the bot computer. see [composio](docs/composio.md), [custom mcp servers](docs/custom-mcp-servers.md) and [dusk bot as an mcp server](docs/mcp-server.md).
+## bring your own ai
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/phone-dark.webp"><img src="docs/readme/phone-light.webp" alt="on your phone too, coming soon: five phone screens with the chat list, a question card, an inbox table, a room and a trip plan" width="100%"></picture>
+| kind | providers |
+| --- | --- |
+| sign in with your plan | claude code, codex (chatgpt), gemini, grok, github copilot, cursor, kimi, qwen, opencode, hermes, cline, deepseek, droid, antigravity |
+| api key | anthropic, xai, mistral, groq, cerebras, minimax, or any openai-compatible endpoint like openrouter |
+| on your machine | ollama and lm studio |
+| anything else | a custom acp agent or provider |
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/free-dark.webp"><img src="docs/readme/free-light.webp" alt="for personal use, dusk bot is free. $0 forever, every feature, no trial timer, runs on your own computer." width="100%"></picture>
-
-you pay your ai provider on the plan or key you already have; dusk bot never bills you for ai. bring your own composio key for the long tail of apps. dusk cloud is optional: plus ($20 a month) keeps your bots working with the laptop shut, pro ($50 a month) is a bigger machine with a work license. using dusk bot at or for a business needs a work license. see [pricing](https://dusk.bot/pricing).
-
-<br>
-
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/how-dark.webp"><img src="docs/readme/how-light.webp" alt="from download to a working bot in about two minutes: download it and open it, sign in to your ai, make a bot, hand it something real" width="100%"></picture>
+each bot can use a different model, and switching keeps its chats, files and memory. sign-in engines run their own tool loop and get dusk bot's tools (browser, computer, files, apps, memory, other bots) through an mcp server mounted for each turn. api keys and local models run in dusk bot's own loop.
 
 ## install
 
@@ -71,13 +86,26 @@ prefer the dmg? get it from [the latest release](https://github.com/DuskBotAI/du
 sudo apt install ./DuskBot-*.deb
 ```
 
-<a name="how-it-fits-together"></a>
+then open the app, sign in to your ai, make a bot and hand it something real. about two minutes.
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/link-dark.webp"><img src="docs/readme/link-light.webp" alt="how it fits together: you on the desktop app, phone or a browser; the link tries direct, then a cloudflare tunnel, then the dusk bot relay, end to end encrypted; the bot computer runs the dusk bot server, engines, tools and your data" width="100%"></picture>
+## how it fits together
+
+```text
+ you                        the link                          the bot computer
+ desktop app      ──▶   1. direct (same machine, ssh,   ──▶   dusk bot server  127.0.0.1:8799
+ phone (soon)              https, tailscale)                 engines   claude code, codex, gemini, grok, ...
+ a browser               2. a cloudflare tunnel                tools     browser, desktop, files, shell, apps
+                         3. the dusk bot relay                 your data ~/.duskbot
+                         end to end encrypted                           │
+                                                                         ▼
+                                                               your ai provider and your apps
+```
 
 - **the desktop app** (electron and react) is where you talk. it also owns the local browser views and the desktop driver.
-- **the dusk bot server** (node) runs on the bot computer at `127.0.0.1:8799`. it owns chats, routines, approvals, the vault and the engine processes. webhooks get their own listener on the next port.
-- **the link** to a remote server tries direct ways first, then the cloudflare tunnel on your server, then the dusk bot relay. frames are sealed with aes-256-gcm using a key only your app and your server hold. see [the link service](apps/link-service/README.md).
+- **the dusk bot server** (node) runs on the bot computer: this computer, dusk cloud or your own server. it owns chats, routines, approvals, the vault and the engine processes. webhooks get their own listener on the next port.
+- **the link** to a remote server tries direct ways first, then the cloudflare tunnel on your server, then the dusk bot relay. frames are sealed with aes-256-gcm using a key only your app and your server hold, so the relay passes blobs it can't read. see [the link service](apps/link-service/README.md).
+- **routines** run inside the server, next to the bot: `once`, `daily` on chosen weekdays, `interval` every n minutes, or `cron`, plus composio app events and `POST /hooks/<id>` webhooks. a sleeping computer runs nothing, so the desktop app keeps it awake for the hour before a due routine while plugged in, and a missed run can still start up to 12 hours late. see [routine schedules](docs/routine-schedules.md).
+- **computers** are a cloud desktop on dusk cloud, a private container per bot on your server, a linux vm in docker on this computer, or your own screen on macos and ubuntu (xorg) when you turn that on. only a person can take or release control. see [computer use](docs/computer-use-integration.md).
 
 ## where your data lives
 
@@ -153,7 +181,7 @@ pnpm test             # the test suites
 pnpm package:mac      # a dmg; also package:win and package:linux
 ```
 
-more in [development](docs/development.md). the images in this readme are rendered from the landing page's own css; see [docs/readme/src](docs/readme/src/render.mjs).
+more in [development](docs/development.md).
 
 ```text
 src/              the app ui (react), for the desktop window and the browser
@@ -216,4 +244,4 @@ source available under [polyform strict 1.0.0](LICENSE). free for personal use; 
 
 <br>
 
-<p align="center"><sub>made at dusk. the bots did most of it. <a href="https://dusk.bot">dusk.bot</a></sub></p>
+<p align="center"><img src="apps/site/public/landing/art/cat.webp" alt="" width="120"><br><sub>made at dusk. the bots did most of it. <a href="https://dusk.bot">dusk.bot</a></sub></p>

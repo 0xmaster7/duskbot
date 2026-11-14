@@ -20,12 +20,3 @@ export async function done() {
   await Promise.all([...document.images].map((img) => img.decode().catch(() => {})));
   document.body.dataset.ready = "1";
 }
-
-/** one of the landing's pixel bots, by its shape (data-px) and colour class */
-export async function bot(shape, color) {
-  landing ??= new DOMParser().parseFromString(await (await fetch("/index.html")).text(), "text/html");
-  const found = landing.querySelector(`svg.bot[data-px="${shape}"]`) ?? landing.querySelector("svg.bot");
-  const copy = document.importNode(found, true);
-  copy.setAttribute("class", `bot c-${color}`);
-  return copy;
-}
