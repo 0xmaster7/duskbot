@@ -279,6 +279,24 @@ describe("testing an AI with one tiny message before a new bot's default trusts 
     expect(chief().modelSelection.instanceId).toBe("codex");
   });
 
+  it("moves a first bot written to off an AI that turned out signed out, and carries its turns on the app's pick", async () => {
+    // Copilot read ready and answered its test, so the first bot got it; the person's first message then found it signed out
+    instances = [ready("githubCopilot", "copilotAgent"), ready("codex", "codex", { authenticated: false })];
+    answers.githubCopilot = async () => "OK";
+    answers.codex = async () => "OK";
+    await boot();
+    expect(chief().modelSelection.instanceId).toBe("githubCopilot");
+    store.say("chief-main", "user");
+    expect(tested.appPick("chief"), "the app's pick is the bot's own AI").toEqual(on("githubCopilot"));
+    instances = [ready("githubCopilot", "copilotAgent", { authenticated: false }), ready("codex", "codex")];
+    refresh();
+    await settled();
+    expect(pick).toEqual(on("codex"));
+    expect(chief().modelSelection.instanceId).toBe("codex");
+    expect(tested.appPick("chief")).toEqual(on("codex"));
+    expect(tested.appPick("someone-else"), "only the bot that follows the app").toBeUndefined();
+  });
+
   it("keeps trying an AI that missed three times, once an hour", async () => {
     answers.claude = silent;
     await boot();

@@ -200,8 +200,9 @@ export function createTestedAi(deps: TestedAiDeps) {
     const leave = resultOf(from)?.state === "failed" || signedOut(from) || from.enabled === false;
     if (!leave && rankAis([from, to])[0] !== to) return;
     const tasks = store.tasks(bot.id);
+    // writing to it keeps the app's pick, unless that AI is signed out: its replies all failed, so nothing was chosen
     if (tasks.some((task) => task.modelSelection !== undefined)
-      || tasks.some((task) => store.messagesFor(task.threadId).some((message) => message.role === "user"))) return clearFollower();
+      || (!signedOut(from) && tasks.some((task) => store.messagesFor(task.threadId).some((message) => message.role === "user")))) return clearFollower();
     if (tasks.some((task) => deps.threadBusy(bot.id, task.threadId))) return;
     saved.follower = { botId: bot.id, selection: structuredClone(deps.forBot(target)) };
     save();
@@ -268,10 +269,8 @@ export function createTestedAi(deps: TestedAiDeps) {
       const follower = saved.follower;
       if (!follower) return;
       if (change.type === "bot.deleted" && change.botId === follower.botId) return clearFollower();
-      if (change.type === "message") {
-        if (change.message.role === "user" && store.tasks(follower.botId).some((task) => task.threadId === change.threadId)) clearFollower();
-        return;
-      }
+      // a message alone ends nothing: follow() lets go once the bot's AI is one that answers
+      if (change.type === "message") return;
       if (change.type !== "bot" || change.botId !== follower.botId) return;
       const bot = store.bot(follower.botId);
       if (!bot) return;
@@ -304,7 +303,10 @@ export function createTestedAi(deps: TestedAiDeps) {
       lastSelection = selection;
       lastInstances = instances;
       sweep();
-      if (followOwed) {
+      // a plain sign-out moves the first bot on without waiting for another test
+      const on = saved.follower && deps.store().bot(saved.follower.botId)?.modelSelection.instanceId;
+      const leaving = on !== undefined && instances.some((instance) => instance.instanceId === on && signedOut(instance));
+      if (followOwed || leaving) {
         followOwed = false;
         follow();
       }
@@ -323,6 +325,11 @@ export function createTestedAi(deps: TestedAiDeps) {
     },
     answered,
     state,
+    /** The app's own pick for a bot that still follows it, for its turns to carry on with when its AI is signed out. */
+    appPick(botId: string): ModelSelection | undefined {
+      if (saved.follower?.botId !== botId || fixed() || !lastSelection || empty(lastSelection)) return undefined;
+      return structuredClone(lastSelection);
+    },
     /** The instance info's fields the welcome reads. */
     info(instance: Subject): { aiTest?: AiTestState; aiTestError?: string } {
       const result = state(instance);
