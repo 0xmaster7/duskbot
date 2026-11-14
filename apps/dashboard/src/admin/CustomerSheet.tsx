@@ -145,11 +145,20 @@ function Body({ detail, titleId, onChange, pending }: { detail: UserDetail; titl
       <div className="mt-2 flex items-center gap-3.5">
         <Avatar seed={a.id} size={48} customer={!!live && !live.comp} account={{ id: a.id }} />
         <div className="min-w-0">
-          <h2 id={titleId} className="truncate text-20 font-medium tracking-[-0.03em] text-ink">{a.name ?? a.email}</h2>
-          <div className="flex min-w-0 items-center gap-1">
-            <a href={`mailto:${a.email}`} className="text-link min-w-0 truncate text-14">{a.email}</a>
-            <CopyEmail email={a.email} />
-          </div>
+          {a.name ? (
+            <>
+              <h2 id={titleId} className="truncate text-20 font-medium tracking-[-0.03em] text-ink">{a.name}</h2>
+              <div className="flex min-w-0 items-center gap-1">
+                <a href={`mailto:${a.email}`} className="text-link min-w-0 truncate text-14">{a.email}</a>
+                <CopyEmail email={a.email} />
+              </div>
+            </>
+          ) : (
+            <div className="flex min-w-0 items-center gap-1">
+              <h2 id={titleId} className="truncate text-20 font-medium tracking-[-0.03em] text-ink"><a href={`mailto:${a.email}`} className="hover-link">{a.email}</a></h2>
+              <CopyEmail email={a.email} />
+            </div>
+          )}
         </div>
       </div>
       <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-12 text-ink-4">
