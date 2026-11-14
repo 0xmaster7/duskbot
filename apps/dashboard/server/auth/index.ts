@@ -248,8 +248,10 @@ export function createAuth(options: AuthOptions) {
   }
   /** an account signed in to an app had its first run there: the website never walks it through a second one */
   function onboardedInApp(owner: Account) { if (owner.onboardedAt === undefined) { owner.onboardedAt = now(); store.changed(); } }
-  function appGrant(owner: Account, device: DeviceInfo): AppGrant {
-    onboardedInApp(owner);
+  /** `onboard` false: the account was just made through this app's sign-in, and the website is taking it through its first
+   *  steps (name, plan) right now; that finishes them there, not this */
+  function appGrant(owner: Account, device: DeviceInfo, { onboard = true }: { onboard?: boolean } = {}): AppGrant {
+    if (onboard) onboardedInApp(owner);
     const { token, session } = makeSession(owner, device);
     return { ...identity(owner, session), accessToken: token };
   }
@@ -717,7 +719,8 @@ export function createAuth(options: AuthOptions) {
         devices.delete(key);
         if (!owner) return fail(400, "invalid_grant");
         for (const hook of signedInHooks) hook(owner);
-        json(appGrant(owner, device.device));
+        const madeHere = Boolean(owner.signedUpFrom && device.createdAt !== undefined && owner.signedUpFrom.at >= device.createdAt);
+        json(appGrant(owner, device.device, { onboard: !madeHere }));
       } else if ((method === "GET" || method === "DELETE") && path === R.appSession) {
         const found = appSession(req);
         if (!found) return fail(401, "invalid_token");

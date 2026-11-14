@@ -428,6 +428,8 @@ describe("OAuth over isolated HTTP", () => {
       time += 6000; wait!();
       for (let i = 0; i < 50 && client.state().status !== "connected"; i++) await new Promise(resolve => setTimeout(resolve, 20));
       expect(client.state()).toMatchObject({ status: "connected", account: { email: "magic-new@example.test" } });
+      // the website is still taking the new account through its first steps: the app's sign-in doesn't end them
+      expect((await account()).onboarded).toBe(false);
       app.close(); const state = JSON.parse(readFileSync(join(dataDir, "auth.json"), "utf8")) as { accounts: { email: string; signedUpFrom?: unknown }[] };
       expect(state.accounts.find(item => item.email === "magic-new@example.test")?.signedUpFrom).toMatchObject({ name: "Fixture Mac", platform: "darwin", appVersion: "1.2.3" });
     } finally { client.close(); }
