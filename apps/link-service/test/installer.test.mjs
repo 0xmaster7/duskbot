@@ -138,7 +138,7 @@ describe("installer transport", () => {
   });
   it("pins every request to the link service to https, redirects included", async () => {
     const text = await readFile(installer, "utf8");
-    const calls = text.split("\n").filter(line => /\bcurl\b/.test(line) && /LINK_BASE|retry curl|\$_url|VPS_TOKEN/.test(line) && !/^\s*(#|show |echo |.*demo_lines)/.test(line));
+    const calls = text.split("\n").filter(line => /\bn?curl\b/.test(line) && /LINK_BASE|retry curl|\$_url|VPS_TOKEN/.test(line) && !/^\s*(#|show |echo |.*demo_lines)/.test(line));
     expect(calls.length).toBeGreaterThanOrEqual(5);
     for (const line of calls) expect(line, line).toContain('--proto "$PROTO" --proto-redir "$PROTO"');
   });

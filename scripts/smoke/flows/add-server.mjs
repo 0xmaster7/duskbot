@@ -36,7 +36,7 @@ await runFlow(flow, async () => {
         await flow.shot("connect-chooser");
         await flow.click("cloudflare tunnel", { contains: true });
       }
-      line = await flow.waitText(/curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
+      line = await flow.waitText(/\(curl -fsSL https:\/\/link\.dusk\.bot\/i\/[a-z0-9-]+ \|\| echo '[^']*'\) \| sh( -s -- --[a-z]+)?/, "the install line", { timeout: 45_000 });
       flow.facts.lineSeconds = Math.round((Date.now() - started) / 1000);
       return `ready in ${flow.facts.lineSeconds}s`;
     }, { critical: true });
@@ -64,8 +64,8 @@ await runFlow(flow, async () => {
         if (Date.now() - started > 25 * 60_000) throw new Error(`the app never saw the server (stage ${v?.stage}); install log ends: ${lastLog}`);
         const tail = await vm.exec("tail -c 600 ~/dusk-install.log 2>/dev/null", 20).catch(() => ({ stdout: "" }));
         lastLog = tail.stdout.replace(/\s+/g, " ").trim().slice(-300);
-        // `curl … | sh` exits 0 when curl fails (sh reads nothing), so curl's own error is the sign
-        if (/exit [1-9]/.test(tail.stdout) || /^curl: \(\d+\)/m.test(tail.stdout) && /exit 0\s*$/.test(tail.stdout)) throw new Error(`the install line failed: ${lastLog}`);
+        // a failed download exits 1 with its own message (electron/vps-link.mjs installLine)
+        if (/exit [1-9]/.test(tail.stdout)) throw new Error(`the install line failed: ${lastLog}`);
         await sleep(10_000);
       }
       flow.facts.installSeconds = Math.round((Date.now() - started) / 1000);

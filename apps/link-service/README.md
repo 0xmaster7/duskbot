@@ -4,8 +4,13 @@ Links a person's VPS to their dusk bot app with one pasted line. It's a small No
 nothing tied to dusk.bot or Cloudflare.
 
 ```
-curl -fsSL https://link.dusk.bot/i/<code> | sh
+(curl -fsSL https://link.dusk.bot/i/<code> || echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh
 ```
+
+The app builds it (`installLine` in electron/vps-link.mjs). A bare `curl … | sh` exits 0 having run nothing when the
+download fails; the fallback makes that exit 1 with a plain message. Inside, every download (and the report of how a step
+ended) is tried five times, 2, 5, 10 and 20 seconds apart, and a connect or TLS error (curl 7, 28, 35, 52, 55, 56)
+switches the next try to the other address family, IPv4 when IPv6 was in use; the family that works stays for the run.
 
 ## Ways in
 
@@ -468,7 +473,7 @@ install.sh posts every step to `POST /v1/sessions/<id>/events` (bearer: the VPS 
 
 The VPS installs our own server, built from this repo, not the upstream `duskbot` npm package. That build is
 private: the service hands it only to a claimed install session, at `/pkg/<session>/<sha256>.tgz`, with the session's
-own bearer token, while the session is still installing, at most 10 times across both archives. There is no public url for it.
+own bearer token, while the session is still installing, at most 20 times across both archives. There is no public url for it.
 
 - The claim reply names the build: `"package": {"sha256", "size", "version", "signature"?, "path"}`. install.sh downloads it (the
   terminal shows a progress bar), checks the sha256, and installs it with `npm install -g <file>` as the server account (`dusk`).

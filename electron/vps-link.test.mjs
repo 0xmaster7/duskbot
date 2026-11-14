@@ -12,7 +12,7 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createLinkService } from "../apps/link-service/src/app.mjs";
-import { STEP_IDS, createVpsLink, welcomeForServer } from "./vps-link.mjs";
+import { STEP_IDS, createVpsLink, installLine, welcomeForServer } from "./vps-link.mjs";
 import { vpsTokenOf } from "./vps-link-protocol.mjs";
 
 const run = promisify(execFile);
@@ -180,8 +180,9 @@ describe("Add your VPS", () => {
     const first = await link.start();
     expect(first.stage).toBe("command");
     const command = first.command;
-    const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) \| sh$/.exec(command)?.[1];
-    expect(command.startsWith("curl -fsSL http://placeholder/i/")).toBe(true);
+    const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) /.exec(command)?.[1];
+    expect(command.startsWith("(curl -fsSL http://placeholder/i/")).toBe(true);
+    expect(command.endsWith(") | sh")).toBe(true);
     expect(token).toBeTruthy();
     expect(first.steps.map((step) => step.id)).toEqual(STEP_IDS);
     const [id, secret] = token.split("-");
@@ -271,7 +272,7 @@ describe("Add your VPS", () => {
     const store = memoryStore();
     const { link, saved } = controller({ local: localServer(), ownHome, store });
     const linkOnce = async () => {
-      const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) \| sh$/.exec((await link.start()).command)[1];
+      const token = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) /.exec((await link.start()).command)[1];
       const [id, secret] = token.split("-");
       await post(`/v1/sessions/${id}/claim`, vpsTokenOf(secret), {});
       await run(process.execPath, [agentPath, "link"], { env: { ...process.env, HOME: home, LINK_BASE: base, LINK_ID: id, LINK_TOKEN: vpsTokenOf(secret), LINK_MODE: "relay", LINK_NAME: "oracle-arm", LINK_SERVER_PORT: String(vpsPort) } });
@@ -339,7 +340,7 @@ describe("Add your VPS", () => {
   it("shows what the installer asks of the person live, and clears it when that step ends", async () => {
     const { link } = controller({ local: localServer(), ownHome: { start: async () => {}, view: () => null, away: () => false, home: () => null, chosen: () => null }, store: memoryStore() });
     const made = await link.start();
-    const [id, secret] = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) \| sh$/.exec(made.command)[1].split("-");
+    const [id, secret] = /\/i\/([a-z2-7]{10}-[a-z2-7]{26}) /.exec(made.command)[1].split("-");
     const vpsToken = vpsTokenOf(secret);
     await post(`/v1/sessions/${id}/claim`, vpsToken, {});
     await post(`/v1/sessions/${id}/events`, vpsToken, { step: "address", status: "running" });
@@ -398,5 +399,28 @@ describe("the welcome a server gets when everything moves there", () => {
   });
   it("leaves a server that already met the person alone", () => {
     expect(welcomeForServer({ completedAt: "2026-11-14T06:00:00.000Z", version: 1 }, { completedAt: "2026-11-01T00:00:00.000Z" }, now)).toBeNull();
+  });
+});
+
+describe("the install line", () => {
+  const sh = (shell, line) => new Promise((resolve) => execFile(shell, ["-c", line], { timeout: 15_000 }, (error, stdout, stderr) => resolve({ code: error ? error.code : 0, stdout, stderr })));
+
+  it("exits 1 with a plain message when the installer can't be downloaded, instead of running nothing and exiting 0", async () => {
+    for (const shell of ["sh", "bash"]) {
+      const result = await sh(shell, `${installLine("http://127.0.0.1:9", "abcdefghij-abcdefghijklmnopqrstuvwxyz")} -s -- --cloudflare`);
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain("dusk bot could not be downloaded. check the internet and paste the line again.");
+    }
+  });
+
+  it("runs the downloaded installer with the way after it, and passes on its exit code", async () => {
+    const server = createServer((req, res) => res.end(req.url.endsWith("-fail") ? "echo nope; exit 3\n" : 'echo "ran $*"\n'));
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${server.address().port}`;
+    try {
+      const ok = await sh("sh", `${installLine(base, "abcdefghij-abcdefghijklmnopqrstuvwxyz")} -s -- --cloudflare`);
+      expect(ok).toMatchObject({ code: 0, stdout: "ran --cloudflare\n" });
+      expect(await sh("bash", installLine(base, "abcdefghij-fail"))).toMatchObject({ code: 3, stdout: "nope\n" });
+    } finally { server.close(); }
   });
 });

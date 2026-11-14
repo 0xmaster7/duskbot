@@ -11,6 +11,13 @@ import { createRelayClient, createTunnelProxy, newLinkKeys, openResult } from ".
 import { shortHash, trail } from "./trail.mjs";
 import { WELCOME_VERSION } from "./onboarding-record.mjs";
 
+/** the one line to paste on the server. a bare `curl … | sh` runs nothing and exits 0 when the download fails, so a
+ * failed download hands sh two commands instead: a plain message and exit 1. PlaceSetup's wayLine adds the way after
+ * the closing `| sh`. (`sh -c "$(curl …)"` is out: the installer is near Linux's 128 KB limit for one argument.) */
+export function installLine(base, token) {
+  return `(curl -fsSL ${base}/i/${token} || echo 'echo "dusk bot could not be downloaded. check the internet and paste the line again." >&2; exit 1') | sh`;
+}
+
 export const STEP_IDS = Object.freeze(["check", "basics", "docker", "user", "node", "app", "engines", "service", "address", "desktop", "link"]);
 const STATUSES = new Set(["running", "done", "failed", "skipped"]);
 const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -282,7 +289,7 @@ export function createVpsLink(deps) {
       const token = `${made.id}-${keys.secret}`;
       state.pending = {
         id: made.id, state: "waiting", after: 0, steps: {}, createdAt: now(), expiresAt: made.expiresAt,
-        command: `curl -fsSL ${made.base}/i/${token} | sh`, watchP, privP, pub: keys.pub,
+        command: installLine(made.base, token), watchP, privP, pub: keys.pub,
       };
       state.current = null;
       write();

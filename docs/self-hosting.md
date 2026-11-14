@@ -35,6 +35,9 @@ curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --tailscale    # your tailn
 curl -fsSL https://link.dusk.bot/i/<code> | sh -s -- --ssh          # over your SSH port
 ```
 
+(The app's line wraps the curl as `(curl -fsSL … || echo '…; exit 1') | sh`, so a failed download stops with a plain
+message and exit 1 instead of silently running nothing; the way goes after its closing `| sh` all the same.)
+
 | Way | What it needs | What the line does |
 |---|---|---|
 | `--cloudflare` | nothing | Installs `cloudflared` from Cloudflare's apt repository and runs a quick tunnel (`*.trycloudflare.com`, no account or sign-in) as `duskbot-cloudflared.service`. Its name changes when the tunnel restarts; the link agent tells the app the new one inside the sealed tunnel and the app follows it. When the link service hands the server a tunnel of its own, that one runs instead. |

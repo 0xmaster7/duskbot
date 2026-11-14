@@ -78,7 +78,8 @@ verified_download "$2" "$TMP/archive" "$3" "$4" 5 fixture
       const result = await execute([url, sha, String(content.length)]).catch((error) => error);
       const archive = await readFile(join(dir, "archive")).catch(() => null);
       const part = await readFile(join(dir, "archive.part")).catch(() => null);
-      return { result, archive, part, content, requests, transferred };
+      const retries = await readFile(join(dir, "retries"), "utf8").catch(() => "");
+      return { result, archive, part, content, requests, transferred, retries };
     });
   } finally {
     server.closeAllConnections();
@@ -201,7 +202,7 @@ step app do_fixture
     expect(result.requests.map((request) => request.range)).toEqual([undefined, `bytes=${result.content.length / 2}-`]);
     expect(result.requests.every((request) => request.authorization === "Bearer fixture")).toBe(true);
     expect(result.transferred).toBe(result.content.length);
-    expect(result.result.stdout).toContain("attempt 1/3 failed (curl 18)");
+    expect(result.result.stdout).toContain("attempt 1/5 failed (curl 18)");
     expect(result.result.stdout).toContain("sha256 verified");
   });
 
@@ -225,9 +226,49 @@ step app do_fixture
   it("reports repeated download failures and keeps a resumable partial archive", async () => {
     const result = await downloadFixture({ partial: 100, fail: true });
     expect(result.result.code).toBe(1);
-    expect(result.requests).toHaveLength(3);
+    expect(result.requests).toHaveLength(5);
     expect(result.part).toEqual(result.content.subarray(0, 100));
-    expect(result.result.stdout).toContain("could not be downloaded and verified after 3 attempts");
+    expect(result.result.stdout).toContain("could not be downloaded and verified after 5 attempts");
+    expect(result.retries).toBe("sleep 2\nsleep 5\nsleep 10\nsleep 20\n");
+  });
+
+  it("tries a download again over ipv4 after a broken tls handshake, and stays on ipv4 for the run", async () => {
+    const out = await fixture(`
+sleep() { printf 'sleep %s\\n' "$*" >> "$TMP/calls"; }
+curl() { printf 'curl %s\\n' "$*" | sed 's/ -[^4][^ ]*//g' >> "$TMP/calls"; n=$(cat "$TMP/n" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$TMP/n"; [ "$n" -ge 2 ] || return 35; }
+fetch https://link.example/agent.mjs "$TMP/agent.mjs"
+fetch https://link.example/docker-gate.mjs "$TMP/gate.mjs"
+`, async ({ dir, run: execute }) => { const r = await execute(); return { stdout: r.stdout, calls: await readFile(join(dir, "calls"), "utf8") }; });
+    expect(out.stdout).toContain("attempt 1/5 failed (exit 35); retrying over ipv4 in 2 seconds");
+    const curls = out.calls.trim().split("\n");
+    expect(curls[0]).not.toContain("-4");
+    expect(curls[1]).toBe("sleep 2");
+    expect(curls.slice(2).every((line) => line.startsWith("curl -4"))).toBe(true);
+    expect(curls).toHaveLength(4);
+  });
+
+  it("gives up after five tries with the command's own exit code", async () => {
+    const out = await fixture(`
+sleep() { printf 'sleep %s\\n' "$*" >> "$TMP/calls"; }
+curl() { echo try >> "$TMP/calls"; return 7; }
+fetch https://link.example/agent.mjs "$TMP/agent.mjs" && echo fetched || echo "gave up $?"
+`, async ({ dir, run: execute }) => { const r = await execute(); return { stdout: r.stdout, calls: await readFile(join(dir, "calls"), "utf8") }; });
+    expect(out.stdout).toContain("gave up 7");
+    expect(out.calls.match(/^try$/gm)).toHaveLength(5);
+    expect(out.calls.match(/^sleep .*/gm)).toEqual(["sleep 2", "sleep 5", "sleep 10", "sleep 20"]);
+  });
+
+  it("keeps telling the app a step failed until it gets through, but not past an answer like 401", async () => {
+    const out = await fixture(`
+sleep() { :; }
+curl() { n=$(cat "$TMP/n" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$TMP/n"; printf '%s\\n' "$*" >> "$TMP/posts"; [ "$n" -ge 3 ] || return 35; printf '{}\\n%s' "$CODE"; }
+OFFLINE=0 DEMO="" LINK_BASE=https://link.example
+CODE=200 report app failed "$LOG"; echo "posts $(cat "$TMP/n")"
+rm -f "$TMP/n"; CODE=401 report app failed "$LOG"; echo "posts $(cat "$TMP/n")"
+rm -f "$TMP/n"; CODE=200 report app running; echo "running posts $(cat "$TMP/n")"
+`, async ({ dir, run: execute }) => { const r = await execute(); return { stdout: r.stdout, posts: await readFile(join(dir, "posts"), "utf8") }; });
+    expect(out.stdout).toContain("posts 3\nposts 3\nrunning posts 1");
+    expect(out.posts).toContain('"status":"failed"');
   });
 
   it("does not unpack or replace the kit when its download fails inside a condition", async () => {

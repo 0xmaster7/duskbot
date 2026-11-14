@@ -73,7 +73,7 @@ const LOOKUP_ID = /^[0-9a-f]{32}$/;
 const LOOKUP_CREATE_PER_HOUR = 120;
 const LOOKUP_MISSES_PER_HOUR = 240;
 const MAX_LOOKUPS = 5000;
-/** downloads (server build and desktop kit together) one install session may make; install.sh retries three times */
+/** downloads (server build and desktop kit together) one install session may make; install.sh tries each five times */
 const PACKAGE_DOWNLOADS = 20;
 /** a linked server's own update reads (apps/link-service/agent.mjs createServerUpdater): checks per hour, downloads (resumes count) per day */
 export const SERVER_RELEASE_READS_PER_HOUR = 12;

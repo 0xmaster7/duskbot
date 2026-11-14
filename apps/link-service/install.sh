@@ -1,6 +1,7 @@
 #!/bin/sh
 # duskbot vps installer: the app shows one line to paste on a fresh server,
-#   curl -fsSL https://link.dusk.bot/i/<token> | sh
+#   (curl -fsSL https://link.dusk.bot/i/<token> || echo 'echo "..." >&2; exit 1') | sh
+# (the fallback makes a download that fails exit 1 with a plain message: a bare `curl | sh` runs nothing and exits 0)
 # and this script installs everything, reports each step to the app through the link service, and links the server.
 # safe to run again: every step checks what is already there, and a server that is already linked is only repaired.
 # the link service bakes __LINK_BASE__ and __LINK_TOKEN__ in when it serves /i/<token>; run from a file it takes
@@ -28,6 +29,8 @@ esac
 if [ "$BAKED_TOKEN" = "$PLACEHOLDER_TOKEN" ]; then TOKEN="${1:-}"; else TOKEN="$BAKED_TOKEN"; fi
 
 WANT="" ARGS_WANT="" CF_TOKEN="" CF_HOST="" TS_KEY="${DUSK_TAILSCALE_KEY:-}"
+# this run's scratch folder (main makes it); never one from the environment
+TMP="" IPV4_ONLY=""
 
 DUSK_PACKAGE="${DUSK_PACKAGE:-}"
 # the bot computer: the link service names the image (BOT_DESKTOP_IMAGE in shared/bot-desktop.ts) and hands out
@@ -323,26 +326,49 @@ become_root() {
     exec sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_TAILSCALE_KEY="$TS_KEY" \
       COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh "$0" "$TOKEN" $(way_args)
   fi
-  # piped: the script is gone from stdin, so fetch it again for root
+  # piped: the script is gone from stdin, so fetch it again for root, into a file first so a failed download stops here
+  _self=$(mktemp) || exit 1
+  if ! retry curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 15 -m 120 "$LINK_BASE/i" -o "$_self" >/dev/null 2>&1; then
+    rm -f "$_self"
+    fail_line "Couldn't download the installer for administrator rights. Check this server's internet connection and paste the line again."
+    exit 1
+  fi
+  chmod 0644 "$_self"
   # shellcheck disable=SC2046
-  curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --retry 3 "$LINK_BASE/i" | sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_TAILSCALE_KEY="$TS_KEY" \
-    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh -s "$TOKEN" $(way_args)
-  exit $?
+  sudo env LINK_BASE="$LINK_BASE" DUSK_PACKAGE="$DUSK_PACKAGE" BOT_DESKTOP_IMAGE="$BOT_DESKTOP_IMAGE" DUSK_TAILSCALE_KEY="$TS_KEY" \
+    COLORTERM="${COLORTERM:-}" NO_COLOR="${NO_COLOR:-}" DUSK_ASCII="${DUSK_ASCII:-}" DUSK_PLAIN="${DUSK_PLAIN:-}" DUSK_NO_ANIM="${DUSK_NO_ANIM:-}" DUSK_VERBOSE="${DUSK_VERBOSE:-}" sh "$_self" "$TOKEN" $(way_args) </dev/null
+  _code=$?
+  rm -f "$_self"
+  exit "$_code"
 }
 
 # ---------- helpers ----------
 # every command worth seeing goes into the step's log as "$ command", which the app's terminal mirror shows
 show() { printf '$ %s\n' "$*" | redact; }
 x() { show "$@"; "$@"; }
+# five tries, 2, 5, 10 and 20 seconds apart. a curl that fails to connect or loses its tls handshake (a flaky ipv6 path
+# gives curl 35, "unexpected eof") tries the other address family next; the family that works stays for the whole run
+RETRY_WAITS="2 5 10 20"
+net_error() { case "$1" in 7|28|35|52|55|56) return 0 ;; *) return 1 ;; esac; }
+ipv4_only() { if [ -n "${TMP:-}" ] && [ -d "$TMP" ]; then [ -f "$TMP/ipv4" ]; else [ -n "${IPV4_ONLY:-}" ]; fi; }
+flip_family() {
+  if [ -n "${TMP:-}" ] && [ -d "$TMP" ]; then
+    if [ -f "$TMP/ipv4" ]; then rm -f "$TMP/ipv4"; else : > "$TMP/ipv4"; fi
+  elif [ -n "${IPV4_ONLY:-}" ]; then IPV4_ONLY=""; else IPV4_ONLY=1; fi
+}
+ncurl() { if ipv4_only; then curl -4 "$@"; else curl "$@"; fi; }
 retry() {
-  n=1
+  _rn=1
   if [ "$1" = as_user ]; then shift; show "$@"; set -- as_user "$@"; else show "$@"; fi
-  while :; do
-    if "$@"; then return 0; fi
-    [ "$n" -ge 3 ] && return 1
-    printf 'attempt %s/3 failed; retrying in %s seconds\n' "$n" "$((n * 5))"
-    sleep $((n * 5))
-    n=$((n + 1))
+  for _rw in $RETRY_WAITS ""; do
+    if [ "$1" = curl ]; then shift; ncurl "$@" && return 0 || _rrc=$?; set -- curl "$@"
+    else "$@" && return 0 || _rrc=$?; fi
+    [ -n "$_rw" ] || return "$_rrc"
+    _rhow=""
+    if [ "$1" = curl ] && net_error "$_rrc"; then flip_family; if ipv4_only; then _rhow=" over ipv4"; else _rhow=" over any address"; fi; fi
+    printf 'attempt %s/5 failed (exit %s); retrying%s in %s seconds\n' "$_rn" "$_rrc" "$_rhow" "$_rw"
+    sleep "$_rw"
+    _rn=$((_rn + 1))
   done
 }
 
@@ -447,14 +473,18 @@ progress_snapshot() {
   [ "$_quiet" -le "$_elapsed" ] || _quiet=$_elapsed
 }
 
+POST_RC=0 POST_CODE=000
 post_event() {
-  _answer=$(curl -sS --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 2 -m 5 -w '\n%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" -H "content-type: application/json" \
-    --data "$1" "$LINK_BASE/v1/sessions/$LINK_ID/events" 2>/dev/null) || return 1
+  POST_RC=0
+  _answer=$(ncurl -sS --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 2 -m 5 -w '\n%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" -H "content-type: application/json" \
+    --data "$1" "$LINK_BASE/v1/sessions/$LINK_ID/events" 2>/dev/null) || POST_RC=$?
+  POST_CODE=${_answer##*
+}
+  [ "$POST_RC" = 0 ] || { POST_CODE=000; return 1; }
   case "$_answer" in
     *'"code":"cancelled"'*) : > "$TMP/cancelled" ;;
   esac
-  [ "${_answer##*
-}" = 200 ]
+  [ "$POST_CODE" = 200 ]
 }
 
 stream_lines() { # [final]
@@ -492,7 +522,16 @@ report() { # step status [logfile]
   else
     body="{\"step\":\"$1\",\"status\":\"$2\"}"
   fi
-  post_event "$body" || true
+  [ "$2" != running ] || { post_event "$body" || true; return 0; }
+  # how a step ended has to reach the app (a failed one most of all, or the app keeps waiting for this server): a
+  # network error or a 5xx is tried again like a download, an answer such as 401 or 410 is not
+  for _pw in $RETRY_WAITS ""; do
+    post_event "$body" && return 0
+    case "$POST_CODE" in 000|5*) ;; *) return 0 ;; esac
+    [ -n "$_pw" ] || return 0
+    ! net_error "$POST_RC" || flip_family
+    sleep "$_pw"
+  done
 }
 
 # something only the person can do (sign in, add a DNS record, open a port): the step writes what the terminal shows to
@@ -648,9 +687,9 @@ step() { # id function
       SOFT_FAILED="$SOFT_FAILED $1" ;;
     *)
       if [ "$UI" = tty ]; then glyph fail; draw "$ERR" "$G" "$took" "${ERR}${title} failed${R}"; mascot 0; printf '\n'; else say "failed ($took)"; fi
-      report "$1" failed "$LOG"
       if [ "$LIST" = 1 ]; then for _s in $(phases_after "$PH_ID"); do pending_line "$_s"; done; fi
       failure_panel "$1"
+      report "$1" failed "$LOG"
       exit 1 ;;
   esac
 }
@@ -930,7 +969,9 @@ verified_download() { # url file sha256 size timeout label
   fi
   rm -f "$_file"
   _attempt=1
-  while [ "$_attempt" -le 3 ]; do
+  # shellcheck disable=SC2086
+  set -- $RETRY_WAITS
+  while [ "$_attempt" -le 5 ]; do
     [ ! -f "$TMP/cancelled" ] || return 130
     if [ -f "$_part" ]; then
       if [ "$(sha256sum "$_part" | cut -d' ' -f1)" = "$_sha" ]; then mv "$_part" "$_file"; return 0; fi
@@ -939,9 +980,9 @@ verified_download() { # url file sha256 size timeout label
     fi
     progress file "$_part" "$_total"
     _offset=0; [ ! -f "$_part" ] || _offset=$(wc -c < "$_part" | tr -cd 0-9)
-    echo "downloading $_label: attempt $_attempt/3, resuming at $_offset bytes"
+    echo "downloading $_label: attempt $_attempt/5, resuming at $_offset bytes$(! ipv4_only || echo ', over ipv4')"
     show curl -fsSL --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - "$_url" -o "$_part"
-    if curl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - -H "authorization: Bearer $VPS_TOKEN" "$_url" -o "$_part"; then
+    if ncurl -fsSL --proto "$PROTO" --proto-redir "$PROTO" --connect-timeout 15 --speed-limit 1 --speed-time 60 -m "$_limit" -C - -H "authorization: Bearer $VPS_TOKEN" "$_url" -o "$_part"; then
       if [ "$(sha256sum "$_part" | cut -d' ' -f1)" = "$_sha" ]; then
         mv "$_part" "$_file"
         rm -f "$PROGRESS" "$PROGRESS.json"
@@ -952,16 +993,18 @@ verified_download() { # url file sha256 size timeout label
       rm -f "$_part"
     else
       _code=$?
-      echo "$_label download attempt $_attempt/3 failed (curl $_code); received bytes remain cached"
+      echo "$_label download attempt $_attempt/5 failed (curl $_code); received bytes remain cached"
       case "$_code" in 33|36) rm -f "$_part" ;; esac
+      ! net_error "$_code" || flip_family
     fi
-    [ "$_attempt" -lt 3 ] || break
-    echo "retrying $_label in $((_attempt * 5)) seconds"
-    sleep $((_attempt * 5))
+    [ "$_attempt" -lt 5 ] || break
+    echo "retrying $_label in $1 seconds"
+    sleep "$1"
+    shift
     _attempt=$((_attempt + 1))
   done
   rm -f "$PROGRESS" "$PROGRESS.json"
-  echo "$_label could not be downloaded and verified after 3 attempts; paste the command again to resume"
+  echo "$_label could not be downloaded and verified after 5 attempts; paste the command again to resume"
   return 1
 }
 
@@ -2157,20 +2200,22 @@ claim() {
   os=$([ -r /etc/os-release ] && . /etc/os-release && echo "${ID:-unknown}-${VERSION_ID:-}") || os=unknown
   n=0
   while :; do
-    status=$(curl -sS --proto "$PROTO" --proto-redir "$PROTO" -m 20 -o "$TMP/claim" -w '%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" \
+    status=$(ncurl -sS --proto "$PROTO" --proto-redir "$PROTO" -m 20 -o "$TMP/claim" -w '%{http_code}' -X POST -H "authorization: Bearer $VPS_TOKEN" \
       -H "content-type: application/json" --data "{\"host\":{\"arch\":\"$arch\",\"os\":\"$os\"}}" \
       "$LINK_BASE/v1/sessions/$LINK_ID/claim" 2>/dev/null) && rc=0 || { rc=$?; status=000; }
     case "$status" in 000|5*) ;; *) break ;; esac
     n=$((n + 1))
-    if [ "$n" -ge 3 ]; then
-      # curl 35 and 60: the certificate check failed, which a clock far off the real time does to every https site
+    if [ "$n" -ge 5 ]; then
+      # curl 60: the certificate check failed, which a clock far off the real time does to every https site (35 is any
+      # broken handshake, a flaky network path among them, so it gets the plain words)
       case "$rc" in
-        35|60) fail_line "Can't check the link service's certificate. This server's clock says $(date -u '+%Y-%m-%d %H:%M UTC'); if that is wrong, run: timedatectl set-ntp true, then paste the line again." ;;
+        60) fail_line "Can't check the link service's certificate. This server's clock says $(date -u '+%Y-%m-%d %H:%M UTC'); if that is wrong, run: timedatectl set-ntp true, then paste the line again." ;;
         *) fail_line "Can't reach the link service. Check this server's internet connection and paste the line again." ;;
       esac
       exit 1
     fi
-    sleep $((n * 5))
+    ! net_error "$rc" || flip_family
+    case "$n" in 1) sleep 2 ;; 2) sleep 5 ;; 3) sleep 10 ;; *) sleep 20 ;; esac
   done
   case "$status" in
     200)
