@@ -222,6 +222,16 @@ export function InstallSetup({ way, title: named, onBack, onClose }: { way?: Lin
   // in Settings the page's own title names the way, so only a change of state gets a heading
   const headed = Boolean(onBack) || stopped || phase === "done";
 
+  // not signed in to an account yet: the sign-in goes on in the browser, and the line appears here by itself after
+  if (shown.signIn) return <div className={onBack ? BODY : INLINE} data-install-phase="sign-in">
+    {onBack && <BackLink label={t("rail.back")} onClick={onBack} />}
+    <Heading title={t("continueBrowser.title")} sub={t("placeSetup.signInBrowser")} />
+    <div className="flex flex-wrap gap-2">
+      <button type="button" data-continue-open="" className="ui-button ui-button-primary" onClick={() => { void window.duskDesktop?.cloudAccount?.reopen().catch(() => {}); }}>{t("continueBrowser.open")}</button>
+      <button type="button" data-continue-cancel="" className="ui-button" onClick={() => { void window.duskDesktop?.cloudAccount?.cancel().catch(() => {}); void run(() => bridge.cancel()); onClose(); }}>{t("continueBrowser.cancel")}</button>
+    </div>
+  </div>;
+
   return <div className={onBack ? BODY : INLINE} data-install-phase={phase}>
     {onBack && <BackLink label={t("rail.back")} onClick={onBack} />}
     <div className="flex items-start gap-4">

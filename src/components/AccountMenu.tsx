@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { SignInSheet } from "./SignInSheet";
-import { funnelAccount } from "./onboarding/funnel-account";
+import { ContinueInBrowserSheet } from "./SignInSheet";
+import { continueInBrowser } from "@/lib/account-intent";
 import { Check, LogOut, Plus, UserRound, X } from "../icons";
 import type { AccountsView, AccountSwitchResult, RailOpenResult } from "../../electron/cloud-account.mjs";
 import { cn } from "@/lib/cn";
@@ -183,8 +183,8 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
     }, () => setNote(t("accounts.failed")));
   };
   const active = view?.active ?? null;
-  // nobody signed in here: the sheet is the sign-in itself (the first run's step), never a pointer to somewhere else
-  if (view && !active && !given && add === null && funnelAccount()) return <SignInSheet onClose={onClose} onDone={onClose} />;
+  // nobody signed in here: the sign-in continues in the browser at once, never a pointer to somewhere else
+  if (view && !active && !given && add === null && window.duskDesktop?.cloudAccount?.continueInBrowser) return <SignInInBrowser onClose={onClose} />;
   return <div className="ui-scrim fixed inset-0 z-[60] flex items-center justify-center p-4" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-accounts-sheet className={cn(SHEET, "relative w-full max-w-[420px]")}>
       <button type="button" onClick={onClose} aria-label={t("accounts.close")} className={cn(CLOSE, "absolute end-4 top-4 z-10")}><X size={16} /></button>
@@ -199,6 +199,16 @@ export function AccountsSheet({ onClose, adding = null, note: given = null }: { 
     </div>
     <CloudSignOutConfirm open={asking !== null} onCancel={() => setAsking(null)} onConfirm={() => { if (asking) signOut(asking); }} />
   </div>;
+}
+
+/** Signed out: the account step in the browser, and the calm sheet while it goes on; it closes when signed in. */
+function SignInInBrowser({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    void continueInBrowser({ kind: "signin" }).then((outcome) => { if (outcome !== "browser") onClose(); }, () => onClose());
+    const off = window.duskDesktop?.cloudAccount?.onState((state) => { if (state.account && state.status === "connected") onClose(); else if (state.status !== "connecting") onClose(); });
+    return () => off?.();
+  }, []);
+  return <ContinueInBrowserSheet kind="signin" onClose={onClose} />;
 }
 
 /** The sheet as the rail's page keeps it: asked for by main, from the person's click on the page beside the rail. */

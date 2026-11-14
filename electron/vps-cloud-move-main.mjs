@@ -19,8 +19,8 @@ const PLANS = new Set(["plus", "pro"]);
  *   home(): { origin: string, grant(): Promise<{ origin: string, code: string }> } | null,
  *   cloudRead(route: string): Promise<Response>,
  *   file(name: string): { read(): unknown, write(value: unknown): void },
- *   account(): { webHandoff?(options: { plan?: string, source?: string }): Promise<unknown>, refresh?(): Promise<unknown>, state?(): any } | null,
- *   signIn?(): void,
+ *   account(): { webHandoff?(options: { plan?: string, source?: string }): Promise<unknown>, continueInBrowser?(intent: object): Promise<{ outcome: string }>,
+ *     reopen?(): Promise<unknown>, refresh?(): Promise<unknown>, state?(): any } | null,
  *   viaMac: { available(place: { origin: string }): boolean, start(place: any): Promise<unknown>, view(): any },
  *   openHome(): void,
  *   lastInput?(): number,
@@ -32,10 +32,9 @@ const PLANS = new Set(["plus", "pro"]);
  * own page, which may only read the move. `tell`: every page that shows the move hears it changed.
  */
 export function installVpsCloudMoveMain(deps) {
-  // signed out when the person chose to buy: the sign-in opens right here, and the checkout follows it by itself
-  let pendingPlan = null;
-  // an account client that can't say who is signed in is asked by the checkout itself (webHandoff answers signedOut)
-  const signedIn = () => { const client = deps.account(); if (client && typeof client.state !== "function") return true; const state = client?.state?.(); return Boolean(state?.account) && state?.status === "connected"; };
+  // the purchase goes on in the browser (the account context redirect): signed out, the sign-in there lands on the
+  // plan's checkout; the move follows once the new cloud is ready. Meanwhile this page says "Continue in your browser".
+  let browsing = false;
   const move = installVpsCloudMove({
     fetch: deps.fetch,
     environments: deps.environments,
@@ -49,13 +48,15 @@ export function installVpsCloudMoveMain(deps) {
     buy: async (plan) => {
       const client = deps.account();
       const chosen = PLANS.has(plan) ? plan : "pro";
-      const askSignIn = () => {
-        if (!deps.signIn) throw Object.assign(new Error("Sign in to dusk cloud first."), { code: "signed_out" });
-        pendingPlan = chosen; deps.signIn(); deps.tell(viewNow());
-      };
-      if (!client?.webHandoff || !signedIn()) { askSignIn(); return; }
+      if (client?.continueInBrowser) {
+        const answer = await client.continueInBrowser({ kind: "upgrade", plan: chosen, source: "app_computer_move" });
+        browsing = answer?.outcome === "browser";
+        deps.tell(viewNow());
+        return;
+      }
+      if (!client?.webHandoff) throw new Error("Sign in to dusk cloud first.");
       const opened = await client.webHandoff({ plan: chosen, source: "app_computer_move" });
-      if (opened?.signedOut) askSignIn();
+      if (opened?.signedOut) throw Object.assign(new Error("Sign in to dusk cloud first."), { code: "signed_out" });
     },
     openHome: deps.openHome,
     ...(deps.lastInput ? { lastInput: deps.lastInput } : {}),
@@ -64,19 +65,13 @@ export function installVpsCloudMoveMain(deps) {
     onChange: () => deps.tell(viewNow()),
     log: deps.log,
   });
-  /** the move's view, and while a sign-in it asked for is open, that it waits on that */
-  const viewNow = () => { const seen = move.view(); return pendingPlan && seen?.stage === "buying" ? { ...seen, signingIn: true } : seen; };
-  /** the account changed: a purchase waiting on the sign-in goes on to its checkout, with no other step */
-  move.signedInNow = async () => {
-    if (!pendingPlan || !signedIn()) return;
-    const plan = pendingPlan; pendingPlan = null;
-    const chosen = move.chosen?.();
-    try { if (chosen) await move.start(chosen.id, { buying: true, plan }); }
-    catch (error) { deps.log(`vps to cloud: checkout after sign-in failed (${error?.message ?? error})`); }
-    deps.tell(viewNow());
-  };
-  /** the person reopens the sign-in from the sheet */
-  move.signInAgain = () => { if (pendingPlan && deps.signIn) deps.signIn(); };
+  /** the move's view, and while its sign-in goes on in the browser, that it waits there */
+  const connecting = () => deps.account()?.state?.()?.status === "connecting";
+  const viewNow = () => { const seen = move.view(); if (browsing && !connecting()) browsing = false; return browsing && seen?.stage === "buying" ? { ...seen, signingIn: true } : seen; };
+  /** the account changed: the sheet stops saying "continue in your browser" once the sign-in there is done */
+  move.signedInNow = async () => { if (browsing && !connecting()) { browsing = false; deps.tell(viewNow()); } };
+  /** Open again: the browser sign-in page once more */
+  move.signInAgain = async () => { await deps.account()?.reopen?.(); };
 
   /** The saved server whose page asks, only while it is the one on screen. */
   const placeOf = (event) => {
@@ -113,7 +108,7 @@ export function installVpsCloudMoveMain(deps) {
     await move.start(place.id, { buying: true, plan: PLANS.has(plan) ? plan : "pro" });
     return viewNow();
   });
-  deps.ipcMain.handle("vps-cloud-move:sign-in", (event) => { acting(event); move.signInAgain(); return viewNow(); });
+  deps.ipcMain.handle("vps-cloud-move:sign-in", async (event) => { acting(event); await move.signInAgain(); return viewNow(); });
   deps.ipcMain.handle("vps-cloud-move:retry", async (event) => { reading(event); return move.retry(); });
   deps.ipcMain.handle("vps-cloud-move:cancel", (event) => { reading(event); return move.cancel(); });
   return move;

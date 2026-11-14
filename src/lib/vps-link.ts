@@ -37,6 +37,8 @@ export interface VpsLinkView {
   activity?: { updatedAt: number; progressAt: number; error?: string };
   server: VpsServer | null;
   error: string | null;
+  /** the link service needs a signed-in account: the sign-in goes on in the browser, and the line comes by itself after */
+  signIn?: true;
   move: VpsLinkMove | null;
   mode?: "relay" | "direct" | null;
   /** How the app reaches the linked server (install.sh's way): omitted by older desktop builds. */

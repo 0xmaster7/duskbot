@@ -10,7 +10,7 @@ import { useCloudOffer } from "@/lib/use-cloud-offer";
 import type { LocaleKey } from "@/locales";
 import { AccountsSheet, CloudSignOutConfirm } from "./AccountMenu";
 import { openSignIn } from "@/lib/sign-in-sheet";
-import { funnelAccount } from "./onboarding/funnel-account";
+const browserSignIn = () => Boolean(window.duskDesktop?.cloudAccount?.continueInBrowser);
 import { Card } from "./SettingsPrimitives";
 import { CloudCancelPlan, type CloudRenewalActions } from "./CloudCancelPlan";
 import { StagingMark } from "./cloud-buy/parts";
@@ -275,7 +275,7 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
       {(view.kind === "signed-out" || view.kind === "removed") && <div className="flex flex-col items-start gap-3">
         {addCloudButton}
         <button type="button" disabled={busy} className={addCloudButton ? "text-[13px] font-medium text-accent-text underline underline-offset-2 hover:text-ink" : "ui-button"}
-          onClick={() => onSignIn ? onSignIn() : funnelAccount() ? openSignIn() : void perform(() => bridge.begin())}>{t("cloudAccount.signIn")}</button>
+          onClick={() => onSignIn ? onSignIn() : browserSignIn() ? openSignIn() : void perform(() => bridge.begin())}>{t("cloudAccount.signIn")}</button>
       </div>}
       {account?.status === "connecting" && <div className="flex flex-col items-start gap-3">
         <p role="status" className="text-[13px] text-ink-secondary">{t("cloudAccount.browser")}</p>
@@ -295,7 +295,7 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, teamH
         {view.kind === "free" && addCloudButton}
         <div className="flex flex-wrap gap-2">
           {view.kind === "reauth"
-            ? <button type="button" disabled={busy} className="ui-button" onClick={() => funnelAccount() ? openSignIn() : void perform(() => bridge.signInAgain())}>{t("cloudAccount.signInAgain")}</button>
+            ? <button type="button" disabled={busy} className="ui-button" onClick={() => void perform(() => bridge.signInAgain())}>{t("cloudAccount.signInAgain")}</button>
             : <>
               {!(view.kind === "free" && addCloudButton) && <button type="button" disabled={busy} className="ui-button" onClick={() => void perform(() => bridge.openDashboard())}>{view.kind === "free" ? t("cloudAccount.dashboard") : dashboardLabel(account, view)}</button>}
             </>}

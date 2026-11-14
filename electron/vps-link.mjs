@@ -91,6 +91,7 @@ const plain = (error, fallback) => {
  *   egress?: Parameters<typeof createTunnelProxy>[0]["egress"],
  *   appVersion?: string,
  *   linkGrant?(): Promise<string | null>,
+ *   signIn?(): Promise<unknown>,
  *   screenIce?(): Promise<Array<{ urls: string[], username?: string, credential?: string }> | null>,
  *   now?(): number,
  *   onChange?(view: any): void,
@@ -161,6 +162,7 @@ export function createVpsLink(deps) {
       ...(lines[id]?.activity ? { activity: lines[id].activity } : {}),
     }));
   }
+  let signInWaiting = false;
   function view() {
     const link = currentLink();
     const pending = state.pending;
@@ -185,6 +187,7 @@ export function createVpsLink(deps) {
       fallback: link?.fallback ?? null,
       compat: link ? compatView(link) : null,
       error: lastError,
+      ...(signInWaiting && !pending ? { signIn: true } : {}),
       move: move ? { step: move.step, status: move.status, ...(move.chats ? { chats: move.chats } : {}), ...(move.bytes ? { bytes: move.bytes } : {}), ...(move.waitingFor ? { waitingFor: move.waitingFor } : {}), ...(move.error ? { error: move.error } : {}), ...(move.retryAt ? { retryAt: move.retryAt } : {}), ...(move.backupId ? { backupId: move.backupId } : {}), ...(move.kept ? { kept: true } : {}) } : null,
     };
   }
@@ -288,6 +291,13 @@ export function createVpsLink(deps) {
     } catch (error) {
       if (made) revokeUnused(made);
       if (!active()) return view();
+      // not signed in to an account: the sign-in continues in the browser, and the line is made by itself once it is done
+      if (error?.code === "account_required" && deps.signIn) {
+        signInWaiting = true; lastError = null;
+        void Promise.resolve().then(() => deps.signIn()).catch(() => {});
+        onChange(view());
+        return view();
+      }
       lastError = plain(error, "The link service did not answer. Check your internet and try again.");
       onChange(view());
       throw new Error(lastError);
@@ -311,7 +321,14 @@ export function createVpsLink(deps) {
     }
   }
 
+  /** the account is signed in now: a line that waited on that is made at once */
+  async function accountReady() {
+    if (!signInWaiting || closed) return view();
+    signInWaiting = false;
+    try { return await start(); } catch { return view(); }
+  }
   async function cancel() {
+    signInWaiting = false;
     invalidateSetup();
     await cancelPending();
     return view();
@@ -1285,7 +1302,7 @@ export function createVpsLink(deps) {
   }
 
   return {
-    view, start, cancel, resume, sealTrust, nudge, directSetting, setDirect, updateLink, pathAt,
+    view, start, cancel, resume, accountReady, sealTrust, nudge, directSetting, setDirect, updateLink, pathAt,
     reset() { lastError = null; if (!state.pending && state.move?.step === "done") state.move = null; write(); return view(); },
     engines, signIn, signInStatus, signInCode, signInCancel,
     preview, move, retryMove, moveBack, backups, backupNow: async () => ({ id: (await backupNow("manual")).id }), restore, forget, where,

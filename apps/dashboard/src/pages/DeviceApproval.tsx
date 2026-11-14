@@ -7,8 +7,14 @@ import { PRELAUNCH } from "../lib/prelaunch";
 import { Button, ButtonLink, Card } from "../ui/kit";
 import { Mascot } from "../ui/Mascot";
 import { SkyEmpty } from "../ui/Sky";
+import { FROM_APP_KEY } from "../lib/from-app";
 
-type Device = { device: { name: string; platform: string }; userCode: string; expiresAt: number };
+type Device = { device: { name: string; platform: string }; userCode: string; expiresAt: number; intent?: { kind: string }; next?: string };
+
+/** the app's own link: it brings dusk bot forward (the app already signed itself in, so coming back is optional) */
+export const APP_LINK = "duskbot://open";
+/** tries the app's link once; a browser without the app installed simply stays here */
+export function tryAppLink(link: string) { try { const frame = document.createElement("iframe"); frame.style.display = "none"; frame.src = link; document.body.append(frame); setTimeout(() => frame.remove(), 2000); } catch {} }
 
 /** the desktop app's browser sign-in lands here: show which device asks, then approve or deny */
 export function DeviceApprovalPage() {
@@ -29,7 +35,15 @@ export function DeviceApprovalPage() {
     if (!found) return;
     setBusy(true); setError(null);
     try {
-      if (yes) { await api.deviceApprove(found.userCode); setState("approved"); toast(`${found.device.name} is signed in`); }
+      if (yes) {
+        await api.deviceApprove(found.userCode); toast(`${found.device.name} is signed in`);
+        // the app's account step said where to go: the plan checkout or billing; a plain sign-in stays here, with the way back
+        if (found.next && found.next !== "/" && found.next.startsWith("/") && !found.next.startsWith("//")) {
+          try { sessionStorage.setItem(FROM_APP_KEY, "1"); } catch {}
+          navigate(found.next, { replace: true }); return;
+        }
+        setState("approved"); tryAppLink(APP_LINK);
+      }
       else { await api.deviceDeny(found.userCode); setState("denied"); }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
@@ -46,8 +60,11 @@ export function DeviceApprovalPage() {
         ) : state === "approved" ? (
           <>
             <h1 className="text-20 font-medium text-ink">you are signed in</h1>
-            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">go back to {found.device.name}. the app finishes on its own.</p>
-            {!PRELAUNCH && <Button className="mt-6" onClick={() => navigate("/", { replace: true })}>go to my dashboard</Button>}
+            <p className="mt-1.5 text-14 leading-[1.55] text-ink-3">{found.device.name} is signed in too. go back to it any time, it has finished on its own.</p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <a href={APP_LINK} data-back-to-app="" className="press hover-btn inline-flex h-10 items-center rounded-full bg-ink px-4.5 text-14 font-medium text-bg">back to dusk bot</a>
+              {!PRELAUNCH && <Button onClick={() => navigate("/", { replace: true })}>go to my dashboard</Button>}
+            </div>
           </>
         ) : state === "denied" ? (
           <>

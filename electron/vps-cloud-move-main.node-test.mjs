@@ -5,7 +5,7 @@ import { installVpsCloudMoveMain } from "./vps-cloud-move-main.mjs";
 const VPS = { id: "place-1", kind: "remote", name: "Hetzner box", origin: "https://box.example.test" };
 const ENV_ID = "0d9e8f7a-6b5c-4d3e-9f8a-7b6c5d4e3f2a";
 
-function setup({ handoff = async () => ({ opened: true }), state = null, signIn = null, account = null } = {}) {
+function setup({ handoff = async () => ({ opened: true }), state = null, account = null, continueInBrowser = null } = {}) {
   const handlers = new Map(), files = new Map(), told = [], tracked = [], asked = [];
   const json = (body) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
   const fetch = async (url) => {
@@ -24,8 +24,7 @@ function setup({ handoff = async () => ({ opened: true }), state = null, signIn 
     home: () => null,
     cloudRead: async () => new Response("{}", { status: 503 }),
     file: (name) => ({ read: () => files.get(name) ?? null, write: (value) => files.set(name, value) }),
-    account: () => ({ webHandoff: async (options) => { asked.push(options); return handoff(options); }, ...(account ? { state: account } : {}) }),
-    ...(signIn ? { signIn } : {}),
+    account: () => ({ webHandoff: async (options) => { asked.push(options); return handoff(options); }, ...(account ? { state: account } : {}), ...(continueInBrowser ? { continueInBrowser } : {}) }),
     viaMac: { available: () => false, start: async () => {}, view: () => null },
     openHome: () => {},
     track: (name, props) => tracked.push({ name, props }),
@@ -72,23 +71,15 @@ test("asked from the rail or the dashboard, only that server's own page opens th
   assert.equal(call("vps-cloud-move:asked", { origin: VPS.origin }), false, "once");
 });
 
-test("signed out, the buy opens the sign-in right here and the checkout follows it with no other step", async () => {
-  let signedIn = false, opened = 0;
-  const { move, call, asked, told } = setup({ signIn: () => { opened++; }, account: () => (signedIn ? { status: "connected", account: { id: "acct" } } : { status: "signed-out" }) });
-  const view = await call("vps-cloud-move:buy", { origin: VPS.origin }, "pro");
-  assert.equal(opened, 1, "the sign-in opened over the page");
-  assert.deepEqual(asked, [], "no checkout before the sign-in");
+test("signed out, the buy continues in the browser for the plan (sign in, then its checkout there), and the page says so", async () => {
+  let status = "signed-out";
+  const continued = [];
+  const { call, move } = setup({ account: () => ({ status }), continueInBrowser: async (intent) => { continued.push(intent); status = "connecting"; return { outcome: "browser" }; } });
+  const view = await call("vps-cloud-move:buy", { origin: VPS.origin }, "plus");
+  assert.deepEqual(continued, [{ kind: "upgrade", plan: "plus", source: "app_computer_move" }]);
   assert.equal(view.stage, "buying");
-  assert.equal(view.signingIn, true);
-  assert.equal(call("vps-cloud-move:view", { origin: VPS.origin }).signingIn, true);
-  call("vps-cloud-move:sign-in", { origin: VPS.origin });
-  assert.equal(opened, 2, "Sign in opens it again");
+  assert.equal(view.signingIn, true, "the page shows Continue in your browser");
+  status = "connected";
   await move.signedInNow();
-  assert.deepEqual(asked, [], "still signed out: nothing opens");
-  signedIn = true;
-  await move.signedInNow();
-  assert.deepEqual(asked, [{ plan: "pro", source: "app_computer_move" }], "signed in: the checkout opens by itself");
-  assert.equal(told.at(-1).signingIn, undefined);
-  await move.signedInNow();
-  assert.equal(asked.length, 1, "once");
+  assert.equal(call("vps-cloud-move:view", { origin: VPS.origin }).signingIn, undefined, "signed in there: the usual checkout wait");
 });

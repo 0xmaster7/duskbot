@@ -96,7 +96,7 @@ export function VpsCloudMoveSheet({ onClose }: { onClose: () => void }) {
     : step === "failed" ? { label: t("vpsMove.retry"), act: retry }
     : signingIn ? { label: t("vpsMove.signIn"), act: signIn }
     : null;
-  const secondary = step === "buy" || step === "ready" || step === "buying" ? notNow : close;
+  const secondary = signingIn ? { label: t("continueBrowser.cancel"), act: cancel } : step === "buy" || step === "ready" || step === "buying" ? notNow : close;
   const extra = step === "buying" && !signingIn ? { label: t("vpsMove.checkoutAgain"), act: buy } : null;
   const body = bots === 1 ? t("vpsMove.bodyOne", { place }) : t("vpsMove.bodyMany", { count: bots, place });
 

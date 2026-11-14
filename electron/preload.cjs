@@ -496,8 +496,7 @@ const bridge = {
       return () => ipcRenderer.removeListener("workspaces:open-settings", handler);
     },
   },
-  // the sign-in itself (email code and every provider): the gate's page, and any sign-in sheet of an app with an account
-  accountGate: process.argv.includes("--dusk-account-gate=1") || process.argv.includes("--dusk-company-desktop=1") ? {
+  accountGate: process.argv.includes("--dusk-account-gate=1") ? {
     state: () => ipcRenderer.invoke("account-gate:state"),
     signInStart: (email, options) => ipcRenderer.invoke("account-gate:signInStart", String(email), { recover: options?.recover === true }),
     options: () => ipcRenderer.invoke("account-gate:options"),

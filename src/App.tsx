@@ -5,7 +5,6 @@ import { AnimatePresence } from "motion/react";
 import { CLOUD_LINK_SETTINGS, openBot, StoreProvider, useStore } from "@/state/store";
 import { SignInSheetHost } from "./components/SignInSheet";
 import { openSignIn } from "@/lib/sign-in-sheet";
-import { funnelAccount } from "./components/onboarding/funnel-account";
 
 import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
 import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGate";
@@ -256,7 +255,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     return window.duskDesktop?.onOpenAppSettings?.(section => {
       // signed out, any "sign in to dusk cloud" from main is the sign-in sheet right here, then what was asked for
       const cloud = window.duskDesktop?.cloudAccount;
-      if ((section === "cloud" || section === "cloud-settings") && cloud && !remoteClient && funnelAccount()) {
+      if ((section === "cloud" || section === "cloud-settings") && cloud?.continueInBrowser && !remoteClient) {
         void cloud.state().then((state) => {
           if (state.account && state.status === "connected") dispatch(section === "cloud" ? CLOUD_LINK_SETTINGS : { type: "toggleAppSettings", open: true, section: "cloudAccount" });
           else openSignIn({ then: () => { if (section === "cloud") dispatch(CLOUD_LINK_SETTINGS); } });

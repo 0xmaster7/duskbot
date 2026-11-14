@@ -362,10 +362,8 @@ describe("upstream promotional campaigns", () => {
   it("keeps an expired account's sign-in recovery", async () => {
     account = { status: "reauth-required", message: "expired", lastPlan: { tier: "pro", active: true } }; returning();
     expect(await launch()).toContain("Sign in again to reach the cloud");
-    // the sign-in opens right here (the sign-in sheet), not the browser's code page
-    signInSheet.open.mockClear();
     press("Sign in again"); await flush();
-    expect(signInSheet.open).toHaveBeenCalledOnce();
+    expect(bridges.cloud.signInAgain).toHaveBeenCalledOnce();
   });
 });
 

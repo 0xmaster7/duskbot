@@ -43,8 +43,8 @@ it("loads optional account state without enrollment/network and delegates sign-i
   expect(render().html).not.toContain("Free local use"); expect(render().html).not.toContain("separate from organization sign-in");
   click("sign in to your cloud plan"); await flush(); expect(bridge.begin).toHaveBeenCalledExactlyOnceWith();
 });
-it("signed out, sign in opens the sign-in sheet right here where this app has one, never the browser's code page", async () => {
-  vi.stubGlobal("window", { duskDesktop: { cloudAccount: bridge, accountGate: { state: vi.fn(), signInStart: vi.fn(), signInVerify: vi.fn(), browser: vi.fn(), cancel: vi.fn(), onChange: vi.fn() } } });
+it("signed out, sign in continues in the browser for its context (the account context redirect), never Settings", async () => {
+  vi.stubGlobal("window", { duskDesktop: { cloudAccount: { ...bridge, continueInBrowser: vi.fn() } } });
   await ready(); signIn.open.mockClear();
   click("sign in to your cloud plan"); await flush();
   expect(signIn.open).toHaveBeenCalledTimes(1); expect(bridge.begin).not.toHaveBeenCalled();

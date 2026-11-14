@@ -1,14 +1,12 @@
-// The one sign-in sheet of the app's own page: every "sign in" opens it right where the person is (never Settings, never
-// another page first), and what they were doing goes on once they are in (`then`).
-import { useSyncExternalStore } from "react";
+// Every "sign in" of the app's page: the account step continues in the browser (src/lib/account-intent.ts) and the
+// app waits in one calm sheet; `then` runs once the app is signed in (returning to the app is optional).
+import { continueInBrowser } from "./account-intent";
 
-export interface SignInRequest { then?: () => void }
-let open: SignInRequest | null = null;
-const watchers = new Set<() => void>();
-const tell = () => { for (const watch of Array.from(watchers)) watch(); };
-
-export function openSignIn(request: SignInRequest = {}): void { open = request; tell(); }
-export function closeSignIn(): void { open = null; tell(); }
-export function useSignInOpen(): SignInRequest | null {
-  return useSyncExternalStore((watch) => { watchers.add(watch); return () => { watchers.delete(watch); }; }, () => open, () => null);
+let after: (() => void) | null = null;
+export function openSignIn(request: { then?: () => void } = {}): void {
+  after = request.then ?? null;
+  void continueInBrowser({ kind: "signin" }).then((outcome) => { if (outcome === "opened") { const then = after; after = null; then?.(); } }, () => {});
 }
+/** the sign-in finished: what the person was doing goes on */
+export function signedInNow(): void { const then = after; after = null; then?.(); }
+export function closeSignIn(): void { after = null; }

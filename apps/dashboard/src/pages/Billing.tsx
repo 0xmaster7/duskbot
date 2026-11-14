@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { APP_CLOUD_LINK, fromApp, markFromApp } from "../lib/from-app";
+import { tryAppLink } from "./DeviceApproval";
 import { Check, ChevronDown, Download } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { LoadError } from "./common";
@@ -79,6 +81,20 @@ export function backFromCheckout(query: URLSearchParams): Back | null {
   return status === "pending" || status === "processing" ? "pending" : status === "failed" || status === "cancelled" || status === "expired" ? "failed" : null;
 }
 const BACK_POLL_MS = 10_000, BACK_POLLS = 18;
+
+/** paid, having come from the app: you're all set, and the way back (the app also picks the purchase up by itself) */
+function AllSet() {
+  useEffect(() => { tryAppLink(APP_CLOUD_LINK); }, []);
+  return (
+    <div role="status" data-all-set="" className="surface mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">
+      <div className="min-w-0">
+        <p className="text-14 text-ink">you're all set</p>
+        <p className="mt-0.5 text-13 text-ink-3">your cloud is getting ready. dusk bot picks it up by itself, so you can go back to it now or later.</p>
+      </div>
+      <a href={APP_CLOUD_LINK} className="press hover-btn inline-flex h-10 shrink-0 items-center rounded-full bg-ink px-4.5 text-14 font-medium text-bg">back to dusk bot</a>
+    </div>
+  );
+}
 
 function CheckoutBack({ back, onCheck, onRetry }: { back: Back; onCheck(): void; onRetry(): void }) {
   const pending = back === "pending";
@@ -194,6 +210,9 @@ export function BillingPage() {
   const manage = () => { setManaging((n) => n + 1); setFlowOpen(true); };
   // back from the payment page unpaid or still confirming: say so, keep looking for a while, and offer the plan again
   const [back, setBack] = useState<Back | null>(() => backFromCheckout(query));
+  // back from the payment page at all (paid or not), and whether the app sent the person here
+  const [returned] = useState(() => query.has("subscription_id") || query.has("payment_id"));
+  useEffect(() => { markFromApp(query); }, []);
   useEffect(() => { if (query.has("subscription_id") || query.has("payment_id")) navigate("/billing", { replace: true }); }, []);
   const paid = Boolean(billing?.subscription);
   useEffect(() => {
@@ -254,6 +273,7 @@ export function BillingPage() {
   return (
     <div>
       <PageHeader title="plans and billing" sub="keep your bots working, laptop open or shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
+      {returned && paid && fromApp() && <AllSet />}
       {back && !paid && <CheckoutBack back={back} onCheck={refresh} onRetry={retry} />}
       <div className="grid gap-3 lg:grid-cols-3">
         {tiersFor(onCloud).map(card)}

@@ -118,15 +118,16 @@ describe("move a VPS's bots to dusk cloud", () => {
     expect(text()).not.toContain("own page");
   });
 
-  it("a purchase waiting on the sign-in main opened says so, and Sign in opens it again; checkout follows by itself", async () => {
+  it("a purchase going on in the browser says Continue in your browser, with Open again and Cancel", async () => {
     const { vps, tell } = desktop({ stage: "buying", place: PLACE, route: "direct", signingIn: true });
     const signIn = vi.fn(async (): Promise<VpsCloudMoveView> => ({ stage: "buying", place: PLACE, route: "direct", signingIn: true }));
     (vps as Record<string, unknown>).signIn = signIn;
     await render();
-    expect(text()).toContain("Sign in to continue");
-    expect(text()).toContain("Checkout opens right after");
+    expect(text()).toContain("Continue in your browser");
+    expect(text()).toContain("pick up your plan there");
+    expect(button("cancel")).toBeTruthy();
     expect(button("Open checkout again")).toBeUndefined();
-    button("Sign in")!.click();
+    button("Open again")!.click();
     await settle();
     expect(signIn).toHaveBeenCalledTimes(1);
     // signed in: main opens the checkout, and the sheet is the usual one again
