@@ -38,9 +38,11 @@ if (dl) {
   const go = $('[data-os-link]', dl), label = $('[data-os-label]', dl), note = $('[data-os-note]', dl), mark = $('.dl-os', dl);
   if (go && mine !== 'mac') {
     const pick = $(`template[data-for="${mine}"]`, dl) || $('template[data-for="phone"]', dl);
-    if (row) mark.replaceChildren($('.os', row).cloneNode(true));
-    if (mine === 'windows' || mine === 'linux') {
-      go.href = go.dataset[mine]; label.textContent = `download for ${mine}`;
+    const desktop = mine === 'windows' || mine === 'linux';
+    // a system with no build yet keeps the mac button, and the note says it is coming
+    if (row && (!desktop || go.dataset[mine])) mark.replaceChildren($('.os', row).cloneNode(true));
+    if (desktop) {
+      if (go.dataset[mine]) { go.href = go.dataset[mine]; label.textContent = `download for ${mine}`; }
     } else {
       label.textContent = 'send this page to my computer';
       go.addEventListener('click', async (e) => {

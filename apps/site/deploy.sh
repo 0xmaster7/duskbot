@@ -8,7 +8,7 @@
 #   apps/site/deploy.sh [all]      # both
 # before launch dusk.bot is the waitlist and nothing else: the landing build runs with DUSK_WAITLIST_HOME=1, its stage
 # keeps only the waitlist at /, its files, the privacy, terms and cookies pages (sign-in links to them), help and
-# account deletion (the app stores link to them), the license
+# account deletion (the app stores link to them), the download page (unlisted, handed to invited people), the license
 # page (the LICENSE notice links to it) and the own server guide (the installer prints its address), and the server sends every other page to / (DUSK_HOME_ONLY). at launch deploy it with DUSK_WAITLIST_HOME=0 for the full site.
 # DUSK_REPO is the Dusk Bot checkout (pages read docs/legal there); INSTALLER overrides where install.sh comes from.
 # the landing app's env (mongodb + brevo for the waitlist, names in .env.example) is built from the [landing] part of
@@ -59,7 +59,7 @@ for row in "${SITES[@]}"; do
     # dusk.bot is the waitlist only: every other page, the search index files and the redirect list go; the server
     # sends any page that is not here to /
     pub="$dir/public/landing"
-    find "$pub" -name '*.html' ! -path "$pub/index.html" ! -path "$pub/privacy/index.html" ! -path "$pub/terms/index.html" ! -path "$pub/cookies/index.html" ! -path "$pub/license/index.html" ! -path "$pub/docs/your-own-server/index.html" ! -path "$pub/support/index.html" ! -path "$pub/delete-account/index.html" -delete
+    find "$pub" -name '*.html' ! -path "$pub/index.html" ! -path "$pub/privacy/index.html" ! -path "$pub/terms/index.html" ! -path "$pub/cookies/index.html" ! -path "$pub/license/index.html" ! -path "$pub/docs/your-own-server/index.html" ! -path "$pub/support/index.html" ! -path "$pub/delete-account/index.html" ! -path "$pub/download/index.html" -delete
     rm -rf "$pub/sitemaps" "$pub/docs/search.json" "$pub/_redirects.json" "$pub/_gone.json"
     find "$pub" -maxdepth 1 -regex '.*/[0-9a-f]\{32\}\.txt' -delete
     find "$pub" -type d -empty -delete

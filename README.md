@@ -9,14 +9,13 @@ Text them like contacts. They browse, click, run routines on a schedule and ask 
 on the Claude, ChatGPT, Gemini or Grok you already use.</p>
 
 <p>
-<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><b>Download for Mac</b></a> &nbsp;·&nbsp;
-<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><b>Windows</b></a> &nbsp;·&nbsp;
-<a href="https://github.com/DuskBotAI/duskbot/releases/latest"><b>Linux</b></a> &nbsp;·&nbsp;
+<a href="https://dusk.bot/download"><b>Download for Mac</b></a> &nbsp;·&nbsp;
+Windows and Linux coming soon &nbsp;·&nbsp;
 <a href="https://dusk.bot">dusk.bot</a> &nbsp;·&nbsp;
 <a href="https://dusk.bot/docs">Docs</a>
 </p>
 
-<sub>v0.2.0 "first light" · free forever for personal use · source available · a free Grok bot alternative</sub>
+<sub>v0.2.6 · free forever for personal use · source available · a free Grok bot alternative</sub>
 
 </div>
 
