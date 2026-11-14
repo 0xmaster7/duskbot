@@ -21,6 +21,8 @@ import { clientIp, rateIp } from "../client-ip.ts";
  *  account (signups) only get newAddressShare of it, so a spray of made-up addresses never locks existing people out */
 export const AUTH_LIMITS = { nativeApplePerIp: 300, startsPerIp: 60, startsPerEmail: 6, emailsPerAddressPerDay: 12, verifiesPerIp: 600, oauthPerIp: 600, deviceAuthorizePerIp: 300,
   mailPerHour: 120, mailPerDay: 250, newAddressShare: 0.8, handoffsPerSession: 60, handoffsPerIp: 600 };
+/** App Review's fixed-code address (DUSK_REVIEW_EMAIL): starts an hour and a day */
+export const REVIEW_LIMITS = { startsPerHour: 30, startsPerDay: 120 };
 /** a web handoff link: how long it lives, and how many one account holds unredeemed at once (older ones are dropped) */
 export const HANDOFF_TTL_MS = 120_000, HANDOFF_OUTSTANDING = 5;
 
@@ -270,9 +272,11 @@ export function createAuth(options: AuthOptions) {
     // the resend wait, by its own clock: the sweep that drops it runs only once a minute
     if ((sentAt.get(email) ?? -Infinity) + EMAIL_RESEND_SECONDS * 1000 > now()) fail(429, "rate_limited");
     rate(`start:${ip(req)}`, AUTH_LIMITS.startsPerIp);
-    rate(`email:${email}`, AUTH_LIMITS.startsPerEmail);
-    rate(`email-day:${email}`, AUTH_LIMITS.emailsPerAddressPerDay, day);
-    if (app && options.review && email === options.review.email && data.recover === undefined) {
+    // App Review's address sends no mail and is tried by several reviewers and devices: roomier limits, still far too few to guess its code
+    const review = app && options.review && email === options.review.email && data.recover === undefined;
+    rate(`email:${email}`, review ? REVIEW_LIMITS.startsPerHour : AUTH_LIMITS.startsPerEmail);
+    rate(`email-day:${email}`, review ? REVIEW_LIMITS.startsPerDay : AUTH_LIMITS.emailsPerAddressPerDay, day);
+    if (review && options.review) {
       sentAt.set(email, now());
       const attempt = random();
       attempts.set(hash(attempt), { email, codeHash: hmac(`${attempt}:${options.review.code}`), device, expiresAt: now() + EMAIL_CODE_TTL_SECONDS * 1000, tries: 0 });

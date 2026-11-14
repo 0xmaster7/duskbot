@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDashboardApp, type DashboardAppOptions } from "../app.ts";
-import { AUTH_LIMITS, HANDOFF_OUTSTANDING, HANDOFF_TTL_MS, reviewAccountFromEnv } from "./index.ts";
+import { AUTH_LIMITS, HANDOFF_OUTSTANDING, HANDOFF_TTL_MS, REVIEW_LIMITS, reviewAccountFromEnv } from "./index.ts";
 import { memoryMailer } from "./mail.ts";
 import { createCloudAccountClient } from "../../../../electron/cloud-account.mjs";
 import { verifyLinkGrant } from "../../../link-service/src/grant.mjs";
@@ -689,7 +689,9 @@ describe("local account service", () => {
       const { attempt } = await body<EmailStartAnswer>(await appStart(reviewer));
       for (let tries = 0; tries < 5; tries++) expect((await call("/api/cloud/app/sign-in/verify", { attempt, code: "00000000" })).status).toBe(400);
       expect((await call("/api/cloud/app/sign-in/verify", { attempt, code: reviewCode })).status).toBe(410);
-      for (let starts = 0; starts < AUTH_LIMITS.startsPerEmail; starts++) { time += 31_000; await appStart(reviewer); }
+      // roomier than an ordinary address (several reviewers and devices), still a hard hourly cap; the web start above counts too
+      expect(REVIEW_LIMITS.startsPerHour).toBeGreaterThan(AUTH_LIMITS.startsPerEmail);
+      for (let starts = 2; starts < REVIEW_LIMITS.startsPerHour; starts++) { time += 31_000; expect((await appStart(reviewer)).status).toBe(200); }
       time += 31_000;
       expect((await appStart(reviewer)).status).toBe(429);
     });
