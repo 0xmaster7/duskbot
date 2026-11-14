@@ -48,11 +48,14 @@ function capture() {
     { test: "scripts/testing/surface-gallery.e2e.test.ts", env: { DUSK_SURFACES_ONLY: KEY_SURFACES.join(","), DUSK_SURFACES_SKINS: SKINS, DUSK_SURFACES_VIEWPORTS: VIEWPORTS } },
     { test: "scripts/testing/chat-gallery.e2e.test.ts", env: { DUSK_GALLERY_ONLY: KEY_CHATS.join(","), DUSK_GALLERY_SKINS: SKINS, DUSK_GALLERY_VIEWPORTS: VIEWPORTS, DUSK_GALLERY_MODES: "still" } },
   ];
+  const failed: string[] = [];
   for (const run of runs) {
-    // the galleries' own layout checks may fail; the pictures are still written, and the diff is what this run is for
+    // a gallery's hard checks (overlap, clipping, a modal whose scrim leaves part of the window uncovered, no focus look)
+    // fail this run too; its pictures are still written and diffed first, so both reports come out
     const result = spawnSync("pnpm", ["exec", "vitest", "run", run.test], { cwd: REPO_ROOT, env: { ...env, ...run.env }, stdio: "inherit" });
-    if (result.status !== 0) console.warn(`${run.test} reported layout issues (see its report.json); diffing what it drew`);
+    if (result.status !== 0) failed.push(run.test);
   }
+  return failed;
 }
 
 function compare(name: string): { changed: number; total: number; sized: boolean } {
@@ -80,18 +83,22 @@ function compare(name: string): { changed: number; total: number; sized: boolean
   return { changed, total, sized: true };
 }
 
-if (!diffOnly) capture();
+const galleryFailures = diffOnly ? [] : capture();
+function finish(code: number): never {
+  if (galleryFailures.length) console.error(`\nlayout checks failed in ${galleryFailures.join(", ")} (overlaps, clipping or a modal not covering the whole window): see the run above`);
+  process.exit(code || (galleryFailures.length ? 1 : 0));
+}
 const shots = readdirSync(dir).filter((file) => file.endsWith(".png") && (!named.length || named.some((one) => file.startsWith(one))));
 
 if (approve) {
   mkdirSync(BASELINE, { recursive: true });
   for (const shot of shots) copyFileSync(join(dir, shot), join(BASELINE, shot));
   console.log(`approved ${shots.length} shots into ${BASELINE}`);
-  process.exit(0);
+  finish(0);
 }
 
 const approved = existsSync(BASELINE) ? readdirSync(BASELINE).filter((file) => file.endsWith(".png") && (!named.length || named.some((one) => file.startsWith(one)))) : [];
-if (!approved.length) { console.error(`no approved shots in ${BASELINE}: run with --approve once a person has looked`); process.exit(1); }
+if (!approved.length) { console.error(`no approved shots in ${BASELINE}: run with --approve once a person has looked`); finish(1); }
 const problems: string[] = [];
 for (const shot of approved) {
   if (!existsSync(join(dir, shot))) { problems.push(`${shot}: not captured this run`); continue; }
@@ -103,6 +110,7 @@ const fresh = shots.filter((shot) => !approved.includes(shot));
 if (fresh.length) console.log(`not in the baseline yet (approve them once checked): ${fresh.join(", ")}`);
 if (problems.length) {
   console.error(`\n${problems.length} of ${approved.length} shots differ from the approved look:\n  ${problems.join("\n  ")}\n\nLook at the pictures in ${join(dir, "visual-diff")}. If the change is wanted, approve it: pnpm ui:baseline -- --diff-only --approve <names>`);
-  process.exit(1);
+  finish(1);
 }
 console.log(`all ${approved.length} shots match the approved look`);
+finish(0);
