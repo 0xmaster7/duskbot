@@ -269,9 +269,11 @@ export function AdminApp() {
     );
   }
   return (
-    <div className="min-h-[100dvh] bg-bg">
+    <div className="min-h-[100dvh] bg-bg lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
       <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-ink">skip to content</a>
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-[220px] flex-col gap-6 overflow-y-auto overscroll-contain bg-side px-3 pb-4 pt-5 max-lg:hidden">{side()}</aside>
+      <div className="bg-side max-lg:hidden">
+        <aside className="sticky top-0 z-20 flex h-[100dvh] flex-col gap-6 overflow-y-auto overscroll-contain px-3 pb-4 pt-5">{side()}</aside>
+      </div>
       <header className="sticky top-0 z-20 box-content flex h-14 items-center gap-1 bg-bg/95 px-3 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
         <button ref={menuButton} type="button" onClick={() => setDrawer(true)} aria-label="open menu" aria-expanded={drawer} className="press hover-ghost grid size-11 place-items-center rounded-full text-ink-2"><Menu size={20} strokeWidth={1.75} /></button>
         <Link to="/admin" className="flex min-w-0 items-center gap-2" aria-label="dusk bot admin, home"><img src={mark} alt="" width={22} height={22} className="size-[22px]" /><span className="text-[15px] font-[550] tracking-[-0.02em]">dusk bot</span><span className="tag !h-[22px] !px-2">admin</span></Link>
@@ -287,7 +289,7 @@ export function AdminApp() {
           </div>
         )}
       </AnimatePresence>
-      <main id="admin-main" className="lg:ps-[220px]">
+      <main id="admin-main" className="min-w-0">
         <div key={`${scope}`} className="mx-auto w-full max-w-[1280px] px-10 pb-24 pt-8 max-lg:px-5 max-lg:pt-4 max-sm:px-4">
           {me.data && <StagingTag environment={me.data.environment} live={me.data.live} />}
           {section && section.id !== "home" && (

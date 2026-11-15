@@ -46,7 +46,7 @@ function Stat({ label, value, sub, step, money, href }: { label: string; value: 
         <span className="truncate">{label}</span>
         {step !== undefined && <span className="shrink-0 font-mono text-[11.5px] text-ink-4 num" title="of the step before">{step ?? ""}</span>}
       </span>
-      <span className={cx("mt-1.5 block h-9 font-mono text-[28px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>
+      <span className={cx("mt-1.5 block h-9 whitespace-nowrap font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>
         {value === null ? <span className="inline-block h-7 w-20 animate-pulse rounded-[8px] bg-card-2 align-middle" data-skeleton aria-label="loading" /> : <Digits text={value} />}
       </span>
       <span className="mt-1 block h-[18px] truncate text-12 leading-[18px] text-ink-3">{sub}</span>
@@ -67,10 +67,10 @@ function Pulse({ days }: { days: Days }) {
   const month = revenue.data?.months.at(-1);
   return (
     <section aria-label="the funnel and money" className="rounded-[26px] bg-card p-1.5">
-      <div className="grid grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.1fr)_minmax(0,1.1fr)] gap-1 max-xl:grid-cols-3 max-sm:grid-cols-2">
+      <div className="grid grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.45fr)_minmax(0,1.45fr)] gap-1 max-xl:grid-cols-3 max-sm:grid-cols-2">
         <Stat label="visitors" value={visitors === null ? null : n(visitors)} sub={`in ${days} days`} href="/admin/people/visitors" />
         <Stat label="signups" value={signups === null ? null : n(signups)} step={rate(signups, visitors)} sub={signups === null ? "" : `${rate(signups, visitors) ?? "-"} of visitors`} href="/admin/people" />
-        <Stat label="activated" value={activated === null ? null : n(activated)} step={rate(activated, signups)} sub={replied === null ? "" : `${n(replied)} got a bot reply`} href="/admin/retention" />
+        <Stat label="activated" value={activated === null ? null : n(activated)} step={rate(activated, signups)} sub={replied === null ? "" : `${n(replied)} got a reply`} href="/admin/retention" />
         <Stat label="paying" value={live ? n(live.customers) : null} step={rate(paidInWindow, activated)} sub={paidInWindow === null ? "" : `${n(paidInWindow)} paid in ${days} days`} href="/admin/payments" />
         <div className="rounded-[18px] bg-wash-lime max-xl:col-span-1">
           <Stat money label="mrr" value={live ? usd(live.mrr) : null} sub={live ? `${usd(live.mrr * 12)} a year` : ""} href="/admin/payments" />
@@ -215,7 +215,7 @@ function NewPeople() {
   const { data, error, reload } = useAdmin<{ total: number; users: UserRow[] }>(USERS_ALL);
   const now = useNow(60_000);
   return (
-    <Panel title="newest accounts" to="/admin/people">
+    <Panel title="newest accounts" to="/admin/people" className="h-full">
       {error ? <Failed error={error} retry={reload} /> : !data ? <Rows n={5} /> : data.users.length ? (
         <ul className="flex flex-col">
           {data.users.slice(0, 5).map((u) => {
@@ -247,7 +247,7 @@ function NewPayments({ days }: { days: Days }) {
   const now = useNow(60_000);
   const rows = data?.feed.filter((f) => PAY_KINDS.has(f.kind)).slice(0, 5) ?? [];
   return (
-    <Panel title="latest money" to="/admin/payments">
+    <Panel title="latest money" to="/admin/payments" className="h-full">
       {error ? <Failed error={error} retry={reload} /> : !data ? <Rows n={5} /> : rows.length ? (
         <ul className="flex flex-col">
           {rows.map((f) => {
@@ -277,7 +277,7 @@ function Daily({ days }: { days: Days }) {
   const max = Math.max(1, ...v);
   const at = hover ?? v.length - 1;
   return (
-    <section aria-label="visitors and signups per day" className="rounded-[24px] bg-card p-1.5">
+    <section aria-label="visitors and signups per day" className="flex h-full flex-col rounded-[24px] bg-card p-1.5">
       <div className="flex min-h-10 flex-wrap items-center justify-between gap-3 px-3">
         <h2 className="text-14 font-medium text-ink">every day</h2>
         <span className="flex items-center gap-3 font-mono text-12 text-ink-3 num">
@@ -286,7 +286,7 @@ function Daily({ days }: { days: Days }) {
           <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-[2px] bg-coral-deep" aria-hidden />{n(s[at] ?? 0)} signups</span>
         </span>
       </div>
-      <div className="h-[120px] rounded-[18px] bg-pop px-3 pb-2 pt-3">
+      <div className="min-h-[120px] flex-1 rounded-[18px] bg-pop px-3 pb-2 pt-3">
         {data ? (
           <svg viewBox={`0 0 ${v.length * 10} 100`} preserveAspectRatio="none" className="block h-full w-full" aria-hidden onMouseLeave={() => setHover(null)}>
             {v.map((value, i) => {
