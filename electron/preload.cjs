@@ -682,6 +682,7 @@ const bridge = {
     state: () => ipcRenderer.invoke("app-update:state"),
     restart: () => ipcRenderer.invoke("app-update:restart"),
     download: () => ipcRenderer.invoke("app-update:download"),
+    seen: () => ipcRenderer.invoke("app-update:seen"),
     onState: cb => {
       const handler = (_event, state) => cb(state);
       ipcRenderer.on("app-update:changed", handler);

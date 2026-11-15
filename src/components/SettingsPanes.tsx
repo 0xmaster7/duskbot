@@ -14,6 +14,7 @@ import type { LocaleKey } from "@/locales";
 import { productName } from "../lib/brand";
 import { AccountsSheet, useAccounts } from "./AccountMenu";
 import { AboutDialog } from "./AboutDialog";
+import { AppVersionRow } from "./AppVersionRow";
 import { AdminOnly } from "./AdminOnly";
 import { AmbientRows } from "./AmbientSettingsRows";
 import { BotDefaultsRows } from "./SettingsBots";
@@ -351,7 +352,7 @@ export function UpdatesPane() {
     <>
       <SettingsGroup label={t("settings.grok.group.version")} block="updates">
         <SettingsRows>
-          <ServerUpdatesRow />
+          <AppVersionRow fallback={<ServerUpdatesRow />} />
         </SettingsRows>
       </SettingsGroup>
       <HelpGroup />

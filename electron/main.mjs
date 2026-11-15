@@ -91,7 +91,7 @@ import {
 import capabilitiesModule from "./capabilities.cjs";
 import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
-import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { installReloadKeys } from "./reload-keys.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs"; import { createDemoUpdater, demoUpdateFlag } from "./app-update-demo.mjs";
+import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { installReloadKeys } from "./reload-keys.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller, justUpdated } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs"; import { createDemoUpdater, demoUpdateFlag } from "./app-update-demo.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
@@ -3637,27 +3637,31 @@ process.once("SIGTERM", requestSignalQuit);
 
 // the mac app installs its own updates when it is Developer ID signed (electron/app-update.mjs); elsewhere, and on an
 // unsigned build, the notice says a release is out
-let appUpdater = null;
+let appUpdater = null, appUpdatedTo = null;
+const appUpdateState = () => ({ ...(appUpdater?.state() ?? { ready: null, available: null, progress: null }), mode: appUpdater ? "self" : app.isPackaged ? "notice" : "dev", updated: appUpdatedTo });
+const tellAppUpdate = () => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("app-update:changed", appUpdateState()); };
 function startDemoUpdates() {
   const flag = demoUpdateFlag(app.getPath("userData"));
   if (!fs.existsSync(flag)) return;
-  appUpdater = createDemoUpdater({ flag, relaunch: relaunchAfterDesktopRemoteChange,
-    onState: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("app-update:changed", state); } });
+  appUpdater = createDemoUpdater({ flag, relaunch: relaunchAfterDesktopRemoteChange, onState: tellAppUpdate });
   appUpdater.start();
 }
 function startAppUpdates(notice) {
+  const updateDir = path.join(app.getPath("userData"), "app-update");
+  if (justUpdated(jsonFile(path.join(app.getPath("userData"), "app-version.json")), app.getVersion(), () => fs.existsSync(path.join(updateDir, `DuskBot-${app.getVersion()}-${process.arch}.zip`)))) appUpdatedTo = app.getVersion();
   if (process.platform !== "darwin") { notice.start(); return; }
   const bundle = path.resolve(path.dirname(app.getPath("exe")), "..", "..");
-  const signals = quietSignals({ powerMonitor, window: () => mainWindow, lastInput: () => oneHome.lastInput(), local: localServerRequest, place: () => null,
-    cloudFetch: (...args) => session.defaultSession.fetch(...args), asleep: () => true, busy: () => null });
-  appUpdater = createAppUpdater({ current: app.getVersion(), arch: process.arch, dir: path.join(app.getPath("userData"), "app-update"), signed: () => developerIdSigned(bundle),
-    installer: squirrelInstaller({ autoUpdater }), quiet: () => quietNow(signals), fallback: notice, log: slog,
-    onState: (state) => { if (mainWindow && !mainWindow.isDestroyed() && senderIsLocal({ sender: mainWindow.webContents })) mainWindow.webContents.send("app-update:changed", state); } });
+  const signals = quietSignals({ focused: () => Boolean(BrowserWindow.getFocusedWindow()), powerMonitor, window: () => mainWindow, lastInput: () => oneHome.lastInput(), local: localServerRequest, place: () => null,
+    cloudFetch: (...args) => session.defaultSession.fetch(...args), asleep: () => true, busy: () => (speechBusy() ? "dictation" : null) });
+  appUpdater = createAppUpdater({ current: app.getVersion(), arch: process.arch, dir: updateDir, signed: () => developerIdSigned(bundle),
+    installer: squirrelInstaller({ autoUpdater }), quiet: () => quietNow(signals), fallback: notice, log: slog, onState: tellAppUpdate });
   appUpdater.start();
+  powerMonitor.on("resume", () => appUpdater?.soon?.());
 }
-ipcMain.handle("app-update:state", localOnly("app-update:state", () => appUpdater?.state() ?? { ready: null, available: null, progress: null }));
+ipcMain.handle("app-update:state", localOnly("app-update:state", appUpdateState));
 ipcMain.handle("app-update:restart", localOnly("app-update:restart", () => appUpdater?.restart() ?? false));
 ipcMain.handle("app-update:download", localOnly("app-update:download", () => appUpdater?.check() ?? null));
+ipcMain.handle("app-update:seen", localOnly("app-update:seen", () => { if (appUpdatedTo) { appUpdatedTo = null; tellAppUpdate(); } }));
 
 app.on("before-quit", (e) => {
   talk.close(); ambientSurfaces.close();

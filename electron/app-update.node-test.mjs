@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { createAppUpdater, DESKTOP_MANIFEST_URL, quietNow, RELEASE_KEYS, sumsUrl, verifiedRelease, zipIn, zipUrl } from "./app-update.mjs";
+import { createAppUpdater, DESKTOP_MANIFEST_URL, justUpdated, quietNow, RELEASE_KEYS, sumsUrl, verifiedRelease, zipIn, zipUrl } from "./app-update.mjs";
 
 const { privateKey } = generateKeyPairSync("ed25519");
 const keys = [{ kid: "test-desk", x: createPublicKey(privateKey).export({ format: "jwk" }).x }];
@@ -47,9 +47,10 @@ test("a newer signed release is downloaded, checked against the signed sums, and
   assert.equal(w.prepared.length, 1);
   assert.equal(w.prepared[0].v, "1.1.0");
   assert.equal(w.prepared[0].bytes.toString(), "zip bytes");
-  assert.deepEqual(w.states.at(0), { ready: null, available: "1.1.0", progress: 0 });
-  assert.deepEqual(w.states.at(-1), { ready: "1.1.0", available: "1.1.0", progress: null });
-  assert.deepEqual(w.updater.state(), { ready: "1.1.0", available: "1.1.0", progress: null });
+  assert.deepEqual(w.states.at(0), { ready: null, available: null, progress: null, checking: true, failed: false });
+  assert.deepEqual(w.states.find((s) => s.available), { ready: null, available: "1.1.0", progress: 0, checking: true, failed: false });
+  assert.deepEqual(w.states.at(-1), { ready: "1.1.0", available: "1.1.0", progress: null, checking: false, failed: false });
+  assert.deepEqual(w.updater.state(), { ready: "1.1.0", available: "1.1.0", progress: null, checking: false, failed: false });
   assert.equal(w.told, 0);
   done(w);
 });
@@ -95,12 +96,14 @@ test("nothing newer, nothing done; an installer that fails falls back to the not
   const same = world({ current: "1.1.0" });
   assert.equal(await same.updater.check(), null);
   assert.equal(same.told, 0);
+  assert.deepEqual(same.updater.state(), { ready: null, available: null, progress: null, checking: false, failed: false });
+  assert.deepEqual(same.states.map((s) => s.checking), [true, false], "a check is never silent: the window hears it start and end");
   done(same);
   const broken = world({ prepare: async () => { throw new Error("Could not get code signature for running application"); } });
   assert.equal(await broken.updater.check(), null);
   assert.equal(broken.told, 1);
   assert.equal(broken.states.some((s) => s.ready), false);
-  assert.deepEqual(broken.updater.state(), { ready: null, available: "1.1.0", progress: null });
+  assert.deepEqual(broken.updater.state(), { ready: null, available: "1.1.0", progress: null, checking: false, failed: true });
   done(broken);
 });
 
@@ -116,7 +119,7 @@ test("the download's progress reaches the window in whole percents, and a failed
   let fail = true;
   const retry = world({ prepare: async () => { if (fail) { fail = false; throw new Error("busy"); } } });
   assert.equal(await retry.updater.check(), null);
-  assert.deepEqual(retry.updater.state(), { ready: null, available: "1.1.0", progress: null });
+  assert.deepEqual(retry.updater.state(), { ready: null, available: "1.1.0", progress: null, checking: false, failed: true });
   assert.equal(await retry.updater.check(), "1.1.0");
   assert.equal(retry.updater.state().ready, "1.1.0");
   done(retry);
@@ -139,6 +142,35 @@ test("quiet: away (locked, or idle and not typing) and nothing running", async (
   assert.equal(await quietNow(signals({ locked: () => true, work: async () => "bot" }), now), false);
   assert.equal(await quietNow(signals({ locked: () => true, work: async () => { throw new Error("no answer"); } }), now), false);
   assert.equal(await quietNow(signals({ locked: () => true, busy: () => "moving" }), now), false);
+  assert.equal(await quietNow(signals({ idleMs: () => 11 * 60_000, focused: () => true }), now), false, "a focused window is in use");
+  assert.equal(await quietNow(signals({ locked: () => true, focused: () => true }), now), true);
+  assert.equal(await quietNow(signals({ idleMs: () => 11 * 60_000, busy: () => "dictation" }), now), false);
+});
+
+test("the first check comes soon after launch, and a wake checks again soon", async () => {
+  const delays = [];
+  const w = world();
+  const updater = createAppUpdater({ current: "1.0.0", arch: "arm64", dir: w.dir, keys, signed: async () => false, installer: {}, quiet: async () => false, fallback: { check: async () => null },
+    timers: { setTimeout: (_fn, ms) => { delays.push(ms); return delays.length; }, clearTimeout: () => {} } });
+  updater.soon();
+  assert.deepEqual(delays, [], "nothing before start");
+  updater.start();
+  assert.ok(delays[0] <= 30_000, `first check after ${delays[0]}ms`);
+  updater.soon();
+  assert.equal(delays[1], 30_000);
+  done(w);
+});
+
+test("justUpdated says so once, for a newer version, and never on a first run unless this updater installed it", () => {
+  const memory = (version) => { const m = { saved: version === undefined ? undefined : { version }, read: () => { if (!m.saved) throw new Error("ENOENT"); return m.saved; }, write: (v) => { m.saved = v; } }; return m; };
+  const older = memory("0.2.12");
+  assert.equal(justUpdated(older, "0.2.13"), true);
+  assert.equal(justUpdated(older, "0.2.13"), false);
+  assert.equal(justUpdated(memory("0.2.13"), "0.2.12"), false);
+  const fresh = memory();
+  assert.equal(justUpdated(fresh, "0.2.13"), false);
+  assert.deepEqual(fresh.saved, { version: "0.2.13" });
+  assert.equal(justUpdated(memory(), "0.2.13", () => true), true);
 });
 
 test("Squirrel.Mac gets the verified zip from a feed on 127.0.0.1 at an unguessable path, closed once it unpacked", async () => {

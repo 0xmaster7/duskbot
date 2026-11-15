@@ -10,6 +10,7 @@ async function answer(response) {
 
 /**
  * @param {{
+ *   focused(): boolean,
  *   powerMonitor: { getSystemIdleTime(): number, getSystemIdleState(threshold: number): string, on(event: string, listener: () => void): unknown },
  *   window(): null | { isDestroyed(): boolean, isVisible(): boolean, isMinimized(): boolean },
  *   lastInput(): number,
@@ -21,12 +22,14 @@ async function answer(response) {
  * }} deps `local`: this computer's server, as its owner. `place`: the origin of My Cloud or a team while the window shows
  * it, where a Live call in this window runs; `asleep`: that Cloud sleeps, so no call runs there, and asking would wake it.
  */
-export function quietSignals({ powerMonitor, window, lastInput, local, place, cloudFetch, asleep, busy }) {
+export function quietSignals({ focused = () => false, powerMonitor, window, lastInput, local, place, cloudFetch, asleep, busy }) {
   const timeout = () => AbortSignal.timeout(10_000);
   return {
     locked: () => powerMonitor.getSystemIdleState(1) === "locked",
     idleMs: () => powerMonitor.getSystemIdleTime() * 1000,
     typedAt: lastInput,
+    /** A window of this app has the keyboard: the person may be reading or about to type. */
+    focused,
     shown() {
       const win = window();
       return Boolean(win && !win.isDestroyed() && (win.isVisible() || win.isMinimized()));

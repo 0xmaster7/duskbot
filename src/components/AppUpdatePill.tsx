@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowDownToLine, RefreshCw } from "lucide-react";
+import { ArrowDownToLine, Check, RefreshCw } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -39,7 +39,8 @@ export function AppUpdatePill({ className, bridge = ownBridge() }: { className?:
     setAsked(false);
     restartInto(bridge, setRestarting);
   }, [bridge, asked, ready]);
-  if (!bridge || !version) return null;
+  if (!bridge) return null;
+  if (!version) return update.updated ? <UpdatedNote version={update.updated} bridge={bridge} className={className} /> : null;
   const downloading = progress !== null || (asked && !ready);
   const percent = progress === null ? null : Math.round(progress * 100);
   const onClick = () => {
@@ -71,6 +72,29 @@ export function AppUpdatePill({ className, bridge = ownBridge() }: { className?:
         : <ArrowDownToLine size={13} aria-hidden="true" />}
       {ready ? t("appUpdate.restart") : downloading ? t("appUpdate.downloading", { version }) : t("appUpdate.available", { version })}
       {percent !== null && <span className="tabular-nums text-ink-secondary">{t("appUpdate.percent", { percent })}</span>}
+    </button>
+  );
+}
+
+const NOTE_MS = 20_000;
+
+function UpdatedNote({ version, bridge, className }: { version: string; bridge: AppUpdateBridge; className?: string }) {
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const look = () => { if (!timer && document.visibilityState === "visible") timer = setTimeout(() => void bridge.seen?.(), NOTE_MS); };
+    look();
+    document.addEventListener("visibilitychange", look);
+    return () => { clearTimeout(timer); document.removeEventListener("visibilitychange", look); };
+  }, [bridge]);
+  return (
+    <button
+      type="button"
+      data-app-updated={version}
+      onClick={() => void bridge.seen?.()}
+      className={cn("flex items-center gap-1.5 rounded-full px-3 py-[5px] text-[12.5px] leading-4 text-ink-secondary transition-colors duration-150 ease-out hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", className)}
+    >
+      <Check size={13} aria-hidden="true" />
+      {t("updates.updated", { version })}
     </button>
   );
 }

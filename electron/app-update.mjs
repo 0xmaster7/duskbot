@@ -3,8 +3,8 @@
 // sums, and handed to Electron's autoUpdater (Squirrel.Mac) through a feed on 127.0.0.1 that only this process knows.
 // Squirrel.Mac installs only an app signed with the same Developer ID as the running one (its designated requirement),
 // so an unsigned or ad-hoc build keeps the old behaviour: one notification that opens the download page.
-// a downloaded update installs when the app quits, or at a quiet moment (locked, or idle with no work running), and the
-// app shows "restart to update" while it waits.
+// a downloaded update installs when the app quits, or at a quiet moment (locked, or no window focused and nobody touched
+// the mac for QUIET_IDLE_MS, with no turn, call or dictation running), and the app shows "restart to update" while it waits.
 import { execFile } from "node:child_process";
 import { createHash, createPublicKey, randomBytes, verify } from "node:crypto";
 import { createReadStream, createWriteStream, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
@@ -111,24 +111,37 @@ export function squirrelInstaller({ autoUpdater, timeoutMs = 15 * 60_000 }) {
 
 /**
  * quiet enough to restart: nothing runs on this computer's server or in a call (update-when-quiet-main.mjs quietSignals),
- * and the screen is locked or nobody touched this mac or typed in the app for QUIET_IDLE_MS
+ * and the screen is locked, or no window of this app is focused and nobody touched this mac or typed in the app for
+ * QUIET_IDLE_MS
  */
 export async function quietNow(signals, now = Date.now()) {
   if (signals.busy?.()) return false;
-  const away = signals.locked() || (signals.idleMs() >= QUIET_IDLE_MS && now - (signals.typedAt() ?? 0) >= QUIET_IDLE_MS);
+  const away = signals.locked() || (!signals.focused?.() && signals.idleMs() >= QUIET_IDLE_MS && now - (signals.typedAt() ?? 0) >= QUIET_IDLE_MS);
   if (!away) return false;
   try { return (await signals.work()) === null; } catch { return false; }
+}
+
+/**
+ * whether this launch is the first of a newer version (so the window can say "updated to" once); remembers `current`.
+ * with nothing remembered (a version before this one did not), `installedHere` says this updater left `current`'s zip.
+ */
+export function justUpdated(memory, current, installedHere = () => false) {
+  let before = null;
+  try { before = memory.read()?.version ?? null; } catch { /* first run, or unreadable */ }
+  if (before === current) return false;
+  try { memory.write({ version: current }); } catch { /* says it again next time */ }
+  return typeof before === "string" ? newer(current, before) : installedHere();
 }
 
 /**
  * keeps the mac app current. `signed()`: whether this build can install updates (developerIdSigned); when it can't, or
  * anything on the way fails, `fallback.check()` (update-notice.mjs) tells the person instead. `onState({ ready })` says
  * a downloaded version waits for a restart; `available` names a newer version found, and `progress` (0 to 1) its download
- * while it runs.
+ * while it runs; `checking` while a check runs, and `failed` when the last one could not finish.
  */
-export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys = RELEASE_KEYS, signed, installer, quiet, fallback, onState = () => {}, log = () => {}, firstDelayMs = 2 * 60_000, intervalMs = HOUR_MS, jitterMs = JITTER_MS, random = Math.random, quietEveryMs = 60_000, timers = globalThis }) {
-  let ready = null, available = null, progress = null, timer = null, quietTimer = null, checking = null, installing = false;
-  const state = () => ({ ready, available, progress });
+export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys = RELEASE_KEYS, signed, installer, quiet, fallback, onState = () => {}, log = () => {}, firstDelayMs = 20_000, intervalMs = HOUR_MS, jitterMs = JITTER_MS, random = Math.random, quietEveryMs = 60_000, timers = globalThis }) {
+  let ready = null, available = null, progress = null, timer = null, quietTimer = null, checking = null, installing = false, failed = false;
+  const state = () => ({ ready, available, progress, checking: checking !== null, failed });
   const tell = () => onState(state());
 
   async function text(url, limit) {
@@ -184,12 +197,15 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
   }
 
   function check() {
-    checking ??= run().catch(async (error) => {
-      if (available) tell();
+    if (checking) return checking;
+    failed = false;
+    checking = run().catch(async (error) => {
+      failed = true;
       log(`app update: ${error instanceof Error ? error.message : String(error)}; telling the person instead`);
       await fallback.check();
       return null;
-    }).finally(() => { checking = null; });
+    }).finally(() => { checking = null; tell(); });
+    tell();
     return checking;
   }
 
@@ -214,13 +230,19 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
     return true;
   }
 
+  const again = (delay) => { timer = timers.setTimeout(() => { void check().finally(() => again(intervalMs + Math.floor(random() * jitterMs))); }, delay); timer?.unref?.(); };
   return {
     check, restart,
     state,
     start() {
       if (timer) return;
-      const again = (delay) => { timer = timers.setTimeout(() => { void check().finally(() => again(intervalMs + Math.floor(random() * jitterMs))); }, delay); timer?.unref?.(); };
       again(firstDelayMs);
+    },
+    /** checks again after `delayMs` (the mac woke: the network needs a moment), then hourly from there */
+    soon(delayMs = 30_000) {
+      if (!timer) return;
+      timers.clearTimeout(timer);
+      again(delayMs);
     },
     stop() { if (timer) timers.clearTimeout(timer); if (quietTimer) timers.clearTimeout(quietTimer); timer = quietTimer = null; },
   };
