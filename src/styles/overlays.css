@@ -56,6 +56,21 @@
 /* the select menus (SettingsSelect, SelectPill) open as the dashboard's do: a soft 180ms fade and grow, out in 120ms */
 [role="listbox"]:is([data-settings-listbox], [data-panel-listbox]).animate-pop-in { animation-duration: 180ms; }
 [role="listbox"]:is([data-settings-listbox], [data-panel-listbox]).animate-pop-out { animation-duration: 120ms; }
+/* the model picker grows from its trigger with no travel: .97 and a fade over 160ms, out at .99 over 120ms */
+@keyframes overlay-picker-in { from { opacity: 0; transform: scale(0.97); } }
+@keyframes overlay-picker-out { to { opacity: 0; transform: scale(0.99); } }
+[role="dialog"][data-model-picker-content].animate-pop-in { animation: overlay-picker-in 160ms var(--ease-out-bencho); }
+[role="dialog"][data-model-picker-content].animate-pop-out { animation: overlay-picker-out 120ms var(--ease-out-bencho) forwards; }
+/* the sidebar's popover menus (profile, plus, a bot's menu): in from 4px at .97 over 150ms, out as a 100ms fade; a
+   submenu slides 4px out of its parent's side as it fades in */
+[role="menu"][data-sidebar-popover-menu].animate-pop-in { animation: overlay-menu-in 150ms var(--ease-out-bencho); }
+[role="menu"][data-sidebar-popover-menu].animate-pop-out { animation: overlay-fade-out 100ms var(--ease-out-bencho) forwards; }
+@keyframes overlay-submenu-in { from { opacity: 0; transform: translate3d(var(--sub-shift, -4px), 0, 0); } }
+[role="menu"][data-sidebar-popover-submenu] { animation: overlay-submenu-in 120ms var(--ease-out-bencho); }
+@media (prefers-reduced-motion: reduce) {
+  [role="menu"][data-sidebar-popover-submenu] { animation: overlay-fade-in 120ms ease-out; }
+}
+:root[data-reduced-motion="true"] [role="menu"][data-sidebar-popover-submenu] { animation: overlay-fade-in 120ms ease-out; }
 /* less movement, not less feedback: the same surfaces fade without scaling or travel */
 @media (prefers-reduced-motion: reduce) {
   :is([role="menu"], [role="listbox"], .popover-surface, .menu-surface, [role="dialog"]:not([aria-modal="true"], .ui-modal, .ui-dialog)).animate-pop-in {

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AnimatePresence } from "motion/react";
 import { Check, ChevronDown, ChevronRight, ChevronUp, Loader2, LogIn, Plus, RefreshCw, Search, Star, X } from "../icons";
 import type { Bot, InstanceInfo } from "@/state/store";
 import type { EffortLevel } from "../../shared/wire";
@@ -10,6 +11,8 @@ import { InstanceProviderMark } from "./ProviderIcons";
 import { MENU_GUTTER, MENU_ICON, MENU_LABEL, MENU_LINE, MENU_NOTE, MENU_ROW, MENU_SEPARATOR, MENU_STROKE, MENU_TRAILING, SIMPLE_MENU_META, SIMPLE_MENU_ROW } from "./menu-recipe";
 import { effortLabel } from "./ModelPicker";
 import { SlidingPills } from "./ui/SlidingPills";
+import { MotionDiv } from "./ui/SheetMotion";
+import { EASE_OUT, SPRING } from "@/lib/motion-presets";
 
 export type SimpleThinking =
   | { levels: readonly EffortLevel[]; current?: EffortLevel; onPick: (level: EffortLevel) => void; onReset: () => void }
@@ -242,6 +245,8 @@ function Scope({ scope, labelId }: { scope: NonNullable<SimpleModelMenuProps["sc
 
 export function SimpleModelMenu(props: SimpleModelMenuProps) {
   const { menu, query, idPrefix } = props;
+  // starring opens the row in Starred; filtering by typing changes it at once
+  const still = Boolean(query) || reducedMotionNow();
   const current = menu.current;
   const top = Boolean(current || menu.follow);
   return (
@@ -308,17 +313,25 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
           )}
           {top && (menu.starred.length > 0 || menu.groups.length > 0) && <div role="separator" className={MENU_SEPARATOR} />}
 
-          {menu.starred.length > 0 && (
-            <div role="group" aria-labelledby={`${idPrefix}-starred`} data-picker-starred="" className={cn("flex flex-col gap-0.5", menu.groups.length > 0 && "mb-1")}>
-              <div id={`${idPrefix}-starred`} className={MENU_LABEL}>
-                <Gutter><Star size={14} fill="currentColor" aria-hidden="true" className="text-ink-tertiary" /></Gutter>
-                <span className="min-w-0 truncate">{t("model.picker.starred")}</span>
-              </div>
-              {menu.starred.map(({ instance, provider, row }) => (
-                <MenuModel key={row.star} instance={instance} row={menu.groups.length > 1 ? { ...row, route: provider } : row} onPick={props.onPick} onToggleStar={props.onToggleStar} />
-              ))}
-            </div>
-          )}
+          <AnimatePresence initial={false}>
+            {menu.starred.length > 0 && (
+              <Unfold key="starred" still={still}>
+                <div role="group" aria-labelledby={`${idPrefix}-starred`} data-picker-starred="" className={cn("flex flex-col gap-0.5", menu.groups.length > 0 && "mb-1")}>
+                  <div id={`${idPrefix}-starred`} className={MENU_LABEL}>
+                    <Gutter><Star size={14} fill="currentColor" aria-hidden="true" className="text-ink-tertiary" /></Gutter>
+                    <span className="min-w-0 truncate">{t("model.picker.starred")}</span>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {menu.starred.map(({ instance, provider, row }) => (
+                      <Unfold key={row.star} still={still}>
+                        <MenuModel instance={instance} row={menu.groups.length > 1 ? { ...row, route: provider } : row} onPick={props.onPick} onToggleStar={props.onToggleStar} />
+                      </Unfold>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </Unfold>
+            )}
+          </AnimatePresence>
 
           {menu.groups.map((group, index) => {
             const labelId = `${idPrefix}-group-${index}`;
@@ -374,4 +387,26 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
       )}
     </div>
   );
+}
+
+/** A starred row (or the Starred group) opening by height on the layout spring, its contents fading in 60ms behind;
+ * leaving, it folds away in 150ms. */
+function Unfold({ still, children }: { still: boolean; children: ReactNode }) {
+  return (
+    <MotionDiv
+      className="overflow-hidden"
+      initial={still ? false : { height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1, transition: { height: SPRING.layout, opacity: { duration: 0.2, delay: 0.06, ease: EASE_OUT } } }}
+      exit={still ? { height: 0, opacity: 0, transition: { duration: 0 } } : { height: 0, opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } }}
+    >
+      {children}
+    </MotionDiv>
+  );
+}
+
+/** the app's reduced-motion switch or the system's, read without a hook (the menu body is also drawn as a plain call) */
+function reducedMotionNow(): boolean {
+  if (typeof document === "undefined" || typeof window === "undefined") return false;
+  if (document.documentElement.dataset.reducedMotion === "true") return true;
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
