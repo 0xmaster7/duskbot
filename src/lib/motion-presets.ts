@@ -55,6 +55,10 @@ export const SHEET_EXIT = { duration: 0.12, ease: [0.22, 1, 0.36, 1] } as const;
 /** pane push and pop: incoming slides 100% (pop: -30%), outgoing leaves -30% (pop: 100%), 200ms */
 export const WIPE = { duration: 0.2, ease: EASE.out, pushFrom: "100%", popFrom: "-30%" } as const;
 
+/** a side panel's page push and pop (the bot and room panels): 250ms on the out curve; the page underneath drifts 25%
+ * and fades as the new one covers it */
+export const PANEL_PUSH = { duration: 0.25, ease: EASE_OUT, pushFrom: "100%", under: "-25%" } as const;
+
 /** tooltips (ms): a first hover waits 400; leaving holds 140, then a 100ms fade. A trigger reached while one is up, within
  * 300ms of one closing, or by keyboard focus, shows at once. */
 export const TOOLTIP = { openDelay: 400, closeDelay: 140, exit: 100, warm: 300 } as const;

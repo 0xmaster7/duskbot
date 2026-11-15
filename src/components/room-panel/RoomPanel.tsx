@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { t } from "@/lib/i18n";
-import { SWAP, WIPE } from "@/lib/motion-presets";
+import { PANEL_PUSH, SWAP } from "@/lib/motion-presets";
 import { MotionDiv } from "../ui/SheetMotion";
 import { closeRoomPanel } from "@/lib/room-panel";
 import type { LocaleKey } from "@/locales";
@@ -174,7 +174,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
       initial="enter"
       animate="center"
       exit="exit"
-      transition={{ duration: WIPE.duration, ease: WIPE.ease }}
+      transition={{ duration: PANEL_PUSH.duration, ease: PANEL_PUSH.ease }}
       className={viewCls}
     >
       {content}
@@ -238,7 +238,7 @@ export function RoomPanel({ group, overlay = false }: { group: Group; overlay?: 
 }
 
 const WIPE_VARIANTS = {
-  enter: (direction: number) => ({ x: direction > 0 ? WIPE.pushFrom : WIPE.popFrom, opacity: 1, zIndex: direction > 0 ? 1 : 0 }),
+  enter: (direction: number) => ({ x: direction > 0 ? PANEL_PUSH.pushFrom : PANEL_PUSH.under, opacity: 1, zIndex: direction > 0 ? 1 : 0 }),
   center: { x: "0%", opacity: 1 },
-  exit: (direction: number) => (direction > 0 ? { x: "-30%", opacity: 0, zIndex: 0 } : { x: "100%", opacity: 1, zIndex: 1 }),
+  exit: (direction: number) => (direction > 0 ? { x: PANEL_PUSH.under, opacity: 0, zIndex: 0 } : { x: PANEL_PUSH.pushFrom, opacity: 1, zIndex: 1 }),
 };

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { SWAP, WIPE } from "@/lib/motion-presets";
-import { MotionDiv } from "../ui/SheetMotion";
+import { EASE_OUT, PANEL_PUSH, SWAP } from "@/lib/motion-presets";
+import { MotionDiv, MotionSpan } from "../ui/SheetMotion";
 import { t } from "@/lib/i18n";
 import type { Bot, BotSettingsSection } from "@/state/store";
 import { Icon } from "../Icon";
@@ -201,7 +201,7 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
       initial="enter"
       animate="center"
       exit="exit"
-      transition={{ duration: WIPE.duration, ease: WIPE.ease }}
+      transition={{ duration: PANEL_PUSH.duration, ease: PANEL_PUSH.ease }}
       className={viewCls}
     >
       {content}
@@ -213,29 +213,38 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
       <span id="bot-settings-title" className="sr-only">{bot.name}</span>
       <span aria-hidden="true" data-panel-edge className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[0.5px] bg-edge max-md:hidden" />
       <div {...dragProps} className="relative flex h-[60px] shrink-0 items-center gap-2 p-3">
-        {page === null ? (
+        {page === null && (
           <span className="ms-auto flex items-center gap-2">
             <StartFreshButton />
             <PanelShareMenu bot={bot} />
           </span>
-        ) : (
-          <>
-            <button
-              type="button"
-              data-panel-back
-              aria-label={t("botPanel.backTo", { place: backLabel })}
-              title={backLabel}
-              onClick={back}
-              className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink/[0.66] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            >
-              <Icon name="chevron-left" size={14} />
-            </button>
-            <span data-panel-page-title className="pointer-events-none absolute left-1/2 top-1/2 max-w-[60%] -translate-x-1/2 -translate-y-1/2 truncate text-[13px] font-medium leading-[18px]">
-              {t(PAGES[page].title, { name: bot.name })}
-            </span>
-            <span className="ms-auto" />
-          </>
         )}
+        {/* the back button fades in with a page and out without one; the title crossfades between pages */}
+        <AnimatePresence initial={false}>
+          {page !== null && (
+            <MotionSpan key="back" className="flex shrink-0" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: HEAD_IN }} exit={{ opacity: 0, transition: HEAD_OUT }}>
+              <button
+                type="button"
+                data-panel-back
+                aria-label={t("botPanel.backTo", { place: backLabel })}
+                title={backLabel}
+                onClick={back}
+                className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-ink/[0.66] transition-[background-color,color] duration-[120ms] ease-[ease-out] hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              >
+                <Icon name="chevron-left" size={14} />
+              </button>
+            </MotionSpan>
+          )}
+        </AnimatePresence>
+        <AnimatePresence initial={false}>
+          {page !== null && (
+            <MotionSpan key={page} data-panel-page-title className="pointer-events-none absolute left-1/2 top-1/2 max-w-[60%] -translate-x-1/2 -translate-y-1/2 truncate text-[13px] font-medium leading-[18px]"
+              initial={{ opacity: 0 }} animate={{ opacity: 1, transition: HEAD_IN }} exit={{ opacity: 0, transition: HEAD_OUT }}>
+              {t(PAGES[page].title, { name: bot.name })}
+            </MotionSpan>
+          )}
+        </AnimatePresence>
+        {page !== null && <span className="ms-auto" />}
         <button type="button" onClick={onClose} aria-label={t("botPanel.close")} title={t("botPanel.close")} className={roundButtonCls}>
           <Icon name="close" size={16} />
         </button>
@@ -252,8 +261,11 @@ export function BotPanel({ bot, derived, linkedSection, computerRequest = 0, onC
   );
 }
 
+const HEAD_IN = { duration: 0.15, ease: EASE_OUT } as const;
+const HEAD_OUT = { duration: 0.12, ease: EASE_OUT } as const;
+
 const WIPE_VARIANTS = {
-  enter: (direction: number) => ({ x: direction > 0 ? WIPE.pushFrom : WIPE.popFrom, opacity: 1, zIndex: direction > 0 ? 1 : 0 }),
+  enter: (direction: number) => ({ x: direction > 0 ? PANEL_PUSH.pushFrom : PANEL_PUSH.under, opacity: 1, zIndex: direction > 0 ? 1 : 0 }),
   center: { x: "0%", opacity: 1 },
-  exit: (direction: number) => (direction > 0 ? { x: "-30%", opacity: 0, zIndex: 0 } : { x: "100%", opacity: 1, zIndex: 1 }),
+  exit: (direction: number) => (direction > 0 ? { x: PANEL_PUSH.under, opacity: 0, zIndex: 0 } : { x: PANEL_PUSH.pushFrom, opacity: 1, zIndex: 1 }),
 };
