@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import type { Action } from "@/state/store";
-import type { ActivitySource, SetupDetection, SetupSource } from "../../shared/setup-import";
+import type { ActivitySource, MemoryTopics, SetupDetection, SetupSource } from "../../shared/setup-import";
 import { movable, planCounts, runBotMove, type AppMove, type BotMovePlan } from "./bot-move";
 import { GROK_FROM } from "../../shared/grok-import";
 import { aboutMeSaver } from "./assistant-notes";
@@ -28,6 +28,23 @@ export interface LocalFind {
   score: number;
   /** Used lately and holding enough to matter: shown up front; the rest wait behind Show more. */
   strong: boolean;
+  /** Distinct days with conversations in the last 30; null when this app's use can't be told. */
+  activeDays: number | null;
+  /** What its memory is about, for an AI tool's own memory. */
+  topics?: MemoryTopics;
+}
+
+/** Real, repeated use: conversations on at least this many of the last 30 days. */
+export const MIN_ACTIVE_DAYS = 5;
+/** Enough about the person to be worth bringing. */
+export const MIN_KNOWN = 3;
+
+/** The one app this person genuinely uses that knows them: used on MIN_ACTIVE_DAYS of the last 30 and holding notes
+ * about them; the most used first, then the one that knows more. Null when none does: the chat AI prompt leads then. */
+export function memorySource(finds: readonly LocalFind[]): LocalFind | null {
+  const known = (find: LocalFind) => find.amount.notes + find.amount.memories;
+  return finds.filter((find) => (find.activeDays ?? 0) >= MIN_ACTIVE_DAYS && known(find) >= MIN_KNOWN)
+    .sort((a, b) => (b.activeDays ?? 0) - (a.activeDays ?? 0) || known(b) - known(a))[0] ?? null;
 }
 
 const list = (parts: string[]) => new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(parts);
@@ -42,6 +59,18 @@ export const MIN_AMOUNT = 8;
 
 export interface SourceAmount { notes: number; skills: number; tools: number; bots: number; memories: number; routines: number }
 
+/** What it knows, in a person's words: "It's learned your preferences, how you like to work and 4 of your projects." */
+export function knowsLine(find: LocalFind): string {
+  const topics = find.topics;
+  const parts = topics ? [
+    ...(topics.preferences ? [t("bring.topicPreferences")] : []),
+    ...(topics.aboutYou ? [t("bring.topicAboutYou")] : []),
+    ...(topics.workStyle ? [t("bring.topicWorkStyle")] : []),
+    ...(topics.projects ? [count(topics.projects, "bring.topicProjectsOne", "bring.topicProjects")] : []),
+  ] : [];
+  return parts.length ? t("bring.learned", { topics: list(parts) }) : count(find.amount.notes + find.amount.memories, "bring.remembersOne", "bring.remembers");
+}
+
 /** One number for how much a source holds: a bot or a routine is worth more than a skill, a note far less. */
 export function amountOf(amount: Partial<SourceAmount>): number {
   return (amount.bots ?? 0) * 3 + (amount.routines ?? 0) + (amount.skills ?? 0) + (amount.tools ?? 0) * 0.5
@@ -54,15 +83,6 @@ export function sourceScore(amount: Partial<SourceAmount>, lastUsed: number | nu
   const days = lastUsed === null ? Infinity : Math.max(0, (now - lastUsed) / DAY_MS);
   const recency = days <= 7 ? 1 : days <= RECENT_DAYS ? 0.6 : 0.15;
   return { score: units * recency, strong: days <= RECENT_DAYS && units >= MIN_AMOUNT };
-}
-
-/** "today", "yesterday", "3 days ago", "2 weeks ago" in the person's language. */
-export function usedWhen(lastUsed: number, now = Date.now()): string {
-  const days = Math.max(0, Math.floor((now - lastUsed) / DAY_MS));
-  const format = new Intl.RelativeTimeFormat(activeLocale(), { numeric: "auto" });
-  if (days < 14) return format.format(-days, "day");
-  if (days < 60) return format.format(-Math.round(days / 7), "week");
-  return format.format(-Math.round(days / 30), "month");
 }
 
 /** What a source holds in plain words, most personal first; `most` keeps a line short (the rest is left unsaid). */
@@ -95,6 +115,7 @@ function botActivity(app: AppMove): ActivitySource | null {
 export function localFinds(plan: BotMovePlan | null, detection: SetupDetection | null, options: { grokExports?: boolean; now?: number } = {}): LocalFind[] {
   const now = options.now ?? Date.now();
   const activity = detection?.activity ?? {};
+  const usage = detection?.usage ?? {};
   const found: Array<{ find: Omit<LocalFind, "summary" | "amount" | "score" | "strong">; amount: SourceAmount }> = [];
   for (const app of plan?.apps ?? []) {
     if (!app.preview.plans.length || (app.from.key === GROK_FROM.key && !options.grokExports)) continue;
@@ -102,7 +123,7 @@ export function localFinds(plan: BotMovePlan | null, detection: SetupDetection |
     const source = botActivity(app);
     // a Grok bot export was saved on purpose, just now or lately
     const lastUsed = app.from.key === GROK_FROM.key ? now : source ? activity[source] ?? null : null;
-    found.push({ find: { id: `bots:${app.from.key}`, app: app.app, bots: app, lastUsed },
+    found.push({ find: { id: `bots:${app.from.key}`, app: app.app, bots: app, lastUsed, activeDays: source ? usage[source] ?? 0 : null },
       amount: { notes: 0, skills: counts.skills, tools: 0, bots: counts.bots, memories: counts.memories + (counts.facts ?? 0), routines: counts.routines } });
   }
   for (const source of SOURCE_ORDER) {
@@ -112,12 +133,13 @@ export function localFinds(plan: BotMovePlan | null, detection: SetupDetection |
     if (!skills && !tools && !memory) continue;
     const name = t(`onboarding.import.source.${source}` as LocaleKey);
     const setup = { skills, tools, memory };
+    const topics = detection?.memory?.find((one) => one.source === source)?.topics;
     const same = found.find((one) => one.find.bots && !one.find.source && one.find.app === name);
     if (same) {
-      Object.assign(same.find, { source, setup, lastUsed: Math.max(same.find.lastUsed ?? 0, activity[source] ?? 0) || null });
+      Object.assign(same.find, { source, setup, lastUsed: Math.max(same.find.lastUsed ?? 0, activity[source] ?? 0) || null, activeDays: usage[source] ?? 0, ...(topics ? { topics } : {}) });
       Object.assign(same.amount, { notes: memory, skills: same.amount.skills + skills, tools });
     } else {
-      found.push({ find: { id: `setup:${source}`, app: name, source, setup, lastUsed: activity[source] ?? null }, amount: { notes: memory, skills, tools, bots: 0, memories: 0, routines: 0 } });
+      found.push({ find: { id: `setup:${source}`, app: name, source, setup, lastUsed: activity[source] ?? null, activeDays: usage[source] ?? 0, ...(topics ? { topics } : {}) }, amount: { notes: memory, skills, tools, bots: 0, memories: 0, routines: 0 } });
     }
   }
   return found
@@ -130,16 +152,11 @@ let focus: string | null = null;
 export function focusBringFind(id: string | null) { focus = id; }
 export function bringFocus(): string | null { return focus; }
 
-/** A find that would bring nothing once its notes are left out. */
-export function onlyNotes(find: LocalFind): boolean {
-  return !find.bots && !find.setup?.skills && !find.setup?.tools;
-}
-
 /** `ids`: the finds being brought in now; `brought`: every find brought in so far, each its own Import pressed once. */
 export type BringRun =
   | { kind: "idle" }
   | { kind: "working"; ids: string[]; brought: string[] }
-  | { kind: "done"; line: string; failed: boolean; brought: string[] };
+  | { kind: "done"; line: string; failed: boolean; brought: string[]; known?: number };
 
 let run: BringRun = { kind: "idle" };
 /** What has come in so far, by find id. */
@@ -160,22 +177,13 @@ export function resetBringRunForTests() { run = { kind: "idle" }; }
 /** A finished run is forgotten (Settings opening afresh); one still going is kept. */
 export function forgetBringRun() { if (run.kind === "done") set({ kind: "idle" }); }
 
-/** Each chosen tool's memory notes, by app, for the line under the list: "148 notes from Claude Code and 2 from Codex". */
-export function memoryLine(finds: readonly LocalFind[]): string | null {
-  const parts = finds.filter((find) => (find.setup?.memory ?? 0) > 0).map((find, index) => {
-    const notes = find.setup!.memory;
-    return notes === 1 ? t("bring.memoryFromOne", { app: find.app }) : t(index === 0 ? "bring.memoryFrom" : "bring.memoryFromMore", { count: notes, app: find.app });
-  });
-  return parts.length ? list(parts) : null;
-}
-
 /** Brings the chosen finds in: the tools' things in one request, then each app's bots. Never throws; the line says what
  * came in. Runs once at a time; the funnel goes on meanwhile. */
 export async function bringChosen(finds: readonly LocalFind[], context: {
   dispatch: (action: Action) => void; firstBotId: string | null; client?: SetupImportClient;
   /** About me as it is now, and whether it is the team's profile: facts the bots knew about the person go there. */
   aboutMe?: string; team?: boolean;
-  /** The tools' memory and instructions come too, as notes in the first bot's memory. */
+  /** The tools' memory and instructions come too, as notes in the first bot's memory (always, unless false). */
   memory?: boolean;
 }): Promise<void> {
   if (run.kind === "working" || !finds.length) return;
@@ -191,7 +199,7 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
   const kept: string[] = [];
   if (sources.length) {
     try {
-      const memory = context.memory === true && context.firstBotId !== null && finds.some((find) => (find.setup?.memory ?? 0) > 0);
+      const memory = context.memory !== false && context.firstBotId !== null && finds.some((find) => (find.setup?.memory ?? 0) > 0);
       const result = await client.apply({ skills: true, tools: true, sources, ...(memory ? { memory: true, memoryBot: context.firstBotId! } : {}) });
       skills = result.skills?.added.length ?? 0;
       tools = result.tools?.added.length ?? 0;
@@ -234,7 +242,7 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
     : also.length ? [t("bring.done", { list: list(also) })] : failed ? [] : [t("bring.allHere")];
   const line = [...said, failed ? t("bring.failed") : ""].filter(Boolean).join(" ");
   // a find that failed stays one to import again
-  set({ kind: "done", line, failed, brought: failed ? [...before] : [...new Set([...before, ...ids])] });
+  set({ kind: "done", line, failed, brought: failed ? [...before] : [...new Set([...before, ...ids])], known });
   if (context.firstBotId && (bots || skills || tools || notes)) {
     const from = [...new Set(finds.filter((find) => find.bots || find.source).map((find) => find.app))];
     void postImportNote(context.firstBotId, { from, bots: botNames, facts, memories: memories + notes, skills, tools, routines, instructions: kept, reconnect, failed });

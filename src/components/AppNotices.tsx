@@ -17,7 +17,7 @@ import { useTwoPlaces } from "@/lib/two-places";
 import { useUpdateDigest } from "@/lib/update-digest";
 import { useServerBehindHint } from "@/lib/server-behind";
 import { useBringNotice } from "@/lib/bring-notice";
-import { amountLine, focusBringFind, usedWhen } from "@/lib/first-run-import";
+import { focusBringFind, knowsLine } from "@/lib/first-run-import";
 import { cloudSignInDue, onboardingCloudOffered, type WelcomeViewer } from "@/lib/onboarding";
 import { t } from "@/lib/i18n";
 import { engineReady } from "./EngineLibrary";
@@ -217,7 +217,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     const done = (action: string) => { track("bring_card", { action, ms: noticeActed() }); close(); save(BRING_NOTICE); };
     return <NoticeCard titleId="bring-notice-title" notice="bring" icon={Download} title={t("notices.bring.title", { app: find.app })} onDismiss={() => done("close")}>
       <p className="mb-3 mt-1 text-pretty text-[13px] text-ink-secondary">
-        {t("notices.bring.body", { app: find.app, summary: amountLine(find.amount, 2), when: find.lastUsed === null ? "" : usedWhen(find.lastUsed) })}
+        {`${knowsLine(find)} ${t("notices.bring.body")}`}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" data-bring-review="" className={PRIMARY_BUTTON} onClick={() => { done("review"); focusBringFind(find.id); dispatch({ type: "toggleAppSettings", open: true, section: "import" }); }}>{t("notices.bring.review")}</button>

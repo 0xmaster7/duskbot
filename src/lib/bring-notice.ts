@@ -3,17 +3,16 @@
 import { useEffect, useState } from "react";
 import { useStore } from "@/state/store";
 import type { SetupDetection } from "../../shared/setup-import";
-import { localFinds, type LocalFind } from "./first-run-import";
+import { localFinds, memorySource, type LocalFind } from "./first-run-import";
 import { welcomeFinishedThisLaunch } from "./onboarding";
 import { BRING_NOTICE, noticeSeen } from "./notices";
 import { detectSetupWithin, localSetupImport, setupImportApi, type SetupImportClient } from "./setup-import";
 
 const LOOK_MS = 4_000;
 
-/** The one source worth a card: the best that is used lately and holds enough (localFinds' bar); none otherwise. */
+/** The one source worth a card: the app this person genuinely uses that knows them (memorySource); none otherwise. */
 export function bringNoticeFind(detection: SetupDetection | null, now = Date.now()): LocalFind | null {
-  const best = detection ? localFinds(null, detection, { now })[0] : undefined;
-  return best?.strong ? best : null;
+  return detection ? memorySource(localFinds(null, detection, { now })) : null;
 }
 
 /** `fact`: null while looking, then whether the card is due; `find`: the source it is about. */

@@ -25,7 +25,6 @@ const grokFile = { name: "grok-bot-export-drew.json", modifiedAt: 1, text: JSON.
 const SETUP: SetupDetection = { skills: [{ name: "pdf", source: "claudeCode" }], tools: [] };
 
 let host: HTMLDivElement, root: Root;
-const text = () => host.textContent ?? "";
 const button = (label: string) => [...host.querySelectorAll("button")].find((node) => node.textContent === label);
 const settle = async () => { for (let i = 0; i < 8; i++) await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); }); };
 const client = (detection: SetupDetection) => ({
@@ -64,26 +63,23 @@ afterEach(async () => {
 });
 
 describe("Settings → bring in from other apps", () => {
-  it("is the first run's one flow: what this computer holds, Grok bot's saved files included, and the prompt for AIs online, with none of the old rows", async () => {
+  it("lists everything this computer holds, Grok bot's saved files included, beside the chat AI path", async () => {
     await show();
     expect(f.api.mock.calls.map(([path]) => path), "Settings may read Downloads, unlike the first run").toContain("/api/setup-import/grok");
-    expect(host.querySelector("[data-bring-hero]")?.getAttribute("data-bring-find"), "Grok bot's saved files lead: saved on purpose, just now").toBe("bots:grok-bot");
-    await act(async () => { host.querySelector<HTMLButtonElement>("[data-bring-more]")!.click(); });
-    expect([...host.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-find")), "the rest behind Show more")
+    expect(host.querySelector("[data-bring-hero]"), "nothing here is really used: no memory source").toBeNull();
+    expect([...host.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-find")).sort(), "everything is reachable here")
       .toEqual(["bots:grok-bot", "bots:openclaw", "setup:claudeCode"]);
     expect(host.querySelector('[data-bring-import="bots:openclaw"]')?.getAttribute("aria-label")).toBe("Import from OpenClaw");
-    expect(text()).toContain("OpenClaw");
-    expect(text()).toContain("Drew");
-    expect(host.querySelector("[data-bring-online]")?.textContent).toBe("From Grok bot, ChatGPT, Claude or Gemini");
+    expect(host.querySelector("[data-bring-more], [data-bring-memory]"), "no Show more, no notes checkbox").toBeNull();
+    expect(host.querySelector("[data-bring-prompt] h2")?.textContent).toBe("Ask the AI you chat with");
     expect(host.querySelector("[data-bring-grok]")?.textContent, "a Grok bot bot with nothing saved yet goes through the prompt").toContain("Eggbot in Grok bot");
     for (const old of ["Move from Grok bot", "Start import", "Copy prompt", "Look for bots"]) expect(button(old), old).toBeUndefined();
     expect(host.querySelector("[data-import-section=grok], [data-import-section=notes], [data-import-section=apps], [data-import-section=bots]")).toBeNull();
     expect(host.querySelector("[data-bring-skip], [data-bring-next]"), "no funnel buttons").toBeNull();
   });
 
-  it("brings one app in on its own Import, says how it went on the page, and marks it imported", async () => {
+  it("brings one app in on its own Bring in, says how it went on the page, and marks it imported", async () => {
     const setup = await show();
-    await act(async () => { host.querySelector<HTMLButtonElement>("[data-bring-more]")!.click(); });
     await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-import="bots:openclaw"]')!.click(); });
     await settle();
     expect(setup.apply, "only that app's things").not.toHaveBeenCalled();
@@ -96,43 +92,32 @@ describe("Settings → bring in from other apps", () => {
     await settle();
     expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, sources: ["claudeCode"] });
     expect(host.querySelector('[data-bring-find="setup:claudeCode"]')?.getAttribute("data-bring-state")).toBe("done");
-    expect(host.querySelector('[data-bring-find="bots:openclaw"]')?.getAttribute("data-bring-state"), "still marked").toBe("done");
   });
 
-  it("shows each tool's memory before it comes in, ticked, and leaves it out once unticked", async () => {
-    const now = Date.now();
-    const detection: SetupDetection = { ...SETUP, memory: [{ source: "claudeCode", files: 4, notes: 148 }, { source: "codex", files: 1, notes: 40 }],
-      activity: { claudeCode: now, codex: now - 86_400_000 } };
-    let setup = await show({ detection });
-    const memory = host.querySelector<HTMLLabelElement>("[data-bring-memory]")!;
-    expect(memory.getAttribute("data-bring-memory")).toBe("on");
-    expect(memory.textContent).toContain("148 notes from Claude Code and 40 from Codex");
-    await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
+  it("leads with the app really used, its memory always coming, and its own confirmation", async () => {
+    const detection: SetupDetection = { ...SETUP, memory: [{ source: "claudeCode", files: 4, notes: 30, topics: { preferences: true, aboutYou: true, workStyle: false, projects: 0 } }],
+      usage: { claudeCode: 14 } };
+    const setup = await show({ detection });
+    const hero = host.querySelector("[data-bring-hero]")!;
+    expect(hero.getAttribute("data-bring-find")).toBe("setup:claudeCode");
+    expect(hero.textContent).toContain("It's learned your preferences and who you are.");
+    setup.apply.mockResolvedValueOnce({ skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] }, tools: { added: [], present: [], skipped: [] }, memory: { added: 30, sources: ["claudeCode"], failed: false } } as never);
+    await act(async () => { hero.querySelector<HTMLButtonElement>("[data-bring-import]")!.click(); });
     await settle();
     expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, sources: ["claudeCode"], memory: true, memoryBot: maus.id });
-
-    await act(async () => root.unmount());
-    resetBringRunForTests();
-    root = createRoot(host);
-    setup = await show({ detection });
-    await act(async () => { host.querySelector<HTMLInputElement>("[data-bring-memory] input")!.click(); });
-    expect(host.querySelector("[data-bring-memory]")?.getAttribute("data-bring-memory")).toBe("off");
-    expect(host.querySelector('[data-bring-import="setup:codex"]'), "notes alone, left out: nothing to bring").toBeNull();
-    await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
-    await settle();
-    expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, sources: ["claudeCode"] });
+    expect(host.querySelector("[data-bring-said]")?.textContent).toBe("Done. Your bots now know 30 things about you.");
   });
 
   it("forgets a bringing in that finished before the page opened", async () => {
     await show();
-    await act(async () => { host.querySelector<HTMLButtonElement>("[data-bring-hero] [data-bring-import]")!.click(); });
+    await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
     await settle();
     expect(bringRunNow().kind).toBe("done");
     await act(async () => root.unmount());
     root = createRoot(host);
     await show();
     expect(bringRunNow().kind).toBe("idle");
-    expect(host.querySelector("[data-bring-hero] [data-bring-import]")).toBeTruthy();
+    expect(host.querySelector('[data-bring-import="setup:claudeCode"]')).toBeTruthy();
   });
 
   it("away from this computer's own desktop app, reads nothing here and offers the prompt straight away", async () => {

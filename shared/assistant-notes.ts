@@ -137,6 +137,64 @@ Rules:
 - The file's last line is ${NOTES_END}. If it doesn't all fit, stop after a whole section or bot, tell me to say "continue", and give the rest as dusk-bot-notes-2.md (then -3 and so on), each part starting with the same front matter. Only the last part ends with ${NOTES_END}.
 `;
 
+/** The bring step's prompt: only what the AI knows about the person, in the layout NOTES_PROMPT uses, so the same reader
+ * takes it. No bots, skills or apps: this is the person's memory. */
+export const MEMORY_PROMPT = `I'm starting to use a new assistant called dusk bot, and I'd like it to know me the way you do, so I don't have to start over. Please write down everything you know about me. Don't change or delete anything on your side.
+
+Look through your saved memories, my custom instructions, and what you've learned about me from our conversations. Be specific: names, places, numbers and dates. Write only what you actually know, never guess, and leave out any section you have nothing for.
+
+Reply with one code block that starts with \`\`\`\`markdown and ends with \`\`\`\`, in exactly this layout. Keep the headings and the lines between --- in English as written; what you write under them can be in any language. Replace every <...> with the real thing.
+
+---
+format: ${NOTES_FORMAT}
+version: ${NOTES_VERSION}
+from: ${TEMPLATE_FROM}, e.g. Grok, ChatGPT, Claude or Gemini>
+exported: <today's date, YYYY-MM-DD>
+---
+
+# About me
+## Basics
+- <my name, where I live, my time zone, the languages I speak>
+## Work
+- <my job, role and company, and what I'm responsible for>
+## Projects
+- <each project: what it is, where it stands, who's involved, key dates>
+## Goals
+- <what I'm working toward, short and long term>
+## Preferences
+- <what I like and dislike: food, travel, health, money, tools, anything>
+## Writing style
+- <how I write and like to be written to: tone, length, words, formatting>
+## Schedule
+- <when I work, rest and exercise; my regular meetings and routines>
+
+# Contacts
+- <a person's name>: <who they are to me and what to remember about them>
+
+# How I like answers
+~~~text
+<my custom instructions and how I've asked you to answer, word for word>
+~~~
+
+# Memories
+- <each saved memory, word for word, one per line, with its date if you know it>
+
+# Open threads
+- <something I'm in the middle of, or a decision I haven't made yet>
+
+${NOTES_END}
+
+Leave out passwords, API keys, tokens, and account or card numbers.
+`;
+
+/** An answer pasted without the layout (plain bullets or prose): each line a memory from \`from\`, so nothing is lost. */
+export function notesFromPlainText(text: string, from: string): string {
+  if (looksLikeNotes(text)) return text;
+  const lines = text.split(/\r?\n/).map((line) => line.replace(/^\s*(?:[-*•+]|\d+[.)])\s+/, "").replace(/^#+\s*/, "").trim())
+    .filter((line) => line.length > 2 && !/^`{3,}|^~{3,}/.test(line)).slice(0, 400);
+  return `---\nformat: ${NOTES_FORMAT}\nversion: ${NOTES_VERSION}\nfrom: ${from.replace(/\s+/g, " ").slice(0, 60)}\n---\n\n# Memories\n${lines.map((line) => `- ${line}`).join("\n")}\n\n${NOTES_END}\n`;
+}
+
 /** Something the other AI did on a schedule for the person; `cron` and `timeZone` when it gave them. */
 export interface NotesRoutine { name: string; instruction: string; when: string; cron?: string; timeZone?: string }
 

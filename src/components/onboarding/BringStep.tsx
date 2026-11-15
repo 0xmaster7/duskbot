@@ -1,6 +1,6 @@
 // The first run's "bring what you already use": the shared bring in flow (BringIn) on its own step, with a still scene
 // above it and the funnel's buttons below. Continue never waits on it.
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { t } from "@/lib/i18n";
 import type { BringRun, LocalFind } from "@/lib/first-run-import";
@@ -57,22 +57,24 @@ export function BringStep({ finds, grokWaiting, run = { kind: "idle" }, onBring,
   grokWaiting: readonly string[];
   /** The bringing in, once started (useBringRun). */
   run?: BringRun;
-  /** `memory`: the tools' memory comes too (the person left it ticked). */
-  onBring: (chosen: LocalFind[], memory: boolean) => void;
+  onBring: (chosen: LocalFind[]) => void;
   onNext: () => void;
 }) {
-  const choice = useBringChoice(finds, run);
-  const started = run.kind !== "idle";
+  const choice = useBringChoice(finds);
+  // something came in (the app's memory, or the chat AI's answer): going on is the way forward now
+  const [notesIn, setNotesIn] = useState(false);
+  const started = run.kind !== "idle" || notesIn;
   return (
-    <StepFrame art={<BringScene moving={run.kind === "working"} />} title={t("bring.title")} sub={choice.found ? t("bring.sub") : t("bring.subNone")}
-      // the hero's Bring it in is the one primary action; until something comes in, going on is a quiet Not now
-      footer={choice.found && !started ? (
+    <StepFrame art={<BringScene moving={run.kind === "working"} />} title={t("bring.stepTitle")} sub={t("bring.stepSub")}
+      // the one primary action is in the step (Bring it in, or Copy the prompt); until something comes in, going on is a quiet Not now
+      footer={!started ? (
         <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("bring.notNow")}</button>
       ) : (
-        <button type="button" data-primary="" data-bring-next="" autoFocus={started} onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
+        <button type="button" data-primary="" data-bring-next="" autoFocus onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
       )}>
       <div className="w-full max-w-[440px]">
-        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} heroPrimary={!started} onImport={(find) => onBring([find], choice.memory)} />
+        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} mode="step" heroPrimary={!started}
+          onImport={(find) => onBring([find])} onNotes={() => setNotesIn(true)} />
       </div>
     </StepFrame>
   );

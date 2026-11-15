@@ -10,7 +10,7 @@ vi.mock("./bot-move", () => ({
 import { setLocale } from "@/lib/i18n";
 import type { SetupDetection } from "../../shared/setup-import";
 import type { AppMove, BotMovePlan } from "./bot-move";
-import { bringChosen, bringRunNow, localFinds, memoryLine, onlyNotes, resetBringRunForTests, sourceScore, usedWhen } from "./first-run-import";
+import { bringChosen, bringRunNow, knowsLine, localFinds, memorySource, resetBringRunForTests, sourceScore } from "./first-run-import";
 
 const NOW = Date.parse("2026-11-15T12:00:00Z");
 const DAY = 86_400_000;
@@ -56,8 +56,6 @@ describe("the first run's list of what this Mac holds", () => {
     expect(sourceScore({ skills: 2, tools: 3 }, NOW, NOW).strong).toBe(false);
     expect(sourceScore({ skills: 9 }, null, NOW).strong).toBe(false);
     expect(sourceScore({ notes: 100 }, NOW, NOW).score).toBeGreaterThan(sourceScore({ notes: 100 }, NOW - 20 * DAY, NOW).score);
-    expect(usedWhen(NOW - 3_600_000, NOW)).toBe("today");
-    expect(usedWhen(NOW - 3 * DAY, NOW)).toBe("3 days ago");
   });
 
   it("keeps a tool whose agents became bots to one find, dated by its own files, and leaves Grok Bot to its prompt", () => {
@@ -72,7 +70,25 @@ describe("the first run's list of what this Mac holds", () => {
     expect(finds.map((find) => find.id)).not.toContain("bots:grok-bot");
     expect(localFinds(plan(grok), DETECTION, { grokExports: true }).map((find) => find.id), "Settings, which may read Downloads, lists Grok bot's saved files")
       .toContain("bots:grok-bot");
-    expect(onlyNotes(localFinds(null, { skills: [], tools: [], memory: [{ source: "codex", files: 1, notes: 4 }] })[0]!)).toBe(true);
+  });
+
+  it("offers one memory source: the app really used on 5 or more of the last 30 days that knows the person, most used first", () => {
+    const topics = { preferences: true, aboutYou: true, workStyle: false, projects: 4 };
+    const detection = {
+      skills: [], tools: [],
+      memory: [{ source: "claudeCode" as const, files: 9, notes: 40, topics }, { source: "codex" as const, files: 1, notes: 6 }, { source: "gemini" as const, files: 1, notes: 30 }],
+      // Gemini knows a lot but was barely used; Hermes's files were touched today but it hasn't been talked to
+      usage: { claudeCode: 31, codex: 22, gemini: 2 }, activity: { hermes: NOW, gemini: NOW },
+    };
+    const hermes = app("Hermes Agent", ["Hermes"], "~/.hermes");
+    (hermes.preview.plans[0] as unknown as { counts: object }).counts = { memories: 25 };
+    const finds = localFinds(plan(hermes), detection, { now: NOW });
+    const source = memorySource(finds)!;
+    expect(source.id).toBe("setup:claudeCode");
+    expect(knowsLine(source)).toBe("It's learned your preferences, who you are, and 4 of your projects.");
+    expect(memorySource(finds.filter((find) => find !== source))?.id, "Codex next: used, with a few notes").toBe("setup:codex");
+    expect(memorySource(finds.filter((find) => find.id !== "setup:claudeCode" && find.id !== "setup:codex")), "nothing else is really used").toBeNull();
+    expect(knowsLine(finds.find((find) => find.id === "bots:hermes agent")!)).toBe("It remembers 25 things about you.");
   });
 
   it("is empty when nothing is here, and leaves out an app whose bots are all here already", () => {
@@ -96,18 +112,10 @@ describe("bringing the chosen in", () => {
     await run;
     expect(apply).toHaveBeenCalledExactlyOnceWith({ skills: true, tools: true, sources: ["claudeCode"], memory: true, memoryBot: "dusk" });
     expect(f.runBotMove).toHaveBeenCalledOnce();
-    expect(bringRunNow()).toEqual({ kind: "done", failed: false, line: "Your bots now know 12 things about you. Also brought in 2 bots, 2 skills, and 1 tool.", brought: finds.map((find) => find.id) });
+    expect(bringRunNow()).toEqual({ kind: "done", failed: false, line: "Your bots now know 12 things about you. Also brought in 2 bots, 2 skills, and 1 tool.", brought: finds.map((find) => find.id), known: 12 });
     await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.anything()));
     const note = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body);
     expect(note).toMatchObject({ from: ["OpenClaw", "Claude Code"], skills: 2, tools: 1, memories: 12, instructions: ["Claude Code"], failed: false });
-  });
-
-  it("leaves the memory out when it is unticked, and says what it holds per tool", async () => {
-    const apply = vi.fn(async () => ({ skills: { added: [], present: [], skipped: [], filesLeftOut: 0, review: [] }, tools: { added: [], present: [], skipped: [] } }));
-    const finds = localFinds(null, { ...DETECTION, memory: [{ source: "claudeCode", files: 3, notes: 12 }, { source: "codex", files: 1, notes: 1 }] });
-    expect(memoryLine(finds)).toBe("12 notes from Claude Code and 1 note from Codex");
-    await bringChosen(finds, { dispatch: vi.fn(), firstBotId: "dusk", client: { detect: vi.fn(), apply }, memory: false });
-    expect(apply).toHaveBeenCalledExactlyOnceWith({ skills: true, tools: true, sources: ["claudeCode", "codex", "cursor"] });
   });
 
   it("names a failure and keeps what did come in", async () => {

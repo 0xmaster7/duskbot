@@ -59,8 +59,8 @@ export function useNotesWaiting(): NotesWaiting | null {
 /** Copies the prompt and starts waiting for its answer; a copy again keeps the first start, so the reminder stays put.
  * It also starts watching Downloads for the file the prompt asks for: only from now, so macOS asks about Downloads
  * when the person has just asked for that file, never before. */
-export async function copyNotesPrompt(now = Date.now()): Promise<boolean> {
-  const copied = (await copyText(NOTES_PROMPT)) === "copied";
+export async function copyNotesPrompt(now = Date.now(), prompt = NOTES_PROMPT): Promise<boolean> {
+  const copied = (await copyText(prompt)) === "copied";
   if (copied && !notesWaiting()) setWaiting({ since: now });
   if (copied) {
     const watch = notesWatch();

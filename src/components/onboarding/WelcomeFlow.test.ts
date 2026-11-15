@@ -297,7 +297,7 @@ describe("on the desktop app", () => {
     expect(step()).toBe("ai");
     expect(document.body.querySelector("[data-funnel-ai=claude]")?.hasAttribute("data-connected"), "back on the step: the cards, Claude connected").toBe(true);
     await press("Continue");
-    await press("Continue");
+    await press("Not now");
     expect(f.onDone).toHaveBeenCalledExactlyOnceWith("maus");
     expect(document.body.querySelector(".phone-frame"), "the phone app is hidden").toBeNull();
   });
@@ -311,14 +311,14 @@ describe("on the desktop app", () => {
     expect(document.body.querySelector("[data-help-improve]"), "only on the place step").toBeNull();
     await usesFoundAi();
     expect(step()).toBe("bring");
-    await press("Continue");
+    await press("Not now");
     expect(step()).toBe("phone");
     expect(document.body.querySelector(".phone-frame img"), "the phone app's own screen").not.toBeNull();
     expect(document.body.querySelector("[data-help-improve]"), "never on a later screen").toBeNull();
     expect(button("Skip")?.className, "skip is a real button").toContain("ui-button-lg");
     await press("Back");
     expect(step()).toBe("bring");
-    await press("Continue");
+    await press("Not now");
     await press("Show the code");
     expect(document.body.querySelector("[data-phone-offer]")).not.toBeNull();
     await press("Continue");
@@ -586,47 +586,47 @@ describe("bots from another app on this computer", () => {
     });
   };
 
-  it("leads with the source used most as one warm question, keeps the rest behind Show more, and brings it in on one press", async () => {
-    const now = Date.now();
+  it("offers the memory of the one app really used, as one warm question, and brings it in on one press", async () => {
     desktop(found, {
-      skills: Array.from({ length: 9 }, (_, i) => ({ name: `s${i}`, source: "claudeCode" })), tools: [{ name: "notion", source: "cursor" }],
-      memory: [{ source: "claudeCode", files: 3, notes: 18 }], activity: { claudeCode: now - 3_600_000, cursor: now - 90 * 86_400_000, openclaw: now - 2 * 86_400_000 },
+      skills: [{ name: "pdf", source: "claudeCode" }], tools: [{ name: "notion", source: "cursor" }],
+      memory: [{ source: "claudeCode", files: 6, notes: 18, topics: { preferences: true, aboutYou: false, workStyle: true, projects: 3 } }],
+      usage: { claudeCode: 22, cursor: 9 },
     });
     await show({ initialBeat: "bring" });
-    expect(title()).toBe("Bring what you already use");
+    expect(title()).toBe("Bring what your AI knows about you");
     const hero = document.body.querySelector("[data-bring-hero]")!;
     expect(hero.getAttribute("data-bring-find")).toBe("setup:claudeCode");
-    expect(hero.textContent).toContain("You use Claude Code a lot");
-    expect(hero.textContent).toContain("Bring what it knows about you?");
-    expect(hero.textContent).toContain("18 notes about you and 9 skills. Last used today.");
+    expect(hero.textContent).toContain("Claude Code already knows you");
+    expect(hero.textContent).toContain("It's learned your preferences, how you like to work, and 3 of your projects.");
+    expect(hero.textContent).toContain("You've used it on 22 of the last 30 days.");
+    expect(hero.textContent, "memory only: no bots, skills or tools pitched").not.toMatch(/\bbots?\b|\bskills?\b|\btools?\b/i);
+    expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-find")), "one source, nothing else listed").toEqual(["setup:claudeCode"]);
+    expect(document.body.querySelector("[data-bring-more], [data-bring-memory]"), "no Show more, no notes checkbox").toBeNull();
     expect(document.activeElement?.getAttribute("data-bring-import"), "its Bring it in is the one primary action").toBe("setup:claudeCode");
-    expect(document.body.querySelectorAll("[data-primary]"), "one primary on the screen").toHaveLength(1);
-    expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-find")), "OpenClaw's one bot is thin, Cursor idle: both wait")
-      .toEqual(["setup:claudeCode"]);
-    expect(button("Show 2 more")).toBeTruthy();
-    await press("Show 2 more");
-    expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-find"))).toEqual(["setup:claudeCode", "bots:openclaw", "setup:cursor"]);
-    expect(document.body.querySelector("[data-bring-memory]")?.textContent, "the notes line follows what is shown").toContain("18 notes from Claude Code");
-    expect([...document.body.querySelectorAll("[data-bring-logo]")].map((one) => one.getAttribute("data-bring-logo")), "the AIs online in their own colours")
-      .toEqual(["chatgpt", "claude", "gemini", "grok"]);
-    const online = document.body.querySelector<HTMLButtonElement>("[data-bring-online]")!;
-    expect(online.getAttribute("aria-expanded"), "the prompt for AIs online waits behind one quiet line").toBe("false");
-    expect(document.body.querySelector("[data-bring-scene]")?.getAttribute("data-bring-scene"), "nothing travels before anything is brought").toBe("still");
+    expect(document.body.querySelector("[data-bring-prompt] h2")?.textContent, "the chat AI path right under it").toBe("Or ask the AI you chat with");
+    expect([...document.body.querySelectorAll("[data-bring-ai]")].map((one) => one.getAttribute("data-bring-ai"))).toEqual(["chatgpt", "claude", "gemini", "grok"]);
+    expect(button("Not now")).toBeTruthy();
     await act(async () => { document.body.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
     expect(button("Continue"), "the way on is there at once, without waiting").toBeTruthy();
     await settle();
     const applied = f.api.mock.calls.filter(([path, init]) => path === "/api/setup-import" && init?.method === "POST").map(([, init]) => JSON.parse(init.body));
-    expect(applied).toEqual([{ skills: true, tools: true, sources: ["claudeCode"], memory: true, memoryBot: "maus" }]);
-    expect(document.body.querySelector("[data-bring-hero] [data-bring-said]")?.textContent, "what came in, said in the hero where the person is looking").toBe("Brought in 1 skill.");
-    expect(document.body.querySelector("[data-bring-run]"), "not twice").toBeNull();
+    expect(applied, "its memory always comes, its skills quietly with it").toEqual([{ skills: true, tools: true, sources: ["claudeCode"], memory: true, memoryBot: "maus" }]);
     expect(document.body.querySelector('[data-bring-hero]')?.getAttribute("data-bring-state")).toBe("done");
-    expect(document.body.querySelector("[data-bring-status]"), "and not twice").toBeNull();
+    expect(document.body.querySelector("[data-bring-status]"), "said once, in the step").toBeNull();
     await press("Continue");
     expect(f.onDone).toHaveBeenCalledOnce();
   });
 
-  it("still shows what a slow look finds: a big home taking seconds to read is never dropped for the prompt alone", async () => {
-    desktop(found);
+  it("offers no app that is barely used, however much it holds: the chat AI path leads then", async () => {
+    desktop(found, { skills: [], tools: [], memory: [{ source: "claudeCode", files: 6, notes: 40 }], usage: { claudeCode: 2 } });
+    await show({ initialBeat: "bring" });
+    expect(document.body.querySelector("[data-bring-hero]")).toBeNull();
+    expect(document.body.querySelector("[data-bring-find]"), "OpenClaw's bots wait for Settings").toBeNull();
+    expect(document.body.querySelector("[data-bring-prompt] h2")?.textContent).toBe("Ask the AI you chat with");
+  });
+
+  it("still waits for a slow look: a big home taking seconds to read is never dropped", async () => {
+    desktop(found, { skills: [], tools: [], memory: [{ source: "claudeCode", files: 6, notes: 40 }], usage: { claudeCode: 12 } });
     const base = f.api.getMockImplementation()!;
     f.api.mockImplementation(async (path: string, init?: { body?: string; method?: string }) => {
       if (path === "/api/setup-import/bots") { await new Promise((done) => setTimeout(done, 6_000)); return found; }
@@ -636,25 +636,27 @@ describe("bots from another app on this computer", () => {
     expect(document.body.querySelector("[data-bring-looking]")?.textContent, "says it is looking meanwhile").toBe("Looking on this computer…");
     await act(async () => { await vi.advanceTimersByTimeAsync(6_500); });
     await settle();
-    expect(document.body.querySelector('[data-bring-find="bots:openclaw"]'), "found after six seconds").not.toBeNull();
+    expect(document.body.querySelector('[data-bring-hero]')?.getAttribute("data-bring-find"), "found after six seconds").toBe("setup:claudeCode");
   });
 
-  it("with nothing on this Mac, offers the prompt for an AI online: copy, then go on without waiting", async () => {
+  it("with nothing on this computer, the chat AI path is the step: pick the AI, copy the prompt, paste its answer back", async () => {
     desktop({ apps: [] });
     const writeText = vi.fn(async () => {});
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     await show({ initialBeat: "bring" });
     expect(step()).toBe("bring");
     expect(document.body.querySelector("[data-bring-find]")).toBeNull();
-    expect(document.body.querySelector("[data-bring-prompt] pre")?.textContent, "the prompt itself, read-only, to look over first").toContain("dusk-bot-notes");
-    expect(button("Continue"), "continue is the main action before and after the copy").toBeTruthy();
+    const prompt = document.body.querySelector("[data-bring-prompt] pre")?.textContent ?? "";
+    expect(prompt, "the prompt itself, read-only, to look over first").toContain("Please write down everything you know about me");
+    expect(prompt).not.toMatch(/custom GPT|# Bots|# Skills/);
+    await act(async () => { document.body.querySelector<HTMLButtonElement>("[data-bring-ai=grok]")!.click(); });
+    expect(document.body.querySelector("[data-bring-ai=grok]")?.getAttribute("aria-pressed")).toBe("true");
     await press("Copy the prompt");
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("dusk-bot-notes"));
-    expect(document.body.querySelector("[data-bring-copied]")?.textContent).toBe("Copied. Paste it into that AI, then paste its file into any bot here.");
-    expect(text(), "paste only").not.toMatch(/\bdrop\b/i);
-    expect(text()).toContain("It makes one file. Paste it into any bot here and everything gets set up.");
-    expect(JSON.parse(localStorage.getItem("dusk.notesWaiting")!)).toHaveProperty("since");
-    await press("Continue");
+    expect(document.body.querySelector("[data-bring-copied]")?.textContent).toBe("Copied. Paste it into Grok, then paste its answer below.");
+    expect(document.body.querySelector("label[for]")?.textContent).toBe("Grok's answer");
+    expect(document.body.querySelector("[data-bring-paste-go]"), "nothing to bring before an answer is pasted").toBeNull();
+    await press("Not now");
     expect(f.onDone).toHaveBeenCalledOnce();
   });
 });
