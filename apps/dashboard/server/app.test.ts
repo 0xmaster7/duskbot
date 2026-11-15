@@ -578,6 +578,7 @@ it("bounds every report collection and drops malformed optional sections and unk
   expect(parsed.activity!.days).toHaveLength(400);
   expect(parsed.activity!.byBot).toHaveLength(200);
   expect(parsed.activity!.byModel).toHaveLength(100);
+  expect(parsed.activity!.totals).toEqual({ turns: 1, tokens: 2, costUsd: null });
   expect(parsed.devices!.phones).toHaveLength(50);
   expect(parsed.devices!.sessions).toHaveLength(100);
   expect(parsed.results).toHaveLength(50);
@@ -591,4 +592,11 @@ it("bounds every report collection and drops malformed optional sections and unk
   expect(parseWorkspaceReport({ ...parsed, machine: { ...machine, cpu: { percent: NaN, load: [0, 0, 0] } } })!.machine).toBeUndefined();
   expect(parseWorkspaceReport({ ...parsed, bots: [null] })!.bots).toBeUndefined();
   expect(parseEnrollRequest({ v: 2 })).toBeNull();
+});
+
+it("keeps the token split on activity reports that carry one", () => {
+  const split = { turns: 2, tokens: 100, costUsd: null, input: 30, output: 20, cacheRead: 45, cacheWrite: 5 };
+  const activity = { from: "2026-01-01", to: "2026-01-02", timeZone: "UTC", days: [{ date: "2026-01-02", ...split }], byBot: [], byModel: [], totals: split };
+  expect(parseWorkspaceReport({ v: 1, seq: 1, at: 100, workspace, activity })!.activity).toEqual(activity);
+  expect(parseWorkspaceReport({ v: 1, seq: 1, at: 100, workspace, activity: { ...activity, totals: { ...split, cacheRead: -1 } } })!.activity).toBeUndefined();
 });

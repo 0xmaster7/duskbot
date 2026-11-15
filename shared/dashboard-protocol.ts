@@ -82,7 +82,11 @@ export interface BotReport {
   routines: RoutineReport[];
 }
 
-export interface ActivityTotals { turns: number; tokens: number; costUsd: number | null }
+/**
+ * `tokens` is everything; the split (input without cache, output, cache read, cache write) adds up to it.
+ * workspaces from before the split leave those four out.
+ */
+export interface ActivityTotals { turns: number; tokens: number; costUsd: number | null; input?: number; output?: number; cacheRead?: number; cacheWrite?: number }
 
 export interface ActivityReport {
   from: string;
@@ -242,7 +246,8 @@ const dashboardObject = (shape: Record<string, DashboardParser>): DashboardParse
 };
 const dashboardKind = dashboardEnum("vps", "mac", "linux", "windows");
 const dashboardWorkspace = dashboardObject({ name: dashboardName, kind: dashboardKind, version: dashboardText(), platform: dashboardText() });
-const dashboardTotals = { turns: dashboardNumber, tokens: dashboardNumber, costUsd: dashboardNullable(dashboardNumber) };
+const dashboardTotals = { turns: dashboardNumber, tokens: dashboardNumber, costUsd: dashboardNullable(dashboardNumber),
+  input: dashboardOptional(dashboardNumber), output: dashboardOptional(dashboardNumber), cacheRead: dashboardOptional(dashboardNumber), cacheWrite: dashboardOptional(dashboardNumber) };
 const dashboardSections: Record<string, DashboardParser> = {
   machine: dashboardObject({
     host: dashboardObject({ hostname: dashboardName, platform: dashboardText(), arch: dashboardText(), cpus: dashboardNumber, cpuModel: dashboardNullable(dashboardName) }),

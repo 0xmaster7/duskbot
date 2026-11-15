@@ -4,17 +4,17 @@ import { useCloud } from "../data/cloud";
 import { LoadError } from "./common";
 import { useSession } from "../data/session";
 import { useAccountUsage, type PlanWindow } from "../data/usage";
-import { eventsCsv, seriesBy, type UsageGroup } from "../data/usage-math";
-import { compact, parseDay, percent, shortDate, until, usd } from "../lib/format";
+import { eventsCsv, seriesBy, TOKEN_KINDS, type UsageGroup, type UsageMonth } from "../data/usage-math";
+import { exact, parseDay, percent, shortDate, until, usd } from "../lib/format";
 import { Select } from "../ui/controls";
-import { Bar, Button, Card, PageHeader, Skeleton } from "../ui/kit";
+import { Bar, Button, Card, PageHeader, Skeleton, Stat as Part } from "../ui/kit";
 import { Nil, SectionHead, Table, Td, Th } from "../ui/table";
 import { Legend, UsageChart } from "../ui/UsageChart";
 import { useNow } from "../lib/now";
 import { Figure } from "../ui/Figure";
 import { Activity } from "./activity";
 
-const GROUPS: Array<{ value: UsageGroup; label: string }> = [{ value: "bot", label: "bot" }, { value: "model", label: "model" }, { value: "workspace", label: "workspace" }];
+const GROUPS: Array<{ value: UsageGroup; label: string }> = [{ value: "type", label: "token type" }, { value: "bot", label: "bot" }, { value: "model", label: "model" }, { value: "workspace", label: "workspace" }];
 const PAGE = 12;
 
 function Label({ id, children }: { id?: string; children: ReactNode }) {
@@ -74,12 +74,32 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+/** the month's tokens in full, then input, output and cache on their own */
+function Tokens({ month }: { month: UsageMonth | null }) {
+  const split = month?.split.totals;
+  const older = split && split.unsplit > 0;
+  const none = older && split.unsplit === month.totals.tokens;
+  return (
+    <div className="min-w-0 rounded-card bg-card px-7 py-6 max-sm:px-5 max-sm:py-5">
+      <div className="text-15 text-ink-3">total tokens</div>
+      <div className="mt-2">{month ? <Figure value={exact(month.totals.tokens)} /> : <Skeleton className="h-8 w-24" />}</div>
+      {month && split && !none && (
+        <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
+          {TOKEN_KINDS.map(({ key, label }) => <Part key={key} label={label} value={exact(split[key])} />)}
+          {older && <Part label="not split" value={exact(split.unsplit)} />}
+        </div>
+      )}
+      {month && (older || none) && month.totals.tokens > 0 && <p className="mt-4 text-13 text-ink-3">{none ? "input, output and cache show up once your workspaces run the latest app." : "not split comes from workspaces on an older app."}</p>}
+    </div>
+  );
+}
+
 export function UsagePage() {
   const now = useNow(60_000);
   const cloud = useCloud();
   const { month, plans, loading, error, refresh } = useAccountUsage();
   const { detail } = useSession();
-  const [group, setGroup] = useState<UsageGroup>("bot");
+  const [group, setGroup] = useState<UsageGroup>("type");
   const [limit, setLimit] = useState(PAGE);
   const series = useMemo(() => (month ? seriesBy(month, group) : []), [month, group]);
   const exportCsv = () => {
@@ -101,7 +121,7 @@ export function UsagePage() {
       <div className="mt-8 flex flex-col gap-4">
         <Resets plans={plans} now={now} />
         <div className="grid gap-4 md:grid-cols-2">
-          <Stat label="total tokens" value={!loading && month ? compact(month.totals.tokens) : <Skeleton className="h-8 w-24" />} />
+          <Tokens month={!loading ? month : null} />
           <Stat label="bot turns" value={!loading && month ? month.totals.turns.toLocaleString("en-US") : <Skeleton className="h-8 w-24" />} />
         </div>
         <Card aria-labelledby="chart-title" className="min-w-0">
@@ -121,7 +141,7 @@ export function UsagePage() {
           {month && month.totals.tokens > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <Legend series={series} />
-              {month.estimated && group !== "workspace" && <p className="text-13 text-ink-3">per-day split by {group} is estimated from the month.</p>}
+              {month.estimated && (group === "bot" || group === "model") && <p className="text-13 text-ink-3">per-day split by {group} is estimated from the month.</p>}
             </div>
           )}
         </Card>
@@ -154,7 +174,7 @@ export function UsagePage() {
                     <Td className="max-w-[160px] truncate">{e.bot}</Td>
                     <Td className="max-w-[200px] truncate text-ink-2 max-lg:hidden">{e.model === "Mixed" ? <Nil /> : e.model}</Td>
                     <Td className="num text-end text-ink-2 max-md:hidden">{e.turns.toLocaleString("en-US")}</Td>
-                    <Td className="num truncate text-end">{compact(e.tokens)}</Td>
+                    <Td className="num truncate text-end" title={exact(e.tokens)}>{exact(e.tokens)}</Td>
                     <Td className="num truncate text-end text-ink-2">{e.costUsd === null ? <Nil /> : usd(e.costUsd)}</Td>
                   </tr>
                 ))}

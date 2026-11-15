@@ -25,6 +25,9 @@ export function rate(n: number | null | undefined): string {
   return `${(bits / 1e9).toFixed(1)} Gb/s`;
 }
 
+/** a count in full, 1,284,512 */
+export const exact = (n: number) => Math.round(n).toLocaleString("en-US");
+
 export function compact(n: number): string {
   if (n < 1000) return String(Math.round(n));
   if (n < 1e6) return `${(n / 1e3).toFixed(n < 1e4 ? 1 : 0)}k`;

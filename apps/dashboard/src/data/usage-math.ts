@@ -1,7 +1,13 @@
-import type { ActivityReport } from "../../../../shared/dashboard-protocol.ts";
+import type { ActivityReport, ActivityTotals } from "../../../../shared/dashboard-protocol.ts";
 import { dayKey } from "../lib/format.ts";
 
-export type UsageGroup = "workspace" | "bot" | "model";
+export type UsageGroup = "workspace" | "bot" | "model" | "type";
+export type TokenKind = "input" | "output" | "cacheRead" | "cacheWrite";
+export const TOKEN_KINDS: ReadonlyArray<{ key: TokenKind; label: string }> = [
+  { key: "input", label: "input" }, { key: "output", label: "output" }, { key: "cacheRead", label: "cache read" }, { key: "cacheWrite", label: "cache write" },
+];
+/** tokens by type; `unsplit` is what a workspace on an app from before the split reported as one number */
+export type TokenSplit = Record<TokenKind | "unsplit", number>;
 export interface UsageSource {
   workspaceId: string;
   workspaceName: string;
@@ -23,7 +29,23 @@ export interface UsageMonth {
   days: string[];
   events: UsageEvent[];
   totals: { turns: number; tokens: number; costUsd: number | null };
+  /** exact per day, never estimated: workspaces report the split for each day */
+  split: { days: TokenSplit[]; totals: TokenSplit };
   estimated: boolean;
+}
+
+export const emptySplit = (): TokenSplit => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, unsplit: 0 });
+
+export function tokenSplit(totals: ActivityTotals): TokenSplit {
+  const split = emptySplit();
+  if (totals.input === undefined && totals.output === undefined) return { ...split, unsplit: Math.round(totals.tokens) };
+  for (const { key } of TOKEN_KINDS) split[key] = Math.round(totals[key] ?? 0);
+  split.unsplit = Math.max(0, Math.round(totals.tokens) - split.input - split.output - split.cacheRead - split.cacheWrite);
+  return split;
+}
+
+function addSplit(into: TokenSplit, add: TokenSplit) {
+  for (const key of Object.keys(into) as Array<keyof TokenSplit>) into[key] += add[key];
 }
 
 export function monthDays(now: number): string[] {
@@ -58,6 +80,7 @@ function allocate(total: number, weights: number[]): number[] {
 
 export function usageMonth(sources: UsageSource[], now: number, opts?: { split?: "exact" | "estimate" }): UsageMonth {
   const days = monthDays(now), allowed = new Set(days), events: UsageEvent[] = [];
+  const index = new Map(days.map((day, i) => [day, i])), split = { days: days.map(emptySplit), totals: emptySplit() };
   let estimated = false;
   for (const source of sources) {
     const { activity } = source;
@@ -67,6 +90,9 @@ export function usageMonth(sources: UsageSource[], now: number, opts?: { split?:
     const base = bots.some((bot) => bot.tokens > 0) ? bots.map((bot) => bot.tokens) : bots.map(() => 1);
     for (const day of activity.days) {
       if (!allowed.has(day.date)) continue;
+      const kinds = tokenSplit(day);
+      addSplit(split.days[index.get(day.date)!]!, kinds);
+      addSplit(split.totals, kinds);
       const common = { date: day.date, workspaceId: source.workspaceId, workspaceName: source.workspaceName };
       if (!bots.length) {
         events.push({ ...common, bot: "All bots", model: activity.byModel.length === 1 ? activity.byModel[0]!.model : "Mixed", turns: day.turns, tokens: day.tokens, costUsd: day.costUsd === null ? null : Math.round(day.costUsd * 100) / 100 });
@@ -86,10 +112,14 @@ export function usageMonth(sources: UsageSource[], now: number, opts?: { split?:
   const turns = events.reduce((sum, event) => sum + event.turns, 0);
   const tokens = events.reduce((sum, event) => sum + event.tokens, 0);
   const costUsd = events.some((event) => event.costUsd !== null) ? events.reduce((sum, event) => sum + Math.round((event.costUsd ?? 0) * 100), 0) / 100 : null;
-  return { days, events, totals: { turns, tokens, costUsd }, estimated };
+  return { days, events, totals: { turns, tokens, costUsd }, split, estimated };
 }
 
 export function seriesBy(month: UsageMonth, group: UsageGroup): UsageSeries[] {
+  if (group === "type") {
+    const kinds = [...TOKEN_KINDS, { key: "unsplit" as const, label: "not split" }];
+    return kinds.filter(({ key }) => month.split.totals[key] > 0).map(({ key, label }) => ({ key, label, values: month.split.days.map((day) => day[key]) }));
+  }
   const series = new Map<string, UsageSeries>();
   const indices = new Map(month.days.map((day, index) => [day, index]));
   for (const event of month.events) {

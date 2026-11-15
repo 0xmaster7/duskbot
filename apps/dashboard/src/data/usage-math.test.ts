@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ActivityReport } from "../../../../shared/dashboard-protocol.ts";
-import { eventsCsv, monthDays, nextMonthStart, seriesBy, usageMonth, type UsageMonth, type UsageSource } from "./usage-math.ts";
+import { emptySplit, eventsCsv, monthDays, nextMonthStart, seriesBy, usageMonth, type UsageMonth, type UsageSource } from "./usage-math.ts";
 
 const now = new Date(2026, 10, 8, 14).getTime();
 
@@ -138,7 +138,8 @@ test("seriesBy keeps six groups and merges the remainder beyond six", () => {
   assert.deepEqual(series.map((entry) => entry.key), ["7", "6", "5", "4", "3", "other"]);
   assert.equal(series[5]!.label, "Everything else");
   assert.deepEqual(series[5]!.values, [6, 12, 0, 0, 0, 0, 0, 0]);
-  const empty: UsageMonth = { days: monthDays(now), events: [], totals: { turns: 0, tokens: 0, costUsd: null }, estimated: false };
+  const empty: UsageMonth = { days: monthDays(now), events: [], totals: { turns: 0, tokens: 0, costUsd: null }, split: { days: [], totals: emptySplit() }, estimated: false };
+  assert.deepEqual(seriesBy(empty, "type"), []);
   assert.deepEqual(seriesBy(empty, "model"), []);
 });
 
@@ -147,4 +148,21 @@ test("eventsCsv quotes RFC 4180 fields, formats cost and ends in CRLF", () => {
   const header = "Date,Workspace,Bot,Model,Turns,Tokens,Cost (USD)\r\n";
   assert.equal(eventsCsv([event, { ...event, workspaceName: "VPS", bot: "Bot", model: "Model", costUsd: 1.2 }]), header + '2026-11-01,"Office, ""Mac""","Bot\nOne","Model\r\nTwo",2,20,\r\n2026-11-01,VPS,Bot,Model,2,20,1.20\r\n');
   assert.equal(eventsCsv([]), header);
+});
+
+test("token split adds up per day and keeps older reports as not split", () => {
+  const split = { input: 30, output: 10, cacheRead: 55, cacheWrite: 5 };
+  const days = [
+    { date: "2026-11-01", turns: 2, tokens: 100, costUsd: null, ...split },
+    { date: "2026-11-03", turns: 1, tokens: 40, costUsd: null },
+  ];
+  const month = usageMonth([source(days)], now);
+  assert.deepEqual(month.split.totals, { ...split, unsplit: 40 });
+  assert.deepEqual(month.split.days[0], { ...split, unsplit: 0 });
+  assert.deepEqual(month.split.days[2], { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, unsplit: 40 });
+  const series = seriesBy(month, "type");
+  assert.deepEqual(series.map((entry) => entry.label), ["input", "output", "cache read", "cache write", "not split"]);
+  assert.deepEqual(series.find((entry) => entry.key === "cacheRead")!.values.slice(0, 3), [55, 0, 0]);
+  assert.equal(series.reduce((sum, entry) => sum + entry.values.reduce((a, b) => a + b, 0), 0), month.totals.tokens);
+  assert.deepEqual(seriesBy(usageMonth([source(days.slice(0, 1))], now), "type").map((entry) => entry.key), ["input", "output", "cacheRead", "cacheWrite"]);
 });

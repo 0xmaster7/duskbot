@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEven
 import { BOT_COLOURS } from "./Mascot";
 import type { UsageSeries } from "../data/usage-math";
 import { EASE_OUT, m, useSlots } from "./motion";
-import { compact, parseDay, shortDate } from "../lib/format";
+import { compact, exact, parseDay, shortDate } from "../lib/format";
 
 // series take the mascots' own colours, in an order that keeps neighbours apart
 export const SERIES_COLORS = [BOT_COLOURS.blue, BOT_COLOURS.orange, BOT_COLOURS.green, BOT_COLOURS.purple, BOT_COLOURS.cyan, BOT_COLOURS.pink, "#91919b"];
@@ -49,14 +49,14 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
     setAt((a) => Math.max(0, Math.min(days.length - 1, (a ?? days.length - 1) + (e.key === "ArrowRight" ? 1 : -1))));
   };
   const total = series.reduce((n, s) => n + s.values.reduce((a, b) => a + b, 0), 0);
-  const tipLeft = at === null ? 0 : Math.min(Math.max(x(at) - 90, 0), w - 180);
+  const tipLeft = at === null ? 0 : Math.min(Math.max(x(at) - 105, 0), w - 210);
   return (
     <div
       ref={box}
       className="relative outline-none focus-visible:rounded-[12px]"
       tabIndex={0}
       role="group"
-      aria-label={`tokens per day, ${compact(total)} this month across ${series.length} ${series.length === 1 ? "group" : "groups"}. use the left and right arrow keys to read a day.`}
+      aria-label={`tokens per day, ${exact(total)} this month across ${series.length} ${series.length === 1 ? "group" : "groups"}. use the left and right arrow keys to read a day.`}
       onPointerMove={pick}
       onPointerLeave={() => setAt(null)}
       onKeyDown={key}
@@ -94,15 +94,15 @@ export function UsageChart({ days, series }: { days: string[]; series: UsageSeri
           </g>
         )}
       </svg>
-      <p className="sr-only" aria-live="polite">{at !== null ? `${shortDate(parseDay(days[at]!))}: ${series.map((s) => `${s.label} ${compact(s.values[at] ?? 0)} tokens`).join(", ")}` : ""}</p>
+      <p className="sr-only" aria-live="polite">{at !== null ? `${shortDate(parseDay(days[at]!))}: ${series.map((s) => `${s.label} ${exact(s.values[at] ?? 0)} tokens`).join(", ")}` : ""}</p>
       {at !== null && (
-        <div className="pointer-events-none absolute top-1 z-10 w-[180px] rounded-[12px] bg-card-2 px-3 py-2.5 text-13" style={{ left: tipLeft, boxShadow: "var(--pop-shadow)" }} aria-hidden>
+        <div className="pointer-events-none absolute top-1 z-10 w-[210px] rounded-[12px] bg-card-2 px-3 py-2.5 text-13" style={{ left: tipLeft, boxShadow: "var(--pop-shadow)" }} aria-hidden>
           <div className="text-ink-3">{shortDate(parseDay(days[at]!))}</div>
           {series.map((s, i) => (
             <div key={s.key} className="mt-1 flex items-center gap-2">
               <span className="size-2 shrink-0 rounded-full" style={{ background: SERIES_COLORS[i % SERIES_COLORS.length] }} />
               <span className="min-w-0 flex-1 truncate text-ink-2">{s.label}</span>
-              <span className="num text-ink">{compact(s.values[at] ?? 0)}</span>
+              <span className="num text-ink">{exact(s.values[at] ?? 0)}</span>
             </div>
           ))}
         </div>

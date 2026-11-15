@@ -232,15 +232,23 @@ function resetTime(value: string | null): number | null {
 }
 
 function activity(rows: UsageRow[], prices: PriceList | null, from: string, to: string): ActivityReport {
-  type Count = { turns: number; tokens: number; costUsd: number | null };
-  const empty = (): Count => ({ turns: 0, tokens: 0, costUsd: null });
+  type Count = { turns: number; tokens: number; costUsd: number | null; input: number; output: number; cacheRead: number; cacheWrite: number };
+  const empty = (): Count => ({ turns: 0, tokens: 0, costUsd: null, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+  const count = (value: number | undefined) => typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
   const days = new Map<string, Count>(), byBot = new Map<string, Count & { botId: string; botName: string }>();
   const byModel = new Map<string, Count & { model: string }>(), totals = empty();
-  const add = (count: Count, row: UsageRow) => {
-    count.turns++;
-    count.tokens += Math.max(0, row.input) + Math.max(0, row.output);
+  const add = (into: Count, row: UsageRow) => {
+    into.turns++;
+    // the ledger's input already holds the cache reads and writes
+    const input = Math.max(0, row.input), output = Math.max(0, row.output);
+    const cacheRead = Math.min(count(row.cachedInput), input), cacheWrite = Math.min(count(row.cacheWrite), input - cacheRead);
+    into.tokens += input + output;
+    into.input += input - cacheRead - cacheWrite;
+    into.output += output;
+    into.cacheRead += cacheRead;
+    into.cacheWrite += cacheWrite;
     const cost = (prices ? billableFor(row, prices) : null) ?? row.costUsd;
-    if (cost !== null) count.costUsd = (count.costUsd ?? 0) + cost;
+    if (cost !== null) into.costUsd = (into.costUsd ?? 0) + cost;
   };
   for (const row of rows) {
     const day = dateKey(new Date(row.at));

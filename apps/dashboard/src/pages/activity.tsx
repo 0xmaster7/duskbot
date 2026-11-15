@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import type { WorkspaceDetail } from "../../../../shared/dashboard-protocol";
-import { compact, usd } from "../lib/format";
+import { exact, usd } from "../lib/format";
 import { Figure } from "../ui/Figure";
-import { activityStats, Heatmap, HeatStats, type HeatMetric } from "../ui/Heatmap";
+import { activityStats, Heatmap, HeatStats, splitLine, type HeatMetric } from "../ui/Heatmap";
 import { streakLine } from "../lib/fun";
 import { Mascot } from "../ui/Mascot";
 import { Card, Segmented } from "../ui/kit";
@@ -13,7 +13,7 @@ export function Activity({ detail, now, className, style }: { detail: WorkspaceD
   const activity = detail?.report?.activity;
   const days = activity?.days ?? [];
   const empty = !days.length;
-  const total = metric === "turns" ? (activity?.totals.turns ?? 0).toLocaleString("en-US") : metric === "tokens" ? compact(activity?.totals.tokens ?? 0) : usd(activity?.totals.costUsd ?? 0);
+  const total = metric === "turns" ? (activity?.totals.turns ?? 0).toLocaleString("en-US") : metric === "tokens" ? exact(activity?.totals.tokens ?? 0) : usd(activity?.totals.costUsd ?? 0);
   const streak = useMemo(() => streakLine(activityStats(days, "turns", now).current), [days, now]);
   const what = metric === "turns" ? "bot turns" : metric === "tokens" ? "tokens" : "estimated spend";
   return (
@@ -22,6 +22,7 @@ export function Activity({ detail, now, className, style }: { detail: WorkspaceD
         <div>
           <h2 id="activity-title" className="text-14 text-ink-2">{detail ? `${what} on ${detail.workspace.name}` : what}</h2>
           <p className="mt-1.5"><Figure value={total} /></p>
+          {metric === "tokens" && splitLine(activity?.totals) && <p className="num mt-1 text-13 text-ink-3">{splitLine(activity?.totals)}</p>}
           {streak && <p className="mt-2 inline-flex h-7 items-center gap-1.5 rounded-full bg-pop ps-1.5 pe-3 text-13 text-ink-2" data-streak>
             <Mascot body="kit" color="blue" size={20} state="happy" tappable />{streak}
           </p>}

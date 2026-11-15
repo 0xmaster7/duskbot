@@ -86,12 +86,14 @@ function fixtureActivity(bots: BotReport[], seed: number, now: number): Activity
   for (let i = 199; i >= 0; i--) {
     if (random() < 0.22) continue;
     const turns = Math.floor(4 + random() * 35), tokens = turns * Math.floor(1800 + random() * 2600), cents = Math.round(tokens / 1800);
-    days.push({ date: dayKey(now - i * DAY), turns, tokens, costUsd: cents / 100 });
+    const output = Math.round(tokens * (0.08 + random() * 0.08)), cacheRead = Math.round(tokens * (0.5 + random() * 0.2)), cacheWrite = Math.round(tokens * random() * 0.04);
+    days.push({ date: dayKey(now - i * DAY), turns, tokens, costUsd: cents / 100, input: tokens - output - cacheRead - cacheWrite, output, cacheRead, cacheWrite });
     const bot = byBot[i % byBot.length]!;
     bot.turns += turns; bot.tokens += tokens; bot.costUsd += cents;
   }
   for (const bot of byBot) bot.costUsd /= 100;
-  const totals = byBot.reduce((sum, b) => ({ turns: sum.turns + b.turns, tokens: sum.tokens + b.tokens, costUsd: Math.round((sum.costUsd + b.costUsd) * 100) / 100 }), { turns: 0, tokens: 0, costUsd: 0 });
+  const totals = { ...byBot.reduce((sum, b) => ({ turns: sum.turns + b.turns, tokens: sum.tokens + b.tokens, costUsd: Math.round((sum.costUsd + b.costUsd) * 100) / 100 }), { turns: 0, tokens: 0, costUsd: 0 }),
+    ...(["input", "output", "cacheRead", "cacheWrite"] as const).reduce((sum, key) => ({ ...sum, [key]: days.reduce((n, d) => n + (d[key] ?? 0), 0) }), {}) };
   const byModel: ActivityReport["byModel"] = [];
   bots.forEach((bot, i) => {
     const usage = byBot[i]!, model = bot.model!;

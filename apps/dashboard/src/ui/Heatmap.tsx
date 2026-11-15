@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 import type { ActivityReport } from "../../../../shared/dashboard-protocol";
-import { compact, dayKey, longDate, MONTH_NAMES, monthShort, parseDay, plural, usd } from "../lib/format";
+import { dayKey, exact, longDate, MONTH_NAMES, monthShort, parseDay, plural, usd } from "../lib/format";
 import { cx, Stat } from "./kit";
+import { TOKEN_KINDS, tokenSplit } from "../data/usage-math";
 
 export type HeatMetric = "turns" | "tokens" | "spend";
 const WEEKS = 53;
@@ -10,7 +11,14 @@ const DAY_MS = 86_400_000;
 const valueOf = (d: ActivityReport["days"][number] | undefined, metric: HeatMetric) =>
   !d ? 0 : metric === "turns" ? d.turns : metric === "tokens" ? d.tokens : d.costUsd ?? 0;
 
-const say = (v: number, metric: HeatMetric) => (metric === "turns" ? plural(v, "turn") : metric === "tokens" ? `${compact(v)} tokens` : usd(v));
+const say = (v: number, metric: HeatMetric) => (metric === "turns" ? plural(v, "turn") : metric === "tokens" ? `${exact(v)} tokens` : usd(v));
+
+/** "800 input, 120 output, 4,000 cache read" for a day that carries the split, empty for one that does not */
+export function splitLine(day: ActivityReport["days"][number] | ActivityReport["totals"] | undefined): string {
+  if (!day || day.input === undefined) return "";
+  const split = tokenSplit(day);
+  return TOKEN_KINDS.filter(({ key }) => key !== "cacheWrite" || split.cacheWrite > 0).map(({ key, label }) => `${exact(split[key])} ${label}`).join(", ");
+}
 
 export function activityStats(days: ActivityReport["days"], metric: HeatMetric, now: number) {
   const byDay = new Map(days.map((d) => [d.date, valueOf(d, metric)]));
@@ -76,7 +84,9 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
 
   useEffect(() => { const el = scroller.current; if (el) el.scrollLeft = el.scrollWidth; }, [weeks]);
 
+  const byDate = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
   const [picked, setPicked] = useState<{ key: string; v: number } | null>(null);
+  const pickedSplit = picked && metric === "tokens" && picked.v > 0 ? splitLine(byDate.get(picked.key)) : "";
   useEffect(() => setPicked(null), [metric]);
   // one handler for the whole grid: a tap on touch, a hover with a mouse, shows the day under the legend
   const pick = (event: SyntheticEvent<HTMLDivElement>) => {
@@ -121,7 +131,7 @@ export function Heatmap({ days, metric, now, compactCells = false }: { days: Act
       </div>
       {picked && <style>{`[data-day="${picked.key}"]{filter:brightness(0.82)}[data-theme="dark"] [data-day="${picked.key}"]{filter:brightness(1.45)}`}</style>}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="num min-h-4 text-13 text-ink-2" aria-live="polite">{picked ? `${say(picked.v, metric)} on ${longDate(parseDay(picked.key))}` : <span className="text-ink-4">pick a day to see it</span>}</p>
+        <p className="num min-h-4 text-13 text-ink-2" aria-live="polite">{picked ? `${say(picked.v, metric)} on ${longDate(parseDay(picked.key))}${pickedSplit ? `: ${pickedSplit}` : ""}` : <span className="text-ink-4">pick a day to see it</span>}</p>
         <div className="t-pixel flex items-center gap-1.5 text-ink-3" aria-hidden>
           <span className="me-1">less</span>
           {levels.map((l) => <span key={l} className="size-[10px] rounded-[2px]" style={{ background: l ? `var(--heat-${l})` : "var(--cell)" }} />)}

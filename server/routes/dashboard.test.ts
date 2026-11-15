@@ -39,7 +39,8 @@ function dependencies(): DashboardCollectorDeps {
     checkUpdate: async () => ({ current: "1", available: false, install: "unknown" }), prices: () => null,
     planUsage: vi.fn(async () => ({ fetchedAt: "now", providers: [{ id: "engine", name: "Engine", driver: "fixture", plan: "Pro", ok: true, error: null,
       fiveHour: { available: true, remainingPercent: 75, usedPercent: 25, resetsAt: "2026-11-08T12:00:00Z" }, weekly: { available: false, remainingPercent: null, usedPercent: null, resetsAt: null }, extra: [], models: [] }] })),
-    usage: { flush: vi.fn(async () => {}), read: vi.fn(() => ["visible", "hidden"].map((threadId) => ({ at: new Date().toISOString(), botId: "nova", botName: "Nova", threadId, model: "test", instanceId: "engine", driverKind: "fixture", input: 10, output: 20, costUsd: 0.25, trigger: { kind: "owner" as const } }))) },
+    usage: { flush: vi.fn(async () => {}), read: vi.fn(() => ["visible", "hidden"].map((threadId) => ({ at: new Date().toISOString(), botId: "nova", botName: "Nova", threadId, model: "test", instanceId: "engine", driverKind: "fixture", input: 10, output: 20, costUsd: 0.25, trigger: { kind: "owner" as const },
+      ...(threadId === "visible" ? { cachedInput: 4, cacheWrite: 2 } : {}) }))) },
     machine: async () => ({ at: 1, host: { hostname: "Fixture", platform: "linux", arch: "x64", cpus: 1, cpuModel: "Fixture CPU" }, cpu: { percent: 5, load: [0, 0, 0] }, memory: { usedBytes: 1, totalBytes: 2 }, disk: { usedBytes: 1, totalBytes: 2, path: "/private/secret" }, network: null, uptimeSec: 1, processUptimeSec: 1, app: { version: "1", node: "22" } }),
   };
 }
@@ -67,7 +68,7 @@ describe("dashboard collector", () => {
     expect(report.devices.phones.map((phone) => phone.id)).toEqual(["phone:registry-key", "mobile:device"]);
     expect(report.bots[0]).toMatchObject({ color: "blue", body: null, model: "test", engine: "My engine", computer: "local-vm", busy: true, lastActiveAt: 42,
       routines: [{ id: "routine", name: "Morning brief", paused: true, schedule: expect.stringContaining("Every day"), nextRunAt: 99, lastRunAt: 88 }] });
-    expect(report.activity.totals).toEqual({ turns: 2, tokens: 60, costUsd: 0.5 });
+    expect(report.activity.totals).toEqual({ turns: 2, tokens: 60, costUsd: 0.5, input: 14, output: 40, cacheRead: 4, cacheWrite: 2 });
     expect(report.activity.byBot).toHaveLength(1); expect(report.activity.byModel).toHaveLength(1);
     expect(JSON.stringify(report)).not.toMatch(/private|secret|threadId|prompt|tokenHash|capabilities|revoke/);
     expect(report.machine.disk?.path).toBe("");
