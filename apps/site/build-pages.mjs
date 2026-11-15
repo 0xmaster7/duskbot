@@ -268,7 +268,7 @@ export function layout({ title, description, body, page, at, section = page, og 
   const brand = '<a class="brand" href="/"><img src="/art/logo-96.webp" alt="" width="28" height="28">dusk bot</a>';
   const css = home ? ['site.css', 'motion-kit-v2.css', 'home.css', ...(has('home-window.css') ? ['home-window.css'] : [])] : ['site.css', 'pages.css', ...styles.filter(has)];
   const tail = home
-    ? `<script src="${stamped('motion.min.js')}" defer></script>\n<script src="${stamped('motion-kit-v2.js')}" defer></script>\n<script src="${stamped('home.js')}" defer></script>${has('mascot.js') ? `\n<script src="${stamped('mascot.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
+    ? `<script src="${stamped('px-sky.js')}" defer></script>\n<script src="${stamped('motion.min.js')}" defer></script>\n<script src="${stamped('motion-kit-v2.js')}" defer></script>\n<script src="${stamped('home.js')}" defer></script>${has('mascot.js') ? `\n<script src="${stamped('mascot.js')}" defer></script>` : ''}\n<script src="${stamped('site.js')}" defer></script>`
     : ['mascot.js', 'site.js', 'pages.js', ...scripts].filter(has).map((file) => `<script src="${stamped(file)}" defer></script>`).join('\n');
   return `<!doctype html>
 <html lang="en">

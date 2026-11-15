@@ -598,3 +598,91 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
   .home *, .home *::before, .home *::after { animation: none !important; transition: none !important; }
   .cloud, .zz { display: none; }
 }
+
+/* how it works and a day with your bots: the waitlist's pixel language, scoped to these two sections. px-sky.js paints
+   each [data-sky] as a stepped pixel sky; cards are stepped paper with a coloured underlip */
+.px-how, .px-day {
+  --paper: #fdfdfd; --ink9: #212121; --mute: #55555f;
+  --u-lemon: #fff3a0; --u-pink: #ffc4dd; --u-sky: #c2ecfc; --u-lilac: #d0cefb; --u-lime: #e2fb93;
+  --step: polygon(5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px), 0 5px, 5px 5px);
+  --step2: polygon(10px 0, calc(100% - 10px) 0, calc(100% - 10px) 5px, calc(100% - 5px) 5px, calc(100% - 5px) 10px, 100% 10px, 100% calc(100% - 10px), calc(100% - 5px) calc(100% - 10px), calc(100% - 5px) calc(100% - 5px), calc(100% - 10px) calc(100% - 5px), calc(100% - 10px) 100%, 10px 100%, 10px calc(100% - 5px), 5px calc(100% - 5px), 5px calc(100% - 10px), 0 calc(100% - 10px), 0 10px, 5px 10px, 5px 5px, 10px 5px);
+  margin-top: var(--gap);
+}
+[data-sky] { position: relative; isolation: isolate; }
+[data-sky] > .sky-cv { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
+.px-how { padding: 104px 0 112px; background: #3cd0fd; }
+.home .px-how h2 { font-size: clamp(36px, 4.4vw, 56px); line-height: 1.06; letter-spacing: -0.035em; font-weight: 600; color: #fff; max-width: 21em; }
+.px-card { background: var(--paper); clip-path: var(--step2); box-shadow: inset 0 -8px 0 var(--u, var(--u-lilac)); color: var(--ink9); }
+.px-u-lemon { --u: var(--u-lemon); } .px-u-pink { --u: var(--u-pink); } .px-u-sky { --u: var(--u-sky); } .px-u-lilac { --u: var(--u-lilac); } .px-u-lime { --u: var(--u-lime); }
+.px-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 44px 0 0; padding: 0; list-style: none; }
+.px-steps > li { display: flex; flex-direction: column; gap: 10px; min-height: 330px; padding: 22px 22px 32px; }
+.px-n { font: 600 52px/1 var(--pixel); }
+.home .px-steps h3 { margin: 4px 0 0; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.px-steps p { margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--mute); }
+.px-mk { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.px-mk.px-shapes { display: grid; grid-template-columns: repeat(3, 40px); gap: 18px 24px; }
+.px-shapes .bot { width: 40px; height: 40px; }
+.px-chip { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px 4px 10px; background: var(--paper); clip-path: var(--step); box-shadow: inset 0 -5px 0 var(--u, var(--u-lilac)); font-size: 13.5px; font-weight: 550; letter-spacing: -0.01em; white-space: nowrap; }
+.px-u-lime.px-chip { height: auto; min-height: 34px; padding-top: 6px; white-space: normal; background: #f4f4f2; }
+.px-chip .logo { width: 18px; height: 18px; }
+.px-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 0 16px 4px; background: var(--ink9); color: #fff; clip-path: var(--step); box-shadow: inset 0 -5px 0 rgb(0 0 0 / 0.35); font: 550 14.5px/1 var(--sans); letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; transition: background-color 0.2s ease, scale 0.16s cubic-bezier(0.23, 1, 0.32, 1); }
+.px-btn .os { width: 16px; height: 16px; }
+.px-btn:hover, .px-btn:focus-visible { background-color: #3a3a42; color: #fff; }
+.px-btn:focus-visible { outline: 2px solid #fff; outline-offset: -6px; }
+.px-btn:active { scale: 0.97; }
+
+.px-day { background: #fff; }
+.px-day-head { padding-bottom: 44px; }
+.home .px-day h2 { font-size: clamp(32px, 3.5vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 600; }
+.px-day-head p { max-width: 34em; margin: 14px 0 0; font-size: 19px; line-height: 1.5; color: var(--mute); }
+.px-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-height: 580px; margin: 0; padding: 0; list-style: none; }
+.px-slot { display: flex; flex-direction: column; padding: 34px 18px; color: var(--tk); }
+.px-dawn { --tk: #8a2c58; background: #ffc4dd; } .px-morning { --tk: #0b3552; background: #06bafd; } .px-noon { --tk: #6a3600; background: #ffc46b; } .px-evening { --tk: #fff; background: #9a6cc8; } .px-night { --tk: #fff; background: #141842; }
+.px-t { margin: 0 0 18px; }
+.px-t time { display: block; font: 600 44px/1 var(--pixel); }
+.px-t span { display: block; margin-top: 6px; font-size: 15px; font-weight: 600; }
+.px-slot .px-card { padding: 14px 14px 22px; }
+.px-fh { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 600; }
+.px-fh .bot { width: 28px; height: 28px; }
+.px-said .bot { width: 24px; height: 24px; }
+.px-d { margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: var(--mute); }
+.px-live { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px 2px; font: 500 12px/1 var(--mono); background: #e2fbd0; color: #1d6b2e; clip-path: var(--step); }
+.px-live i { width: 6px; height: 6px; background: #1fb866; }
+.px-fares { display: grid; gap: 5px; margin: 10px 0 0; padding: 0; list-style: none; }
+.px-fares li { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; padding: 7px 10px 9px; font-size: 13.5px; background: #f4f4f2; clip-path: var(--step); }
+.px-fares li.px-hot { background: #fff3a0; }
+.px-fares b { font-family: var(--mono); font-weight: 500; }
+.px-fares u { text-decoration: none; font: 500 12px/1 var(--mono); padding: 4px 7px 5px; background: #fff; clip-path: var(--step); }
+.px-fares li.px-hot u { background: var(--ink9); color: #fff; }
+.px-said { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; }
+.px-said + .px-said { margin-top: 10px; }
+.px-said p { margin: 2px 0 0; }
+.px-at { padding: 1px 5px 2px; font-weight: 600; clip-path: var(--step); }
+.px-at.px-y { background: #fff3a0; } .px-at.px-you { background: #c2ecfc; }
+.px-mini { display: flex; gap: 6px; margin: 10px 0 0; }
+.px-mini span { font: 600 12.5px/1 var(--sans); padding: 6px 9px 8px; clip-path: var(--step); background: #f4f4f2; }
+.px-mini span.px-on { background: var(--ink9); color: #fff; }
+.px-note { margin: 10px 0 0; padding: 8px 10px 10px; background: #fff3a0; clip-path: var(--step); font-size: 14px; }
+.px-note span { display: block; margin-top: 2px; font: 500 12px/1.3 var(--mono); color: #5d5d66; }
+.px-foot-note { margin: auto 0 0; padding-top: 28px; font-size: 14.5px; line-height: 1.45; font-weight: 550; }
+@media (max-width: 1180px) {
+  .px-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .px-slot { min-height: 400px; }
+  .px-night { grid-column: span 2; }
+}
+@media (max-width: 1000px) {
+  .px-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .px-steps > li { min-height: 290px; }
+}
+@media (max-width: 760px) {
+  .px-how { padding: 80px 0 88px; }
+  .px-slots { grid-template-columns: minmax(0, 1fr); }
+  .px-slot, .px-night { grid-column: auto; min-height: 0; padding: 28px 20px 32px; }
+  .px-slot .px-card { max-width: 420px; }
+}
+@media (max-width: 600px) {
+  .px-steps { grid-template-columns: minmax(0, 1fr); }
+  .px-steps > li { min-height: 0; }
+  .px-mk { margin-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .px-btn { transition: none; } }
