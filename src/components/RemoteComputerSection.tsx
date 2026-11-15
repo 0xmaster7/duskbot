@@ -27,7 +27,7 @@ export function isServerPairingLink(input: string): boolean {
 /** Pairing this desktop with another desktop app as its client: one row that opens a small form for the other app's
  * address and six-digit code, or, once paired, the computer it is on and Disconnect. A server is connected from Your
  * servers on the same page. */
-export function RemoteComputerSection({ hideWhenUnavailable = false }: { hideWhenUnavailable?: boolean }) {
+export function RemoteComputerSection({ hideWhenUnavailable = false, simple = false }: { hideWhenUnavailable?: boolean; /** one unlabelled row named for what it does */ simple?: boolean }) {
   const bridge = window.duskDesktop?.remoteClient;
   const [state, setState] = useState<DesktopRemoteClientState>({ active: bridge?.active === true });
   const [open, setOpen] = useState(false);
@@ -88,12 +88,12 @@ export function RemoteComputerSection({ hideWhenUnavailable = false }: { hideWhe
   }
 
   return (
-    <RowsCard label={t("remote.client.idle")} data-settings-block="remote-client">
-      <NavRow data-settings-open="companion-pair" title={t("settings.s2.remote.pair")} hint={t("settings.s2.remote.pairHint")} onClick={() => { setError(""); setOpen(true); }} />
+    <RowsCard label={simple ? undefined : t("remote.client.idle")} data-settings-block="remote-client">
+      <NavRow data-settings-open="companion-pair" title={t(simple ? "remote.client.idle" : "settings.s2.remote.pair")} hint={t(simple ? "settings.elsewhere.connectHint" : "settings.s2.remote.pairHint")} onClick={() => { setError(""); setOpen(true); }} />
       {open && (
         <FormDialog
           data-panel-modal="companion-pair"
-          title={t("settings.s2.remote.pair")}
+          title={t(simple ? "remote.client.idle" : "settings.s2.remote.pair")}
           description={t("remote.client.restartNote")}
           saveLabel={t("remote.client.pair")}
           canSave={endpoint.trim() !== "" && code.length === 6}

@@ -8,7 +8,8 @@ import { IMAGE_MAX_BYTES, imageAttachmentFromFile, isImageFile } from "@/lib/com
 import type { LocaleKey } from "@/locales";
 import { botAvatarUrlFromStoredPath } from "../../shared/bot-avatar";
 import { AboutMeSettings } from "./AboutMeSettings";
-import { profileInitials } from "./SidebarProfileMenu";
+import { profileInitials, type PersonFace } from "./SidebarProfileMenu";
+import { UserFace } from "./UserAvatar";
 import { User } from "../icons";
 import { SettingGlyph } from "./ui/SettingGlyph";
 
@@ -64,7 +65,7 @@ function croppedPhoto(file: File, zoom: number): Promise<File> {
 }
 
 /** The person's own picture beside their name in the sidebar. Kept in the app's attachment store; "" removes it. */
-function ProfilePhoto() {
+function ProfilePhoto({ face }: { face?: PersonFace | null }) {
   const { state, dispatch } = useStore();
   const avatarUrl = state.config?.profile?.avatarUrl ?? "";
   const [busy, setBusy] = useState(false);
@@ -136,7 +137,9 @@ function ProfilePhoto() {
               <button type="button" className="rounded-md bg-control px-2 py-1 text-[12px] text-ink hover:bg-raised-hover" disabled={busy} onClick={() => save(draft)}>{t("settings.profile.avatar.save")}</button>
             </div>
           </div>
-        ) : avatarUrl ? <img src={avatarUrl} alt="" className="size-8 rounded-full object-cover" /> : <div className="size-8 rounded-full bg-ink/[0.06]" />}
+        ) : avatarUrl ? <img src={avatarUrl} alt="" className="size-8 rounded-full object-cover" />
+          : face ? <UserFace account={face} size={32} />
+            : <div className="size-8 rounded-full bg-ink/[0.06]" />}
         <label className="ui-button cursor-pointer">
           {busy ? t("settings.profile.avatar.uploading") : t("settings.profile.avatar.choose")}
           <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="sr-only" disabled={busy} onChange={(event) => {
@@ -152,7 +155,8 @@ function ProfilePhoto() {
   );
 }
 
-export function ProfileFields() {
+/** `face` is the signed-in account's (its photo or chosen avatar), shown while this place has no photo of its own. */
+export function ProfileFields({ face }: { face?: PersonFace | null }) {
   const { state, dispatch } = useStore();
   const [name, setName] = useState(state.config?.profile?.name ?? "");
   const [email, setEmail] = useState(state.config?.profile?.email ?? "");
@@ -186,7 +190,7 @@ export function ProfileFields() {
   const label = "text-[13px] leading-[18px] tracking-[-0.08px] text-ink";
   return (
     <div className="flex flex-col">
-      <div className={row}><span className={label}>{t("settings.w6.profile.photo")}</span><ProfilePhoto /></div>
+      <div className={row}><span className={label}>{t("settings.w6.profile.photo")}</span><ProfilePhoto face={face} /></div>
       <div className={row}>
         <span className={label}>{t("settings.profile.name")}</span>
         <input aria-label={t("settings.profile.name")} value={name} onChange={(e) => setName(e.target.value)} onBlur={save} placeholder={t("settings.profile.name")} className={inputClass} />
@@ -209,8 +213,10 @@ export function ProfileFields() {
   );
 }
 
-export function ProfileAvatar({ profile, small = false }: { profile?: { name?: string; email?: string; avatarUrl?: string }; small?: boolean }) {
+export function ProfileAvatar({ profile, small = false, face }: { profile?: { name?: string; email?: string; avatarUrl?: string }; small?: boolean; face?: PersonFace | null }) {
   const [failed, setFailed] = useState<string | null>(null);
+  // a signed-in account lends its photo or chosen avatar, as the sidebar shows it
+  if (face) return <UserFace account={face} size={small ? 28 : 44} className="shrink-0" />;
   const initials = profileInitials(profile);
   const photo = profile?.avatarUrl && failed !== profile.avatarUrl ? profile.avatarUrl : null;
   if (small && !photo && initials === "?") return <span aria-hidden="true" className="me-2 flex size-6 shrink-0 items-center justify-center"><SettingGlyph name="person" /></span>;

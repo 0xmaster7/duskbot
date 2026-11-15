@@ -53,7 +53,10 @@ export function shownDevices(devices: PairedDevice[], cloudHome: boolean): Paire
 const button = "ui-button ui-button-primary";
 const quiet = "ui-button";
 
-export function ServerPairingCard({ initialSession = null, cloudHome = false, focusRequest = 0, team, teamPhoneBlocked = null, simple = false, phone }: { initialSession?: SessionState | null; cloudHome?: boolean; focusRequest?: number; team?: string; teamPhoneBlocked?: string | null; simple?: boolean; /** the phone page's pieces, laid out around this code; null when phones may not link here */ phone?: PhoneParts | null }) {
+export function ServerPairingCard({ initialSession = null, cloudHome = false, focusRequest = 0, team, teamPhoneBlocked = null, simple = false, phone, elsewhere }: { initialSession?: SessionState | null; cloudHome?: boolean; focusRequest?: number; team?: string; teamPhoneBlocked?: string | null; simple?: boolean; /** the phone page's pieces, laid out around this code; null when phones may not link here */ phone?: PhoneParts | null;
+  /** Settings > Computer > Connect from elsewhere: this computer's code, the row that connects to another computer, and
+   * who a code lets in */
+  elsewhere?: { connect: ReactNode } }) {
   const [session, setSession] = useState<SessionState | null>(initialSession);
   const [computerName, setComputerName] = useState<string | null>(null);
   const [scope, setScope] = useState<"admin" | "client">("admin");
@@ -116,6 +119,14 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
     </div>
   );
 
+  if (elsewhere && !canPairDevices(session)) {
+    return (
+      <div data-settings-elsewhere="" className="flex flex-col gap-5">
+        <p className="m-0 px-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("settings.elsewhere.intro")}</p>
+        {elsewhere.connect}
+      </div>
+    );
+  }
   if (team && session?.kind === "session" && session.team) {
     if (phone !== undefined) return phonePage(null, <TeamPhoneCard team={team} blocked={teamPhoneBlocked} />);
     return (
@@ -212,6 +223,59 @@ export function ServerPairingCard({ initialSession = null, cloudHome = false, fo
   const nameRow = (className: string) => !cloudHome && computerName !== null
     ? <div className={className}><ComputerNameRow saved={computerName} onSaved={setComputerName} /></div> : null;
   const scopeName = (device: PairedDevice) => t(device.scopes.includes("admin") ? "remote.serverPairing.scope.admin" : "remote.serverPairing.scope.client");
+
+  if (elsewhere) {
+    const live = offer && !expired ? offer : null;
+    const copyCode = async () => {
+      if (!live) return;
+      const result = await copyText(live.url ?? live.code);
+      if (result !== "empty") setCopied(result);
+    };
+    return (
+      <div ref={root} tabIndex={-1} data-phone-pairing="server" data-settings-elsewhere="" className="flex scroll-mt-4 flex-col gap-5 focus:outline-none">
+        <p className="m-0 px-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("settings.elsewhere.intro")}</p>
+        <RowsCard label={t("settings.elsewhere.code")} data-settings-block="pair-code">
+          <div data-pairing-offer={live ? "" : undefined} className="flex flex-col items-start gap-2 px-2.5 py-2">
+            {live && <code aria-label={t("settings.w6.pairing.code")} className="select-all whitespace-nowrap font-mono text-[22px] leading-8 tracking-[0.1em] text-ink">{live.code}</code>}
+            <p className="m-0 text-[13px] leading-[18px] text-ink-secondary">
+              {live ? t("settings.elsewhere.codeLive", { minutes: minutesLeft(live.expiresAt, now) }) : expired ? t("remote.serverPairing.expired") : t("settings.elsewhere.codeHint")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {live && (
+                <button type="button" data-pairing-copy="" className="ui-button ui-button-primary" onClick={() => void copyCode()}>
+                  {t(copied === "copied" ? "remote.serverPairing.copied" : copied === "failed" ? "common.copyFailed" : "settings.elsewhere.copy")}
+                </button>
+              )}
+              <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className={live ? quiet : button}>
+                {busy ? t("remote.serverPairing.creating") : offer ? t("settings.mobile.newCode") : t("settings.simple.computer.createCode")}
+              </button>
+            </div>
+            {error ? <p role="alert" className="m-0 text-[13px] leading-[18px] text-danger">{error}</p> : null}
+          </div>
+          {!cloudHome && (
+            <ItemRow pixel="shield" title={t("settings.s2.pairing.access")} hint={t("settings.mobile.accessHint")}>
+              <SettingsSelect data-settings-select="pairing-scope" value={scope} aria-label={t("settings.s2.pairing.access")}
+                options={[{ value: "admin", label: t("remote.serverPairing.scope.admin") }, { value: "client", label: t("remote.serverPairing.scope.client") }]}
+                onChange={(event) => setScope(event.target.value === "client" ? "client" : "admin")} />
+            </ItemRow>
+          )}
+        </RowsCard>
+        {elsewhere.connect}
+        {listed.length > 0 && (
+          <RowsCard label={t("remote.serverPairing.signedInDevices")} data-settings-block="paired-sessions">
+            {listed.map((device) => (
+              <ItemRow key={device.id} pixel="globe" title={device.label}
+                hint={`${scopeName(device)} · ${t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}${device.id === current ? ` · ${t("remote.serverPairing.thisBrowser")}` : ""}`}>
+                {device.id === current ? null : (
+                  <button type="button" onClick={() => void signOut(device.id)} className="ui-button">{t("remote.serverPairing.signOut")}</button>
+                )}
+              </ItemRow>
+            ))}
+          </RowsCard>
+        )}
+      </div>
+    );
+  }
 
   if (simple) {
     // secondary to the phone's own ways: this server's code, typed at /pair on another computer or browser

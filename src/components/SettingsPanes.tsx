@@ -6,7 +6,7 @@ import { useStore, type AppSettingsSection } from "@/state/store";
 import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 import { t, tPreferred, tOptional } from "@/lib/i18n";
 import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
-import { builtInBrowserEnabled, skillsLibraryEnabled } from "@/lib/feature-flags";
+import { skillsLibraryEnabled } from "@/lib/feature-flags";
 import { setColorUserBubbles, useColorUserBubbles } from "@/lib/user-bubble-preference";
 import { resolveSkin } from "@/lib/skins";
 import { setDressUp, useDressUp } from "@/lib/halloween-dress";
@@ -23,7 +23,8 @@ import { ArchivedBotsPanel } from "./ArchivedBotsPanel";
 import { AttachmentStorageSettings } from "./AttachmentStorageSettings";
 import { AccessOverview } from "./bot-access/AccessOverview";
 import { BuiltInBrowserRow, ServerSitesRow } from "./BrowserSettingsRows";
-import { CloudPlanFootnote, CloudPlanRow, useCloudPlan } from "./ProIntroduction";
+import { CloudPlanRow, useCloudPlan } from "./ProIntroduction";
+import { buyOfferAllowed } from "@/lib/cloud-plan";
 import { CloudUsageDetails, CloudUsageSummaryView, useCloudUsageSettings } from "./CloudUsageMeter";
 import { CompanyBackupSettings } from "./CompanyBackupSettings";
 import { DiagnosticsRow } from "./DiagnosticsRow";
@@ -32,7 +33,7 @@ import { EnginesSettings } from "./EnginesSettings";
 import { ImportSettings } from "./ImportSettings";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LocalComputerSection } from "./LocalComputerSection";
-import { ADD_PLACE_PAGE, CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PLACE_INSTALL_PAGE, PRIVATE_SETUP_PAGE, PROFILE_PAGE } from "./settings-page-ids";
+import { ADD_PLACE_PAGE, CLOUD_SETUP_PAGE, PHONE_ADVANCED_PAGE, PLACE_INSTALL_PAGE, PRIVATE_SETUP_PAGE } from "./settings-page-ids";
 import { AddPlacePage, isAddPlacePage } from "./AddPlaceSettings";
 import { CloudDesktopKeys } from "./keys/KeysPage";
 import { InstallOnVpsGroup, WorkspacesGroup } from "./WorkspacesSettings";
@@ -48,13 +49,13 @@ import { ProviderSummary } from "./usage/ProviderSummary";
 import { UsageGraph } from "./usage/UsageGraph";
 import { ProfileAvatar, ProfileFields } from "./ProfileSettings";
 import { SettingRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
+import { PixelIcon } from "./ui/PixelIcon";
 import { RoutineWakeRow } from "./routines/RoutineWakeRow";
 import { Card as RowsCard, FormDialog, ItemRow, NavRow, SwitchRow, useSubPage } from "./ListRows";
 import { DataSharingRows } from "./DataSharingRows";
 import { SettingsSelect } from "./SettingsSelect";
-import { useServerUpdateItem } from "./SidebarProfileMenu";
+import { personFace, useServerUpdateItem } from "./SidebarProfileMenu";
 import { SkillsSection } from "./SkillsSection";
-import { BrowserProfilesManager } from "./BrowserProfilesManager";
 import { TalkShortcutRow } from "./TalkShortcutRow";
 import { ThemeRow, useSkinChoice } from "./ThemeRow";
 import { UsageSection } from "./UsageSection";
@@ -69,7 +70,7 @@ import {
 export type Has = (id: AppSettingsSection) => boolean;
 /** `desktopPairing` is this server's code for another computer, shown under Computer while the phone page (where it
  * otherwise lives, beside the phone's ways) is hidden. */
-export type RemoteAccessCards = Record<"client" | "pairing" | "companion", ReactNode> & { desktopPairing?: ReactNode };
+export type RemoteAccessCards = Record<"client" | "pairing" | "companion", ReactNode> & { desktopPairing?: ReactNode; elsewhere?: ReactNode };
 export type Disclose = (id: string) => { id: string; open: boolean; onToggle: () => void };
 
 /** The pages a pane's rows open, by the section a deep link names: a link to one lands on that page. */
@@ -104,9 +105,11 @@ export function AccountRows() {
   const active = accounts.view?.active ?? null;
   const name = profile?.name?.trim() || active?.email?.split("@")[0] || "";
   const email = active?.email ?? profile?.email?.trim() ?? "";
+  // the account signed in here lends its photo (or the avatar picked on it), as the sidebar shows
+  const face = active ? personFace(profile, active) : null;
   const who = (
     <>
-      <ProfileAvatar small profile={{ ...profile, name, email }} />
+      <ProfileAvatar small profile={{ ...profile, name, email }} face={face} />
       <div className="min-w-0 flex-1 text-start">
         <div data-row-title="" className="truncate text-[13px] leading-[18px] text-ink">{name || t("settings.simple.account.noName")}</div>
         {email && <div data-row-hint="" className="truncate text-[12px] leading-4 text-ink-secondary">{email}</div>}
@@ -140,7 +143,7 @@ export function AccountRows() {
       {!active && window.duskDesktop?.accounts && <NavRow data-settings-open="sign-in" title={t("accounts.signIn")} onClick={() => window.duskDesktop?.cloudAccount?.continueInBrowser ? openSignIn() : setAdding(true)} />}
       {editing && (
         <FormDialog data-panel-modal="profile" title={t("settings.w6.group.aboutYou")} width={460} onClose={() => setEditing(false)}>
-          <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields /></div>
+          <div data-settings-look="simple" className="-mx-2 flex flex-col"><ProfileFields face={face} /></div>
         </FormDialog>
       )}
       {(adding || accounts.sheet) && (
@@ -254,7 +257,7 @@ export function AdvancedFold({ open, onToggle, children }: { open: boolean; onTo
 function ImportRow() {
   const sub = useSubPage();
   return (
-    <SettingRow icon="import" title={t("settings.import.rowTitle")} subtitle={t("settings.import.rowHint")}>
+    <SettingRow icon={<PixelIcon name="parcel" size={24} />} title={t("settings.import.rowTitle")} subtitle={t("settings.import.rowHint")}>
       <button type="button" data-panel-page="import" className="ui-button" onClick={() => sub.open("import", t("settings.import.rowTitle"))}>{t("settings.w6c.import.start")}</button>
     </SettingRow>
   );
@@ -268,26 +271,14 @@ export function TextingPane({ has, remoteAccess }: { has: Has; remoteAccess: Rem
   return <div data-settings-block="companion" className="flex flex-col gap-5">{remoteAccess.pairing}{remoteAccess.companion}</div>;
 }
 
-export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActive = false }: { has: Has; remoteAccess: RemoteAccessCards; servers: ReactNode; transfer?: ReactNode; remoteActive?: boolean }) {
+export function ComputerPane({ has, remoteAccess, transfer, remoteActive = false }: { has: Has; remoteAccess: RemoteAccessCards; transfer?: ReactNode; remoteActive?: boolean }) {
   const sub = useSubPage();
   const { at } = sub;
-  const { state } = useStore();
   const [more, setMore] = useState(false);
   if (at === "computers" || at === PRIVATE_SETUP_PAGE) return <div data-settings-block="computer" className="flex flex-col gap-5"><AdminOnly><LocalComputerSection /></AdminOnly></div>;
   if (at === CLOUD_SETUP_PAGE) return <AdminOnly><CloudDesktopKeys /></AdminOnly>;
-  if (at === "profiles" || at?.startsWith(PROFILE_PAGE)) return <BrowserProfilesManager />;
   if (isAddPlacePage(at)) return <AddPlacePage />;
-  if (at === "elsewhere") {
-    return (
-      <div data-settings-block="remote" className="flex flex-col gap-5">
-        {has("desktopWorkspaces") && <div data-settings-block="desktopWorkspaces" className="flex flex-col gap-5">{servers}</div>}
-        {has("companion") && <div className="flex flex-col gap-5 empty:hidden">{remoteAccess.client}</div>}
-        {has("companion") && remoteAccess.desktopPairing && <div data-settings-block="desktop-pairing" className="flex flex-col gap-5">{remoteAccess.desktopPairing}</div>}
-      </div>
-    );
-  }
-  const profiles = state.config?.browserProfiles ?? [];
-  const showProfiles = builtInBrowserEnabled(state.config) || profiles.length > 0;
+  if (at === "elsewhere") return <div data-settings-block="remote" className="flex flex-col gap-5">{remoteAccess.elsewhere}</div>;
   const elsewhere = has("companion") || has("desktopWorkspaces");
   return (
     <>
@@ -306,7 +297,6 @@ export function ComputerPane({ has, remoteAccess, servers, transfer, remoteActiv
             <SettingsRows>
               <BuiltInBrowserRow />
               <ServerSitesRow />
-              {showProfiles && <PageRow page="profiles" title={t("settings.profiles.title")} hint={t("settings.hint.profiles")} value={profiles.length || undefined} />}
             </SettingsRows>
           </SettingsGroup>
         )}
@@ -437,7 +427,8 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
   const { at } = useSubPage();
   const { usage, upgrade, dialog } = useCloudUsageSettings();
   const plan = useCloudPlan();
-  const signedOut = plan?.view.kind === "signed-out" || plan?.view.kind === "removed";
+  // while the plan row offers dusk cloud, a second dusk cloud row would only repeat it; a subscriber manages it there
+  const subscribed = plan !== null && plan.view.kind !== "signed-out" && plan.view.kind !== "removed" && !buyOfferAllowed(plan.view);
   const limits = useEngineLimits().filter(reportsUsage);
   if (at === "breakdown") {
     return (
@@ -462,10 +453,10 @@ export function UsagePane({ has, cloudAccount }: { has: Has; cloudAccount: React
       )}
       {usage && <div data-settings-block="cloudUsage" className="scroll-mt-4"><CloudUsageSummaryView usage={usage} upgrade={upgrade}>{dialog}</CloudUsageSummaryView></div>}
       {has("cloudAccount") && (
-        <SettingsGroup label={t("settings.simple.billing.plan")} block="cloudAccount" footnote={<CloudPlanFootnote />}>
+        <SettingsGroup label={t("settings.simple.billing.plan")} block="cloudAccount">
           <SettingsRows>
             <CloudPlanRow place="plan" usage={usage} upgrade={upgrade} />
-            {!signedOut && cloudAccount && <PageRow page="plan" title={t("settings.section.cloudAccount")} />}
+            {subscribed && cloudAccount && <PageRow page="plan" title={t("settings.section.cloudAccount")} />}
           </SettingsRows>
         </SettingsGroup>
       )}

@@ -252,9 +252,10 @@ describe("Settings → General → Appearance", () => {
   it("offers desktop connections on Computer, open, without exposing the list remotely", () => {
     fixture.section = "desktopWorkspaces";
     vi.stubGlobal("window", { duskDesktop: { environments: {} } });
+    // connect from elsewhere says what it is for; servers are added from Computer's own list
     const local = render();
-    expect(local).toContain("Connect by address");
-    expect(local).toContain("Your servers");
+    expect(local).toContain("Use your bots from your phone or another computer.");
+    expect(local).not.toContain("Your servers");
     fixture.section = "computer";
     vi.stubGlobal("window", { duskDesktop: { workspaces: {} } });
     expect(render()).not.toContain('data-settings-block="desktopWorkspaces"');

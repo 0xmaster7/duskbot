@@ -26,8 +26,8 @@ describe("Settings > Voice", () => {
     expect(engineOptions(iphone, "whisper-cpp").map((option) => option.value)).toContain("whisper-cpp");
   });
 
-  it("says when the chosen service is not set up, cannot run here, or the browser needs the app", () => {
-    expect(engineNote({ kind: "system", engine: "apple-speech", fellBack: "not-set-up" }, { engine: "openai" }, mac)).toBe("OpenAI isn't set up yet, so the built-in one is used for now.");
+  it("says when the chosen service cannot run here or the browser needs the app, and leaves a missing key to its field", () => {
+    expect(engineNote({ kind: "system", engine: "apple-speech", fellBack: "not-set-up" }, { engine: "openai" }, mac)).toBeNull();
     expect(engineNote({ kind: "system", engine: "phone-native", fellBack: "not-here" }, { engine: "whisper-cpp" }, iphone)).toContain("can't run on this device");
     expect(engineNote({ kind: "system", engine: "apple-speech", fellBack: "not-here" }, { engine: "openai" }, remoteMac)).toContain("shows another computer");
     expect(engineNote({ kind: "system", engine: "web-speech" }, { engine: "system" }, browser)).toContain("need the dusk bot desktop or phone app");
@@ -70,6 +70,10 @@ describe("Settings > Voice", () => {
       expect(saved).toContain("data-voice-key-replace");
       expect(saved).toContain("data-voice-key-remove");
       expect(renderToStaticMarkup(createElement(VoiceKeyField, { provider: "openai-compatible", saved: false, optional: true }))).toContain(t("settings.voice.compatKey"));
+      // "Change key" on a saved key opens straight on the field, with Cancel and Remove beside Save
+      const changing = renderToStaticMarkup(createElement(VoiceKeyField, { provider: "openai", saved: true, onDone: () => {} }));
+      expect(changing).toContain('type="password"');
+      expect(changing).toContain("data-voice-key-remove");
     } finally {
       vi.unstubAllGlobals();
     }

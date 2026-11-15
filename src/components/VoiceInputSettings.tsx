@@ -49,13 +49,15 @@ export function engineOptions(device: VoiceDevice, current: Engine): Array<{ val
   ];
 }
 
-/** The one line under the engine that says what is really used, when it is not what the menu shows. */
+/** The one line under the engine that says what is really used, when it is not what the menu shows and the person
+ * cannot fix it right there. */
 export function engineNote(engine: ResolvedEngine, prefs: Pick<VoicePrefs, "engine">, device: VoiceDevice): string | null {
   if (device.kind === "browser") return engine.kind === "none" ? t("settings.voice.noRecognizer") : t("settings.voice.browserNote");
   if (engine.kind === "none") return t("settings.voice.noRecognizer");
   if (engine.kind !== "system" || prefs.engine === "system" || !engine.fellBack) return null;
+  // a service without its key says nothing here: the key field under the engine is what to do about it
+  if (engine.fellBack === "not-set-up") return null;
   const service = VOICE_PROVIDER_INFO[prefs.engine].name;
-  if (engine.fellBack === "not-set-up") return t("settings.voice.fellBack", { service });
   return device.kind === "desktop" && !device.providers ? t("settings.voice.remoteNote") : t("settings.voice.notHere", { service });
 }
 
@@ -191,11 +193,21 @@ function TextField({ title, hint, value, placeholder, mono = false, inputMode, o
 
 /** A service's key: typed into a password field, kept in this device's secret storage, and never shown again, only
  * whether one is saved. */
-export function VoiceKeyField({ provider, saved, optional = false }: { provider: VoiceProvider; saved: boolean; optional?: boolean }) {
+export function VoiceKeyField({ provider, saved, optional = false, onDone }: {
+  provider: VoiceProvider;
+  saved: boolean;
+  optional?: boolean;
+  /** opened from "Change key" on a saved key: it starts on the field, and closes when saved, removed or cancelled */
+  onDone?: () => void;
+}) {
   const id = useId();
   const info = VOICE_PROVIDER_INFO[provider];
   const [draft, setDraft] = useState("");
-  const [replacing, setReplacing] = useState(false);
+  const [replacing, setReplacingState] = useState(Boolean(onDone));
+  const setReplacing = (next: boolean) => {
+    setReplacingState(next);
+    if (!next) onDone?.();
+  };
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const editing = !saved || replacing;
@@ -209,6 +221,7 @@ export function VoiceKeyField({ provider, saved, optional = false }: { provider:
       await saveVoiceKey(provider, value);
       setDraft("");
       setReplacing(false);
+      if (!value) onDone?.();
     } catch (cause) {
       setProblem(t("settings.voice.keyFailed", { reason: friendlyError(cause) }));
     } finally {
@@ -257,6 +270,7 @@ export function VoiceKeyField({ provider, saved, optional = false }: { provider:
           <span className="flex shrink-0 items-center gap-2">
             <button type="submit" data-voice-key-save="" className="ui-button ui-button-primary" disabled={!draft.trim() || busy}>{t("settings.voice.save")}</button>
             {replacing && <button type="button" className="ui-button" onClick={() => { setReplacing(false); setDraft(""); }}>{t("settings.voice.cancel")}</button>}
+            {replacing && onDone && <button type="button" data-voice-key-remove="" className="ui-button" disabled={busy} onClick={() => void commit("")}>{t("settings.voice.keyRemove")}</button>}
           </span>
         </form>
       ) : (
@@ -276,7 +290,13 @@ export function VoiceKeyField({ provider, saved, optional = false }: { provider:
   );
 }
 
-function ServiceFields({ provider, prefs, keys }: { provider: VoiceProvider; prefs: VoicePrefs; keys: KeyState }) {
+function ServiceFields({ provider, prefs, keys, changingKey, onKeyDone }: {
+  provider: VoiceProvider;
+  prefs: VoicePrefs;
+  keys: KeyState;
+  changingKey: boolean;
+  onKeyDone: () => void;
+}) {
   const info = VOICE_PROVIDER_INFO[provider];
   const [finding, setFinding] = useState(false);
   const [findProblem, setFindProblem] = useState<string | null>(null);
@@ -331,7 +351,7 @@ function ServiceFields({ provider, prefs, keys }: { provider: VoiceProvider; pre
           mono
           onCommit={(compatBaseUrl) => setVoicePrefs({ compatBaseUrl })}
         />
-        <VoiceKeyField provider={provider} saved={keys[provider] === true} optional />
+        {(keys[provider] !== true || changingKey) && <VoiceKeyField provider={provider} saved={keys[provider] === true} optional onDone={changingKey ? onKeyDone : undefined} />}
         <TextField
           title={t("settings.voice.model")}
           value={prefs.models[provider] ?? ""}
@@ -345,19 +365,8 @@ function ServiceFields({ provider, prefs, keys }: { provider: VoiceProvider; pre
 
   return (
     <>
-      <VoiceKeyField provider={provider} saved={keys[provider] === true} />
-      {info.models.length > 1 && (
-        <SettingRow title={t("settings.voice.model")}>
-          <SettingsSelect
-            data-settings-select="voice-model"
-            aria-label={t("settings.voice.model")}
-            value={prefs.models[provider] || info.models[0]!}
-            options={info.models.map((model) => ({ value: model, label: model }))}
-            onChange={(event) => setModel(event.target.value)}
-          />
-        </SettingRow>
-      )}
-      {info.realtime && (
+      {(keys[provider] !== true || changingKey) && <VoiceKeyField provider={provider} saved={keys[provider] === true} onDone={changingKey ? onKeyDone : undefined} />}
+      {info.realtime && keys[provider] === true && (
         <SwitchRow
           data-panel-row="voice-realtime"
           title={t("settings.voice.realtime")}
@@ -372,7 +381,8 @@ function ServiceFields({ provider, prefs, keys }: { provider: VoiceProvider; pre
 
 function MicrophoneRow({ device }: { device: VoiceDevice }) {
   const { state, refresh } = useMicPermission();
-  if (!state) return null;
+  // an allowed (or unreadable) microphone needs nothing from the person, so it takes no row
+  if (state !== "denied" && state !== "prompt") return null;
   const desktop = device.kind === "desktop" ? window.duskDesktop : undefined;
   const phoneSettings = device.kind === "phone" ? phoneVoice()?.openSettings : undefined;
   const action = state === "prompt" && typeof desktop?.permRequestMic === "function"
@@ -384,7 +394,6 @@ function MicrophoneRow({ device }: { device: VoiceDevice }) {
     <SettingRow title={t("settings.voice.mic")} subtitle={state === "denied" ? t("settings.voice.mic.deniedHint") : undefined}>
       <span className="flex flex-wrap items-center justify-end gap-2">
         <span data-voice-mic={state} className="flex items-center gap-1 text-[13px] leading-[18px] text-ink-secondary">
-          {state === "granted" && <Check size={13} aria-hidden="true" className="text-success" />}
           {state === "denied" && <CircleAlert size={13} aria-hidden="true" className="text-danger" />}
           {t(`settings.voice.mic.${state}`)}
         </span>
@@ -491,25 +500,52 @@ export function VoiceInputSettings() {
   const options = engineOptions(device, prefs.engine);
   const note = engineNote(engine, prefs, device);
   const service = prefs.engine !== "system" && providerRunsOn(prefs.engine, device) ? prefs.engine : null;
+  const info = service ? VOICE_PROVIDER_INFO[service] : null;
+  const keyed = service !== null && service !== "whisper-cpp" && keys[service] === true;
+  const [changingKey, setChangingKey] = useState<VoiceProvider | null>(null);
+  const changing = changingKey !== null && changingKey === service;
+  // a service's model is a choice of the engine, so it sits beside it once the service is ready to use
+  const models = service !== "openai-compatible" && keyed && info && info.models.length > 1 ? info.models : null;
   const languages = prefs.language && !(VOICE_LANGUAGES as readonly string[]).includes(prefs.language) ? [prefs.language, ...VOICE_LANGUAGES] : VOICE_LANGUAGES;
+  const engineHint = keyed && !changing && info
+    ? (
+      <>
+        {t("settings.voice.keyReady", { service: info.name })}{" "}
+        <button type="button" data-voice-key-change="" className="cursor-pointer rounded text-ink underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus" onClick={() => setChangingKey(service)}>
+          {t("settings.voice.keyChange")}
+        </button>
+      </>
+    )
+    : t("settings.voice.engineHint");
 
   return (
     <>
-      <SettingsGroup label={t("settings.voice.group.input")} block="voice" footnote={device.providers ? t("settings.voice.wispr") : undefined}>
+      <SettingsGroup label={t("settings.voice.group.input")} block="voice">
         <SettingsRows>
-          <SettingRow title={t("settings.voice.engine")} subtitle={t("settings.voice.engineHint")}>
+          <SettingRow title={t("settings.voice.engine")} subtitle={engineHint}>
             {options.length > 1 ? (
-              <SettingsSelect
-                data-settings-select="voice-engine"
-                aria-label={t("settings.voice.engine")}
-                value={prefs.engine}
-                options={options}
-                onChange={(event) => setVoicePrefs({ engine: event.target.value as Engine })}
-              />
+              <span className="flex flex-wrap items-center justify-end gap-1.5">
+                <SettingsSelect
+                  data-settings-select="voice-engine"
+                  aria-label={t("settings.voice.engine")}
+                  value={prefs.engine}
+                  options={options}
+                  onChange={(event) => { setChangingKey(null); setVoicePrefs({ engine: event.target.value as Engine }); }}
+                />
+                {models && service && (
+                  <SettingsSelect
+                    data-settings-select="voice-model"
+                    aria-label={t("settings.voice.model")}
+                    value={prefs.models[service] || models[0]!}
+                    options={models.map((model) => ({ value: model, label: model }))}
+                    onChange={(event) => setVoicePrefs((current) => ({ models: { ...current.models, [service]: event.target.value } }))}
+                  />
+                )}
+              </span>
             ) : <span data-panel-value="" className="text-[13px] leading-[18px] text-ink-secondary">{options[0]!.label}</span>}
           </SettingRow>
           {note && <NoteRow>{note}</NoteRow>}
-          {service && <ServiceFields provider={service} prefs={prefs} keys={keys} />}
+          {service && <ServiceFields provider={service} prefs={prefs} keys={keys} changingKey={changing} onKeyDone={() => setChangingKey(null)} />}
           <SettingRow title={t("settings.voice.language")} subtitle={t("settings.voice.languageHint")}>
             <SettingsSelect
               data-settings-select="voice-language"

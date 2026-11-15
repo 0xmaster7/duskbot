@@ -177,12 +177,12 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(panes(open("general"))).toEqual(["general", "voice", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
   });
 
-  it("keeps the code for pairing another computer under Computer's connect from elsewhere while Phone is hidden", () => {
-    const remoteAccess = { pairing: "PAIRING_BLOCK", companion: "PHONES", client: "CLIENT", desktopPairing: "DESKTOP_PAIRING" };
+  it("draws Computer's connect from elsewhere as its one simple page, without the phones", () => {
+    const remoteAccess = { pairing: "PAIRING_BLOCK", companion: "PHONES", client: "CLIENT", desktopPairing: "DESKTOP_PAIRING", elsewhere: "ELSEWHERE" };
     const elsewhere = renderToStaticMarkup(createElement(SubPageContext.Provider, { value: { at: "elsewhere", open: () => {}, back: () => {} } },
-      createElement(ComputerPane, { has: () => true, remoteAccess, servers: null })));
-    expect(elsewhere).toContain("DESKTOP_PAIRING");
-    expect(elsewhere).toContain("CLIENT");
+      createElement(ComputerPane, { has: () => true, remoteAccess })));
+    expect(elsewhere).toContain("ELSEWHERE");
+    expect(elsewhere).not.toContain("DESKTOP_PAIRING");
     expect(elsewhere).not.toContain("PHONES");
   });
 
@@ -191,7 +191,7 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(markers(open("companion"))).toEqual(["pairing", "companion"]);
     expect(current(open("companion"))).toBe("texting");
     expect(open("computer")).toContain('data-panel-page="computers"');
-    expect(markers(open("desktopWorkspaces"))).toContain("desktopWorkspaces");
+    expect(markers(open("desktopWorkspaces"))).toEqual(["pairing"]);
     expect(markers(open("logins"))).toEqual(["logins"]);
     expect(current(open("logins"))).toBe("vault");
   });

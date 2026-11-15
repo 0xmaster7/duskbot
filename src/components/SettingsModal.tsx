@@ -19,7 +19,6 @@ import { CompanionSection } from "./CompanionSection";
 import { ServerPairingCard } from "./ServerPairingCard";
 import { MobilePairingCard, type PhoneParts } from "./MobilePairingCard";
 import { RemoteComputerSection } from "./RemoteComputerSection";
-import { ConnectedWorkspacesSettings } from "./ConnectedWorkspacesSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
 import { TransferSettings } from "./vps-link/TransferSettings";
 import { vpsLinkAvailable } from "@/lib/vps-link";
@@ -245,6 +244,7 @@ export function SettingsModal() {
     // Security: the server decides who may pair (an owner or admin session), not this gate.
     pairing: <PhoneLinking remote={remoteActive}>{(phone) => <ServerPairingCard phone={phone} cloudHome={cloudHome} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple />}</PhoneLinking>,
     desktopPairing: phoneAppEnabled() || state.config?.team ? null : <ServerPairingCard phone={null} cloudHome={cloudHome} simple />,
+    elsewhere: <ServerPairingCard phone={null} cloudHome={cloudHome} elsewhere={{ connect: <RemoteComputerSection hideWhenUnavailable simple /> }} />,
     companion: remoteActive ? null : <CompanionSection profileEmail={state.config?.profile?.email} focusRequest={computerPairs ? phoneFocus : 0} />,
   };
   const cloudAccount = has("cloudAccount") && !remoteActive
@@ -258,7 +258,7 @@ export function SettingsModal() {
       case "general": return <GeneralPane has={has} remoteActive={remoteActive} />;
       case "voice": return <VoiceInputSettings />;
       case "texting": return <TextingPane has={has} remoteAccess={remoteAccess} />;
-      case "computer": return <ComputerPane has={has} remoteActive={remoteActive} remoteAccess={remoteAccess} servers={<ConnectedWorkspacesSettings />} transfer={has("transfer") ? <TransferSettings /> : null} />;
+      case "computer": return <ComputerPane has={has} remoteActive={remoteActive} remoteAccess={remoteAccess} transfer={has("transfer") ? <TransferSettings /> : null} />;
       case "permissions": return <PermissionsPane has={has} />;
       case "vault": return <VaultPane />;
       case "models": return <ModelsPane has={has} disclose={disclose} connections={<AdminOnly><KeysPage /><SlackWorkspaceCard /></AdminOnly>} />;

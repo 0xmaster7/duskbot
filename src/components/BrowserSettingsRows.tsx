@@ -43,7 +43,7 @@ export function BuiltInBrowserRow() {
     <SettingRow
       title={t("settings.experimental.browser")}
       subtitle={desktopBrowser
-        ? undefined
+        ? t("settings.w6a.browser.hint")
         : browserBlockedOnWindows
           ? t("settings.w6a.browser.windows")
           : state.config?.browserEngine?.kind === "unavailable" && browserInstallable
