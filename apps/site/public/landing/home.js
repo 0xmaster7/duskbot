@@ -12,62 +12,91 @@ function once(el, fn, threshold = 0.4) {
   io.observe(el);
 }
 
-// the bots themselves (looks, blinks, moods, answers to a poke) are the app's mascot code, in mascot.js
-const bots = (fn) => { if (window.duskBots) fn(window.duskBots); else addEventListener('load', () => window.duskBots && fn(window.duskBots), { once: true }); };
+// the bots themselves (looks, blinks, moods, answers to a poke) are the app's mascot code, in mascot.js. they show how
+// they feel by moving, never with words in a bubble
 
-// hero: the two bubbles pop in, and pip hops when nova's answer lands
-const pops = $$('[data-pop]');
-if (pops.length && !still && hasIO) {
-  document.documentElement.classList.add('pop-armed');
-  once($('.hero'), async () => {
-    await wait(500); pops[0].classList.add('on');
-    await wait(900); pops[1].classList.add('on');
-    await wait(220); bots((d) => d.react($('.pipx'), 'hop'));
-  }, 0.2);
+// the bot beside the questions nods along
+
+// the stickers in the big sentence can be picked up; they spring back when dropped
+if (fine && !still) for (const el of $$('[data-sticker]')) {
+  let id = null, sx = 0, sy = 0;
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); id = e.pointerId; el.setPointerCapture(id); sx = e.clientX; sy = e.clientY; el.style.transition = 'none'; el.classList.add('held'); });
+  el.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    el.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.max(-18, Math.min(18, dx / 12)).toFixed(1)}deg) scale(1.1)`;
+  });
+  const drop = () => { if (id === null) return; id = null; el.classList.remove('held'); el.style.transition = 'transform 0.6s cubic-bezier(0.3, 1.6, 0.5, 1)'; el.style.transform = ''; };
+  el.addEventListener('pointerup', drop); el.addEventListener('pointercancel', drop);
 }
 
-// the bots that doze: kit at the end and in the footer, and the laptop's bots while its lid is shut
-bots((d) => $$('svg.dozer').forEach((b) => d.state(b, 'asleep')));
-const lid = $('[data-lid]');
-if (lid) {
-  const btn = $('[data-lid-btn]', lid), crew = $('.bs', lid), cap = $('.cap', lid);
-  const set = (open) => {
-    lid.dataset.lid = open ? 'open' : 'closed';
-    btn.setAttribute('aria-pressed', open); btn.textContent = open ? 'close the lid' : 'open the lid';
-    $('h3', cap).textContent = open ? 'your computer, lid open' : 'your computer, lid shut';
-    $('p', cap).textContent = open ? 'bots on your own computer work while it is awake. close the lid and they rest until it wakes.' : 'bots on your own computer rest while it sleeps, and pick up where they left off when it wakes.';
-    bots((d) => { d.state(crew, open ? 'idle' : 'asleep'); if (open && !still) d.react(crew, 'hop'); });
-  };
-  set(false);
-  btn.addEventListener('click', () => set(lid.dataset.lid !== 'open'));
-}
-
-// a bot card lifts on hover and its bot hops
-if (fine && !still) for (const card of $$('.tc')) card.addEventListener('pointerenter', () => bots((d) => d.react(card, 'hop')));
-
-// juno waits for a yes; a yes makes it cheer. a sample: nothing is sent
-const ask = $('[data-ask]');
-if (ask) {
-  const line = $('[data-ask-line]', ask), juno = $('.ask-head', ask);
-  const SAY = { yes: 'sent. juno is cheering. (a sample, nothing was sent)', no: 'okay. juno will hold it until you say so.', list: '1,204 people on the launch list. juno is still waiting.' };
-  ask.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-ans]');
-    if (!b) return;
-    const k = b.dataset.ans;
-    $$('[data-ans]', ask).forEach((x) => x.setAttribute('aria-pressed', x === b));
-    line.textContent = SAY[k];
-    ask.classList.toggle('answered', k !== 'list');
-    bots((d) => { if (k === 'yes') { d.state(juno, 'celebrate'); if (!still) d.react(juno, 'celebrate'); } else d.state(juno, 'idle'); });
+// nova's computer: it has already held the cheapest fare; take the mouse and a pointer follows yours
+const view = $('[data-play="browse"]');
+if (view) {
+  const ptr = $('.ptr', view), rows = $$('.fares li', view), hold = $('u', rows[0]), take = $('[data-take]');
+  const glide = 'transform 0.55s cubic-bezier(0.77, 0, 0.175, 1)';
+  let held = false;
+  const at = (el, dx, dy) => { const b = view.getBoundingClientRect(), r = el.getBoundingClientRect(); ptr.style.transform = `translate(${r.left - b.left + r.width / 2 - 4 + dx}px, ${r.top - b.top + r.height / 2 - 3 + dy}px)`; };
+  const hot = (row) => rows.forEach((r) => r.classList.toggle('hot', r === row));
+  const mark = (on) => { hold.classList.toggle('held', on); hold.textContent = on ? 'held' : 'hold'; };
+  // once the fare is held the pointer parks in the open middle of the page, clear of the text
+  const rest = () => { if (!held) at($('span', rows[1]), 30, 16); };
+  // the pointer only shows while you hold the mouse
+  rest();
+  addEventListener('load', rest); addEventListener('resize', rest);
+  take.addEventListener('click', () => {
+    held = !held;
+    take.setAttribute('aria-pressed', held); take.textContent = held ? 'give it back' : 'take the mouse';
+    view.style.cursor = held ? 'none' : '';
+    ptr.style.transition = held ? 'none' : glide;
+    ptr.classList.toggle('on', held);
+    if (!held) { hot(rows[0]); mark(true); rest(); }
+  });
+  view.addEventListener('pointermove', (e) => {
+    if (!held) return;
+    const b = view.getBoundingClientRect();
+    ptr.style.transform = `translate(${e.clientX - b.left - 4}px, ${e.clientY - b.top - 3}px)`;
+    hot(e.target.closest('.fares li'));
   });
 }
 
-// monthly or yearly: the dark block is a full-size layer cut down with clip-path, and the prices settle on a spring
+// a routine switched off puts its bot to sleep (mascot.js does the face)
+for (const t of $$('.rows .toggle')) t.addEventListener('click', () => {
+  if (!document.documentElement.classList.contains('mk-ready')) t.setAttribute('aria-checked', t.getAttribute('aria-checked') !== 'true');
+});
+
+// the newest note in the notebook types itself in once, and is really yours to edit. emptied, it goes back to what it said
+const note = $('[data-note]');
+if (note) {
+  const said = note.textContent;
+  try { note.contentEditable = 'plaintext-only'; } catch { note.contentEditable = 'true'; }
+  note.setAttribute('role', 'textbox'); note.setAttribute('aria-label', 'a note you can edit'); note.spellcheck = false;
+  note.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); note.blur(); } });
+  note.addEventListener('input', () => { $('[data-note-foot]').textContent = 'edited by you. nova will remember'; });
+  note.addEventListener('blur', () => { if (!note.textContent.trim()) note.textContent = said; });
+  $('[data-edit]').addEventListener('click', () => { note.focus(); getSelection().selectAllChildren(note); getSelection().collapseToEnd(); });
+  if (!still) once(note, async () => {
+    for (let i = 1; i <= said.length; i++) { if (document.activeElement === note) return; note.textContent = said.slice(0, i); await wait(42); }
+  }, 0.9);
+}
+
+const phone = $('[data-ring]');
+phone?.addEventListener('click', () => { phone.classList.remove('ringing'); void phone.offsetWidth; phone.classList.add('ringing'); });
+
+for (const b of $$('[data-copy]')) b.addEventListener('click', async () => {
+  const label = b.dataset.label ||= b.textContent;
+  try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'copied'; }
+  catch { const fig = b.closest('figure') || b.parentElement; getSelection().selectAllChildren($('code', fig) || fig); b.textContent = 'selected'; }
+  setTimeout(() => { b.textContent = label; }, 1600);
+});
+
+// monthly or yearly: the white pill is a full-size layer cut down with clip-path, and the prices settle on a spring
 const bill = $('[data-bill]');
 if (bill) {
   const btns = $$('button', bill), ind = $('.seg-ind', bill), root = bill.closest('section');
   const place = () => {
     const b = btns.find((x) => x.getAttribute('aria-pressed') === 'true');
-    ind.style.clipPath = `inset(${b.offsetTop}px ${bill.clientWidth - b.offsetLeft - b.offsetWidth}px ${bill.clientHeight - b.offsetTop - b.offsetHeight}px ${b.offsetLeft}px)`;
+    ind.style.clipPath = `inset(${b.offsetTop}px ${bill.clientWidth - b.offsetLeft - b.offsetWidth}px ${bill.clientHeight - b.offsetTop - b.offsetHeight}px ${b.offsetLeft}px round 999px)`;
   };
   place(); bill.classList.add('is-on');
   if ('ResizeObserver' in window) new ResizeObserver(place).observe(bill);
@@ -109,7 +138,7 @@ if (dl) {
 
 // a dashed arrow swoops from the pointer into the closing download button whenever you are near it. every point is on a
 // spring, so the curve follows the pointer with a little lag and settles instead of snapping
-const cta = $('[data-aim]');
+const cta = $('.end .btn.dark');
 if (cta && fine && !still) {
   const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'), line = document.createElementNS(NS, 'path'), head = document.createElementNS(NS, 'path');
   svg.setAttribute('class', 'aim'); svg.setAttribute('aria-hidden', 'true'); line.setAttribute('class', 'aim-line'); head.setAttribute('class', 'aim-head');
@@ -193,3 +222,13 @@ document.addEventListener('visibilitychange', () => {
 const dusk = $('[data-dusk]'), hour = new Date().getHours();
 if (dusk && hour >= 17 && hour < 20) dusk.textContent = "it's dusk where you are. the bots are just getting started.";
 else if (dusk && hour < 5) dusk.textContent = "it's late. the bots are still up, you don't have to be.";
+
+// every screen: the screens come on one after another the first time the scene is seen; poke juno on any of them and
+// she reacts on all three, because it is the same bot
+const ev = document.querySelector('[data-ev]');
+if (ev && !still) {
+  ev.addEventListener('click', (e) => {
+    if (!e.target.closest('.ev-scr') || !window.duskBots) return;
+    ev.querySelectorAll('.ev-j').forEach((b, i) => setTimeout(() => window.duskBots.react(b, 'hop'), i * 60));
+  });
+}
