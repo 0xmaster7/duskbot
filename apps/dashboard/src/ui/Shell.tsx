@@ -163,7 +163,7 @@ function CloudBadge() {
   if (!clouds) return null;
   if (!c) return null;
   const s = placeState("waiting", null, 0, c);
-  return <span className={cx("live-dot ms-auto", TONE_TEXT[s.tone])} data-live={c.status === "running"} aria-label={s.label} role="img" />;
+  return <span className={cx("live-dot relative z-[1] ms-auto", TONE_TEXT[s.tone])} data-live={c.status === "running"} aria-label={s.label} role="img" />;
 }
 
 // the invested copy holds the card for the rest of the visit it first showed in
@@ -262,9 +262,9 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
                 aria-current={on ? "page" : undefined}
                 className={cx("relative flex h-10 items-center gap-3 rounded-full px-3.5 text-14 transition-colors max-lg:h-11 duration-200 ease-out", on ? "text-ink" : "hover-side text-ink-2")}
               >
-                {on && <m.span layoutId={pill} aria-hidden className="absolute inset-0 rounded-full bg-pop" transition={NAV_PILL} />}
-                <span className={cx("relative transition-colors duration-200 ease-out", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
-                <span className="relative">{item.label}</span>
+                {on && <m.span layoutId={pill} aria-hidden className="absolute inset-0 z-0 rounded-full bg-pop" transition={NAV_PILL} />}
+                <span className={cx("relative z-[1] transition-colors duration-200 ease-out", on ? "text-ink" : "text-ink-3")}>{item.icon}</span>
+                <span className="relative z-[1]">{item.label}</span>
                 {item.to === "/cloud" && <CloudBadge />}
               </Link>
             );
