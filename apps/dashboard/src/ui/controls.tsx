@@ -53,10 +53,9 @@ export function Slider({ label, value, min, max, step, onChange, format, hint }:
 /** `stretch`: the highlight stretches to the picked option instead of sliding (the billing period) */
 export function Toggle<T extends string>({ value, options, onChange, label, className, stretch = false }: { value: T; options: Array<{ value: T; label: ReactNode }>; onChange(v: T): void; label: string; className?: string; stretch?: boolean }) {
   const pill = usePill();
-  const box = useRef<HTMLDivElement>(null);
   return (
-    <div ref={box} role="radiogroup" aria-label={label} className={cx("relative inline-grid shrink-0 rounded-full bg-card-2 p-1", className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
-      {stretch && <StretchPill box={box} target={value} />}
+    <div role="radiogroup" aria-label={label} className={cx("relative inline-grid shrink-0 rounded-full bg-card-2 p-1", className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      {stretch && <StretchPill target={value} />}
       {options.map((o) => (
         <button
           key={o.value}
