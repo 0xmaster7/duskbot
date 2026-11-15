@@ -2741,7 +2741,7 @@ describe("harness HTTP API", () => {
         roomId: room.id, action: "set_bulletin", bulletin: "Changed during approval",
       });
       expect(changed.status).toBe(409);
-      expect(changed.body.error).toMatch(/waiting on you/);
+      expect(changed.body.error).toMatch(/^this room is busy: a question card .* is waiting for the person.s answer/);
       expect((await chiefRoomRequest(BASE, token, "manage-room", { roomId: "test-dm", action: "rename", name: "A room" })).status).toBe(403);
     } finally {
       expect((await api("PATCH", `/api/bots/${chief.id}`, { chiefOfStaff: false })).status).toBe(200);
