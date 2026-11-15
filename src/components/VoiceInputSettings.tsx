@@ -126,7 +126,7 @@ const FIELD_ROW = "flex flex-col gap-1.5 rounded-lg px-2 py-1.5";
 const TITLE = "text-[13px] leading-[18px] tracking-[0.015em] text-ink";
 const HINT = "text-[13px] leading-[18px] tracking-[0.015em] text-ink-secondary";
 /** Settings draws its fields borderless; the faint fill shows where to type where Settings' own styles do not reach. */
-const INPUT = "h-[30px] w-full min-w-0 flex-1 rounded-lg border border-transparent bg-ink/[0.04] px-2.5 text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink-tertiary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:opacity-60";
+const INPUT = "h-[30px] w-full min-w-0 flex-1 rounded-lg border border-transparent bg-ink/[0.07] px-2.5 hover:bg-ink/[0.09] text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink-tertiary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:opacity-60";
 const LINK = "inline-flex cursor-pointer items-center gap-1 self-start rounded text-[12px] leading-4 font-medium text-accent-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus";
 
 function Problem({ children }: { children: ReactNode }) {
