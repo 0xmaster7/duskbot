@@ -3,7 +3,7 @@
 // no sign-in (EngineSetup: an API key, a local endpoint). One connect runs at a time: pressing another card cancels the
 // running one. A connected AI turns green with a check and can't be pressed again; the window comes back to the front
 // when a sign-in finishes. The first run, the Connect an AI dialog and Settings > Models all show this one grid.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Check, Server } from "../../icons";
 import { EngineSetup } from "@/components/EngineSetup";
 import { engineReady } from "@/components/EngineLibrary";
@@ -63,13 +63,19 @@ function Connect({ tile, flow }: { tile: AiTile<InstanceInfo>; flow: ConnectFlow
 
 function AiCard({ tile, connected, picked, onPick }: { tile: AiTile<InstanceInfo>; connected: boolean; picked: boolean; onPick: () => void }) {
   if (connected) {
+    // `picked`: it connected just now, from this grid: the panel folds back into it, its pressed tint lets go and its green
+    // check pops (green stays on the status, never the surface).
+    // one already connected just sits there, so nothing replays when another card is pressed
     return (
       <div data-funnel-ai={tile.id} data-connected="" role="listitem" aria-label={t("funnel.ai.connectedName", { name: label(tile) })}
-        className="ai-connected place-reveal relative flex h-[96px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-ink/[0.035] px-2">
+        className={cn("ai-connected relative flex h-[96px] flex-col items-center justify-center gap-1.5 rounded-2xl bg-ink/[0.035] px-2", picked && "ai-connected-in")}>
+        <span aria-hidden="true" className={cn("absolute end-2 top-2 grid size-4 place-items-center rounded-full bg-success text-white", picked && "ai-badge-in")}>
+          <Check size={10} strokeWidth={3.5} />
+        </span>
         <span className="grid size-7 place-items-center"><TileMark tile={tile} size={26} /></span>
         <span className="flex max-w-full flex-col items-center">
           <span className="max-w-full truncate text-[13px] leading-[18px] text-ink">{label(tile)}</span>
-          <span className="connect-label-in flex items-center gap-1 text-[12px] leading-4 text-success">
+          <span className={cn(picked && "ai-ready-in", "flex items-center gap-1 text-[12px] leading-4 text-success")}>
             <Check size={12} strokeWidth={2.5} aria-hidden="true" className="shrink-0" />{t("funnel.ai.ready")}
           </span>
         </span>
@@ -113,9 +119,14 @@ export function AiCards({ onMore, className, onConnected }: { tested: WelcomeAiN
   const [picked, setPicked] = useState<AiTileId | null>(null);
   const flow = useConnectFlow();
   const tiles = aiTiles(state.instances, ready, inApp);
+  // the panel grows out of the pressed card and folds back into it: its origin sits under that card
+  const grid = useRef<HTMLDivElement>(null);
+  const [origin, setOrigin] = useState<string | null>(null);
   const pick = (tile: AiTile<InstanceInfo>) => {
     flow.cancel();
     if (picked === tile.id) return setPicked(null);
+    const card = grid.current?.querySelector<HTMLElement>(`[data-funnel-ai="${tile.id}"]`);
+    if (card && grid.current?.offsetWidth) setOrigin(`${((card.getBoundingClientRect().left + card.offsetWidth / 2 - grid.current.getBoundingClientRect().left) / grid.current.offsetWidth) * 100}%`);
     setPicked(tile.id);
     if (tile.candidates.some(inApp)) flow.start({ tile: tile.id, candidates: tile.candidates.map((candidate) => candidate.instanceId) });
   };
@@ -130,8 +141,9 @@ export function AiCards({ onMore, className, onConnected }: { tested: WelcomeAiN
   }, [picked, pickedReady, flow.state.stage]);
 
   return (
-    <div data-ai-cards="" className={cn("@container flex w-full flex-col items-center", className)}>
-      <div role="list" aria-label={t("funnel.ai.title")} className="grid w-full grid-cols-2 gap-2.5 @min-[400px]:grid-cols-4">
+    <div data-ai-cards="" className={cn("@container flex w-full flex-col items-center", className)}
+      style={origin ? { "--reveal-origin": origin } as CSSProperties : undefined}>
+      <div ref={grid} role="list" aria-label={t("funnel.ai.title")} className="grid w-full grid-cols-2 gap-2.5 @min-[400px]:grid-cols-4">
         {tiles.map((tile) => (
           <AiCard key={tile.id} tile={tile} connected={ready(tile.instance)} picked={picked === tile.id}
             onPick={() => pick(tile)} />

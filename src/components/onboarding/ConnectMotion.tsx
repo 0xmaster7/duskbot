@@ -1,11 +1,13 @@
-// The Connect an AI flow's motion: a panel that grows in under the grid and folds away on Cancel (Reveal), and a box that
-// eases its height while one stage crossfades into the next (StageSwap). Reduced motion keeps the fades only.
+// The Connect an AI flow's motion: a panel that grows in out of the pressed card and folds back into it (Reveal), and a
+// box that springs to its height while one stage rises in over the last (StageSwap). Reduced motion keeps the fades only.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import "../../styles/connect.css";
 
 /** How long a folding panel or a fading stage stays before it leaves; the css runs a little shorter. */
 export const CONNECT_LEAVE_MS = 260;
+/** How long the stage box springs to its new height (connect.css, 300/22) before it goes back to auto. */
+const CONNECT_HEIGHT_MS = 640;
 
 /** Grows its content in (height and opacity) when it gets some, and folds it away when it loses it, keeping the last
  * content on screen, inert, until the fold ends. */
@@ -56,7 +58,7 @@ export function StageSwap({ stage, children, className }: { stage: string; child
     element.style.height = `${fromHeight}px`;
     void element.offsetHeight;
     element.style.height = `${current.current.offsetHeight}px`;
-    const timer = setTimeout(() => { element.style.height = ""; }, CONNECT_LEAVE_MS + 40);
+    const timer = setTimeout(() => { element.style.height = ""; }, CONNECT_HEIGHT_MS);
     return () => clearTimeout(timer);
   }, [swaps]);
   useEffect(() => {
