@@ -30,6 +30,9 @@ import { ACCOUNT_NOTES, type AccountNotes } from "./ops/index.ts";
 import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
 import { isTestEvent, isTestInstall, testAccountIds, testBuyerIds, withoutAccounts, withoutBilling } from "./test-accounts.ts";
 import { moneyIn, moneyViewOf, withoutOps, type MoneyView } from "./money-mode.ts";
+import { ReadUnavailable, createReadCache } from "./read-cache.ts";
+import { V2Error, overviewV2, paymentsV2, peopleV2, personV2, type V2Source } from "./v2.ts";
+import type { Money } from "./payments.ts";
 import { DAY, choseCloud, dayKey, dayRange, funnel, isPaying, perDay, wasPaid, workspaceTurns } from "./metrics.ts";
 
 export class AdminError extends Error {
@@ -59,6 +62,8 @@ export interface AdminOptions {
   infra?: { store: InfraStore };
   /** the ops page: spend, health, outliers and alert rules, from what the ops collectors stored */
   ops?: { answer(): Promise<unknown>; collect(): Promise<unknown>; accounts(relays: readonly OpsRelayCard[], query?: { range?: OpsAccountsRange; limit?: number }): Promise<OpsAccountsAnswer> };
+  /** how long an analytics answer is kept for the panel's refreshes (default 30 s); 0 keeps none, only joins identical reads in flight */
+  readCacheMs?: number;
   /** the local fixture: made-up relay cards instead of asking the relays */
   relayFixture?: boolean;
   service: { version: string | null; startedAt: number; environment: string; dataDir: string; backupDir: string | null; database: () => { ok: boolean; detail: string } | null };
@@ -107,7 +112,13 @@ export function createAdmin(options: AdminOptions) {
     const hidden = () => new Set([...testAccountIds(view.directory().accounts, reviewEmail), ...testBuyerIds(view.store().checkouts, reviewEmail)]);
     const directory = () => withoutAccounts(view.directory(), hidden());
     const store = () => withoutBilling(view.store(), hidden());
-    const sink: AnalyticsSink = { ...view.sink, scan: async (since, until, names) => { const ids = hidden(); return (await view.sink.scan(since, until, names)).filter(event => !isTestEvent(event, ids)); } };
+    const sink: AnalyticsSink = { ...view.sink, scan: async (since, until, names) => { const ids = hidden(); return (await view.sink.scan(since, until, names)).filter(event => !isTestEvent(event, ids)); },
+      person: async query => { const ids = hidden(); return (await view.sink.person(query)).filter(event => !isTestEvent(event, ids)); },
+      lastSeen: async since => { const seen = await view.sink.lastSeen(since); for (const id of hidden()) seen.delete(id); return seen; },
+      anonymous: async (since, until, options) => {
+        const answer = await view.sink.anonymous(since, until, options), rows = answer.rows.filter(row => row.kind !== "install" || !isTestInstall(row.key.slice("install:".length)));
+        return { total: answer.total - (answer.rows.length - rows.length), rows };
+      } };
     return { ...view, hidden, directory, store, sink, clouds: () => { const ids = hidden(); return view.clouds().filter(c => !ids.has(c.accountId)); },
       workspaces: () => { const ids = hidden(); return view.workspaces().filter(ws => !isTestInstall(ws.id) && (!ws.ownerAccountId || !ids.has(ws.ownerAccountId))); }, deep: build(directory, store, sink) };
   }
@@ -147,6 +158,42 @@ export function createAdmin(options: AdminOptions) {
     if (!liveView || req.headers["x-dusk-admin-data"] === "own") return ownViewOf(req);
     liveDirectory = { accounts: await live!.accounts(), identities: [], sessions: [] };
     return showTests(req) ? liveView : liveClean!;
+  }
+
+  /** what the v2 routes read: the live service's (preview reading dusk.bot, read only) unless the panel asked for its own */
+  async function sourceOf(req: IncomingMessage): Promise<V2Source> {
+    const tests = showTests(req);
+    if (live && req.headers["x-dusk-admin-data"] !== "own") {
+      const [accounts, identities, money] = await Promise.all([live.accounts(), live.identities?.() ?? Promise.resolve([]), live.money?.() ?? Promise.resolve(NO_MONEY as Money)]);
+      const hidden: ReadonlySet<string> = tests ? NONE : new Set([...testAccountIds(accounts, reviewEmail), ...testBuyerIds(money.checkouts, reviewEmail)]);
+      liveDirectory = { accounts, identities: [], sessions: [] };
+      const view = tests ? liveView! : liveClean!;
+      return { data: live.label, sink: view.sink, accounts: accounts.filter(account => !hidden.has(account.id)), identities: identities.filter(row => !hidden.has(row.accountId)), sessions: [],
+        money: withoutBilling(money, hidden), serverMode: "live", reviewEmail, waitlistCount: async () => options.waitlist ? options.waitlist.count() : null, profile: id => view.deep.profile(id) };
+    }
+    const view = tests ? ownView : ownClean, directory = view.directory();
+    const waitlist = live ? null : options.waitlist;
+    return { data: "own", sink: view.sink, accounts: directory.accounts, identities: directory.identities, sessions: directory.sessions, money: view.store() as Money, serverMode: serverMode(),
+      reviewEmail, waitlistCount: async () => waitlist ? waitlist.count() : null, profile: id => view.deep.profile(id) };
+  }
+  async function v2(req: IncomingMessage, url: URL, route: string, owner: { id: string }): Promise<unknown> {
+    try {
+      const source = await sourceOf(req), time = now();
+      if (route === "/v2/overview") return await overviewV2(source, url, time);
+      if (route === "/v2/people") return await peopleV2(source, url, time, moneyViewOf(req.headers["x-dusk-admin-money"]));
+      if (route === "/v2/payments") return paymentsV2(source, url, time);
+      const person = /^\/v2\/people\/([^/]{1,100})$/.exec(route);
+      if (person) {
+        const id = decodeURIComponent(person[1]!);
+        const answer = await personV2(source, id);
+        await audit(owner.id, "person.view", id);
+        return answer;
+      }
+    } catch (error) {
+      if (error instanceof V2Error || error instanceof AnalyticsRouteError) throw new AdminError(error.status, error.code, error.message);
+      throw error;
+    }
+    throw new AdminError(404, "not_found", "Route not found.");
   }
 
   /** every admin route: a signed-in web session (401), an allowed email (403), and the CSRF header on changes */
@@ -431,13 +478,48 @@ export function createAdmin(options: AdminOptions) {
     };
   }
 
+  const reads = createReadCache({ now });
+  /** how long a GET answer is kept: null for the ones that are never kept (an audited view, an export, live probes) */
+  function readTtl(route: string): number | null {
+    if (/^\/(?:me|health|audit|waitlist\.csv|ops\/relays|experience\/timeline)$/.test(route) || /^\/(?:users|journeys|v2\/people)\/[^/]+$/.test(route) || /^\/clouds\/[^/]+\/usage$/.test(route)) return null;
+    return route === "/realtime" ? 0 : options.readCacheMs ?? 30_000;
+  }
+  /** one question: the path, its query (a `to` near now rounded to 30 s, so a refresh shares the answer) and the panel's switches */
+  function readKey(req: IncomingMessage, url: URL) {
+    const params = [...url.searchParams].map(([key, value]) => {
+      const at = Number(value);
+      return key === "to" && Number.isSafeInteger(at) && Math.abs(now() - at) < 120_000 ? [key, String(Math.floor(at / 30_000))] : [key, value];
+    }).sort(([a], [b]) => a!.localeCompare(b!));
+    const header = (name: string) => String(req.headers[name] ?? "");
+    return `${url.pathname}?${new URLSearchParams(params as Array<[string, string]>)}|${header("x-dusk-admin-data")}|${header("x-dusk-admin-tests")}|${header("x-dusk-admin-money")}`;
+  }
+
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET";
     if (path !== "/v1/admin" && !path.startsWith("/v1/admin/")) return false;
     const mutation = method !== "GET" && method !== "HEAD";
     const owner = gate(req, mutation);
     const route = path.slice("/v1/admin".length) || "/";
-    const send = (data: unknown) => { options.json(res, 200, data); return true; };
+    if (mutation) reads.clear();
+    try {
+      if (method !== "GET") return await answer(req, res, url, owner, route, method, data => { options.json(res, 200, data); return true; });
+      const ttlMs = readTtl(route);
+      if (ttlMs === null) return await reads.bounded(answer(req, res, url, owner, route, method, data => { options.json(res, 200, data); return true; }));
+      const data = await reads.get(readKey(req, url), ttlMs, async () => {
+        const out: { data?: unknown } = {};
+        await answer(req, res, url, owner, route, method, data => { out.data = data; return true; });
+        return out.data;
+      });
+      options.json(res, 200, data);
+      return true;
+    } catch (error) {
+      if (error instanceof ReadUnavailable) throw new AdminError(error.status, error.code, error.message);
+      throw error;
+    }
+  }
+
+  async function answer(req: IncomingMessage, res: ServerResponse, url: URL, owner: ReturnType<typeof gate>, route: string, method: string, send: (data: unknown) => true): Promise<boolean> {
+    if (method === "GET" && route.startsWith("/v2/")) return send(await v2(req, url, route, owner));
     if (method === "GET") {
       if (route === "/me") return send({ admin: true, email: owner.email, environment: options.service.environment, version: options.service.version, live: live?.label ?? null });
       if (route === "/overview") return send(await overview(int(url.searchParams.get("days"), 30, 7, 90), await viewOf(req)));
@@ -515,7 +597,7 @@ export function createAdmin(options: AdminOptions) {
         const time = now(), { from, to } = rangeDays(range, time);
         const [infra, mail, notes] = await Promise.all([live!.infra(from, to).catch(() => null), live!.daily("mail", from, to).catch(() => null),
           live!.latest(ACCOUNT_NOTES).catch(() => null) as Promise<AccountNotes | null>]);
-        return send(topAccounts({ now: time, month: new Date(time).toISOString().slice(0, 7), range, limit, data: live!.label, accounts: view.directory().accounts,
+        return send(topAccounts({ now: time, month: new Date(time).toISOString().slice(0, 7), range, limit, data: live!.label, accounts: [...view.directory().accounts, ...auth.directory().accounts],
           relays: range === "month" ? cards.relays : [], infra, mail, plans: notes?.plans ? new Map(Object.entries(notes.plans)) : undefined, suspects: Array.isArray(notes?.suspects) ? notes.suspects : [] }));
       }
       try {

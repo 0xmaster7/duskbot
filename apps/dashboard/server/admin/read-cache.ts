@@ -1,0 +1,66 @@
+// the admin's reads: one computation per question at a time, kept a short while, and never longer than a deadline.
+// the panel refreshes on timers and opens several pages at once; without this every open tab re-read every raw event.
+
+/** a read that ran past its deadline, or a database that could not answer: the panel says so instead of hanging */
+export class ReadUnavailable extends Error {
+  status: number; code: string;
+  constructor(code: "admin_slow" | "admin_data_unavailable", message: string) { super(message); this.status = 503; this.code = code; }
+}
+
+/** a MongoDB driver failure (network, selection, a query past maxTimeMS): the data can't be read right now */
+export function isDatabaseError(error: unknown): boolean {
+  const name = (error as { name?: unknown } | null)?.name;
+  return typeof name === "string" && name.startsWith("Mongo");
+}
+
+export interface ReadCacheOptions { now?: () => number; deadlineMs?: number; maxEntries?: number }
+export interface ReadCache {
+  /** the answer for `key`: a kept one younger than `ttlMs`, the one already being computed, or a new computation */
+  get<T>(key: string, ttlMs: number, work: () => Promise<T>): Promise<T>;
+  /** forgets every kept answer (after a change the panel made) */
+  clear(): void;
+  /** the deadline and database error mapping alone, for reads that are never kept */
+  bounded<T>(work: Promise<T>): Promise<T>;
+  readonly size: number;
+}
+
+export function createReadCache(options: ReadCacheOptions = {}): ReadCache {
+  const now = options.now ?? Date.now, deadlineMs = options.deadlineMs ?? 25_000, maxEntries = options.maxEntries ?? 200;
+  const kept = new Map<string, { at: number; value: unknown }>();
+  const running = new Map<string, Promise<unknown>>();
+  let generation = 0;
+  function withDeadline<T>(work: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new ReadUnavailable("admin_slow", "This view took too long to load. Try a shorter range, or again in a minute.")), deadlineMs);
+      timer.unref?.();
+    });
+    return Promise.race([work, late]).finally(() => clearTimeout(timer)).catch((error: unknown) => {
+      if (isDatabaseError(error)) throw new ReadUnavailable("admin_data_unavailable", "The analytics database can't be read right now. The page will try again.");
+      throw error;
+    });
+  }
+  return {
+    get size() { return kept.size; },
+    get<T>(key: string, ttlMs: number, work: () => Promise<T>): Promise<T> {
+      const hit = kept.get(key);
+      if (hit && now() - hit.at < ttlMs) return Promise.resolve(hit.value as T);
+      const inFlight = running.get(key);
+      if (inFlight) return inFlight as Promise<T>;
+      const started = generation;
+      const promise = withDeadline(work()).then(value => {
+        // an answer computed before a change is not kept past it
+        if (started === generation && ttlMs > 0) {
+          kept.delete(key);
+          kept.set(key, { at: now(), value });
+          while (kept.size > maxEntries) kept.delete(kept.keys().next().value!);
+        }
+        return value;
+      }).finally(() => { if (running.get(key) === promise) running.delete(key); });
+      running.set(key, promise);
+      return promise;
+    },
+    clear() { kept.clear(); generation++; },
+    bounded: withDeadline,
+  };
+}
