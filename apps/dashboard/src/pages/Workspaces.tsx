@@ -105,7 +105,7 @@ export function WorkspacesPage() {
               <thead><tr><Th>name</Th><Th className="max-md:hidden">type</Th><Th className="max-sm:w-[120px]">status</Th><Th className="max-lg:hidden">version</Th><Th className="max-lg:hidden">connected</Th><Th className="w-0 max-sm:w-11"><span className="sr-only">more</span></Th></tr></thead>
               <tbody>{sorted.map((w) => <WorkspaceRow key={w.id} w={w} cloud={cloudForWorkspace(clouds, w.id)} />)}</tbody>
             </Table>
-          ) : <p className="py-8 text-14 text-ink-3">no workspaces yet. add your mac or server below.</p>}
+          ) : <p className="py-2 text-14 text-ink-3">no workspaces yet. connect your mac or get dusk cloud below.</p>}
         </section>
         <section id="add" className="enter mt-6 scroll-mt-20" style={{ ["--i" as string]: 2 }}>
           <Card>
@@ -114,7 +114,7 @@ export function WorkspacesPage() {
               <div className="min-w-0 md:pr-6">
                 <h3 className="mb-5 text-14 font-medium text-ink">your mac</h3>
                 <ol className="flex flex-col gap-5">
-                  <Step n={1} title={<a className="text-link" href={DOWNLOAD_URL} target="_blank" rel="noreferrer">download dusk bot for mac</a>} />
+                  <Step n={1} title="download dusk bot for mac"><ButtonLink to={DOWNLOAD_URL} external size="sm" className="mt-1.5">download</ButtonLink></Step>
                   <Step n={2} title="sign in with this account">it shows up here by itself a few seconds later.</Step>
                   <Step n={3} title="keep it awake">your bots run while the mac is on.</Step>
                 </ol>

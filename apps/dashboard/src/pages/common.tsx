@@ -6,6 +6,7 @@ import { useSession } from "../data/session";
 import { Button, ButtonLink, Card, Skeleton } from "../ui/kit";
 import { SkyEmpty } from "../ui/Sky";
 import { wakeFirst } from "./cloud-bits";
+import { DOWNLOAD_URL } from "../lib/usage";
 
 export function LoadingPage() {
   return (
@@ -28,9 +29,9 @@ export function NoWorkspace() {
   return (
     <SkyEmpty
       title="connect your first workspace"
-      action={<ButtonLink to="/connect" variant="primary">how to connect</ButtonLink>}
+      action={<><ButtonLink to={DOWNLOAD_URL} external variant="primary">get the app</ButtonLink><ButtonLink to="/workspaces#add">how to connect</ButtonLink></>}
     >
-      your bots live on your mac or a server of your own. sign in to dusk bot there, or add a server from the app, and it shows up here by itself.
+      get the app and sign in with this account. your mac shows up here by itself, and so do the bots you make on it.
     </SkyEmpty>
   );
 }
