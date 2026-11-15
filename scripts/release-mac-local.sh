@@ -278,6 +278,11 @@ if [ "$SKIP_BUILD" = 0 ]; then
   fi
 fi
 
+# a build under umask 077 leaves 0700 folders in the app; Squirrel.Mac's root ShipIt installs that as root:wheel 0700,
+# which the person can no longer open. file modes are not part of the signature.
+private_entries() { find "$1" \( -type d ! -perm -0055 \) -o \( -type f ! -perm -0044 \) -o \( -type f -perm -0100 ! -perm -0011 \); }
+for a in "${ARCHES[@]}"; do chmod -R u+rwX,go+rX,go-w "$(app_dir "$a")/$APP_NAME.app"; done
+
 # ---------------------------------------------------------------- checks on the signed apps
 EXPECTED_ENTITLEMENTS="$(plutil -convert json -o - build/entitlements.mac.plist | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(Object.keys(JSON.parse(s)).sort().join(" ")))')"
 
@@ -391,6 +396,7 @@ fi
 
 say "re-zipping the stapled apps for the updater"
 for a in "${ARCHES[@]}"; do
+  [ -z "$(private_entries "$(app_dir "$a")/$APP_NAME.app" | head -1)" ] || die "the $a app has entries only its owner can read: $(private_entries "$(app_dir "$a")/$APP_NAME.app" | head -3)"
   rm -f "$(zip_for "$a")" "$(zip_for "$a").blockmap"
   ditto -c -k --sequesterRsrc --keepParent "$(app_dir "$a")/$APP_NAME.app" "$(zip_for "$a")"
 done
