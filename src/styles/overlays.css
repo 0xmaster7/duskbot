@@ -116,9 +116,9 @@
    rise at .985 over 240ms on the app's out curve while its scrim fades in over 160ms; leaving, it fades out in 120ms.
    Only mounting runs it, so a dialog that re-renders never replays it. Reduced motion keeps the fades and drops the
    travel. A list a dialog fetches fades in, and a wait that ends fast never shows its spinner. */
-@keyframes dialog-sheet-in { from { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.985); } }
+@keyframes dialog-sheet-in { from { opacity: 0; transform: scale(0.96); } }
 :is([role="alertdialog"], [role="dialog"][aria-modal="true"], .ui-modal, .ui-dialog, .templates-sheet):not(.popover-surface, .menu-surface) {
-  animation: dialog-sheet-in 240ms var(--ease-out-bencho);
+  animation: dialog-sheet-in 200ms var(--ease-out-bencho);
 }
 :is([role="alertdialog"], [aria-modal="true"], .ui-modal, .ui-dialog):not(.popover-surface, .menu-surface).animate-pop-out {
   animation: overlay-fade-out 120ms var(--ease-out-bencho) forwards;

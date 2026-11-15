@@ -146,16 +146,19 @@ function SheetView({ title, description, art, width = 440, onClose, footer, chil
   const close = useDialogKeys(sheet, onClose);
   const reduced = useMotionReduced();
   const motion = animated ? dialogMotion(reduced) : null;
+  // motion animates it, so the css keyframe on [aria-modal] and the scrim's fade stand down
+  const raw = motion ? "" : undefined;
   // on its way out (inside its parent's AnimatePresence) it takes no more presses or focus
   const leaving = !useIsPresent();
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" inert={leaving || undefined} data-leaving={leaving ? "" : undefined}>
-      <ScrimMotion aria-hidden="true" data-modal-scrim className="ui-dialog-scrim absolute inset-0" onMouseDown={() => close.current()} {...motion?.scrim} />
+      <ScrimMotion aria-hidden="true" data-modal-scrim data-raw-dialog={raw} className="ui-dialog-scrim absolute inset-0" onMouseDown={() => close.current()} {...motion?.scrim} />
       <SheetMotion
         ref={sheet}
         {...rest}
         {...motion?.sheet}
+        data-raw-dialog={raw}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

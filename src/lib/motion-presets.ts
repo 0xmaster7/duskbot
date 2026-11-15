@@ -98,16 +98,17 @@ export const SPRING_SETTLE = { ...BENCHO.spring.settle, mass: 1 } as const;
 /** a message's own fade while it settles (bencho msg-in), and the blur that masks a swap of one thing for another */
 export const MSG_FADE = { duration: BENCHO.dur.fast, ease: EASE_OUT } as const;
 
-/** an occasional centred dialog (the voice first-run sheet): it grows from .97 on bencho's modal spring with its
- * opacity on the short fade, over a scrim that fades in as fast; it leaves sooner than it came, at .98 on the out curve.
- * Reduced motion keeps both fades and drops the scale. Modals scale from their centre. */
+/** an occasional centred dialog: it grows from .96 with a fade over 200ms on the out curve, over a scrim that fades in
+ * 160ms; it leaves sooner than it came, at .98 in 120ms. Reduced motion keeps both fades and drops the scale. Modals
+ * scale from their centre. A dialog animated this way sets data-raw-dialog on its sheet and scrim so overlays.css's
+ * keyframe stays off it (one motion, not two). */
 export function dialogMotion(reduced: boolean) {
   const leave = { duration: DURATION.fast, ease: EASE_OUT };
   return {
     // the whole transform string, not the scale shorthand, so the browser can run it off the main thread
     sheet: {
-      initial: { opacity: 0, transform: reduced ? "none" : "scale(0.97)" },
-      animate: { opacity: 1, transform: reduced ? "none" : "scale(1)", transition: reduced ? REDUCED : { ...BENCHO.spring.modal, opacity: { duration: BENCHO.dur.fast, ease: EASE_OUT } } },
+      initial: { opacity: 0, transform: reduced ? "none" : "scale(0.96)" },
+      animate: { opacity: 1, transform: reduced ? "none" : "scale(1)", transition: reduced ? REDUCED : { duration: DURATION.base, ease: EASE_OUT } },
       exit: { opacity: 0, transform: reduced ? "none" : "scale(0.98)", transition: reduced ? REDUCED : leave },
     },
     scrim: {
