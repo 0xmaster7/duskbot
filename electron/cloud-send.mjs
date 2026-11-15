@@ -43,6 +43,14 @@ const OUTDATED_FOR_MOVE = "My Cloud is updating. Your bots move there by themsel
 const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const sentence = (value) => (typeof value === "string" && value.trim() ? value.trim().replace(/\s+/g, " ").slice(0, 300) : null);
 
+/** A Vault secret's and a card file's check key, as server/vault-move.ts names them. */
+export const vaultSecretKey = (label) => `vault-secret:${createHash("sha256").update(label.trim().toLowerCase()).digest("hex").slice(0, 32)}`;
+export const cardFileKey = (file) => `card-secret:${file.bot}:${file.thread}:${file.card}`;
+/** What a check leaves out: what was removed on My Cloud or refused for good, and the card files of a bot left out so. */
+export function secretsSkipped(skipped) {
+  return { has: (id) => skipped.has(id) || (id.startsWith("card-secret:") && skipped.has(`bot:${id.split(":")[1]}`)) };
+}
+
 export class CloudSendError extends Error {
   constructor(code, message, options) { super(message, options); this.name = "CloudSendError"; this.code = code; }
 }
@@ -426,6 +434,7 @@ export function createCloudSend({ local, cloud, handoff, store, onChange = () =>
       if (move) {
         try { result.conversationSettings = await kinds.moveSettings(ctx); }
         catch (error) { result.failed.push({ key: "conversation-settings", kind: "chats", label: "Chats", error: sentence(error?.message) ?? "The chats' settings could not be added." }); }
+        if (!team) await moveVault(ctx);
         const last = rows.filter((entry) => automations.has(entry.kind));
         for (const row of last) await goRow(row);
         // The pass's closing plan reads My Cloud as it is now: read before the automations went, it would take each one
@@ -868,6 +877,37 @@ export function createCloudSend({ local, cloud, handoff, store, onChange = () =>
     ctx.result.onePassword = true;
   }
 
+  /** The Vault's saved secrets and its cards' file secrets, each sealed for My Cloud on its own and kept there under
+   * My Cloud's own key. Their values come over the private port and go only to this session; none is kept or logged. A
+   * secret none of whose bots are on My Cloud stays here, said once; a card file goes once its conversation is there. */
+  async function moveVault(ctx) {
+    const failed = (key, label, error, final = false) => ctx.result.failed.push({ key, kind: "vault", label, error, ...(final ? { final: true } : {}) });
+    let vault;
+    try { vault = (await handoff({ kind: "vault" }))?.vault; }
+    catch (error) { failed("vault", "Vault", sentence(error?.message) ?? "The Vault could not be read on this computer."); return; }
+    if (!record(vault)) return;
+    ctx.sealer ??= cloudSealer(ctx.session);
+    for (const secret of Array.isArray(vault.secrets) ? vault.secrets : []) {
+      if (!record(secret) || typeof secret.label !== "string" || typeof secret.value !== "string") continue;
+      const key = vaultSecretKey(secret.label);
+      const bots = (Array.isArray(secret.bots) ? secret.bots : []).filter((id) => ctx.cloudBots.has(id));
+      if (!bots.length) { failed(key, "Vault secret", "None of the bots that use this secret are on My Cloud, so it stayed on this computer.", true); continue; }
+      try {
+        const saved = await ctx.sealer.vaultSecret(secret, bots);
+        if (!saved.ok) failed(key, "Vault secret", refusal(saved, "My Cloud could not keep a secret from the Vault."));
+      } catch { failed(key, "Vault secret", "A secret from the Vault could not be sealed for My Cloud."); }
+    }
+    for (const file of Array.isArray(vault.files) ? vault.files : []) {
+      if (!record(file) || typeof file.value !== "string" || ![file.bot, file.thread, file.card].every((id) => typeof id === "string" && VAULT_ID.test(id))) continue;
+      if (!ctx.cloudBots.has(file.bot)) continue;
+      const key = cardFileKey(file);
+      try {
+        const saved = await ctx.sealer.cardFile(file);
+        if (!saved.ok) failed(key, "Secret file", refusal(saved, "My Cloud could not keep a bot's secret file."));
+      } catch { failed(key, "Secret file", "A bot's secret file could not be sealed for My Cloud."); }
+    }
+  }
+
   /**
    * What did not arrive of what a move carried, from both sides' own answers, over one owner session that counts as
    * someone using My Cloud: `gaps`, the manifests compared (cloud-send-check.mjs); `chats`, each conversation's rows, its
@@ -897,7 +937,7 @@ export function createCloudSend({ local, cloud, handoff, store, onChange = () =>
         && (head.room ? going.has(head.room) && !removed.has(`room:${head.room}`) : bots.has(head.bot))).map((head) => head.threadId);
       const chats = await checkChats({ localJson, session, threads });
       const attachments = await missingAttachments(session, Array.isArray(here.attachments) ? here.attachments : []);
-      const secrets = team ? { equal: [], differs: [], missing: [] } : await checkSecrets({ handoff, session, skip: new Set([...removed, ...refused]) });
+      const secrets = team ? { equal: [], differs: [], missing: [] } : await checkSecrets({ handoff, session, skip: secretsSkipped(new Set([...removed, ...refused])) });
       const ok = checkPassed({ gaps, chats, attachments, secrets });
       // What the person knows things by, for what stayed behind (move-gaps.mjs): bots and rooms by name, and the bot or room
       // each conversation the check found short belongs to.

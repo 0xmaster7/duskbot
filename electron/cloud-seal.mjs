@@ -39,6 +39,16 @@ export function cloudSealer(session) {
       const secrets = { password: login.password, ...(login.totp ? { totp: login.totp } : {}) };
       return send("POST", "/api/logins", "login.create", target, secrets, (sealed) => ({ site: login.site, username: login.username, ...rest, ...(sealed ? { sealed } : {}) }));
     },
+    /** A Vault secret, bound to its label; `bots`: those of its bots that are on My Cloud. */
+    vaultSecret(secret, bots) {
+      return send("POST", "/api/cloud-send/vault/secret", "vault.secret", [String(secret.label).trim().toLowerCase()], { value: secret.value },
+        (sealed) => ({ label: secret.label, bots, ...(sealed ? { sealed } : {}) }));
+    },
+    /** A card's file secret, bound to its bot, conversation and card. */
+    cardFile(file) {
+      return send("POST", "/api/cloud-send/vault/file", "card.secret", [file.bot, file.thread, file.card], { value: file.value },
+        (sealed) => ({ bot: file.bot, thread: file.thread, card: file.card, ...(sealed ? { sealed } : {}) }));
+    },
     onePassword(token) {
       return send("POST", "/api/logins/1password", "onepassword.connect", [], { token }, (sealed) => (sealed ? { sealed } : {}));
     },

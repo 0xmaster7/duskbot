@@ -9,6 +9,7 @@ import { loginFingerprints, VERIFY_NONCE } from "./cloud-send-verify.ts";
 import type { LoginStore } from "./login-store.ts";
 import { ONE_PASSWORD_MALFORMED, ONE_PASSWORD_REFUSED } from "./onepassword.ts";
 import type { TotpKey } from "./totp.ts";
+import type { HandedVault } from "./vault-move.ts";
 
 export const LOGIN_HANDOFF_REQUEST = "duskbot:login-handoff";
 export const LOGIN_HANDOFF_RESULT = "duskbot:login-handoff-result";
@@ -21,6 +22,8 @@ export type ConnectionHandoffWhat =
   | { kind: "composio-share"; for: string }
   | { kind: "connection-release"; id: string; digest: string }
   | { kind: "connection-fingerprints"; nonce: string }
+  /** The Vault's saved secrets and card file secrets, with their values (vault-move.ts). */
+  | { kind: "vault" }
   /** Connector sync (connector-sync.ts): a sign-in lent, a server's definition, a sign-in taken or let go of. */
   | ConnectorHandoffWhat
   /** Settings sync (settings-sync.ts): the values of the person's settings, keys with them. */
@@ -32,6 +35,7 @@ export type ConnectionHandoffAnswer =
   | { ok: true; secrets: Record<string, string> }
   | { ok: true; connector: Record<string, unknown> }
   | { ok: true; settings: Record<string, unknown> }
+  | { ok: true; vault: HandedVault }
   | { ok: false; error: string };
 
 /** A saved login as the Cloud's own POST /api/logins takes it: one sign-in address, the 2FA key as an otpauth:// address. */
@@ -71,6 +75,7 @@ function parse(raw: unknown): { requestId: string; what: Ask } | null {
   if (message.type !== LOGIN_HANDOFF_REQUEST || typeof message.requestId !== "string" || !REQUEST_ID.test(message.requestId)) return null;
   const what = message.what as Record<string, unknown> | null;
   if (what?.kind === "1password") return { requestId: message.requestId, what: { kind: "1password" } };
+  if (what?.kind === "vault") return { requestId: message.requestId, what: { kind: "vault" } };
   if (what?.kind === "login" && typeof what.id === "string" && LOGIN_ID.test(what.id)) return { requestId: message.requestId, what: { kind: "login", id: what.id } };
   if (what?.kind === "connection" && typeof what.id === "string" && CONNECTION_ID.test(what.id)) return { requestId: message.requestId, what: { kind: "connection", id: what.id } };
   if (what?.kind === "composio-share" && typeof what.for === "string" && INSTALLATION_ID.test(what.for)) return { requestId: message.requestId, what: { kind: "composio-share", for: what.for } };
@@ -114,7 +119,7 @@ export function receiveLoginHandoff(raw: unknown, store: HandoffStore, post: (me
   const ask = parse(raw);
   if (!ask) return true;
   const { requestId, what } = ask;
-  if (what.kind === "connection" || what.kind === "composio-share" || what.kind === "connection-release" || what.kind === "connector" || what.kind === "settings") {
+  if (what.kind === "connection" || what.kind === "composio-share" || what.kind === "connection-release" || what.kind === "connector" || what.kind === "settings" || what.kind === "vault") {
     const refused: ConnectionHandoffAnswer = { ok: false, error: "This connection could not be read on this computer." };
     const answer = connections ? connections(what).catch((): ConnectionHandoffAnswer => refused) : Promise.resolve(refused);
     void answer.then((answered) => post({ type: LOGIN_HANDOFF_RESULT, requestId, ...answered }));

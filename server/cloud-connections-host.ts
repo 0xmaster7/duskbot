@@ -21,6 +21,7 @@ import { personalConnectionRefusal, type CloudTeam } from "./cloud-team.ts";
 import { createCloudConnectionRoutes } from "./routes/cloud-connections.ts";
 import { answerConnectorHandoff, type ConnectorSync } from "./connector-sync.ts";
 import { answerSettingsHandoff, type SettingsSync } from "./settings-sync.ts";
+import { answerVaultHandoff, vaultFingerprints, type VaultSources } from "./vault-move.ts";
 
 export interface CloudConnectionsHostDeps {
   /** This server is the person's Cloud home, reached at this public origin. */
@@ -43,6 +44,8 @@ export interface CloudConnectionsHostDeps {
   connectorSync?(): ConnectorSync | null;
   /** Settings sync, once it is made: the person's settings, secrets with them, over the private port only. */
   settingsSync?(): SettingsSync | null;
+  /** The Vault's items, which a move carries with their values, and their fingerprints for its check (vault-move.ts). */
+  vault?(): VaultSources | null;
 }
 
 const managedService = (): boolean => { try { return brokerAccess() !== null; } catch { return false; } };
@@ -66,7 +69,10 @@ export function createCloudConnectionsHost(deps: CloudConnectionsHostDeps) {
 
   return {
     connections,
-    fingerprints: (nonce: string) => connectionFingerprints(nonce, sources()),
+    fingerprints: (nonce: string) => {
+      const vault = deps.vault?.();
+      return { ...connectionFingerprints(nonce, sources()), ...(vault ? vaultFingerprints(nonce, vault) : {}) };
+    },
     routes: createCloudConnectionRoutes({
       cloudHome: deps.cloudHome !== null,
       ...(deps.ownHome ? { ownHome: deps.ownHome } : {}),
@@ -103,7 +109,14 @@ export function createCloudConnectionsHost(deps: CloudConnectionsHostDeps) {
         try { return { ok: true, share: { code: await composioShareCode(what.for) } }; }
         catch (error) { return { ok: false, error: error instanceof Error && error.message ? error.message.slice(0, 300) : "Connected apps could not be shared." }; }
       }
-      if (what.kind === "connection-fingerprints") return { ok: true, secrets: connectionFingerprints(what.nonce, sources()) };
+      if (what.kind === "vault") {
+        const vault = deps.vault?.();
+        return vault ? answerVaultHandoff(vault) : { ok: false, error: "The Vault is not ready on this computer yet." };
+      }
+      if (what.kind === "connection-fingerprints") {
+        const vault = deps.vault?.();
+        return { ok: true, secrets: { ...connectionFingerprints(what.nonce, sources()), ...(vault ? vaultFingerprints(what.nonce, vault) : {}) } };
+      }
       if (what.kind === "connection-release") {
         // only the access token stays, lent: My Cloud holds the refresh token now, and connector sync tops this one up
         return releaseConnection(what.id, what.digest, { ...sources(), forgetSignIn: (name) => {

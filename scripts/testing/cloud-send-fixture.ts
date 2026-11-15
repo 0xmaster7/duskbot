@@ -245,8 +245,11 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     const child = await start("desktop", { DUSK_DESKTOP_PARENT: "1",
       ...(broker && desktopInstallation ? { DUSK_COMPOSIO_BROKER_URL: broker.url, DUSK_COMPOSIO_BROKER_TOKEN: desktopInstallation.token } : {}) }, desktopPort, ["--import", parentPort], true, onePasswordToken, toolCalls, desktopEngine);
     child.send({ type: "duskbot:desktop-mutation-token", token: ownerCapability });
+    // main hands the Vault's key over, as the app does from the OS keychain
+    child.send({ type: "duskbot:saved-secrets-key", key: vaultKey });
     return child;
   };
+  const vaultKey = randomBytes(32).toString("hex");
   let desktop = await startDesktop();
   const cloudPort = await freePortBlock([0, 1]);
   const cloudBase = `http://127.0.0.1:${cloudPort}`;

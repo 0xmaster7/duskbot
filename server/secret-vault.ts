@@ -2,7 +2,8 @@
 // Security: a `ref` value stays in this process's memory, behind a one-use reference bound to the asking bot and
 // conversation that only dusk bot's own tools accept. A `file` value goes to an owner-only file in a private folder
 // of that bot's own workspace (or the Local VM workspace its turn runs in); nothing that syncs, backs up, moves, links,
-// attaches, publishes or uploads workspace files carries that folder (inSecretFolder). Neither value is ever logged,
+// attaches, publishes or uploads workspace files carries that folder (inSecretFolder): only a move to the person's own
+// Cloud carries a card's file, sealed for that Cloud's server, into the same bot's folder there (vault-move.ts). Neither value is ever logged,
 // and while either lives, held-secret redaction masks it in transcripts, events and logs.
 import { randomBytes } from "node:crypto";
 import { chmodSync, closeSync, constants, fsyncSync, lstatSync, mkdirSync, openSync, readdirSync, rmSync, writeSync } from "node:fs";

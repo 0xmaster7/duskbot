@@ -2,7 +2,8 @@
 // sealed with AES-256-GCM under a key that never lives in the data folder. In the desktop app the key comes from the
 // main process, which keeps it sealed by the OS keychain (Electron safeStorage); on a headless server it is a random
 // 0600 file in the service user's own config folder. No route returns a value, nothing logs one, and neither file is
-// backed up, exported, synced or moved (workspace-backup-policy.ts). Root on the machine can still read the key file.
+// backed up, exported or synced (workspace-backup-policy.ts); only a move to the person's own Cloud carries each secret,
+// sealed for that Cloud's server (vault-move.ts). Root on the machine can still read the key file.
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { chmodSync, closeSync, constants, existsSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, writeSync } from "node:fs";
 import { homedir } from "node:os";
@@ -249,6 +250,30 @@ export class SavedSecretStore {
     const record: SavedRecord = { id: randomUUID(), label: input.label.trim(), bots: [input.botId], value: input.value, createdAt: at, updatedAt: at };
     this.write({ ...data, secrets: [...data.secrets, record] });
     return summarizeSavedSecret(record);
+  }
+
+  /** A secret moved in from the person's own computer: the same label replaces its value and adds the bots. */
+  adopt(input: { label: string; bots: readonly string[]; value: string }): SavedSecretSummary {
+    const data = this.read();
+    const at = this.now();
+    const bots = [...new Set(input.bots)].slice(0, 200);
+    const same = data.secrets.find((record) => sameLabel(record.label, input.label));
+    if (same) {
+      const { needsCheck: _checked, ...rest } = same;
+      const next: SavedRecord = { ...rest, value: input.value, bots: [...new Set([...same.bots, ...bots])].slice(0, 200), updatedAt: at };
+      this.write({ ...data, secrets: data.secrets.map((record) => record.id === same.id ? next : record) });
+      return summarizeSavedSecret(next);
+    }
+    if (data.secrets.length >= SAVED_LIMIT) throw new Error(`The Vault holds at most ${SAVED_LIMIT} secrets.`);
+    const record: SavedRecord = { id: randomUUID(), label: input.label.trim(), bots, value: input.value, createdAt: at, updatedAt: at };
+    this.write({ ...data, secrets: [...data.secrets, record] });
+    return summarizeSavedSecret(record);
+  }
+
+  /** Every secret with its value, for the move to the person's own Cloud only (vault-move.ts); nothing while no key was ever made. */
+  movable(): Array<{ label: string; bots: string[]; value: string }> {
+    if (!this.ready()) return [];
+    return this.read().secrets.map((record) => ({ label: record.label, bots: [...record.bots], value: record.value }));
   }
 
   markUsed(id: string): void {

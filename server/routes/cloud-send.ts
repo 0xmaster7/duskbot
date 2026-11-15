@@ -24,6 +24,7 @@ import { threadHeads } from "../message-db.ts";
 import type { LineLanguage } from "../server-lines.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import type { BotRecord } from "../store.ts";
+import { vaultMoveRoute, type VaultMoveDeps } from "../vault-move.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 export interface CloudSendRouteDeps extends Pick<CloudSendSources, "appVersion" | "bots" | "skills"> {
@@ -50,6 +51,8 @@ export interface CloudSendRouteDeps extends Pick<CloudSendSources, "appVersion" 
   refusal?: string;
   /** The one bot a request's sign-in moves into this team, which every read here is kept to; null for any other. */
   scope?(auth: RequestAuth): string | null;
+  /** On the person's own Cloud: what keeps the Vault a move carries in. */
+  vault?: VaultMoveDeps;
 }
 
 export function createCloudSendRoutes(deps: CloudSendRouteDeps): RouteHandler {
@@ -82,6 +85,7 @@ export function createCloudSendRoutes(deps: CloudSendRouteDeps): RouteHandler {
     // A move of one bot into a team reads that bot only, on both sides.
     const bot = scoped ?? (/^[\w-]{1,128}$/u.test(url.searchParams.get("bot") ?? "") ? url.searchParams.get("bot")! : undefined);
     if (deps.chats && await cloudSendChatsRoute({ ...deps.chats, ...(bot ? { bot } : {}) }, ctx)) return;
+    if (deps.vault && home && !scoped && await vaultMoveRoute(deps.vault, ctx)) return;
     if (move && await moveKindsRoute(move, ctx)) return;
     if (move && await moveMemoryRoute({ ...move, bot: (id) => move.store.bot(id) ?? undefined }, ctx)) return;
     if (move && await moveFilesRoute({ dataDir: move.dataDir, bots: () => (bot ? move.store.bots.filter((entry) => entry.id === bot) : move.store.bots), owner: move.owner }, ctx)) return;

@@ -1,7 +1,7 @@
 // The secure credential cards request_credential adds: the card on the conversation's visible branch, settling it,
 // resuming the turn it paused, and the value a paired phone sealed for this computer. No card, message or log holds the value.
 import { randomUUID } from "node:crypto";
-import { readdirSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
@@ -28,7 +28,8 @@ import { CardSealError, createCardSealer, type CardSealer } from "../card-seal.t
 import { HeldSecrets } from "../login-store.ts";
 import { SavedSecretsUnavailable, type SavedSecretStore } from "../saved-secrets.ts";
 import type { SealedCardSecret } from "../../shared/saved-secrets.ts";
-import { SECRET_VALUE_MAX_BYTES, SecretVault, type SavedSecret, type SecretFileHome } from "../secret-vault.ts";
+import { SECRET_FILE_TTL_MS, SECRET_FOLDER, SECRET_VALUE_MAX_BYTES, SecretVault, type SavedSecret, type SecretFileHome } from "../secret-vault.ts";
+import type { HandedCardFile } from "../vault-move.ts";
 import {
   PHONE_SECRET_PROTOCOL_VERSION,
   PhoneSecretError,
@@ -738,8 +739,55 @@ export function createSecretCards(deps: SecretCardsDeps) {
     return sealer.open(sealed, { botId, threadId, messageId, requestKey: message.secret.requestKey, remember });
   }
 
+  const CARD_ID = /^[\w-]{1,128}$/u;
+  /** The file card this conversation holds under `card`, while its file is still kept, and the bot it was saved for. */
+  function fileCard(thread: string, card: string): { bot: string } | null {
+    if (!CARD_ID.test(thread) || !CARD_ID.test(card)) return null;
+    const message = store.messagesFor(thread).find((candidate) => candidate.id === card);
+    const secret = message?.kind === "secret" ? message.secret : undefined;
+    if (!secret || secret.delivery !== "file" || secret.savedAt === undefined || Date.now() - secret.savedAt >= SECRET_FILE_TTL_MS) return null;
+    const bot = message?.from?.botId ?? store.botByThread(thread)?.id;
+    return bot ? { bot } : null;
+  }
+
+  /** Every card file secret still kept here, with its value: for the move to the person's own Cloud only (vault-move.ts).
+   * A file the Vault handed out has no card and stays; the Vault's own secret moves instead. */
+  function movableFiles(): HandedCardFile[] {
+    const out: HandedCardFile[] = [];
+    for (const base of sweepBases()) {
+      const folder = join(base, SECRET_FOLDER);
+      let threads: string[];
+      try { threads = lstatSync(folder).isDirectory() ? readdirSync(folder) : []; } catch { continue; }
+      for (const thread of threads) {
+        let cards: string[];
+        try { cards = lstatSync(join(folder, thread)).isDirectory() ? readdirSync(join(folder, thread)) : []; } catch { continue; }
+        for (const card of cards) {
+          const owner = fileCard(thread, card);
+          if (!owner) continue;
+          const file = join(folder, thread, card);
+          try {
+            if (!lstatSync(file).isFile()) continue;
+            const value = readFileSync(file, "utf8");
+            if (value && Buffer.byteLength(value) <= SECRET_VALUE_MAX_BYTES) out.push({ bot: owner.bot, thread, card, value });
+          } catch { continue; }
+        }
+      }
+    }
+    return out;
+  }
+
+  /** A card's file secret moved in: written into that bot's private folder here, behind the same card; false when
+   * the card is not here or no longer keeps a file. */
+  function keepMovedFile(file: HandedCardFile): boolean {
+    const owner = fileCard(file.thread, file.card);
+    if (!owner || owner.bot !== file.bot) return false;
+    const folder = deps.layerFolder(file.bot, file.thread);
+    vault.saveFile({ botId: file.bot, threadId: file.thread }, file.card, file.value, { host: folder, shown: folder });
+    return true;
+  }
+
   return {
-    sealKey, openSealed,
+    sealKey, openSealed, movableFiles, keepMovedFile,
     phoneSecretSubmissionKey, secretMessage, currentSecretState, resumeSecretCard, provideSecretFromPhone, requestCredential, saveCustomSecret, saveEmailSecret, saveLoginSecret,
     secretSaved, updateText, redeemMcpServer, loginRejected,
   };

@@ -17,7 +17,7 @@ export interface CloudSendResult {
   /** The chats My Cloud lacked, added by row or by Bring newer chats; null when this send did not bring chats. `left`:
    * conversations that did not all go this time (a bot answering in one, or My Cloud not taking a page yet). */
   chats: { conversations: number; messages: number; left?: number } | null;
-  failed: Array<{ key: string; kind: SendKind | "chats" | "connection" | "memory" | "files"; label: string; error: string; final?: true }>;
+  failed: Array<{ key: string; kind: SendKind | "chats" | "connection" | "memory" | "files" | "vault"; label: string; error: string; final?: true }>;
   /** A move's own: automations and skill extras it carried, memory files and learned facts merged, bot files sent (`kept`:
    * beside a different file of My Cloud's), and conversations whose own settings it set. */
   moved?: number;
@@ -210,3 +210,8 @@ export function createCloudSend(deps: {
   dismiss(signature: string): CloudSendSnapshot;
   waiting(): { bots: number; total: number } | null;
 };
+
+/** A Vault secret's and a card file's key in a move's check of the credentials (server/vault-move.ts names them the same). */
+export function vaultSecretKey(label: string): string;
+export function cardFileKey(file: { bot: string; thread: string; card: string }): string;
+export function secretsSkipped(skipped: ReadonlySet<string>): { has(id: string): boolean };
