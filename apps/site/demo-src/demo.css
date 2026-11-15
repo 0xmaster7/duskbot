@@ -43,3 +43,10 @@
 [data-sidebar-bot-row], [data-chathead-pill], #bot-panel [data-panel-tab], #bot-panel [role="switch"], #bot-panel [data-tour="model"],
 #bot-panel button[aria-label="Close"], button[aria-label="Open bot list"], [data-ask-card] button,
 [data-model-picker-content] [data-model], [data-model-picker-content] [data-simple-show-all], [data-model-picker-content] [data-scope-pill] { cursor: pointer; }
+
+/* the model chip keeps one look: its hairline at rest, focused or not, and a quiet fill in place of it on hover or open */
+#bot-panel [data-tour="model"] { --tw-inset-ring-color: color-mix(in oklab, var(--color-ink) 7%, transparent) !important; }
+#bot-panel [data-tour="model"]:is([aria-expanded="true"], :focus-visible) { --tw-inset-ring-color: transparent !important; background-color: color-mix(in oklab, var(--color-ink) 6%, transparent); }
+@media (hover: hover) and (pointer: fine) {
+  #bot-panel [data-tour="model"]:hover { --tw-inset-ring-color: transparent !important; background-color: color-mix(in oklab, var(--color-ink) 6%, transparent); }
+}

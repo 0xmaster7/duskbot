@@ -187,8 +187,8 @@ function start() {
     wake($('main'));
     sweep();
     pillState();
-    // the first frame is left where it is; any chat opened later starts at its end, as the app's do
-    requestAnimationFrame(() => { setDock(); if (!first) toEnd(); });
+    // every chat, the first frame's too, starts at its end, as the app's do
+    requestAnimationFrame(() => { setDock(); toEnd(); });
   }
   function paintComposer() {
     const key = S.bot, d = data.bots[key];

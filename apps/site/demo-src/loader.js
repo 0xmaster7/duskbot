@@ -17,6 +17,9 @@
   };
   fit();
   if ('ResizeObserver' in window) new ResizeObserver(fit).observe(win);
+  // the chat opens at its end, the question card and the message box in view, as the app's chats do
+  const sc = host.shadowRoot && host.shadowRoot.querySelector('main .glass-scroller');
+  if (sc) sc.scrollTop = sc.scrollHeight;
   let asked = false;
   const load = () => {
     if (asked) return;
