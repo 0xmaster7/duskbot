@@ -113,20 +113,24 @@ function SignedIn() {
   const next = query.get("next");
   const intent = planIntent(query);
   const welcome = path === "/welcome";
+  const admin = path === "/admin" || path.startsWith("/admin/");
+  const exempt = path === "/claim" || path === "/cloud/desktop" || deletePageId(path) !== null;
+  // until onboarding is done every dashboard page leads back into it; the account page (sign out, delete) stays open
+  const unfinished = account !== null && !account.profile.onboarded && !welcome && !exempt && !admin && path !== "/account";
+  const search = query.toString();
   // a plan picked on the site: someone signed in already goes to the plan step, or straight to plans once onboarded
   const moved = MOVED[path]
     ? (intent && SIGN_IN_PATHS.includes(path) ? `/welcome?${planQuery(intent)}` : path === "/sign-in" && next?.startsWith("/") && !next.startsWith("//") ? next : MOVED[path])
-    : welcome && intent && account?.profile.onboarded ? `/billing?${planQuery(intent)}` : null;
+    : welcome && intent && account?.profile.onboarded ? `/billing?${planQuery(intent)}`
+    : unfinished ? `/welcome${search ? `?${search}` : ""}` : null;
   useEffect(() => { if (moved) navigate(moved, { replace: true }); }, [moved]);
   if (moved) return null;
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
-  if (path === "/admin" || path.startsWith("/admin/")) return <Suspense fallback={blank}><AdminApp /></Suspense>;
-  const exempt = path === "/claim" || path === "/cloud/desktop" || deletePageId(path) !== null;
+  if (admin) return <Suspense fallback={blank}><AdminApp /></Suspense>;
   // home or onboarding is decided once the profile is in, so a new account never sees home first
   if (!welcome && !exempt && account === null && !error) return blank;
   if (welcome && intent && account === null && !error) return blank;
-  const onboard = welcome || (account !== null && !account.profile.onboarded && !exempt);
-  if (onboard) return <Suspense fallback={blank}><Onboarding /></Suspense>;
+  if (welcome) return <Suspense fallback={blank}><Onboarding /></Suspense>;
   // the desktop app's sign-in: its own clean page, not the dashboard around it
   if (path === "/cloud/desktop") return <main className="min-h-[100dvh] bg-bg px-6 py-10"><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></main>;
   return <Shell><Suspense fallback={<LoadingPage />}>{route(path)}</Suspense></Shell>;

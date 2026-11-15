@@ -213,6 +213,8 @@ export function AuthScreen({ mode, note, forApp = false }: { mode: Mode; note?: 
       if (r.redirect?.startsWith("duskbot://auth?")) { window.location.assign(r.redirect); return; }
       // the desktop app's sign-in that needed an email: the page that opens the app and says so
       if (r.redirect && new URL(r.redirect, window.location.origin).pathname.endsWith(APP_LANDING_PATH)) { window.location.assign(r.redirect); return; }
+      // a brand-new account goes straight into onboarding, without the signed-in beat in between
+      if (r.created) { navigate(home === "/" ? "/welcome" : home, { replace: true }); setAccount(r.account); return; }
       enter(r.account, home);
     }
     catch (e) { fail(e); setCode(""); codeRef.current?.focus(); if (e instanceof ApiError && e.code === "expired") setAttempt(null); }
