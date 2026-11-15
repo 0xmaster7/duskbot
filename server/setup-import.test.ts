@@ -369,10 +369,13 @@ describe("finding what another AI tool already set up on this computer", () => {
       const parts = relative(root, path).split(sep);
       return path === root || (!parts[0]!.startsWith("..") && (parts.length === 1 || (parts.length === 2 && parts[1] === inner) || (parts.length === 3 && parts[1] === inner && parts[2]!.endsWith(".md"))));
     });
-    const inRoot = (path: string) => roots.some((root) => path === root || path.startsWith(root + sep)) || inMemory(path);
+    // how often each app is used: its conversation folders listed and their entries dated, never one of them read
+    const inUsage = (path: string) => Object.values(allowed.usage).some(({ root }) => path === root || path.startsWith(root + sep));
+    expect(ops.filter(({ op, path }) => op === "read" && inUsage(path) && !inMemory(path))).toEqual([]);
+    const inRoot = (path: string) => roots.some((root) => path === root || path.startsWith(root + sep)) || inMemory(path) || inUsage(path);
     // when each app was last used: only the change time of the paths named for it, and of the project folders
     const timed = new Set(Object.values(allowed.activity).flat());
-    expect(ops.filter(({ op, path }) => op === "mtime" && !timed.has(path) && !inMemory(path))).toEqual([]);
+    expect(ops.filter(({ op, path }) => op === "mtime" && !timed.has(path) && !inMemory(path) && !inUsage(path))).toEqual([]);
     for (const path of planted) expect(ops.filter((entry) => entry.path === path && entry.op !== "mtime"), path).toEqual([]);
     const opened = ops.filter(({ op }) => op !== "mtime");
     // Opened or listed: the tools' config files and what is inside their skills and commands folders, nothing else.
@@ -429,7 +432,8 @@ describe("finding what another AI tool already set up on this computer", () => {
     link(join(home, ".codex"), ".codex/skills");
     expect(detectSetup(machine, host).skills).toEqual([]);
     const configs = new Set([...setupPaths(machine).tools.map((tool) => tool.path), ...setupPaths(machine).instructions.map((file) => file.path), ...setupPaths(machine).commands.map((command) => command.root)]);
-    expect(touched().filter((path) => path.startsWith(join(home, ".codex") + sep) && !path.startsWith(join(home, ".codex", "skills")) && !configs.has(path))).toEqual([]);
+    const sessions = join(home, ".codex", "sessions");
+    expect(touched().filter((path) => path.startsWith(join(home, ".codex") + sep) && !path.startsWith(join(home, ".codex", "skills")) && !configs.has(path) && path !== sessions)).toEqual([]);
   });
 
   it("leaves out secret-looking files, hard links and files holding a credential, copies instructions about them, and counts each", () => {
@@ -776,7 +780,7 @@ describe("bringing memory in", () => {
     const activity = detectSetup(machine, hostFor().host).activity!;
     expect(activity.codex).toBe(old.getTime());
     expect(activity.claudeCode).toBeGreaterThan(Date.now() - 60_000);
-    expect(ops.filter(({ op, path }) => op !== "mtime" && /history\.jsonl|sessions/.test(path))).toEqual([]);
+    expect(ops.filter(({ op, path }) => op === "read" && /history\.jsonl|sessions/.test(path))).toEqual([]);
   });
 
   it("counts each tool's new notes, deduped across files and tools, without opening transcripts", () => {
@@ -784,11 +788,13 @@ describe("bringing memory in", () => {
     plantMemory(home);
     const { machine, touched } = machineFor(home);
     const memory = detectSetup(machine, hostFor().host).memory;
-    // CLAUDE.md: 2 notes; deploy.md: the deploy line, the redacted key line (the repeat and the instruction are out); MEMORY.md: its link text
+    // CLAUDE.md: 2 notes; deploy.md: the deploy line, the redacted key line (the repeat and the instruction are out);
+    // MEMORY.md only points at the others
+    const preferences = { preferences: true, aboutYou: false, workStyle: false, projects: 0 };
     expect(memory).toEqual([
-      { source: "claudeCode", files: 3, notes: 5 },
-      { source: "codex", files: 1, notes: 1 },
-      { source: "gemini", files: 1, notes: 1 },
+      { source: "claudeCode", files: 2, notes: 4, topics: { ...preferences, projects: 1 } },
+      { source: "codex", files: 1, notes: 1, topics: preferences },
+      { source: "gemini", files: 1, notes: 1, topics: preferences },
     ]);
     expect(touched()).not.toContain(join(home, ".claude/projects/-Users-someone-app/0b1c.jsonl"));
     expect(touched()).not.toContain(join(home, ".claude/projects/-Users-someone-app/memory/notes.txt"));
@@ -801,7 +807,7 @@ describe("bringing memory in", () => {
     const { host } = hostFor();
     const bot = newBot();
     const result = applySetupImport(machine, host, { memory: true, memoryBot: bot, sources: ["claudeCode", "codex"] });
-    expect(result.memory).toEqual({ added: 6, sources: ["claudeCode", "codex"], failed: false });
+    expect(result.memory).toEqual({ added: 5, sources: ["claudeCode", "codex"], failed: false });
     const topic = readMemoryTopic(bot, "imported-claude-code.md")!;
     expect(topic).toContain("title: From Claude Code");
     expect(topic).toContain("from Claude Code import, unverified · The app deploys to the Mumbai server every Friday");
@@ -812,14 +818,51 @@ describe("bringing memory in", () => {
     expect(readMemoryTopic(bot, "imported-codex.md")).toContain("Use pnpm for every JavaScript project");
     expect(readMemoryTopic(bot, "imported-gemini-cli.md")).toBeNull();
     const facts = factsOf([bot]).filter((fact) => fact.file === "memory/imported-claude-code.md");
-    expect(facts.length).toBe(5);
+    expect(facts.length).toBe(4);
     expect(facts.every((fact) => fact.source === "import")).toBe(true);
     // brought in: only Gemini's is left to offer, and a second import adds nothing
-    expect(detectSetup(machine, host).memory).toEqual([{ source: "gemini", files: 1, notes: 1 }]);
+    expect(detectSetup(machine, host).memory).toMatchObject([{ source: "gemini", files: 1, notes: 1 }]);
     expect(applySetupImport(machine, host, { memory: true, memoryBot: bot, sources: ["claudeCode"] }).memory).toEqual({ added: 0, sources: [], failed: false });
     // a new note later is offered on its own
     put(home, ".codex/AGENTS.md", "Use pnpm for every JavaScript project I work on.\nMy timezone is Asia/Kolkata and I work late.\n");
-    expect(detectSetup(machine, host).memory).toContainEqual({ source: "codex", files: 1, notes: 1 });
+    expect(detectSetup(machine, host).memory).toContainEqual(expect.objectContaining({ source: "codex", files: 1, notes: 1 }));
+  });
+
+  it("takes the notes about the person first and never more than the limit, however long one file is", () => {
+    const home = fixtureHome();
+    put(home, ".claude/CLAUDE.md", Array.from({ length: 80 }, (_, i) => `- Standing rule number ${i} for every project.`).join("\n"));
+    put(home, ".claude/projects/-a/memory/me.md", "---\nname: me\nmetadata:\n  type: user\n---\n\nThe person is a designer who lives in Pune.\n");
+    put(home, ".claude/projects/-a/memory/review.md", "---\nname: review\nmetadata:\n  type: feedback\n---\n\nKeep code reviews short and lead with the risk.\n");
+    for (let i = 0; i < 30; i++) put(home, `.claude/projects/-p${i}/memory/notes.md`, `---\nname: p${i}\ntype: project\n---\n\nProject ${i} ships on Fridays to the staging box.\n`);
+    const { machine } = machineFor(home);
+    const [claude] = detectSetup(machine, hostFor().host).memory!;
+    expect(claude).toMatchObject({ notes: MEMORY_LIMITS.notes, topics: { preferences: true, aboutYou: true, workStyle: true } });
+    const bot = newBot();
+    applySetupImport(machine, hostFor().host, { memory: true, memoryBot: bot });
+    const topic = readMemoryTopic(bot, "imported-claude-code.md")!;
+    expect(topic).toContain("designer who lives in Pune");
+    expect(topic).toContain("lead with the risk");
+    expect(topic.match(/^- /gm)).toHaveLength(MEMORY_LIMITS.notes);
+  });
+
+  it("counts the days an app was really used from its conversations' dates, never reading them", () => {
+    const home = fixtureHome();
+    const { utimesSync } = require("node:fs") as typeof import("node:fs");
+    const now = Date.now();
+    const day = (n: number) => new Date(now - n * 86_400_000);
+    for (const n of [0, 1, 2, 9, 9, 40]) {
+      const path = put(home, `.claude/projects/-app${n}/${randomUUID()}.jsonl`, SENTINEL);
+      utimesSync(path, day(n), day(n));
+    }
+    for (const n of [0, 3, 50]) {
+      const at = day(n).toISOString().slice(0, 10).split("-");
+      put(home, `.codex/sessions/${at[0]}/${at[1]}/${at[2]}/rollout.jsonl`, SENTINEL);
+    }
+    const hermes = put(home, ".hermes/sessions/s1.json", SENTINEL);
+    utimesSync(hermes, day(60), day(60));
+    const { machine, ops } = machineFor(home);
+    expect(detectSetup(machine, hostFor().host).usage).toEqual({ claudeCode: 4, codex: 2 });
+    expect(ops.filter(({ op, path }) => op === "read" && /\.jsonl$|sessions/.test(path))).toEqual([]);
   });
 
   it("brings nothing in without a bot to keep it", () => {

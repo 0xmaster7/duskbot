@@ -8,6 +8,10 @@ export const SETUP_SOURCES = ["claudeCode", "claudeDesktop", "cursor", "codex", 
 /** A tool whose standing instructions (CLAUDE.md, AGENTS.md, GEMINI.md, global rules) live in one file. */
 export type InstructionsSource = Extract<SetupSource, "claudeCode" | "codex" | "gemini" | "windsurf">;
 
+/** What a tool's memory is about, from its files' kinds (never their text): standing preferences, notes about the
+ * person, how they like to work, and how many projects it keeps notes on. */
+export interface MemoryTopics { preferences: boolean; aboutYou: boolean; workStyle: boolean; projects: number }
+
 /** A tool or agent app whose last use is told by when its files last changed. */
 export type ActivitySource = SetupSource | "openclaw" | "hermes" | "openmausbot";
 
@@ -18,7 +22,10 @@ export interface SetupDetection {
   /** Instruction files new or changed since they were last brought in, by the file's own name. */
   instructions?: Array<{ name: string; source: InstructionsSource }>;
   /** Notes not brought in yet from each tool's own memory and standing-instructions files, counted, never shown. */
-  memory?: Array<{ source: InstructionsSource; files: number; notes: number }>;
+  memory?: Array<{ source: InstructionsSource; files: number; notes: number; topics?: MemoryTopics }>;
+  /** Distinct days in the last 30 with conversations in each app, from session files' change times and Codex's dated
+   * session folders: names and times only, nothing opened. */
+  usage?: Partial<Record<ActivitySource, number>>;
   /** When each app here was last used (ms), from when its files and history folders last changed: stat only. */
   activity?: Partial<Record<ActivitySource, number>>;
 }

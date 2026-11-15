@@ -9,7 +9,7 @@ import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readdi
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
-import type { ActivitySource, InstructionsSource, SetupDetection, SetupImportRequest, SetupImportResult, SetupSource, SkillSkip, SkillSource, ToolSkip } from "../shared/setup-import.ts";
+import type { ActivitySource, InstructionsSource, MemoryTopics, SetupDetection, SetupImportRequest, SetupImportResult, SetupSource, SkillSkip, SkillSource, ToolSkip } from "../shared/setup-import.ts";
 import { holdsCredential, redactSecretsInText } from "../shared/redact.ts";
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
@@ -172,6 +172,14 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
       hermes: [join(home, ".hermes", "state.db"), join(home, ".hermes", "sessions"), join(home, ".hermes", "memories")],
       openmausbot: [join(home, ".openmausbot"), join(home, ".opengrokbot")],
     } satisfies Record<ActivitySource, string[]>,
+    /** Where each app keeps its conversations: listed by name and dated by change time, never opened. */
+    usage: {
+      claudeCode: { root: join(home, ".claude", "projects"), shape: "projectFiles" },
+      codex: { root: join(codexHome, "sessions"), shape: "dayFolders" },
+      gemini: { root: join(home, ".gemini", "tmp"), shape: "chatFiles" },
+      hermes: { root: join(home, ".hermes", "sessions"), shape: "files" },
+      openclaw: { root: join(home, ".openclaw", "agents"), shape: "agentSessions" },
+    } satisfies Partial<Record<ActivitySource, { root: string; shape: "projectFiles" | "dayFolders" | "chatFiles" | "files" | "agentSessions" }>>,
     /** Folders of per-project memory notes: <root>/<project>/memory/*.md, and nothing else under <root>. */
     memoryFolders: [
       { source: "claudeCode", root: join(home, ".claude", "projects"), inner: "memory" },
@@ -834,8 +842,8 @@ export const MEMORY_LIMITS = {
   files: 400,
   /** One note: longer is cut at a word. */
   noteChars: 500,
-  /** Notes and characters brought in per tool: what one topic file holds comfortably. */
-  notes: 600,
+  /** Notes brought in per tool: the ones about the person first, never a dump of project trivia. */
+  notes: 50,
   chars: 160 * 1024,
 };
 
@@ -895,20 +903,41 @@ interface FoundMemory {
   source: InstructionsSource;
   files: number;
   notes: string[];
+  topics: MemoryTopics;
 }
 
-/** Each tool's standing instructions and memory notes not brought in yet, deduped across files and tools, within the
- * limits. Only the files setupPaths names are opened: never a transcript, a session or a login. */
+type MemoryKind = "preferences" | "aboutYou" | "workStyle" | "project";
+/** The order notes are taken in: what is about the person before what is about one project. */
+const KIND_ORDER: Record<MemoryKind, number> = { preferences: 0, aboutYou: 1, workStyle: 2, project: 3 };
+/** A first pass takes at most this many from each file, so one long file can't crowd out the rest; a second pass fills
+ * what is left in the same order. */
+const FIRST_PASS: Record<MemoryKind, number> = { preferences: 12, aboutYou: 8, workStyle: 2, project: 1 };
+
+/** A Claude Code memory file's kind, from its front matter's type (user, feedback, project, reference). */
+function memoryKind(text: string): MemoryKind {
+  const front = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
+  const type = /^\s*type:\s*["']?(\w+)/m.exec(front)?.[1]?.toLowerCase();
+  return type === "user" ? "aboutYou" : type === "feedback" ? "workStyle" : "project";
+}
+
+/** Each tool's standing instructions and memory notes not brought in yet, deduped across files and tools: the ones
+ * about the person first, at most MEMORY_LIMITS.notes. Only the files setupPaths names are opened: never a
+ * transcript, a session or a login. A memory folder's index (MEMORY.md) only points at the others and is skipped. */
 function findMemory(machine: SetupMachine): FoundMemory[] {
   const index = readMemoryIndex();
   const real = machine.fs.realpath(machine.home);
   const places = { homes: [...new Set([machine.home, ...(real ? [real] : [])])], darwin: machine.platform === "darwin" };
   const paths = setupPaths(machine);
-  const files = new Map<InstructionsSource, string[]>();
-  const add = (source: InstructionsSource, path: string) => files.set(source, [...(files.get(source) ?? []), path]);
+  const files = new Map<InstructionsSource, Array<{ text: string; kind: MemoryKind; project: string | null }>>();
+  const add = (source: InstructionsSource, path: string, project: string | null) => {
+    const bytes = machine.fs.read(path, INSTRUCTIONS_MAX_BYTES, false, true);
+    const text = bytes ? utf8(bytes) : null;
+    if (!text) return;
+    files.set(source, [...(files.get(source) ?? []), { text, kind: project === null ? "preferences" : memoryKind(text), project }]);
+  };
   for (const file of paths.instructions) {
     const found = locate(machine, places, file.path);
-    if (found?.info.isFile() && /\.md$/i.test(found.path)) add(file.source, found.path);
+    if (found?.info.isFile() && /\.md$/i.test(found.path)) add(file.source, found.path, null);
   }
   for (const folder of paths.memoryFolders) {
     const root = locate(machine, places, folder.root);
@@ -918,10 +947,10 @@ function findMemory(machine: SetupMachine): FoundMemory[] {
       if (!machine.fs.lstat(join(root.path, project))?.isDirectory()) continue;
       const inner = join(root.path, project, folder.inner);
       if (!machine.fs.lstat(inner)?.isDirectory()) continue;
-      for (const name of (machine.fs.readdir(inner) ?? []).filter((one) => /\.md$/i.test(one) && !one.startsWith(".")).sort()) {
+      for (const name of (machine.fs.readdir(inner) ?? []).filter((one) => /\.md$/i.test(one) && !one.startsWith(".") && one.toLowerCase() !== "memory.md").sort()) {
         if (count >= MEMORY_LIMITS.files) break;
         if (!machine.fs.lstat(join(inner, name))?.isFile()) continue;
-        add(folder.source, join(inner, name));
+        add(folder.source, join(inner, name), project);
         count += 1;
       }
     }
@@ -930,26 +959,82 @@ function findMemory(machine: SetupMachine): FoundMemory[] {
   const found: FoundMemory[] = [];
   for (const [source, list] of files) {
     const notes: string[] = [];
-    let chars = 0, read = 0;
-    for (const path of list) {
-      const bytes = machine.fs.read(path, INSTRUCTIONS_MAX_BYTES, false, true);
-      const text = bytes ? utf8(bytes) : null;
-      if (!text) continue;
-      let took = false;
-      for (const note of memoryNotes(text)) {
-        const key = noteKey(note);
-        if (seen.has(key) || index.has(key)) continue;
-        if (notes.length >= MEMORY_LIMITS.notes || chars + note.length > MEMORY_LIMITS.chars) break;
-        seen.add(key);
-        notes.push(note);
-        chars += note.length;
-        took = true;
-      }
-      if (took) read += 1;
+    const topics: MemoryTopics = { preferences: false, aboutYou: false, workStyle: false, projects: 0 };
+    const projects = new Set<string>();
+    let chars = 0;
+    const ordered = [...list].sort((x, y) => KIND_ORDER[x.kind] - KIND_ORDER[y.kind]).map((file) => ({ ...file, notes: memoryNotes(file.text), taken: 0 }));
+    const took = new Set<number>();
+    for (const pass of ["first", "fill"] as const) {
+      ordered.forEach((file, at) => {
+        for (const note of file.notes) {
+          if (notes.length >= MEMORY_LIMITS.notes) return;
+          if (pass === "first" && file.taken >= FIRST_PASS[file.kind]) return;
+          const key = noteKey(note);
+          if (seen.has(key) || index.has(key) || chars + note.length > MEMORY_LIMITS.chars) continue;
+          seen.add(key);
+          notes.push(note);
+          chars += note.length;
+          file.taken += 1;
+          took.add(at);
+        }
+      });
     }
-    if (notes.length) found.push({ source, files: read, notes });
+    const read = took.size;
+    for (const at of took) {
+      const file = ordered[at]!;
+      if (file.kind === "project" && file.project) projects.add(file.project);
+      else if (file.kind !== "project") topics[file.kind] = true;
+    }
+    topics.projects = projects.size;
+    if (notes.length) found.push({ source, files: read, notes, topics });
   }
   return found;
+}
+
+const DAY_MS = 86_400_000;
+const USAGE_DAYS = 30;
+const USAGE_MAX_ENTRIES = 6_000;
+
+/** Distinct days in the last 30 with conversations in each app: session files dated by their change time (Codex by
+ * its YYYY/MM/DD folders' names). Folders are listed and files dated; nothing in them is ever opened. */
+function findUsage(machine: SetupMachine, now = Date.now()): Partial<Record<ActivitySource, number>> {
+  const usage: Partial<Record<ActivitySource, number>> = {};
+  const list = (path: string) => (machine.fs.readdir(path) ?? []).filter((name) => !name.startsWith("."));
+  const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  for (const [source, { root, shape }] of Object.entries(setupPaths(machine).usage) as Array<[ActivitySource, { root: string; shape: string }]>) {
+    if (!machine.fs.lstat(root)?.isDirectory()) continue;
+    const days = new Set<string>();
+    let budget = USAGE_MAX_ENTRIES;
+    const date = (path: string) => {
+      if (budget-- <= 0) return;
+      const at = machine.fs.mtime(path);
+      if (at !== null && now - at <= USAGE_DAYS * DAY_MS && at <= now + DAY_MS) days.add(dayOf(at));
+    };
+    const dateAll = (folder: string, keep: (name: string) => boolean = () => true) => {
+      for (const name of list(folder).filter(keep)) date(join(folder, name));
+    };
+    if (shape === "dayFolders") {
+      for (const year of list(root).filter((name) => /^\d{4}$/.test(name))) {
+        for (const month of list(join(root, year)).filter((name) => /^\d{2}$/.test(name))) {
+          for (const day of list(join(root, year, month)).filter((name) => /^\d{2}$/.test(name))) {
+            const at = Date.parse(`${year}-${month}-${day}T12:00:00Z`);
+            if (Number.isFinite(at) && now - at <= USAGE_DAYS * DAY_MS && at <= now + DAY_MS) days.add(`${year}-${month}-${day}`);
+          }
+        }
+      }
+    } else if (shape === "files") {
+      dateAll(root);
+    } else {
+      for (const child of list(root)) {
+        if (!machine.fs.lstat(join(root, child))?.isDirectory()) continue;
+        if (shape === "projectFiles") dateAll(join(root, child), (name) => name.endsWith(".jsonl"));
+        else if (shape === "chatFiles") dateAll(join(root, child, "chats"));
+        else dateAll(join(root, child, "sessions"));
+      }
+    }
+    if (days.size) usage[source] = days.size;
+  }
+  return usage;
 }
 
 /** The notes as one topic of the bot's memory per tool, kept beside what an earlier import left there: recalled when a
@@ -1067,9 +1152,13 @@ export function detectSetup(machine: SetupMachine, host: SetupHost): SetupDetect
     ? findTools(machine, current, host).fresh.map(({ name, source }) => ({ name, source }))
     : [];
   const instructions = findInstructions(machine).map(({ name, source }) => ({ name, source }));
-  const memory = findMemory(machine).map(({ source, files, notes }) => ({ source, files, notes: notes.length }));
+  const memory = findMemory(machine).map(({ source, files, notes, topics }) => ({ source, files, notes: notes.length, topics }));
   const activity = findActivity(machine);
-  return { skills, tools, ...(instructions.length ? { instructions } : {}), ...(memory.length ? { memory } : {}), ...(Object.keys(activity).length ? { activity } : {}) };
+  const usage = findUsage(machine);
+  return {
+    skills, tools, ...(instructions.length ? { instructions } : {}), ...(memory.length ? { memory } : {}),
+    ...(Object.keys(activity).length ? { activity } : {}), ...(Object.keys(usage).length ? { usage } : {}),
+  };
 }
 
 /** Each kind on its own: one that fails reports what it was bringing in as failed, and the other still comes in. */
