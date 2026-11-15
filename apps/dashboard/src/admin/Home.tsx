@@ -223,7 +223,7 @@ function NewPeople() {
             return (
               <li key={u.id}>
                 <PersonLink id={u.id} className="hover-row flex h-12 items-center gap-3 rounded-[12px] px-2">
-                  <PersonFace id={u.id} size={28} />
+                  <PersonFace id={u.id} size={28} avatarUrl={u.identity?.avatarUrl} avatar={u.identity?.avatar ?? undefined} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-13 font-medium text-ink">{who.name}</span>
                     {who.sub && <span className="block truncate text-12 text-ink-3">{who.sub}</span>}

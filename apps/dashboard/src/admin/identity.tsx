@@ -8,8 +8,16 @@ const real = (value: string | null | undefined) => {
   return text && !PLACEHOLDER.test(text) ? text : null;
 };
 
-/** the best words for someone: their own name, else their email, else the stable animal name a visitor gets */
-export function identity(who: { id: string; name?: string | null; email?: string | null }): { name: string; sub: string | null; anonymous: boolean } {
+/** who someone is, as the service names them (present once the admin api sends it) */
+export interface ServerIdentity { kind: "account" | "visitor" | "install"; name: string; nameFrom: string; email: string | null; emailKind?: string; providers?: string[]; avatarUrl: string | null; avatar: string | null; avatarSeed?: string; label?: string }
+
+/** the best words for someone: the service's own pick when sent, else their name, their email, or the stable animal name a visitor gets */
+export function identity(who: { id: string; name?: string | null; email?: string | null; identity?: ServerIdentity | null }): { name: string; sub: string | null; anonymous: boolean } {
+  const server = who.identity;
+  if (server && real(server.name)) {
+    const mail = server.emailKind === "apple_relay" ? "apple private relay" : server.email;
+    return { name: server.name, sub: server.kind === "account" ? (server.nameFrom === "email" ? null : mail) : server.label ?? null, anonymous: server.kind !== "account" };
+  }
   const name = real(who.name), email = real(who.email);
   if (name) return { name, sub: email, anonymous: false };
   if (email) return { name: email, sub: null, anonymous: false };

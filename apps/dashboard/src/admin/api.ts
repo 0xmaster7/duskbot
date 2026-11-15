@@ -149,6 +149,7 @@ export interface Overview {
 export interface UserRow {
   id: string; email: string; name: string | null; createdAt: number; methods: string[]; plan: { plan: string | null; status: string } | null;
   clouds: number; devices: number; platforms: string[]; lastSeenAt: number | null; optOut: boolean;
+  identity?: import("./identity").ServerIdentity | null;
 }
 export interface CloudRow {
   id: string; name: string; accountId: string; owner: string | null; kind: string; plan: string; placement: string; region: string; regionLabel: string; status: string;

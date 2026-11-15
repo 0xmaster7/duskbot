@@ -96,7 +96,7 @@ export function AccountsPage() {
       if (filter === "paying" && !(u.plan && LIVE.has(u.plan.status))) return false;
       if (filter === "app" && !u.devices) return false;
       if (filter === "cloud" && !u.clouds) return false;
-      return !needle || u.email.toLowerCase().includes(needle) || (u.name ?? "").toLowerCase().includes(needle) || u.id.toLowerCase() === needle;
+      return !needle || u.email.toLowerCase().includes(needle) || (u.name ?? "").toLowerCase().includes(needle) || (u.identity?.name ?? "").toLowerCase().includes(needle) || u.id.toLowerCase() === needle;
     });
     const by = { joined: (u: UserRow) => u.createdAt, seen: (u: UserRow) => u.lastSeenAt ?? 0, paid: (u: UserRow) => (paid?.get(u.id)?.live ?? 0) * 1000 + (paid?.get(u.id)?.test ?? 0) / 1000 }[sort];
     return out.sort((a, b) => by(b) - by(a));
@@ -168,7 +168,7 @@ export function AccountsPage() {
                   <li key={u.id} className="absolute inset-x-1.5" style={{ top: 6 + index * ROW, height: ROW }}>
                     <PersonLink id={u.id} className={cx(grid, "hover-row h-full rounded-[14px] px-3", index === active && "bg-card-2")}>
                       <span className="flex min-w-0 items-center gap-3">
-                        <PersonFace id={u.id} size={32} />
+                        <PersonFace id={u.id} size={32} avatarUrl={u.identity?.avatarUrl} avatar={u.identity?.avatar ?? undefined} />
                         <span className="min-w-0">
                           <span className="block truncate text-14 font-medium text-ink">{who.name}</span>
                           <span className="block truncate text-12 text-ink-3">{who.sub ?? (u.devices ? `${n(u.devices)} app${u.devices === 1 ? "" : "s"}${u.clouds ? `, ${n(u.clouds)} cloud${u.clouds === 1 ? "" : "s"}` : ""}` : u.clouds ? `${n(u.clouds)} cloud${u.clouds === 1 ? "" : "s"}` : "no app yet")}</span>
