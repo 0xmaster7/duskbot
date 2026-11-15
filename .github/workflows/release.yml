@@ -340,7 +340,7 @@ jobs:
             release/*.dmg
             release/*.zip
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
   windows:
     name: Windows x64
@@ -428,7 +428,7 @@ jobs:
           path: |
             release/*.exe
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
   linux:
     name: Ubuntu 24.04 x64
@@ -531,7 +531,7 @@ jobs:
             release/*.AppImage
             release/SHA256SUMS-ubuntu-x64.txt
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
   assemble:
     name: Assemble the draft
