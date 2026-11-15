@@ -16,7 +16,7 @@ const billingFor = (selection: Selection, offer = true): BillingOverview => ({
 const state = vi.hoisted(() => ({
   cloud: {} as Record<string, unknown>,
   session: { toast: (_message: string) => {} },
-  usage: { month: { totals: { turns: 42 } }, bots: [{}, {}], loading: false },
+  usage: { month: { totals: { turns: 42 } }, bots: [{ bot: { routines: [{}, {}, {}] } }, { bot: { routines: [] } }], loading: false },
 }));
 vi.mock("../data/cloud", () => ({ useCloud: () => state.cloud }));
 vi.mock("../data/session", () => ({ useSession: () => state.session }));
@@ -51,12 +51,16 @@ test("the plan page shows free until someone is on a cloud plan, then plus, pro 
   expect(tiersFor(true)).toEqual(["starter", "pro", "team"]);
 });
 
-test("skipping the reason goes straight to a clearly labeled cancel, and records nothing", async () => {
+test("skipping the reason still offers a way to keep it, then a clearly labeled cancel, and records nothing", async () => {
   await open(plus);
   expect(title()).toBe("what's going on?");
   await click("continue");
+  expect(title()).toBe("before you go");
+  expect(document.body.textContent).toContain("30% off your next 3 months");
+  await click("continue to cancel");
   expect(title()).toBe("cancel your plan?");
-  expect(document.body.textContent).toContain("your bots stop working when your mac sleeps");
+  expect(document.body.textContent).toContain("your 2 bots stop working when your mac sleeps");
+  expect(document.body.textContent).toContain("your 3 routines only run while your mac is awake");
   expect(document.body.textContent).toContain("your dusk cloud files are kept for 30 days, then deleted");
   await click("cancel my plan");
   expect(spies.cancel).toHaveBeenCalledWith("");
@@ -111,8 +115,20 @@ test("not using it shows what the bots did; a plan with a work license ends only
   expect(spies.retentionStep).toHaveBeenLastCalledWith({ reason: "unused", step: "confirm", outcome: "cancelled" });
 });
 
-test("switching skips the help step", async () => {
-  await open(plus);
+test("switching on pro is offered plus first; keeping the plan is the main button", async () => {
+  await open(pro, false);
+  await pick("i'm switching to something else");
+  await click("continue");
+  expect(title()).toBe("before you go");
+  expect(button("switch to plus")).not.toBeNull();
+  await click("continue to cancel");
+  expect(title()).toBe("cancel your dusk cloud?");
+  await click("cancel dusk cloud");
+  expect(spies.changePlan).toHaveBeenCalledWith({ ...pro, desktop: "none", size: null });
+});
+
+test("with nothing cheaper to offer, switching goes straight to the cancel: at most three screens", async () => {
+  await open(plus, false);
   await pick("i'm switching to something else");
   await click("continue");
   expect(title()).toBe("cancel your plan?");

@@ -23,18 +23,48 @@ export const REASONS: Array<{ id: CancelAnswer; label: string }> = [
   { id: "switching", label: "i'm switching to something else" },
   { id: "other", label: "something else" },
 ];
-/** reasons with something worth offering before the cancel; the rest go straight to the confirmation */
+/** reasons with their own help before the cancel */
 const HELPED: ReadonlySet<CancelAnswer> = new Set(["price", "unused", "broken", "feature"]);
 
 export type FlowStep = "reason" | "help" | "confirm";
-export const nextStep = (step: FlowStep, reason: CancelAnswer | null): FlowStep => (step === "reason" && reason && HELPED.has(reason) ? "help" : "confirm");
+/** every reason, or none, sees a way to keep the plan before the cancel when there is one: its own help, a discount or a smaller plan */
+export const nextStep = (step: FlowStep, reason: CancelAnswer | null, canSave = false): FlowStep =>
+  step === "reason" && ((reason && HELPED.has(reason)) || canSave) ? "help" : "confirm";
 
-/** what ends with the plan, as plain lines; `keepsLicense` is a work license that outlives the dusk cloud */
-export function losses(opts: { desk: boolean; work: boolean; keepsLicense: boolean }): string[] {
+/** what ends with the plan, as plain lines, in the person's own numbers when known; `keepsLicense` is a work license that outlives the dusk cloud */
+export function losses(opts: { desk: boolean; work: boolean; keepsLicense: boolean; bots?: number; routines?: number }): string[] {
+  const bots = opts.bots && opts.bots > 1 ? `your ${opts.bots} bots stop` : opts.bots === 1 ? "your bot stops" : "your bots stop";
+  const routines = opts.routines && opts.routines > 1 ? `your ${opts.routines} routines only run` : opts.routines === 1 ? "your routine only runs" : "routines only run";
   return [
-    ...(opts.desk ? ["your bots stop working when your mac sleeps", "routines only run while your mac is awake", "your dusk cloud files are kept for 30 days, then deleted"] : []),
+    ...(opts.desk ? [`${bots} working when your mac sleeps`, `${routines} while your mac is awake`, "your dusk cloud files are kept for 30 days, then deleted"] : []),
     ...(opts.work && !opts.keepsLicense ? ["work use is no longer covered. personal use stays free."] : []),
   ];
+}
+
+/** the plan's losses in this person's own numbers; read only once the flow is open */
+function useLosses(opts: { desk: boolean; work: boolean; keepsLicense: boolean }) {
+  const { bots } = useAccountUsage();
+  return losses({ ...opts, bots: bots.length, routines: bots.reduce((sum, row) => sum + (row.bot.routines?.length ?? 0), 0) });
+}
+
+function LeadLine({ desk, work, keepsLicense }: { desk: boolean; work: boolean; keepsLicense: boolean }) {
+  const lost = useLosses({ desk, work, keepsLicense });
+  return <p>{desk ? `once it ends, ${lost[0]}. ` : ""}if it's the cost, there's a lighter way to keep it.</p>;
+}
+
+function Confirm({ desk, work, keepsLicense, until }: { desk: boolean; work: boolean; keepsLicense: boolean; until: string }) {
+  const lost = useLosses({ desk, work, keepsLicense });
+  return (
+    <>
+      <p>{keepsLicense ? `your dusk cloud keeps working until ${until} and isn't charged again. your work license stays and keeps renewing.` : `everything keeps working until ${until}, and you won't be charged again.`}{lost.length ? " after that:" : ""}</p>
+      {lost.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-2">
+          {lost.map((l) => <li key={l} className="flex gap-2.5 text-14 text-ink-2"><Minus size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{l}</li>)}
+        </ul>
+      )}
+      <p className="mt-3">you can come back any time.</p>
+    </>
+  );
 }
 
 function HelpLink({ to, external, onClick, children }: { to: string; external?: boolean; onClick(): void; children: ReactNode }) {
@@ -59,6 +89,32 @@ function Unused({ onHelped }: { onHelped(): void }) {
   );
 }
 
+/** the ways to keep the plan for less: the one-time discount, and plus for someone on pro */
+function Saves({ offer, plus, smaller, work, busy, onDiscount, onDowngrade, catalog, interval }: { offer: { percent: number; cycles: number } | null; plus: { name: string } | null; smaller: Selection | null; work: boolean; busy: string | null; onDiscount(): void; onDowngrade(): void; catalog: PlanCatalog; interval: Selection["interval"] }) {
+  return (
+    <div className="mt-4 flex flex-col gap-1.5">
+      {offer && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-card px-4 py-3">
+          <div className="min-w-0 flex-1 basis-[200px]">
+            <p className="text-14 text-ink">{offer.percent}% off your next {offer.cycles} months</p>
+            <p className="text-13 text-ink-3">your plan stays as it is. one time only.</p>
+          </div>
+          <Button variant="primary" size="sm" onClick={onDiscount} disabled={busy !== null}>{busy === "discount" ? "applying" : `take ${offer.percent}% off`}</Button>
+        </div>
+      )}
+      {plus && smaller && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-card px-4 py-3">
+          <div className="min-w-0 flex-1 basis-[200px]">
+            <p className="text-14 text-ink">switch to {plus.name}</p>
+            <p className="num text-13 text-ink-3">{cartText(priceCart(smaller, catalog), interval)}, a smaller dusk cloud{work ? ", work license included" : ""}</p>
+          </div>
+          <Button variant={offer ? "outline" : "primary"} size="sm" onClick={onDowngrade} disabled={busy !== null}>{busy === "downgrade" ? "switching" : `switch to ${plus.name}`}</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** account, billing, manage subscription: why, a tailored offer or fix, then what ends and the cancel itself.
  * consumer rules (US, EU, India) need an online cancel: the reason is optional and the cancel is at most three screens in. */
 export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(): void; catalog: PlanCatalog }) {
@@ -79,6 +135,8 @@ export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(
   const plus = bundleOf(catalog, "starter");
   const smaller: Selection = planSelection(catalog, "starter", { interval: sel.interval, region: sel.region, work: false, keep: sel });
   const until = longDate(sub.currentPeriodEnd);
+  const cheaper = onPro && plus ? plus : null;
+  const canSave = Boolean(offer || cheaper);
 
   const log = (s: RetentionInput["step"], outcome: RetentionInput["outcome"]) => { if (reason) retentionStep({ reason, step: s, outcome }); };
   const close = onClose;
@@ -86,7 +144,7 @@ export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(
   const next = () => {
     if (step === "reason" && reason) log("reason", "shown");
     setError(null);
-    setStep(nextStep(step, reason));
+    setStep(nextStep(step, reason, canSave));
   };
   const run = async (kind: "discount" | "downgrade" | "cancel", action: () => Promise<void>) => {
     setBusy(kind); setError(null);
@@ -104,11 +162,14 @@ export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(
     toast(keepsLicense ? `cancelled. your dusk cloud works until ${until}.` : `cancelled. everything keeps working until ${until}.`);
   });
 
-  const title = step === "reason" ? "what's going on?" : step === "help" ? (reason === "broken" ? "let's fix it first" : reason === "price" ? "a lighter way to keep it" : reason === "unused" ? "here's what it can do" : "tell us what's missing") : keepsLicense ? "cancel your dusk cloud?" : "cancel your plan?";
-  const lost = losses({ desk, work, keepsLicense });
+  const title = step === "reason" ? "what's going on?" : step === "help" ? (reason === "broken" ? "let's fix it first" : reason === "price" ? "a lighter way to keep it" : reason === "unused" ? "here's what it can do" : reason === "feature" ? "tell us what's missing" : "before you go") : keepsLicense ? "cancel your dusk cloud?" : "cancel your plan?";
+  const saves = <Saves offer={offer} plus={cheaper} smaller={cheaper ? smaller : null} work={work} busy={busy} onDiscount={() => void discount()} onDowngrade={() => void downgrade()} catalog={catalog} interval={sel.interval} />;
+  // past the reason, keeping the plan is the button that stands out; cancelling stays one clear click away
   const footer = step === "confirm"
-    ? <><Button onClick={keep}>keep my plan</Button><Button variant="danger" onClick={() => void stop()} disabled={busy !== null}>{busy === "cancel" ? "cancelling" : keepsLicense ? "cancel dusk cloud" : "cancel my plan"}</Button></>
-    : <><Button onClick={keep}>keep my plan</Button><Button variant="primary" onClick={next} disabled={busy !== null}>{step === "help" ? "continue to cancel" : "continue"}</Button></>;
+    ? <><Button variant="primary" onClick={keep}>keep my plan</Button><Button variant="danger" onClick={() => void stop()} disabled={busy !== null}>{busy === "cancel" ? "cancelling" : keepsLicense ? "cancel dusk cloud" : "cancel my plan"}</Button></>
+    : step === "help"
+      ? <><Button variant="primary" onClick={keep}>keep my plan</Button><Button onClick={next} disabled={busy !== null}>continue to cancel</Button></>
+      : <><Button onClick={keep}>keep my plan</Button><Button variant="primary" onClick={next} disabled={busy !== null}>continue</Button></>;
 
   return (
     <Modal open={open} onClose={close} title={title} footer={footer} wide>
@@ -128,30 +189,16 @@ export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(
       {step === "help" && reason === "price" && (
         <>
           <p>before you go, here's what we can do.</p>
-          <div className="mt-4 flex flex-col gap-1.5">
-            {offer && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-card px-4 py-3">
-                <div className="min-w-0 flex-1 basis-[200px]">
-                  <p className="text-14 text-ink">{offer.percent}% off your next {offer.cycles} months</p>
-                  <p className="text-13 text-ink-3">your plan stays as it is. one time only.</p>
-                </div>
-                <Button variant="primary" size="sm" onClick={() => void discount()} disabled={busy !== null}>{busy === "discount" ? "applying" : `take ${offer.percent}% off`}</Button>
-              </div>
-            )}
-            {onPro && plus && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-card px-4 py-3">
-                <div className="min-w-0 flex-1 basis-[200px]">
-                  <p className="text-14 text-ink">switch to {plus.name}</p>
-                  <p className="num text-13 text-ink-3">{cartText(priceCart(smaller, catalog), sel.interval)}, a smaller dusk cloud{work ? ", work license included" : ""}</p>
-                </div>
-                <Button size="sm" onClick={() => void downgrade()} disabled={busy !== null}>{busy === "downgrade" ? "switching" : `switch to ${plus.name}`}</Button>
-              </div>
-            )}
-            {!offer && !(onPro && plus) && <p className="rounded-[16px] bg-card px-4 py-3 text-14">you're on our smallest plan. free keeps your bots running on your mac at no cost.</p>}
-          </div>
+          {canSave ? saves : <p className="mt-4 rounded-[16px] bg-card px-4 py-3 text-14">you're on our smallest plan. free keeps your bots running on your mac at no cost.</p>}
         </>
       )}
-      {step === "help" && reason === "unused" && <Unused onHelped={() => log("help", "helped")} />}
+      {step === "help" && (reason === null || reason === "switching" || reason === "other") && (
+        <>
+          <LeadLine desk={desk} work={work} keepsLicense={keepsLicense} />
+          {saves}
+        </>
+      )}
+      {step === "help" && reason === "unused" && <><Unused onHelped={() => log("help", "helped")} />{canSave && <><p className="mt-5">or keep it for less:</p>{saves}</>}</>}
       {step === "help" && reason === "broken" && (
         <>
           <p>most problems clear up with a restart, and we answer every message.</p>
@@ -171,17 +218,7 @@ export function CancelFlow({ open, onClose, catalog }: { open: boolean; onClose(
         </>
       )}
 
-      {step === "confirm" && (
-        <>
-          <p>{keepsLicense ? `your dusk cloud keeps working until ${until} and isn't charged again. your work license stays and keeps renewing.` : `everything keeps working until ${until}, and you won't be charged again.`}{lost.length ? " after that:" : ""}</p>
-          {lost.length > 0 && (
-            <ul className="mt-3 flex flex-col gap-2">
-              {lost.map((l) => <li key={l} className="flex gap-2.5 text-14 text-ink-2"><Minus size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{l}</li>)}
-            </ul>
-          )}
-          <p className="mt-3">you can come back any time.</p>
-        </>
-      )}
+      {step === "confirm" && <Confirm desk={desk} work={work} keepsLicense={keepsLicense} until={until} />}
       {error && <p role="alert" className="mt-3 text-13 text-bad">{error}</p>}
     </Modal>
   );
