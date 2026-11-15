@@ -59,7 +59,7 @@ import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { showWorkingDots } from "@/lib/turn-tail";
 import { useNotesWork } from "@/lib/notes-arrival";
 import { useTypingHold } from "@/hooks/use-typing-hold";
-import { ARRIVAL_ANCHOR, OWN_ENTRANCE } from "@/hooks/use-arrival-flow";
+import { OWN_ENTRANCE } from "@/hooks/use-arrival-flow";
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
 import { ACTIONS_AFTER_MS, growFromMascot, hasSendLaunch, morphFromComposer } from "./bubble-entrance";
 import { STATUS_MOUNT_MS, useReached } from "@/hooks/use-reached";
@@ -319,11 +319,8 @@ const Bubble = memo(function Bubble({
   onReply,
   underExchangeLine = false,
   landed = false,
-  held = false,
 }: {
   message: Message;
-  /** Typed but not shown yet: it keeps its room, unseen, and plays its entrance when it shows. */
-  held?: boolean;
   /** The turn's last reply, landed while the chat was open: its copy row shows once it is there. */
   landed?: boolean;
   /** An exchange line above already names the bot that sent it. */
@@ -417,11 +414,11 @@ const Bubble = memo(function Bubble({
   const [filling, setFilling] = useState(entrance === "morph");
   useLayoutEffect(() => {
     const parts = own.current;
-    if (parts.entered || held || !entrance || !parts.bubble) return;
+    if (parts.entered || !entrance || !parts.bubble) return;
     parts.entered = true;
     if (entrance === "grow") growFromMascot(parts.bubble, reduced);
     else void morphFromComposer(parts.bubble, parts.fill, message.sendId).then(() => setFilling(false));
-  }, [entrance, held, reduced, message.sendId]);
+  }, [entrance, reduced, message.sendId]);
   const actionsAfter = useShownAfter(fresh && !user && landed, ACTIONS_AFTER_MS);
 
   if (user && editing && !webhookView && !hasAttachments) {
@@ -457,7 +454,7 @@ const Bubble = memo(function Bubble({
   );
 
   return (
-    <div {...{ [MESSAGE_ROW]: "", ...(entrance ? { [OWN_ENTRANCE]: "" } : {}) }} aria-hidden={held || undefined} inert={held || undefined} style={held ? { visibility: "hidden" } : undefined} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", join?.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "", ...(entrance ? { [OWN_ENTRANCE]: "" } : {}) }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && !underExchangeLine && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {imagesAbove && <AttachmentGallery media={message.media} images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
@@ -811,7 +808,6 @@ const MessagesList = memo(function MessagesList({
   onReply,
   seamId = null,
   landedReplyId = null,
-  heldId = null,
 }: {
   messages: Message[];
   transcript: Message[];
@@ -835,8 +831,6 @@ const MessagesList = memo(function MessagesList({
   seamId?: string | null;
   /** The reply that ended the turn, once it has landed. */
   landedReplyId?: string | null;
-  /** The bubble being typed: in its place, unseen until it lands. */
-  heldId?: string | null;
 }) {
   const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, bubbleStyle } = useChatRows(), busy = use(ChatBusyContext);
   // A finished turn keeps the bot's progress lines and folds only its tool steps under "Worked for", in both modes.
@@ -975,7 +969,6 @@ const MessagesList = memo(function MessagesList({
                   onReply={onReply}
                   underExchangeLine={run !== undefined}
                   landed={m.id === landedReplyId}
-                  held={m.id === heldId}
                 />
               );
             }
@@ -1045,10 +1038,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   // each new bot bubble waits for its "Typing…" beat on the status line before it lands; a Stop lets what was said land now
   const hold = useTypingHold(`${bot.id}:${bot.threadId ?? ""}`, shownMessages, bot.id, Boolean(bot.busy));
   const messages = stopCut ? shownMessages : hold.rows;
-  const heldId = stopCut ? null : hold.held?.id ?? null;
-  // the bubble being typed is drawn unseen, so the transcript makes its room while the line says Typing and it lands
-  // where it stays
-  const drawnMessages = useMemo(() => heldId && hold.held ? [...messages, hold.held] : messages, [messages, heldId, hold.held]);
   const lookups = useMemo(() => transcriptLookups(allMessages, messages), [allMessages, messages]);
   const liveTools = useLiveToolIds(messages, bot);
 
@@ -1069,7 +1058,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   } = useTranscriptViewport({
     ownerId: bot.id,
     threadId: bot.threadId,
-    messages: drawnMessages,
+    messages,
     pinOn: [bot.busy, composerDock.pad],
     hasMore: bot.hasMore,
   });
@@ -1167,6 +1156,10 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
+  // a reply that lands as the line leaves takes the line's place: the line goes at once instead of fading under it
+  const lineAbove = useRef<string | undefined>(undefined);
+  if (presenceVisible) lineAbove.current = lastShownRow?.id;
+  const lineShown = presenceVisible || (presenceShown && !(lastRowIsBubble && lastShownRow?.id !== lineAbove.current));
   const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row
   const statusSlot = windowedMessages.length > 0 || busy;
@@ -1410,9 +1403,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onSubmitEdit={submitEdit}
               onRegenerate={regenerate}
               onReply={selectReply}
-              seamId={lastRowIsBubble && presenceShown ? lastShownRow?.id ?? null : null}
+              seamId={lastRowIsBubble && lineShown ? lastShownRow?.id ?? null : null}
               landedReplyId={!turnBusy && !stopCut && !personStoppedLast(messages) ? lastBotTextId : null}
-              heldId={heldId}
             />
           </FoldedNoticesContext></ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {laterCount > 0 && (
@@ -1439,8 +1431,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               </div>
             </div>
           )}
-          <div {...{ [ARRIVAL_ANCHOR]: "" }} className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
-          {(presenceVisible || presenceShown) && <TurnPresence
+          <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
+          {lineShown && <TurnPresence
             avatar={
               <MarkCrossfade swap={presenceMarkState}>
                 <StatusMark

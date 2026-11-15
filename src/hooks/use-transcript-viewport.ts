@@ -21,7 +21,7 @@ import {
   tailWindowStart,
 } from "@/lib/transcript-window";
 import { reducedMotion } from "@/lib/onboarding";
-import { useArrivalFlow } from "@/hooks/use-arrival-flow";
+import { releaseRoomOutOfView, useArrivalFlow, type TurnRoom } from "@/hooks/use-arrival-flow";
 import { useStore } from "@/state/store";
 
 export const AUTO_EXPAND_TOP_THRESHOLD = 250;
@@ -55,6 +55,11 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
   const followRef = useRef(true);
   const previousScrollTop = useRef(0);
   const touchY = useRef(0);
+  const room = useRef<TurnRoom>({ held: false });
+  // the end is followed unless the person's last send holds its turn's room
+  const pinning = useMemo(() => ({ get current() { return followRef.current && !room.current.held; } }), []);
+  // the person's own scrolling (or a jump) ends the room's hold: from then on the usual follow rules apply
+  const leaveRoom = () => { room.current.held = false; };
 
   const transcriptKey = `${ownerId}:${threadId}`;
   const tailStart = tailWindowStart(messages.length);
@@ -91,7 +96,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     followRef.current = next;
     setFollow(next);
   }, []);
-  useBottomFollowResize(scrollRef, transcriptRef, followRef, transcriptShown ? transcriptKey : null);
+  useBottomFollowResize(scrollRef, transcriptRef, pinning, transcriptShown ? transcriptKey : null);
 
   useEffect(() => setBottomFollow(true), [transcriptKey, setBottomFollow]);
 
@@ -142,7 +147,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     const el = scrollRef.current;
     // a search jump into this thread places the transcript itself
     const focus = state.focusMessage;
-    if (!el || !followRef.current || (focus && !focus.consumed && focus.threadId === threadId && appliedFocus.current !== focus.nonce)) return;
+    if (!el || !pinning.current || (focus && !focus.consumed && focus.threadId === threadId && appliedFocus.current !== focus.nonce)) return;
     el.scrollTo({ top: el.scrollHeight });
     previousScrollTop.current = el.scrollTop;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pinOn is the caller's dependency list
@@ -206,6 +211,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
         Boolean((e.target as Element).closest(WIDGETS_WITH_OWN_ARROW_KEYS));
       if (ownKeys || !canScroll()) return;
       if (e.key === "PageUp" || ((e.key === "Home" || e.key === "ArrowUp") && !typing)) {
+        room.current.held = false;
         setBottomFollow(false);
       }
     };
@@ -224,6 +230,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     return !el || el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_FOLLOW_THRESHOLD;
   };
   const jumpToLatest = () => {
+    leaveRoom();
     setBottomFollow(true);
     setTranscriptWindow({ key: transcriptKey, start: tailStart, end: null });
     requestAnimationFrame(() => {
@@ -248,9 +255,10 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
       // Grabbing the scrollbar is a scroll gesture: its lane lies past clientWidth.
       const el = scrollRef.current;
-      if (el && e.target === el && e.nativeEvent.offsetX >= el.clientWidth) setBottomFollow(false);
+      if (el && e.target === el && e.nativeEvent.offsetX >= el.clientWidth) { leaveRoom(); setBottomFollow(false); }
     },
     onWheel: (e: WheelEvent<HTMLDivElement>) => {
+      leaveRoom();
       if (e.deltaY < 0 && canScrollUp()) {
         setBottomFollow(false);
         const el = scrollRef.current;
@@ -265,6 +273,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
       touchY.current = e.touches[0]?.clientY ?? 0;
     },
     onTouchMove: (e: TouchEvent<HTMLDivElement>) => {
+      leaveRoom();
       const y = e.touches[0]?.clientY ?? 0;
       if (y > touchY.current + 4 && canScrollUp()) {
         setBottomFollow(false);
@@ -280,6 +289,8 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
       const el = scrollRef.current;
       if (!el) return;
       const scrollTop = el.scrollTop;
+      const column = transcriptRef.current;
+      if (column && !room.current.held) releaseRoomOutOfView(el, column);
       const resume = shouldResumeBottomFollow({
         following: followRef.current,
         previousScrollTop: previousScrollTop.current,
@@ -295,7 +306,7 @@ export function useTranscriptViewport<T extends { id: string; role?: string }>({
     },
   };
 
-  useArrivalFlow({ scrollRef, clipRef, columnRef: transcriptRef, transcriptKey, following: follow });
+  useArrivalFlow({ scrollRef, clipRef, columnRef: transcriptRef, transcriptKey, following: follow, room });
 
   return {
     scrollRef,

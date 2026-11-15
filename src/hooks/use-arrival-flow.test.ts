@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 
-import { ARRIVAL_ANCHOR, FOLLOW, OWN_ENTRANCE, ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, rowEnter, springTiming, useArrivalFlow } from "./use-arrival-flow";
+import { FOLLOW, makeTurnRoom, OWN_ENTRANCE, releaseRoomOutOfView, ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, rowEnter, springTiming, useArrivalFlow, type TurnRoom } from "./use-arrival-flow";
 
 // happy-dom has no layout: each element reports the offsets the test gives it, and animations are recorded
 type Recorded = { el: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions };
@@ -20,10 +20,11 @@ function place(el: HTMLElement, top: number, parent: HTMLElement) {
 let root: Root;
 let scroller: HTMLDivElement, clip: HTMLDivElement, column: HTMLDivElement, slot: HTMLDivElement;
 let scrollHeight = 1000;
+let room: TurnRoom = { held: false };
 const CLIENT = 600;
 
 function Probe({ following, n, thread = "t" }: { following: boolean; n: number; thread?: string }) {
-  useArrivalFlow({ scrollRef: { current: scroller }, clipRef: { current: clip }, columnRef: { current: column }, transcriptKey: thread, following });
+  useArrivalFlow({ scrollRef: { current: scroller }, clipRef: { current: clip }, columnRef: { current: column }, transcriptKey: thread, following, room: { current: room } });
   return createElement("span", null, n);
 }
 const draw = (following: boolean, n: number, thread?: string) => act(() => root.render(createElement(Probe, { following, n, thread })));
@@ -56,6 +57,7 @@ beforeEach(() => {
   column.append(slot);
   document.body.append(scroller);
   scrollHeight = 1000;
+  room = { held: false };
   Object.defineProperty(scroller, "scrollHeight", { configurable: true, get: () => scrollHeight });
   Object.defineProperty(scroller, "clientHeight", { configurable: true, get: () => CLIENT });
   scroller.scrollTop = scrollHeight - CLIENT;
@@ -129,22 +131,6 @@ describe("useArrivalFlow", () => {
     expect(entrance?.keyframes).toEqual([{ transform: `translateY(${ROW_RISE_PX}px)` }, { transform: "translateY(0px)" }]);
     expect(entrance?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
     expect(rowEnter).toBeTypeOf("function");
-  });
-
-  it("holds the transcript's end still while the rows above glide up to make room, so what lands there never moves", () => {
-    slot.setAttribute(ARRIVAL_ANCHOR, "");
-    draw(true, 0);
-    // the reply being typed mounts unseen in its room above the mascot's line
-    addRow(900, "start").setAttribute(OWN_ENTRANCE, "");
-    place(slot, 965, column);
-    scrollHeight = 1065;
-    draw(true, 1);
-    const [glide] = moved(column);
-    const [still] = moved(slot);
-    expect(glide?.keyframes[0]?.transform).toBe("translateY(65px)");
-    // the column comes up from 65px below and the end from 65px above it, on the same curve: on screen it never moves
-    expect(still?.keyframes).toEqual([{ transform: "translateY(-65px)" }, { transform: "translateY(0px)" }]);
-    expect(still?.options).toEqual(glide?.options);
   });
 
   it("lets a row that plays its own entrance land with no rise, when there was room for it", () => {
@@ -252,4 +238,91 @@ describe("the follow spring", () => {
     expect(Math.max(...points)).toBeGreaterThan(1);
     expect(points.at(-1)).toBe(1);
   });
+});
+
+describe("the turn's room", () => {
+  const rect = (top: number, height = 34) => () => ({ top, height, left: 0, right: 0, bottom: top + height, width: 0, x: 0, y: top, toJSON: () => ({}) }) as DOMRect;
+  let scroller: HTMLDivElement, column: HTMLDivElement;
+  beforeEach(() => {
+    scroller = document.createElement("div");
+    column = document.createElement("div");
+    scroller.append(column);
+    document.body.append(scroller);
+    Object.defineProperty(scroller, "clientHeight", { configurable: true, get: () => 600 });
+    // the column is 1000px of rows, or its min-height when that is more; the scroller adds nothing around it
+    Object.defineProperty(column, "offsetHeight", { configurable: true, get: () => Math.max(1000, parseFloat(column.style.minHeight) || 0) });
+    Object.defineProperty(scroller, "scrollHeight", { configurable: true, get: () => column.offsetHeight });
+    scroller.getBoundingClientRect = rect(0, 600);
+  });
+  afterEach(() => scroller.remove());
+
+  it("keeps the column tall enough that, at its end, the sent message sits just under the header", () => {
+    scroller.scrollTop = 400;
+    const sent = document.createElement("div");
+    // the send is laid out 500px down the view: 900px into the transcript
+    sent.getBoundingClientRect = rect(500);
+    expect(makeTurnRoom(scroller, column, sent)).toBe(true);
+    // its end at 1484 - 600 = 884 puts the row at 900 - 884 = 16px under the top
+    expect(column.style.minHeight).toBe("1484px");
+  });
+
+  it("makes the next send's room with the last turn's room still in place, so the scroll position is never clamped under it", () => {
+    column.style.minHeight = "1484px";
+    scroller.scrollTop = 884;
+    const sent = document.createElement("div");
+    // 1300px into the transcript, 416px down the view
+    sent.getBoundingClientRect = rect(416);
+    expect(makeTurnRoom(scroller, column, sent)).toBe(true);
+    expect(column.style.minHeight).toBe("1884px");
+    expect(scroller.scrollTop).toBe(884);
+  });
+
+  it("makes no room for a send that is already near the top", () => {
+    scroller.scrollTop = 400;
+    const sent = document.createElement("div");
+    sent.getBoundingClientRect = rect(10);
+    expect(makeTurnRoom(scroller, column, sent)).toBe(false);
+    expect(column.style.minHeight).toBe("");
+  });
+
+  it("lets the room go only once its empty part is out of view, so nothing on screen moves", () => {
+    column.style.minHeight = "1484px";
+    scroller.scrollTop = 884;
+    releaseRoomOutOfView(scroller, column);
+    expect(column.style.minHeight, "the empty part is on screen").toBe("1484px");
+    scroller.scrollTop = 400;
+    releaseRoomOutOfView(scroller, column);
+    expect(column.style.minHeight, "scrolled up past it").toBe("");
+  });
+});
+
+it("holds the view still while the turn fills its room: no pin, no glide, the reply lands where it shows", () => {
+  draw(true, 0);
+  room.held = true;
+  const top = scroller.scrollTop;
+  const reply = addRow(900, "start");
+  reply.setAttribute(OWN_ENTRANCE, "");
+  // a reply taller than the room runs on below the view
+  scrollHeight = 1200;
+  draw(true, 1);
+  expect(scroller.scrollTop).toBe(top);
+  expect(moved(column)).toHaveLength(0);
+  expect(recorded.filter((r) => r.el === reply)).toHaveLength(0);
+});
+
+it("makes a send's room from wherever the view is when a long reply runs on below it, and slides once from there", () => {
+  // the last reply ran on below the view, which held still for it: the view is 200px down, not at its end
+  room.held = true;
+  scroller.scrollTop = 200;
+  draw(true, 0);
+  const sent = addRow(1000, "end");
+  sent.getBoundingClientRect = () => ({ top: 500, height: 34, bottom: 534, left: 0, right: 0, width: 0, x: 0, y: 500, toJSON: () => ({}) }) as DOMRect;
+  // the room is the only thing that changes the height here; the column has no layout of its own in this stand-in
+  Object.defineProperty(scroller, "scrollHeight", { configurable: true, get: () => 1000 + (parseFloat(column.style.minHeight) || 0) });
+  draw(true, 1);
+  // 200 + (500 - 16) - (1000 - 600) = 284px of room puts the send 16px under the top at the new end
+  expect(column.style.minHeight).toBe("284px");
+  expect(scroller.scrollTop).toBe(684);
+  expect(room.held).toBe(true);
+  expect(moved(column).map((r) => r.keyframes[0]?.transform)).toEqual(["translateY(484px)"]);
 });

@@ -219,8 +219,7 @@ describe("the working line", () => {
 
 describe("each bubble's typing beat", () => {
   const fresh = (id: string, text: string): Message => ({ id, role: "bot", kind: "text", at: Date.now(), text, turnId: "t1" });
-  // a bubble still being typed is in its place but unseen: it is not shown yet
-  const rows = () => [...host.querySelectorAll("[data-mid]")].filter((row) => !row.querySelector("[data-message-row][aria-hidden]")).map((row) => row.getAttribute("data-mid"));
+  const rows = () => [...host.querySelectorAll("[data-mid]")].map((row) => row.getAttribute("data-mid"));
 
   it("says Typing… for at least 500ms before each bubble lands, the line staying for the turn", () => {
     engine({ type: "turn.started" });
@@ -228,8 +227,6 @@ describe("each bubble's typing beat", () => {
     const ack = fresh("ack", "On it, checking reviews now.");
     render(busyBot([ask, ack]));
     expect(rows(), "held while the line types").toEqual(["ask"]);
-    const unseen = host.querySelector('[data-mid="ack"] [data-message-row]');
-    expect(unseen?.getAttribute("aria-hidden"), "the typed bubble already holds its room, unseen").toBe("true");
     expect(statusLine()).toBe("Typing…");
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS - 10));
     expect(rows()).toEqual(["ask"]);
@@ -250,7 +247,7 @@ describe("each bubble's typing beat", () => {
     expect(rows()).toEqual(["ask", "one", "two"]);
   });
 
-  it("ends a turn with the last bubble landing in the frame the line starts leaving", () => {
+  it("ends a turn with the last bubble taking the line's place: the line goes in the frame it lands", () => {
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     const last = fresh("last", "It's 441, so yes.");
@@ -259,9 +256,8 @@ describe("each bubble's typing beat", () => {
     expect(statusLine()).toBe("Typing…");
     expect(rows()).toEqual(["ask"]);
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS));
-    expect(host.querySelector(".turn-status-out"), "the line starts leaving").not.toBeNull();
     expect(rows()).toEqual(["ask", "last"]);
-    act(() => void vi.advanceTimersByTime(140));
+    // it does not linger to fade out under the reply, which would move it down by the reply's height
     expect(mascot()).toBeNull();
   });
 

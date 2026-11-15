@@ -15,8 +15,48 @@ export const ROW_ENTER_EASE = `cubic-bezier(${ROW_ENTER_CURVE.join(", ")})`;
  * column still follows it, but it does not rise as well. */
 export const OWN_ENTRANCE = "data-arrival-own";
 
-/** The transcript's end (the mascot's line): it holds still while the rows above it glide up to make room. */
-export const ARRIVAL_ANCHOR = "data-arrival-anchor";
+/** How far under the header a sent message settles (px). */
+export const ROOM_TOP_GAP = 16;
+
+/** The room a person's send makes for its turn, as Grok and ChatGPT do: the column is kept tall enough that, at its end,
+ * the sent message sits just under the header and the turn's rows fill free space below it. While the room is held the
+ * view does not follow the end, so nothing above moves as the reply is typed and lands, and a reply taller than the room
+ * runs on below the view. */
+export interface TurnRoom { held: boolean }
+
+/** Makes the room for `row`, just sent: the column's min-height grows so the row sits ROOM_TOP_GAP under the header when
+ * the view is at its end. False when the turn already needs no room. */
+export function makeTurnRoom(scroller: HTMLElement, column: HTMLElement, row: HTMLElement): boolean {
+  // the rows are packed at the column's top, so an earlier room's min-height moves none of them: measure with it in place
+  // rather than dropping it first, which would clamp the scroll position under the measurement
+  const header = parseFloat(getComputedStyle(scroller).getPropertyValue("--glass-top")) || 0;
+  const rowTop = row.getBoundingClientRect().top - glideOffset(column);
+  const settled = scroller.getBoundingClientRect().top + header + ROOM_TOP_GAP;
+  const extra = scroller.scrollTop + (rowTop - settled) - (scroller.scrollHeight - scroller.clientHeight);
+  const tall = column.offsetHeight + extra;
+  if (tall <= column.offsetHeight - roomLeft(column) + 0.5) return false;
+  column.style.minHeight = `${tall}px`;
+  return true;
+}
+
+/** The part of the room the turn's rows have not filled (px). */
+export function roomLeft(column: HTMLElement): number {
+  const kept = column.style.minHeight;
+  if (!kept) return 0;
+  const tall = column.offsetHeight;
+  column.style.minHeight = "";
+  const natural = column.offsetHeight;
+  column.style.minHeight = kept;
+  return Math.max(0, tall - natural);
+}
+
+/** Lets the room go once its empty part is out of view below, so it never leaves a blank band to scroll into and
+ * nothing on screen moves when it goes. */
+export function releaseRoomOutOfView(scroller: HTMLElement, column: HTMLElement): void {
+  const left = roomLeft(column);
+  if (!column.style.minHeight) return;
+  if (left < 0.5 || scroller.scrollTop + scroller.clientHeight <= scroller.scrollHeight - left + 0.5) column.style.minHeight = "";
+}
 
 export interface SpringTiming { duration: number; easing: string }
 
@@ -94,19 +134,20 @@ export function useArrivalFlow({
   columnRef,
   transcriptKey,
   following,
+  room,
 }: {
   scrollRef: RefObject<HTMLElement | null>;
   clipRef: RefObject<HTMLElement | null>;
   columnRef: RefObject<HTMLElement | null>;
   transcriptKey: string;
   following: boolean;
+  room: RefObject<TurnRoom>;
 }): void {
   const reduced = usePrefersReducedMotion();
   const snapshot = useRef<Snapshot | null>(null);
   const rising = useRef(new Set<Animation>());
   const played = useRef(new WeakSet<Element>());
   const glide = useRef<Animation | null>(null);
-  const hold = useRef<Animation | null>(null);
 
   const take = (key: string): void => {
     const scroller = scrollRef.current;
@@ -121,7 +162,10 @@ export function useArrivalFlow({
     const observer = new ResizeObserver(() => take(transcriptKey));
     observer.observe(column);
     observer.observe(scroller);
-    return () => observer.disconnect();
+    // and so does the person's scrolling, so a send's slide starts from where the view really is
+    const onScroll = () => take(transcriptKey);
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => { observer.disconnect(); scroller.removeEventListener("scroll", onScroll); };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- take reads refs only
   }, [scrollRef, columnRef, transcriptKey]);
 
@@ -129,13 +173,14 @@ export function useArrivalFlow({
   useLayoutEffect(() => {
     const all = rising.current;
     const clip = clipRef.current;
+    const column = columnRef.current;
     return () => {
+      room.current.held = false;
+      if (column) column.style.minHeight = "";
       for (const anim of all) anim.cancel();
       all.clear();
       glide.current?.cancel();
       glide.current = null;
-      hold.current?.cancel();
-      hold.current = null;
       if (clip) clip.style.overflowY = "";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the ref object is stable; only the conversation matters
@@ -152,12 +197,20 @@ export function useArrivalFlow({
       return;
     }
 
+    const resting = before.top >= before.max - 2;
+    // a send while the view follows the conversation (at its end, or held on a long reply running on below it) makes its
+    // turn's room; any other send ends the room before it
+    const sent = arrivals.find((row) => row.getAttribute("data-arrival") === "end");
+    const madeRoom = Boolean(sent && following && makeTurnRoom(scroller, column, sent));
+    if (sent) room.current.held = madeRoom;
+    const held = room.current.held && !madeRoom;
+
     const max = scroller.scrollHeight - scroller.clientHeight;
     // a transcript resting at its end stays there; mid-scroll (a jump to the latest in progress) is left alone
-    const atEnd = scroller.scrollTop >= Math.min(before.max, max) - 2;
-    if (following && atEnd && scroller.scrollTop !== max) scroller.scrollTop = max;
+    const atEnd = madeRoom || scroller.scrollTop >= Math.min(before.max, max) - 2;
+    if (following && atEnd && !held && scroller.scrollTop !== max) scroller.scrollTop = max;
     // what the rows added under a view that was resting at its end (another hook may already have pinned it there)
-    const shift = before.top >= before.max - 2 ? Math.max(0, max - before.max) : 0;
+    const shift = madeRoom ? Math.max(0, max - before.top) : resting && !held ? Math.max(0, max - before.max) : 0;
 
     const track = (anim: Animation) => {
       if (clip) clip.style.overflowY = "clip";
@@ -168,21 +221,18 @@ export function useArrivalFlow({
       });
     };
     // scrolled up, a new row lands below the view: nothing on screen moves
-    if (!reduced && following && atEnd && arrivals.length > 0) {
+    if (!reduced && held && arrivals.length > 0) {
+      // in the turn's room the view holds still: a row with no entrance of its own rises into the room
+      for (const row of arrivals.filter((one) => !one.hasAttribute(OWN_ENTRANCE))) {
+        const anim = rowEnter(row);
+        if (anim) track(anim);
+      }
+    } else if (!reduced && following && atEnd && arrivals.length > 0) {
       // the rows on screen glide up by what the arrivals added instead of jumping there in one frame; a glide still
       // running carries on from where it is drawn now
       const carried = glide.current ? glideOffset(column) : 0;
       if (glide.current) { glide.current.cancel(); rising.current.delete(glide.current); glide.current = null; }
       const glided = columnGlide(column, shift + carried);
-      hold.current?.cancel();
-      hold.current = null;
-      const anchor = glided ? column.querySelector<HTMLElement>(`[${ARRIVAL_ANCHOR}]`) : null;
-      if (anchor && canAnimate(anchor)) {
-        hold.current = anchor.animate(
-          [{ transform: `translateY(${-(shift + carried)}px)` }, { transform: "translateY(0px)" }],
-          { duration: FOLLOW.duration, easing: FOLLOW.easing },
-        );
-      }
       if (glided) {
         glide.current = glided;
         glided.addEventListener("finish", () => { if (glide.current === glided) glide.current = null; });

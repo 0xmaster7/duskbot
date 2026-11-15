@@ -3,7 +3,7 @@ import { springTiming } from "@/hooks/use-arrival-flow";
 /** The person's words leave the field and settle into their bubble as its fill comes in. */
 export const SEND_MOVE = springTiming(300, 30);
 export const SEND_FILL = { duration: 220, delay: 40, easing: "cubic-bezier(0.22, 1, 0.36, 1)" } as const;
-/** A reply grows out of the mascot's corner, then its words fade in whole. */
+/** A reply grows out of its top corner, by the mascot, then its words fade in whole. */
 export const REPLY_GROW = springTiming(420, 32);
 export const REPLY_GROW_FROM = 0.94;
 export const REPLY_WORDS = { duration: 200, delay: 90, easing: "cubic-bezier(0.22, 1, 0.36, 1)" } as const;
@@ -58,12 +58,12 @@ export function morphFromComposer(bubble: HTMLElement, fill: HTMLElement | null,
   });
 }
 
-/** The reply grows out of its bottom start corner, over the mascot's line; its words fade in once it is there. Under
- * reduced motion it only fades. */
+/** The reply grows out of its top start corner, the mascot's side, so its top edge never moves; its words fade in once
+ * it is there. Under reduced motion it only fades. */
 export function growFromMascot(bubble: HTMLElement, reduced: boolean): void {
   if (!canAnimate(bubble)) return;
   const rtl = getComputedStyle(bubble).direction === "rtl";
-  bubble.style.transformOrigin = rtl ? "100% 100%" : "0% 100%";
+  bubble.style.transformOrigin = rtl ? "100% 0%" : "0% 0%";
   bubble.animate(reduced
     ? [{ opacity: 0 }, { opacity: 1 }]
     : [{ opacity: 0, transform: `scale(${REPLY_GROW_FROM})` }, { opacity: 1, transform: "scale(1)" }], REPLY_GROW);
