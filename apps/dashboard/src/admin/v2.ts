@@ -1,4 +1,5 @@
-// the v2 admin contract, as written in docs/admin-api.md
+import { useMemo } from "react";
+import { useAdmin } from "./api";
 import type { ServerIdentity } from "./identity";
 
 export type Person = ServerIdentity & { id: string; emailKind: "email" | "apple_relay" | "none"; providers: string[]; avatarSeed: string; label: string; test: boolean };
@@ -50,3 +51,12 @@ export interface PersonV2<Profile> {
   profile: Profile | null;
 }
 export const LIVE_PLAN = new Set<SubscriptionStatus>(["active", "payment_problem", "cancelling"]);
+
+export const PEOPLE_FIRST = "/v2/people?kind=accounts&limit=200";
+
+/** each person's plan and money in the mode the list isn't counting, so a test plan never reads as free */
+export function useOtherMode(money: "live" | "test") {
+  const other = money === "live" ? "test" : "live";
+  const { data } = useAdmin<PaymentsV2>(`/v2/payments?mode=${other}&limit=200`, 120_000);
+  return useMemo(() => ({ mode: other, by: new Map((data?.people ?? []).map((p) => [p.personId, p])) }), [data, other]);
+}

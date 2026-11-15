@@ -10,8 +10,7 @@ import { Highlight } from "./motion";
 import { usd } from "./kit";
 import { Failed, n } from "./ui";
 import { identity, PersonFace } from "./identity";
-import { PEOPLE_FIRST } from "./Home";
-import { LIVE_PLAN, type AccountRowV2, type PeopleV2 } from "./v2";
+import { LIVE_PLAN, PEOPLE_FIRST, useOtherMode, type AccountRowV2, type PeopleV2 } from "./v2";
 
 export const accountReads = () => [PEOPLE_FIRST];
 
@@ -46,6 +45,8 @@ function useAllPeople() {
   return { people: first.data ? [...first.data.people, ...rest] : null, total: first.data?.total ?? 0, money: first.data?.money ?? "live", error: first.error, reload: first.reload };
 }
 
+const ModeTag = ({ mode }: { mode: string }) => <span className="ms-1.5 inline-flex h-[18px] items-center rounded-full bg-wash-lemon px-1.5 align-middle font-sans text-[10.5px] text-ink-2">{mode}</span>;
+
 /** the rows a window-scrolled list should draw: what is on screen plus a screen's worth either side */
 function useWindowRows(count: number, list: React.RefObject<HTMLElement | null>) {
   const [range, setRange] = useState<[number, number]>([0, 60]);
@@ -68,6 +69,7 @@ function useWindowRows(count: number, list: React.RefObject<HTMLElement | null>)
 export function AccountsPage() {
   const { query } = useLocation();
   const { people, total, money, error, reload } = useAllPeople();
+  const other = useOtherMode(money);
   const now = useNow(60_000);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -156,7 +158,9 @@ export function AccountsPage() {
               {rows.slice(start, end).map((r, i) => {
                 const index = start + i, p = r.person, who = identity({ id: p.id, identity: p });
                 const methods = p.providers.filter((x) => x !== "email");
-                const plan = r.plan && r.planStatus && r.planStatus !== "ended" ? { name: r.plan, status: r.planStatus } : null;
+                const elsewhere = other.by.get(p.id);
+                const plan = r.plan && r.planStatus && r.planStatus !== "ended" ? { name: r.plan, status: r.planStatus, mode: null }
+                  : elsewhere?.plan && elsewhere.status && elsewhere.status !== "ended" ? { name: elsewhere.plan, status: elsewhere.status, mode: other.mode } : null;
                 const apps = r.installs || r.devices;
                 return (
                   <li key={p.id} className="absolute inset-x-1.5" style={{ top: 6 + index * ROW, height: ROW }}>
@@ -169,9 +173,10 @@ export function AccountsPage() {
                         </span>
                       </span>
                       <span className="truncate text-13 text-ink-2 max-lg:hidden">{methods.length ? methods.map((m) => PROVIDER[m] ?? m).join(", ") : "email code"}</span>
-                      <span className="truncate text-13 max-lg:hidden">{plan ? <span className="inline-flex items-center gap-1.5 text-ink"><span className={cx("size-[7px] rounded-[2px]", plan.status === "active" ? "bg-good" : plan.status === "payment_problem" ? "bg-bad" : "bg-warn")} aria-hidden />{plan.name}{plan.status !== "active" && <span className="text-ink-3">{plan.status.replace(/_/g, " ")}</span>}</span> : <span className="text-ink-4">free</span>}</span>
+                      <span className="truncate text-13 max-lg:hidden">{plan ? <span className="inline-flex items-center gap-1.5 text-ink"><span className={cx("size-[7px] rounded-[2px]", plan.status === "active" ? "bg-good" : plan.status === "payment_problem" ? "bg-bad" : "bg-warn")} aria-hidden />{plan.name}{plan.status !== "active" && <span className="text-ink-3">{plan.status.replace(/_/g, " ")}</span>}{plan.mode && <ModeTag mode={plan.mode} />}</span> : <span className="text-ink-4">free</span>}</span>
                       <span className="text-end font-mono text-13 num max-lg:order-last">
-                        {r.paidCents ? <span className={cx("font-medium", money === "test" ? "text-ink-2" : "text-money")}>{usd(r.paidCents)}</span> : <span className="text-ink-4 max-lg:hidden">-</span>}
+                        {r.paidCents ? <span className={cx("font-medium", money === "test" ? "text-ink-2" : "text-money")}>{usd(r.paidCents)}</span>
+                          : elsewhere?.netCents ? <span className="text-ink-3">{usd(elsewhere.netCents)}<ModeTag mode={other.mode} /></span> : <span className="text-ink-4 max-lg:hidden">-</span>}
                         <span className="hidden font-sans text-12 text-ink-4 max-lg:block">{ago(r.lastSeenAt, now)}</span>
                       </span>
                       <span className="text-end text-12 text-ink-3 max-lg:hidden">{ago(r.lastSeenAt, now)}</span>

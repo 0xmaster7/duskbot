@@ -34,7 +34,7 @@ function Figure({ label, value, sub, money }: { label: string; value: string | n
       <div className={cx("mt-1.5 h-9 whitespace-nowrap font-mono text-[26px] font-medium leading-9 tracking-[-0.045em] num", money ? "text-money" : "text-ink")}>
         {value === null ? <span className="inline-block h-7 w-24 animate-pulse rounded-[8px] bg-card-2 align-middle" data-skeleton /> : <Digits text={value} />}
       </div>
-      <div className="mt-1 h-[18px] truncate text-12 text-ink-3">{sub}</div>
+      <div className="mt-1 min-h-[18px] text-12 leading-[18px] text-ink-3">{sub}</div>
     </div>
   );
 }

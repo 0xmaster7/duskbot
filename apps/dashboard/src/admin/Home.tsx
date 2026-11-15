@@ -13,7 +13,7 @@ import { Failed, n } from "./ui";
 import { identity, PersonFace } from "./identity";
 import type { BugReportRow } from "./BugReports";
 import type { Note } from "./Feedback";
-import { LIVE_PLAN, type OverviewV2, type PaymentsV2, type PeopleV2 } from "./v2";
+import { LIVE_PLAN, PEOPLE_FIRST, useOtherMode, type OverviewV2, type PaymentsV2, type PeopleV2 } from "./v2";
 
 const DAY = 86_400_000;
 type Days = 7 | 30 | 90;
@@ -25,7 +25,6 @@ interface ExperienceAnswer { days: string[]; series: Record<"bad" | "confusing" 
 interface BugAnswer { reports: BugReportRow[]; counts: Record<"new" | "looking" | "fixed" | "wont-fix", number> }
 interface FeedbackAnswer { notes: Note[]; counts: Record<"bad" | "big" | "weekly", number> }
 
-export const PEOPLE_FIRST = "/v2/people?kind=accounts&limit=200";
 const LATEST_PAYMENTS = "/v2/payments?mode=live&limit=200";
 const reads = (days: Days) => {
   const { from, to } = windowOf(days);
@@ -204,6 +203,7 @@ function WrongPanel({ days }: { days: Days }) {
 
 function NewPeople() {
   const { data, error, reload } = useAdmin<PeopleV2>(PEOPLE_FIRST);
+  const other = useOtherMode(data?.money ?? "live");
   const now = useNow(60_000);
   const rows = data ? [...data.people].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5) : [];
   return (
@@ -220,7 +220,12 @@ function NewPeople() {
                     <span className="block truncate text-13 font-medium text-ink">{who.name}</span>
                     {who.sub && <span className="block truncate text-12 text-ink-3">{who.sub}</span>}
                   </span>
-                  {r.plan && r.planStatus && LIVE_PLAN.has(r.planStatus) && <span className="shrink-0 rounded-full bg-wash-sky px-2 py-0.5 text-[11.5px] text-ink-2">{r.plan}</span>}
+                  {(() => {
+                    const elsewhere = other.by.get(r.person.id);
+                    if (r.plan && r.planStatus && LIVE_PLAN.has(r.planStatus)) return <span className="shrink-0 rounded-full bg-wash-sky px-2 py-0.5 text-[11.5px] text-ink-2">{r.plan}</span>;
+                    if (elsewhere?.plan && elsewhere.status && LIVE_PLAN.has(elsewhere.status)) return <span className="shrink-0 rounded-full bg-wash-lemon px-2 py-0.5 text-[11.5px] text-ink-2">{elsewhere.plan}, {other.mode}</span>;
+                    return null;
+                  })()}
                   <span className="w-16 shrink-0 whitespace-nowrap text-end text-12 text-ink-4">{ago(r.createdAt, now)}</span>
                 </PersonLink>
               </li>
