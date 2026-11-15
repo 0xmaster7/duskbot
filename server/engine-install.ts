@@ -11,6 +11,7 @@ import { STANDALONE_RELEASES } from "./standalone-releases.ts";
 import { scriptInstallerOf } from "./engine-script-install.ts";
 import { augmentedPath, findCliCandidates, registerPathDir, resetPathCache } from "./env-path.ts";
 import { execCli, killCliTree, spawnCli } from "./procs.ts";
+import { emptyPrefix, parseDryRun, treeBytes, unpackedTotal, watchFolder, type ProgressSink } from "./install-progress.ts";
 
 const MAX_OUTPUT = 64 * 1024;
 const DEFAULT_TIMEOUT_MS = 10 * 60_000;
@@ -86,7 +87,12 @@ interface InstallOptions {
   timeoutMs?: number;
   env?: NodeJS.ProcessEnv;
   path?: string;
+  onProgress?: ProgressSink;
+  /** Tests only: what the dry run and the real install run instead of npm. */
+  npm?: NpmRunner;
 }
+
+type NpmRunner = (args: string[], env: NodeJS.ProcessEnv, cwd: string, timeoutMs: number) => Promise<{ code: number | null; output: string }>;
 
 const running = new Map<string, Promise<void>>();
 
@@ -117,7 +123,7 @@ async function installOnce(pkg: string, options: InstallOptions): Promise<void> 
   // its native binary as a platform optional dependency, which a user-level `omit=optional` must not drop.
   const args = ["install", "-g", "--prefix", prefix, "--loglevel=error", "--include=optional", `--allow-scripts=${pkg}`, `${pkg}@latest`];
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  await runInstall(pkg, args, env, prefix, timeoutMs);
+  await measuredInstall(pkg, args, env, prefix, timeoutMs, options);
   const binDir = enginesBinDir(options.baseDir);
   registerPathDir(binDir);
   resetPathCache();
@@ -129,14 +135,48 @@ async function installOnce(pkg: string, options: InstallOptions): Promise<void> 
   // npm exits 0 even after dropping an optional dependency it failed to download, so prove the CLI starts; a second run fetches it.
   let failure = await probeCli(installed, env);
   if (failure === null) return;
-  await runInstall(pkg, args, env, prefix, timeoutMs);
+  await runInstall(pkg, args, env, prefix, timeoutMs, options.npm);
   failure = await probeCli(installed, env);
   if (failure === null) return;
   throw new Error(`npm installed ${pkg}, but \`${options.cli}\` does not start: ${failure}\nnpm can leave out a platform package when its download fails, even after a retry. Check this server's network connection, then install again from Settings.`);
 }
 
-async function runInstall(pkg: string, args: string[], env: NodeJS.ProcessEnv, prefix: string, timeoutMs: number): Promise<void> {
-  const result = await runNpm(args, env, prefix, timeoutMs);
+export function npmModulesDir(prefix: string, platform: NodeJS.Platform = process.platform): string {
+  return platform === "win32" ? join(prefix, "node_modules") : join(prefix, "lib", "node_modules");
+}
+
+/** The bytes npm would unpack for `pkg`, from a dry run into an empty prefix and the registry's sizes; null when unknown. */
+async function plannedBytes(pkg: string, env: NodeJS.ProcessEnv, timeoutMs: number, npm: NpmRunner): Promise<number | null> {
+  const plan = await emptyPrefix().catch(() => null);
+  if (!plan) return null;
+  try {
+    const result = await npm(["install", "-g", "--prefix", plan.path, "--dry-run", "--include=optional", `${pkg}@latest`], env, plan.path, Math.min(timeoutMs, 60_000));
+    if (result.code !== 0) return null;
+    return await unpackedTotal(parseDryRun(stripVTControlCharacters(result.output)), { registry: env.npm_config_registry });
+  } catch {
+    return null;
+  } finally {
+    await plan.remove();
+  }
+}
+
+/** npm prints no byte counts, so the install folder's growth is measured against what the dry run says it will unpack. */
+async function measuredInstall(pkg: string, args: string[], env: NodeJS.ProcessEnv, prefix: string, timeoutMs: number, options: InstallOptions): Promise<void> {
+  const npm = options.npm ?? runNpm;
+  const sink = options.onProgress;
+  if (!sink) return runInstall(pkg, args, env, prefix, timeoutMs, npm);
+  const folder = npmModulesDir(prefix);
+  const watch = watchFolder(folder, await treeBytes(folder), plannedBytes(pkg, env, timeoutMs, npm), sink);
+  try {
+    await runInstall(pkg, args, env, prefix, timeoutMs, npm);
+    watch.setup();
+  } finally {
+    watch.stop();
+  }
+}
+
+async function runInstall(pkg: string, args: string[], env: NodeJS.ProcessEnv, prefix: string, timeoutMs: number, npm: NpmRunner = runNpm): Promise<void> {
+  const result = await npm(args, env, prefix, timeoutMs);
   if (result.code !== 0) {
     throw new Error(`npm could not install ${pkg} on this server.${tail(result.output)}`);
   }

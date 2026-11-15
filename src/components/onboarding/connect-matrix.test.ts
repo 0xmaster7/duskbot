@@ -195,6 +195,32 @@ describe("the connect panel after an install", () => {
     expectNoWayOut(host.textContent ?? "");
   });
 
+  it("shows a measured install as a percent, one bar and the megabytes, then setting up", () => {
+    const MB = 1024 * 1024;
+    panel({ stage: "installing", since: Date.now() - 20_000, downloadBytes: 321 * MB, progress: { phase: "download", received: 142.6 * MB, total: 321 * MB } });
+    const stage = host.querySelector<HTMLElement>('[data-connect-stage="installing"]')!;
+    expect(stage.querySelector("p")?.textContent).toBe("Getting Cursor ready…44%");
+    expect(stage.textContent).toContain("142 of 321\u00a0MB");
+    expect(stage.textContent).not.toContain("20 s");
+    const bar = stage.querySelector<HTMLElement>('[role="progressbar"]')!;
+    expect(bar.getAttribute("aria-valuenow")).toBe("44");
+    expect(stage.querySelectorAll('[role="progressbar"]')).toHaveLength(1);
+
+    panel({ stage: "installing", since: Date.now() - 20_000, downloadBytes: 321 * MB, progress: { phase: "setup", received: 321 * MB, total: 321 * MB } });
+    expect(stage.textContent).toContain("Setting up…");
+    expect(stage.textContent).not.toContain("%");
+    expect(stage.querySelector('[role="progressbar"]')?.getAttribute("aria-valuenow")).toBe("100");
+    expectNoWayOut(stage.textContent ?? "");
+  });
+
+  it("falls back to elapsed time with no bar when the total is unknown", () => {
+    panel({ stage: "installing", since: Date.now() - 20_000, downloadBytes: 321 * 1024 * 1024, progress: { phase: "download", received: 5, total: null } });
+    const stage = host.querySelector<HTMLElement>('[data-connect-stage="installing"]')!;
+    expect(stage.textContent).toContain("20 s");
+    expect(stage.textContent).toContain("about 321\u00a0MB");
+    expect(stage.querySelector('[role="progressbar"]')).toBeNull();
+  });
+
   it("says a failed install in one plain line with Try again, never the installer's output", async () => {
     const { retry } = panel({ stage: "failed", at: "installing", reason: "error", message: "The installer stopped before it finished.\ncurl: (6) Could not resolve host", link: null });
     expect(host.querySelector('[role="alert"]')?.textContent).toBe("Cursor couldn't be installed on the computer your bots run on. Try again in a moment.");

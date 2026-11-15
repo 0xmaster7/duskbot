@@ -551,7 +551,7 @@ export interface ProviderInstance {
   /** Set while the last run's catalog is still refreshing; a turn awaits it, listen does not. */
   readonly startupModelRefresh?: Promise<void>;
   /** Optional first-party runtime installation and account setup. */
-  readonly installRuntime?: () => Promise<void>;
+  readonly installRuntime?: (onProgress?: (progress: { phase: "download" | "setup"; received: number; total: number | null }) => void) => Promise<void>;
   readonly startAuthentication?: (options?: ProviderAuthenticationOptions) => Promise<ProviderAuthenticationStart>;
   readonly authenticationMethod?: "browser-pkce" | "paste-code";
   readonly getAuthentication?: (flowId: string) => Promise<ProviderAuthenticationStatus>;

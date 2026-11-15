@@ -23,6 +23,7 @@ import type { SessionRegistry } from "../sessions.ts";
 import type { Store } from "../store.ts";
 import type { BusyFlag, ConfigStatus } from "./config.ts";
 import { PASS, type RouteHandler } from "./table.ts";
+import { installProgress } from "../install-progress.ts";
 
 export interface InstanceRouteDeps {
   store: Pick<Store, "bots" | "tasks">;
@@ -172,6 +173,12 @@ export function createInstanceRoutes(deps: InstanceRouteDeps): RouteHandler {
       } finally { providerConfigBusy.set(false); }
     }
 
+    const installing = /^\/api\/instances\/([\w.-]+)\/install$/.exec(path);
+    if (method === "GET" && installing) {
+      res.setHeader("cache-control", "no-store");
+      return json(res, 200, { progress: installProgress.get(installing[1]) });
+    }
+
     const authStatus = /^\/api\/instances\/([\w.-]+)\/auth\/status$/.exec(path);
     if (method === "GET" && authStatus) {
       res.setHeader("cache-control", "no-store");
@@ -201,7 +208,12 @@ export function createInstanceRoutes(deps: InstanceRouteDeps): RouteHandler {
           return json(res, 200, { instances: await describeInstances() });
         }
         if (action === "install") {
-          const installed = await registry.installRuntime(instanceId);
+          let installed: Awaited<ReturnType<typeof registry.installRuntime>>;
+          try {
+            installed = await registry.installRuntime(instanceId, installProgress.sink(instanceId));
+          } finally {
+            installProgress.clear(instanceId);
+          }
           if (!installed) return json(res, 404, { error: "This AI can't be installed automatically on this computer." });
           const usingAppCopy = installed !== true && await useAppCopy(instanceId, installed.useCli);
           return json(res, 200, { instances: await describeInstances(), ...(usingAppCopy ? { usingAppCopy: true } : {}) });

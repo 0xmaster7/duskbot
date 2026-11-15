@@ -1,3 +1,4 @@
+import { downloadMeter, type ProgressSink } from "../install-progress.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   access,
@@ -85,6 +86,7 @@ export interface AntigravityInstallOptions {
   asset?: AntigravityReleaseAsset | null;
   fetchImpl?: typeof fetch;
   validate?: (runtime: AntigravityRuntime, expectedVersion: string) => Promise<void>;
+  onProgress?: ProgressSink;
 }
 
 const installs = new Map<string, Promise<AntigravityRuntime>>();
@@ -264,6 +266,7 @@ async function installOnce(options: AntigravityInstallOptions): Promise<Antigrav
       }
       const handle = await open(archivePath, "wx", 0o600);
       const hash = createHash("sha256");
+      const meter = downloadMeter(asset.archiveBytes, options.onProgress);
       let downloaded = 0;
       try {
         for await (const raw of response.body as unknown as AsyncIterable<Uint8Array>) {
@@ -279,6 +282,7 @@ async function installOnce(options: AntigravityInstallOptions): Promise<Antigrav
           }
           hash.update(chunk);
           downloaded += chunk.length;
+          meter.add(chunk.length);
         }
       } finally {
         await handle.close();
@@ -286,6 +290,7 @@ async function installOnce(options: AntigravityInstallOptions): Promise<Antigrav
       if (downloaded !== asset.archiveBytes || hash.digest("hex") !== asset.sha256) {
         throw new Error("The Antigravity download failed its SHA-256 or size check. Nothing was installed.");
       }
+      meter.setup();
     } finally {
       clearTimeout(timeout);
     }

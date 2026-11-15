@@ -2,6 +2,7 @@
 import { findCliCandidates } from "../env-path.ts";
 import { installNpmEngine, npmAvailable, serverInstallFor, standaloneLookupPath } from "../engine-install.ts";
 import { installStandaloneEngine, isAppStandaloneCopy, type StandaloneInstalled } from "../engine-standalone.ts";
+import type { ProgressSink } from "../install-progress.ts";
 import { installScriptEngine, scriptInstallerOf, type ScriptInstaller } from "../engine-script-install.ts";
 import { withEngineMemory } from "../engine-memory.ts";
 import { withEngineHomes } from "../engine-homes/engine-homes.ts";
@@ -45,7 +46,7 @@ function withServerInstall(install: AnyProviderDriver["install"], npmPresent: bo
   return { ...clientInstall(install), platform, ...(server ? { server } : {}), ...(appCopy ? { signInCommand: undefined, appCopy: true } : {}) };
 }
 
-type InstallStandalone = (release: StandaloneRelease, options: { baseDir?: string }) => Promise<StandaloneInstalled>;
+type InstallStandalone = (release: StandaloneRelease, options: { baseDir?: string; onProgress?: ProgressSink }) => Promise<StandaloneInstalled>;
 type InstallScript = (installer: ScriptInstaller, options: { cli?: string }) => Promise<void>;
 
 /** Installed; `useCli` when the copy this engine's CLI finds does not start and it should run the app's own copy instead. */
@@ -350,24 +351,24 @@ export class ProviderRegistry {
     return true;
   }
 
-  async installRuntime(instanceId: InstanceId): Promise<InstallResult | false> {
+  async installRuntime(instanceId: InstanceId, onProgress?: ProgressSink): Promise<InstallResult | false> {
     const entry = this.byId.get(instanceId);
     if (!entry) return false;
     // A failed install changes the status too: Antigravity reports the failure as its reason.
     try {
       if (entry.live?.installRuntime) {
-        await entry.live.installRuntime();
+        await entry.live.installRuntime(onProgress);
         return true;
       }
       // Then the vendor's own build for this platform, then npm.
       const driver = this.driversByKind.get(entry.shadow?.driverKind ?? entry.live!.driverKind);
       const server = serverInstallFor(driver?.install, this.npmPresent());
       if (server?.standalone && driver?.install?.standalone) {
-        const installed = await this.installStandalone(driver.install.standalone, { baseDir: this.enginesBaseDir });
+        const installed = await this.installStandalone(driver.install.standalone, { baseDir: this.enginesBaseDir, onProgress });
         return (await this.appCopyAdvice(instanceId, driver, installed)) ?? true;
       }
       if (server?.package) {
-        await installNpmEngine(server.package, { baseDir: this.enginesBaseDir, cli: cliDefaultOf(driver) });
+        await installNpmEngine(server.package, { baseDir: this.enginesBaseDir, cli: cliDefaultOf(driver), onProgress });
         return true;
       }
       const script = server?.script ? scriptInstallerOf(driver?.install) : null;

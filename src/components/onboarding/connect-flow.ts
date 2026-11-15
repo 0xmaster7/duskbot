@@ -15,12 +15,29 @@ export type ConnectState =
   | { stage: "idle" }
   | { stage: "waking"; since: number }
   | { stage: "preparing"; since: number }
-  | { stage: "installing"; since: number; downloadBytes: number | null }
+  | { stage: "installing"; since: number; downloadBytes: number | null; progress?: InstallProgress | null }
   | { stage: "opening"; since: number }
   | { stage: "waiting"; since: number; kind: WaitKind; flowId: string; link: string | null; code: string | null; opened: boolean }
   | { stage: "confirming"; since: number }
   | { stage: "connected"; reused: boolean }
   | { stage: "failed"; at: ConnectStageName; reason: FailReason; message: string | null; link: string | null };
+
+/** What the server measured of an install: bytes of a known total while downloading, then setup. */
+export interface InstallProgress {
+  phase: "download" | "setup";
+  received: number;
+  total: number | null;
+}
+
+/** A known-total reading worth drawing as a bar, or null for the elapsed-time fallback. */
+export function measured(progress: InstallProgress | null | undefined): (InstallProgress & { total: number }) | null {
+  if (!progress || typeof progress.total !== "number" || !(progress.total > 0)) return null;
+  if (progress.phase !== "download" && progress.phase !== "setup") return null;
+  const received = Math.max(0, Math.min(progress.total, Number(progress.received) || 0));
+  return { phase: progress.phase, received, total: progress.total };
+}
+
+export const INSTALL_POLL_MS = 1_000;
 
 /** Why a stage ended: a timeout, the sign-in lost, the AI unusable here, or the provider's own refusal (its `message`). */
 export type FailReason = "timeout" | "lost" | "unavailable" | "error";
@@ -289,6 +306,21 @@ export class ConnectFlow {
     }
   }
 
+  /** Reads the install's progress until `signal` ends; a server without the reading stops being asked. */
+  private async watchInstall(path: string, signal: AbortSignal, report: (progress: InstallProgress) => void): Promise<void> {
+    while (!signal.aborted) {
+      await sleep(INSTALL_POLL_MS, signal).catch(() => {});
+      if (signal.aborted) return;
+      try {
+        const answer = await this.deps.api<{ progress?: InstallProgress | null }>(path, { signal });
+        if (signal.aborted) return;
+        if (answer?.progress) report(answer.progress);
+      } catch (cause) {
+        if ((cause as { status?: number })?.status === 404 || (cause as { status?: number })?.status === 405) return;
+      }
+    }
+  }
+
   private find(instances: readonly ConnectInstance[], target: ConnectTarget): { reused: ConnectInstance | null; usable: ConnectInstance | null; first: ConnectInstance | null } {
     const mine = target.candidates.map((id) => instances.find((instance) => instance.instanceId === id)).filter(Boolean) as ConnectInstance[];
     return { reused: mine.find(ready) ?? null, usable: mine.find(connectsInApp) ?? null, first: mine[0] ?? null };
@@ -331,11 +363,23 @@ export class ConnectFlow {
       if (instance.snapshot.state !== "available") {
         const install = instance.install as { server?: { standalone?: { downloadBytes?: number } }; managed?: { downloadBytes?: number } } | undefined;
         const downloadBytes = install?.server?.standalone?.downloadBytes ?? install?.managed?.downloadBytes ?? null;
-        const installing: ConnectState = { stage: "installing", since: this.now(), downloadBytes };
+        let installing: ConnectState = { stage: "installing", since: this.now(), downloadBytes, progress: null };
         this.set(installing, run);
         const installId = instance.instanceId;
-        await this.awake(run, signal, installing, () => this.within("installing", signal,
-          (stageSignal) => this.deps.api(`${base(installId)}/install`, { method: "POST", signal: stageSignal })));
+        await this.awake(run, signal, installing, () => this.within("installing", signal, async (stageSignal) => {
+          const done = new AbortController();
+          const watching = this.watchInstall(`${base(installId)}/install`, AbortSignal.any([stageSignal, done.signal]), (progress) => {
+            if (this.state.stage !== "installing") return;
+            installing = { ...this.state, progress };
+            this.set(installing, run);
+          });
+          try {
+            return await this.deps.api(`${base(installId)}/install`, { method: "POST", signal: stageSignal });
+          } finally {
+            done.abort();
+            await watching;
+          }
+        }));
         found = await read();
         if (found.reused) return this.set({ stage: "connected", reused: false }, run);
         const now = found.usable ?? found.first;

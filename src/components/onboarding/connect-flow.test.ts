@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CONNECT_TIMEOUTS, ConnectFlow, LOST_AFTER, POLL_MS, connectsInApp, loopbackOf, type ConnectDeps, type ConnectInstance, type ConnectState } from "./connect-flow";
+import { CONNECT_TIMEOUTS, ConnectFlow, INSTALL_POLL_MS, LOST_AFTER, POLL_MS, connectsInApp, loopbackOf, type ConnectDeps, type ConnectInstance, type ConnectState } from "./connect-flow";
 
 type Route = (init?: { method?: string; body?: string; signal?: AbortSignal }) => unknown;
 
@@ -77,6 +77,44 @@ describe("connect flow stages", () => {
     expect(seen).toEqual(["preparing", "installing", "opening", "waiting", "confirming", "connected"]);
     expect(flow.state).toEqual({ stage: "connected", reused: false });
     expect(calls.filter((call) => call.includes("/install"))).toHaveLength(1);
+  });
+
+  it("reads the install's measured progress while it runs and stops asking once it ends", async () => {
+    let finish!: () => void;
+    const readings = [null, { phase: "download", received: 100, total: 400 }, { phase: "setup", received: 400, total: 400 }];
+    let read = 0;
+    const { flow, calls } = harness([
+      [codex({ state: "unavailable", reason: "codex CLI not found" })],
+      [codex({ state: "available", authenticated: true })],
+    ], {
+      "POST /api/instances/codex/install": () => new Promise((resolve) => { finish = () => resolve({ instances: [] }); }),
+      "GET /api/instances/codex/install": () => ({ progress: readings[Math.min(read++, readings.length - 1)] }),
+    });
+    flow.start({ tile: "chatgpt", candidates: ["codex"] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flow.state).toMatchObject({ stage: "installing", progress: null });
+    await vi.advanceTimersByTimeAsync(INSTALL_POLL_MS * 2);
+    expect(flow.state).toMatchObject({ stage: "installing", progress: { phase: "download", received: 100, total: 400 } });
+    await vi.advanceTimersByTimeAsync(INSTALL_POLL_MS);
+    expect(flow.state).toMatchObject({ stage: "installing", progress: { phase: "setup" } });
+    finish();
+    await vi.advanceTimersByTimeAsync(0);
+    const asked = calls.filter((call) => call === "GET /api/instances/codex/install").length;
+    await vi.advanceTimersByTimeAsync(INSTALL_POLL_MS * 5);
+    expect(calls.filter((call) => call === "GET /api/instances/codex/install")).toHaveLength(asked);
+    expect(flow.state).toEqual({ stage: "connected", reused: false });
+  });
+
+  it("keeps the elapsed-time fallback against a server with no progress reading", async () => {
+    const { flow, calls } = harness([[codex({ state: "unavailable", reason: "codex CLI not found" })]], {
+      "POST /api/instances/codex/install": never,
+      "GET /api/instances/codex/install": () => Promise.reject(Object.assign(new Error("not found"), { status: 404 })),
+    });
+    flow.start({ tile: "chatgpt", candidates: ["codex"] });
+    await vi.advanceTimersByTimeAsync(INSTALL_POLL_MS * 5);
+    expect(calls.filter((call) => call === "GET /api/instances/codex/install")).toHaveLength(1);
+    expect(flow.state).toMatchObject({ stage: "installing", progress: null });
+    flow.cancel();
   });
 
   it("says how big the official helper is while it downloads", async () => {

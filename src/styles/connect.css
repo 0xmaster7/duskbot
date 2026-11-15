@@ -35,6 +35,13 @@
   animation: dusk-fade-out 140ms var(--dusk-ease-out) forwards;
 }
 
+/* an install's measured progress: the fill glides to each new reading over about one poll */
+.connect-bar {
+  transform-origin: left;
+  transition: transform 900ms linear;
+}
+[dir="rtl"] .connect-bar { transform-origin: right; }
+
 /* connected: the check pops, then the words fade in after it */
 .connect-check-in { animation: connect-check-in 360ms var(--dusk-ease-pop) both; }
 @keyframes connect-check-in { from { opacity: 0; transform: scale(0.6); } }
@@ -42,9 +49,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .connect-reveal, .connect-reveal[data-leaving] { grid-template-rows: 1fr; transition-property: opacity; }
-  .connect-stage-box { transition: none; }
+  .connect-stage-box, .connect-bar { transition: none; }
   .connect-stage-in, .connect-check-in { animation-name: dusk-fade-in; }
 }
 :root[data-reduced-motion="true"] :is(.connect-reveal, .connect-reveal[data-leaving]) { grid-template-rows: 1fr; transition-property: opacity; }
-:root[data-reduced-motion="true"] .connect-stage-box { transition: none; }
+:root[data-reduced-motion="true"] :is(.connect-stage-box, .connect-bar) { transition: none; }
 :root[data-reduced-motion="true"] :is(.connect-stage-in, .connect-check-in) { animation-name: dusk-fade-in; }

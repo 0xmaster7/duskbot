@@ -8,7 +8,7 @@ import { engineSignedIn } from "@/lib/product-events";
 import { trail } from "@/lib/trail";
 import { api, useStore, type InstanceInfo } from "@/state/store";
 import { StageSwap } from "./ConnectMotion";
-import { ConnectFlow, type ConnectInstance, type ConnectState, type ConnectTarget } from "./connect-flow";
+import { ConnectFlow, measured, type ConnectInstance, type ConnectState, type ConnectTarget, type InstallProgress } from "./connect-flow";
 
 const QUIET = "min-h-8 rounded-full px-3 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
 const SECONDARY = "inline-flex min-h-8 items-center gap-1.5 rounded-full bg-ink/[0.06] px-3 text-[13px] leading-[18px] text-ink transition-colors hover:bg-ink/[0.1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none";
@@ -97,6 +97,32 @@ function Busy({ label, hint, seconds }: { label: string; hint?: string | null; s
         {seconds >= 5 && <span className="tabular-nums text-ink-tertiary">{t("connect.elapsed", { seconds })}</span>}
       </p>
       {hint && <p className="m-0 max-w-[360px] text-[12px] leading-4 text-ink-secondary">{hint}</p>}
+    </div>
+  );
+}
+
+const MB = 1024 * 1024;
+
+/** A measured install: the calm line with a percent, one thin bar that glides between readings, and the megabytes or
+ * setup under it. */
+export function InstallBusy({ label, progress }: { label: string; progress: InstallProgress & { total: number } }) {
+  const setup = progress.phase === "setup";
+  const fraction = setup ? 1 : progress.received / progress.total;
+  const percent = Math.min(99, Math.floor(fraction * 100));
+  const totalMb = Math.max(1, Math.round(progress.total / MB));
+  const detail = setup ? t("connect.stage.settingUp") : t("connect.stage.downloaded", { received: Math.min(totalMb, Math.floor(progress.received / MB)), total: totalMb });
+  return (
+    <div role="status" aria-live="polite" className="flex flex-col items-center gap-1 text-center">
+      <p className="m-0 flex items-center gap-2 text-[14px] leading-5 text-ink">
+        <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
+        {label}
+        {!setup && <span className="tabular-nums text-ink-tertiary">{t("connect.stage.percent", { percent })}</span>}
+      </p>
+      <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={setup ? 100 : percent} aria-valuetext={detail}
+        data-connect-progress="" className="my-1 h-1 w-[200px] max-w-full overflow-hidden rounded-full bg-ink/8">
+        <div className="connect-bar h-full w-full rounded-full bg-ink" style={{ transform: `scaleX(${fraction})` }} />
+      </div>
+      <p className="m-0 text-[12px] leading-4 tabular-nums text-ink-secondary">{detail}</p>
     </div>
   );
 }
@@ -196,7 +222,10 @@ export function ConnectPanel({ flow, name, driverKind, onTrouble }: {
       const hint = state.downloadBytes
         ? t("connect.stage.downloadSize", { name, mb: Math.max(1, Math.round(state.downloadBytes / 1024 / 1024)) })
         : t("connect.stage.download", { name });
-      body = <><Busy label={t("connect.stage.installing", { name })} hint={hint} seconds={seconds} />{cancel}</>;
+      const progress = measured(state.progress);
+      body = <>{progress
+        ? <InstallBusy label={t("connect.stage.installing", { name })} progress={progress} />
+        : <Busy label={t("connect.stage.installing", { name })} hint={hint} seconds={seconds} />}{cancel}</>;
       break;
     }
     case "opening":

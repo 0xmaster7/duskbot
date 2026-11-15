@@ -195,10 +195,10 @@ export const AntigravityDriver: ProviderDriver<AcpConfig> = {
       },
       ...(antigravityManagedInstallAvailable()
         ? {
-            installRuntime: async () => {
+            installRuntime: async (onProgress) => {
               installFailure = undefined;
               try {
-                await installAntigravityRuntime({ validate: validateAntigravityRuntime });
+                await installAntigravityRuntime({ validate: validateAntigravityRuntime, onProgress });
               } catch (error) {
                 installFailure = error instanceof Error ? error.message : String(error);
                 throw error;

@@ -8,6 +8,7 @@
 //   bin/<program>   the only thing on PATH: a hard link to (or copy of) the current version's program
 //   current.json    which version bin/ holds
 // bin/ goes on PATH after the person's own PATH and the vendors' default folders, so their own copy always wins.
+import { downloadMeter, type ProgressSink } from "./install-progress.ts";
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -69,6 +70,7 @@ export interface StandaloneInstallOptions {
   timeoutMs?: number;
   /** How long the download may go without a single byte. */
   stallMs?: number;
+  onProgress?: ProgressSink;
 }
 
 interface InstallRecord {
@@ -402,6 +404,7 @@ async function download(release: StandaloneRelease, asset: StandaloneAsset, dest
     if (Number.isFinite(declared) && declared > cap) throw tooLarge();
     const hash = createHash("sha256");
     const handle = await open(destination, "wx", 0o600);
+    const meter = downloadMeter(Number.isSafeInteger(declared) && declared > 0 ? declared : null, options.onProgress);
     let received = 0;
     try {
       for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
@@ -410,10 +413,12 @@ async function download(release: StandaloneRelease, asset: StandaloneAsset, dest
         if (received > cap) throw tooLarge();
         hash.update(chunk);
         await writeAll(handle, chunk);
+        meter.add(chunk.byteLength);
       }
     } finally {
       await handle.close();
     }
+    meter.setup();
     if (hash.digest("hex") !== asset.sha256) {
       throw new StandaloneInstallError(`The ${name} download failed its safety check, so nothing was installed. Try again later.`);
     }
