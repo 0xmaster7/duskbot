@@ -3,6 +3,16 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.12
+
+- Bots remember better: facts keep their dates, the right ones come back when they matter, and duplicates merge without losing anything.
+- Setup brings in what you already use, starting with the app that already knows you, memory included.
+- Connecting an AI shows real install progress, and signing in to one says what to do in the browser.
+- Local bots browse in their own browser, where you can watch and use it with them.
+- Moving to dusk cloud takes your whole Vault, sealed, and backs it up as soon as the move checks out.
+- Smoother motion across dialogs, menus, tooltips, the sidebar and the dock.
+- Mac updates install cleanly for every user; sign in with X is gone.
+
 ## 0.2.11
 
 - First run starts with a welcome, offers every sign-in from the first frame, and leads with what this Mac already holds.
