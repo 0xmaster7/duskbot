@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { CANCEL_ANSWERS, CLOUD_SWATCHES, RETENTION_OUTCOMES, RETENTION_STEPS, checkoutSource } from "../../../../shared/billing-api.ts";
 import type { CancelAnswer, RetentionInput, RetentionView, FunnelRow, FunnelView, DeletionBlocker, BillingErrorCode, BillingOverview, CancelSurvey, Cart, ChangePreview, CheckoutAnswer, CheckoutItem, InvoicePage, LicenseCheck, LicenseView, SubscriptionView } from "../../../../shared/billing-api.ts";
 import type { CloudsService, DesktopPlan } from "../clouds/types.ts";
+import { paidCloud } from "../clouds/service.ts";
 import { BILLING_CONFIG, catalogView } from "./plans.ts";
 import type { BillingConfig } from "./plans.ts";
 import { changeCharge, dodoCart, dodoCartKeys, parseCart, quote, sameCart } from "./pricing.ts";
@@ -883,7 +884,7 @@ export function createBillingService(options: BillingServiceOptions) {
   function overview(account: AccountRef): BillingOverview {
     const license = licenseCheck(account);
     return { v: 1, subscriptions: state.subscriptions.filter(sub => sub.accountId === account.id).map(view), licenses: licenses(account.id), license,
-      clouds: clouds.list(account.id).map(cloud => clouds.view(cloud)), invoices: invoices(account.id), retention: retentionView(account.id) };
+      clouds: clouds.list(account.id).filter(paidCloud).map(cloud => clouds.view(cloud)), invoices: invoices(account.id), retention: retentionView(account.id) };
   }
   function appState(account: AccountRef) {
     const primary = state.subscriptions.find(sub => sub.accountId === account.id && sub.cart.desktop.kind !== "none" && ["active", "payment_problem", "cancelled"].includes(sub.status)) ?? null;

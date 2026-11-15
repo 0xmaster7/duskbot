@@ -84,6 +84,18 @@ describe("billing service isolated fixture", () => {
     expect(readFileSync(join(dataDir, "billing.json"), "utf8")).not.toContain(provider.secret);
     expect(service.appState(owner)).toMatchObject({ entitlement: { plan: "pro", tier: "custom", status: "active" } });
   });
+  it("shows no cloud for an unpaid checkout, leaves nothing once it lapses, and shows the cloud once paid", async () => {
+    const answer = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    expect(clouds.get(answer.cloudId!)?.status).toBe("checkout");
+    expect(service.overview(owner).clouds).toEqual([]);
+    time += (config.checkoutOpenMinutes + 1) * 60_000;
+    const retry = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    expect(clouds.get(answer.cloudId!)?.status).toBe("destroyed");
+    expect(service.overview(owner).clouds).toEqual([]);
+    const row = store.state.checkouts.find(checkout => checkout.id === retry.checkoutId)!;
+    deliver(provider.complete(row.providerSessionId!));
+    expect(service.overview(owner).clouds.map(cloud => [cloud.id, cloud.status])).toEqual([[retry.cloudId, "provisioning"]]);
+  });
   it("records where each checkout started on the checkout and its subscription, and counts the funnel by source", async () => {
     const started = time;
     const paid = await service.checkout(owner, { kind: "cart", cart: desktopOnly() }, { source: "app_routines" });

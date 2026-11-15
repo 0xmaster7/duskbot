@@ -67,6 +67,9 @@ const UPKEEP_CONCURRENCY = 4;
 const sameSpec = (a: MachineSpec, b: MachineSpec) => a.vcpu === b.vcpu && a.ramGb === b.ramGb && a.diskGb === b.diskGb;
 const sameQuota = (a: SlotQuota | undefined, b: SlotQuota) => a && (Object.keys(b) as Array<keyof SlotQuota>).every(k => a[k] === b[k]);
 
+/** a cloud its owner may see: never one a checkout reserved, paid or abandoned, until a payment went through */
+export const paidCloud = (c: Pick<StoredCloud, "status" | "subscriptionId">) => c.status !== "checkout" && !(c.status === "destroyed" && c.subscriptionId === null);
+
 export function createCloudsService(options: CloudsServiceOptions): CloudsService {
   const { providers, sealer, workspaces, config, home } = options, now = options.now ?? Date.now, random = options.random ?? randomBytes;
   const unlock = lockDataDir(options.dataDir);

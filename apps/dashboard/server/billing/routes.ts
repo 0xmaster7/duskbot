@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { CheckoutItem } from "../../../../shared/billing-api.ts";
 import { AuthError } from "../auth/index.ts";
-import { CloudError } from "../clouds/service.ts";
+import { CloudError, paidCloud } from "../clouds/service.ts";
 import type { BillingContext } from "./index.ts";
 import { BillingError } from "./service.ts";
 import { body, cartInput, cloudName, color, invalid, json, rawBody, survey, text } from "./http.ts";
@@ -96,8 +96,7 @@ export function createBillingRoutes(ctx: BillingContext) {
         if (path === "/v1/billing/overview") return send(service.overview(account));
         if (path === "/v1/billing/invoices") return send(service.invoices(account.id, url.searchParams.get("cursor")));
         if (path === "/v1/billing/license") return send(service.licenseCheck(account));
-        // a cloud waiting on its checkout is never shown: it only exists once paid
-        if (path === "/v1/clouds") return send({ clouds: clouds.list(account.id).filter(c => c.status !== "checkout").map(clouds.view) });
+        if (path === "/v1/clouds") return send({ clouds: clouds.list(account.id).filter(paidCloud).map(clouds.view) });
         const invoice = /^\/v1\/billing\/invoices\/([^/]+)\/download$/.exec(path);
         if (invoice) {
           const result = await service.invoiceDownload(account.id, invoice[1]);
