@@ -60,9 +60,11 @@ function machineFor(home: string, platform: NodeJS.Platform = "darwin", env: Rec
     readlink: (path) => seen("readlink", path, real.readlink(path)),
     realpath: (path) => seen("realpath", path, real.realpath(path)),
     read: (path, max, follow, oneLink) => seen("read", path, real.read(path, max, follow, oneLink)),
+    mtime: (path) => seen("mtime", path, real.mtime(path)),
   };
   const machine: SetupMachine = { home, platform, env, fs };
-  return { machine, ops, touched: () => ops.map((entry) => entry.path) };
+  // a change time is looked at, never opened: what was touched is what was listed, opened or followed
+  return { machine, ops, touched: () => ops.filter((entry) => entry.op !== "mtime").map((entry) => entry.path) };
 }
 
 function hostFor(options: { servers?: Record<string, unknown>; refuse?: string[]; claudeUserMcp?: boolean; saveFails?: boolean } = {}) {
@@ -368,13 +370,17 @@ describe("finding what another AI tool already set up on this computer", () => {
       return path === root || (!parts[0]!.startsWith("..") && (parts.length === 1 || (parts.length === 2 && parts[1] === inner) || (parts.length === 3 && parts[1] === inner && parts[2]!.endsWith(".md"))));
     });
     const inRoot = (path: string) => roots.some((root) => path === root || path.startsWith(root + sep)) || inMemory(path);
+    // when each app was last used: only the change time of the paths named for it, and of the project folders
+    const timed = new Set(Object.values(allowed.activity).flat());
+    expect(ops.filter(({ op, path }) => op === "mtime" && !timed.has(path) && !inMemory(path))).toEqual([]);
+    for (const path of planted) expect(ops.filter((entry) => entry.path === path && entry.op !== "mtime"), path).toEqual([]);
+    const opened = ops.filter(({ op }) => op !== "mtime");
     // Opened or listed: the tools' config files and what is inside their skills and commands folders, nothing else.
-    expect(ops.filter(({ op, path }) => (op === "read" || op === "readdir") && !files.has(path) && !inRoot(path))).toEqual([]);
+    expect(opened.filter(({ op, path }) => (op === "read" || op === "readdir") && !files.has(path) && !inRoot(path))).toEqual([]);
     // Only looked at, never opened: also the home folder and the tools' own folders on the way.
     const passed = new Set([home, ...[".claude", ".codex", ".gemini", ".cursor", ".codeium", ".codeium/windsurf", ".codeium/windsurf/memories", ".agents", ".openhands", ".devin", ".config", ".config/devin"]
       .map((folder) => join(home, folder))]);
-    expect(ops.filter(({ path }) => !files.has(path) && !inRoot(path) && !passed.has(path))).toEqual([]);
-    for (const path of planted) expect(touched()).not.toContain(path);
+    expect(opened.filter(({ path }) => !files.has(path) && !inRoot(path) && !passed.has(path))).toEqual([]);
     const inSkills = touched().filter((path) => roots.some((root) => path.startsWith(root + sep))).map((path) => relative(home, path));
     expect(inSkills.filter((path) => path.split(sep).some((part) => part.startsWith(".") && part !== ".claude" && part !== ".codex"))).toEqual([]);
     expect(inSkills.filter((path) => path.split(sep).some(secretName))).toEqual([]);
@@ -474,7 +480,7 @@ describe("finding what another AI tool already set up on this computer", () => {
     try {
       const { machine } = machineFor(home);
       const started = Date.now();
-      expect(detectSetup(machine, hostFor().host)).toEqual({ skills: [], tools: [{ name: "ok", source: "gemini" }] });
+      expect(detectSetup(machine, hostFor().host)).toMatchObject({ skills: [], tools: [{ name: "ok", source: "gemini" }] });
       expect(Date.now() - started).toBeLessThan(800);
     } finally {
       writer.kill();
@@ -758,6 +764,20 @@ describe("bringing memory in", () => {
     put(home, ".codex/AGENTS.md", "Use pnpm for every JavaScript project I work on.\n");
     put(home, ".gemini/GEMINI.md", "## Gemini Added Memories\n- My dog is called Biscuit and is three years old.\n");
   }
+
+  it("says when each app was last used from change times alone, never opening its history", () => {
+    const home = fixtureHome();
+    plantMemory(home);
+    plantPrivateFiles(home);
+    const { utimesSync } = require("node:fs") as typeof import("node:fs");
+    const old = new Date("2026-01-02T00:00:00Z");
+    for (const path of [".codex/AGENTS.md", ".codex/history.jsonl", ".codex/sessions", ".codex/sessions/2026/10/16", ".codex/sessions/2026/10", ".codex/sessions/2026"]) utimesSync(join(home, path), old, old);
+    const { machine, ops } = machineFor(home);
+    const activity = detectSetup(machine, hostFor().host).activity!;
+    expect(activity.codex).toBe(old.getTime());
+    expect(activity.claudeCode).toBeGreaterThan(Date.now() - 60_000);
+    expect(ops.filter(({ op, path }) => op !== "mtime" && /history\.jsonl|sessions/.test(path))).toEqual([]);
+  });
 
   it("counts each tool's new notes, deduped across files and tools, without opening transcripts", () => {
     const home = fixtureHome();

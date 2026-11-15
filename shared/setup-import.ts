@@ -8,6 +8,9 @@ export const SETUP_SOURCES = ["claudeCode", "claudeDesktop", "cursor", "codex", 
 /** A tool whose standing instructions (CLAUDE.md, AGENTS.md, GEMINI.md, global rules) live in one file. */
 export type InstructionsSource = Extract<SetupSource, "claudeCode" | "codex" | "gemini" | "windsurf">;
 
+/** A tool or agent app whose last use is told by when its files last changed. */
+export type ActivitySource = SetupSource | "openclaw" | "hermes" | "openmausbot";
+
 /** Names only, never a file's contents or an env or header value. Everything listed is new here. */
 export interface SetupDetection {
   skills: Array<{ name: string; source: SkillSource }>;
@@ -16,6 +19,8 @@ export interface SetupDetection {
   instructions?: Array<{ name: string; source: InstructionsSource }>;
   /** Notes not brought in yet from each tool's own memory and standing-instructions files, counted, never shown. */
   memory?: Array<{ source: InstructionsSource; files: number; notes: number }>;
+  /** When each app here was last used (ms), from when its files and history folders last changed: stat only. */
+  activity?: Partial<Record<ActivitySource, number>>;
 }
 
 export interface SetupImportRequest {

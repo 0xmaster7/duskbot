@@ -9,7 +9,7 @@ import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readdi
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
-import type { InstructionsSource, SetupDetection, SetupImportRequest, SetupImportResult, SetupSource, SkillSkip, SkillSource, ToolSkip } from "../shared/setup-import.ts";
+import type { ActivitySource, InstructionsSource, SetupDetection, SetupImportRequest, SetupImportResult, SetupSource, SkillSkip, SkillSource, ToolSkip } from "../shared/setup-import.ts";
 import { holdsCredential, redactSecretsInText } from "../shared/redact.ts";
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
@@ -30,6 +30,8 @@ export interface SetupFs {
   readlink(path: string): string | null;
   /** Asked of the home folder only. */
   realpath(path: string): string | null;
+  /** When the path last changed, never following a link and never opening it (history and session folders included). */
+  mtime(path: string): number | null;
   /** A regular file of at most `max` bytes; `follow: false` refuses a symlink, `oneLink` a file with other hard links. */
   read(path: string, max: number, follow?: boolean, oneLink?: boolean): Buffer | null;
 }
@@ -63,6 +65,9 @@ const nodeFs: SetupFs = {
   },
   realpath: (path) => {
     try { return realpathSync(path); } catch { return null; }
+  },
+  mtime: (path) => {
+    try { return lstatSync(path).mtimeMs; } catch { return null; }
   },
   read: (path, max, follow = true, oneLink = false) => {
     let fd: number | null = null;
@@ -153,6 +158,20 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
       { source: "windsurf", path: join(home, ".codeium", "windsurf", "memories", "global_rules.md"), name: "global_rules.md" },
       { source: "windsurf", path: join(home, ".devin", "global_rules.md"), name: "global_rules.md" },
     ] satisfies Array<{ source: InstructionsSource; path: string; name: string }>,
+    /** Looked at for when each app was last used, by their change time only: never listed or opened. */
+    activity: {
+      claudeCode: [join(home, ".claude", "history.jsonl"), join(home, ".claude", "projects"), join(home, ".claude", "CLAUDE.md"), join(home, ".claude", "skills"), join(home, ".claude", "agents")],
+      claudeDesktop: [join(desktop, "claude_desktop_config.json")],
+      codex: [join(codexHome, "history.jsonl"), join(codexHome, "sessions"), join(codexHome, "AGENTS.md"), join(codexHome, "skills"), join(home, ".agents", "skills")],
+      cursor: [join(home, ".cursor", "mcp.json"), join(home, ".cursor", "rules")],
+      gemini: [join(home, ".gemini", "tmp"), join(home, ".gemini", "history"), join(home, ".gemini", "GEMINI.md"), join(home, ".gemini", "commands")],
+      windsurf: [join(home, ".codeium", "windsurf"), join(home, ".codeium", "windsurf", "memories"), join(home, ".codeium", "windsurf", "global_workflows")],
+      vscode: [join(vscode, "mcp.json")],
+      openhands: [join(home, ".openhands")],
+      openclaw: [join(home, ".openclaw"), join(home, ".openclaw", "workspace"), join(home, ".openclaw", "agents")],
+      hermes: [join(home, ".hermes", "state.db"), join(home, ".hermes", "sessions"), join(home, ".hermes", "memories")],
+      openmausbot: [join(home, ".openmausbot"), join(home, ".opengrokbot")],
+    } satisfies Record<ActivitySource, string[]>,
     /** Folders of per-project memory notes: <root>/<project>/memory/*.md, and nothing else under <root>. */
     memoryFolders: [
       { source: "claudeCode", root: join(home, ".claude", "projects"), inner: "memory" },
@@ -1019,6 +1038,27 @@ function importInstructions(machine: SetupMachine, sources?: readonly SetupSourc
 }
 
 /** What is new here, by name and source; an empty list when nothing is. */
+/** When each app was last used: the newest change time of its known files and history folders, and for Claude Code of
+ * its project folders (a new conversation changes its folder). Nothing is opened or listed beyond the projects folder. */
+function findActivity(machine: SetupMachine): Partial<Record<ActivitySource, number>> {
+  const paths = setupPaths(machine);
+  const activity: Partial<Record<ActivitySource, number>> = {};
+  const note = (source: ActivitySource, at: number | null) => {
+    if (at !== null && at > (activity[source] ?? 0)) activity[source] = Math.round(at);
+  };
+  for (const [source, list] of Object.entries(paths.activity) as Array<[ActivitySource, string[]]>) {
+    for (const path of list) note(source, machine.fs.mtime(path));
+  }
+  for (const folder of paths.memoryFolders) {
+    const root = machine.fs.lstat(folder.root);
+    if (!root?.isDirectory()) continue;
+    for (const project of (machine.fs.readdir(folder.root) ?? []).filter((name) => !name.startsWith(".")).slice(0, 500)) {
+      note(folder.source, machine.fs.mtime(join(folder.root, project)));
+    }
+  }
+  return activity;
+}
+
 export function detectSetup(machine: SetupMachine, host: SetupHost): SetupDetection {
   const index = readImportedSkills();
   const skills = findSkills(machine).filter((skill) => freshSkill(skill, index[skill.name])).map(({ name, source }) => ({ name, source }));
@@ -1028,7 +1068,8 @@ export function detectSetup(machine: SetupMachine, host: SetupHost): SetupDetect
     : [];
   const instructions = findInstructions(machine).map(({ name, source }) => ({ name, source }));
   const memory = findMemory(machine).map(({ source, files, notes }) => ({ source, files, notes: notes.length }));
-  return { skills, tools, ...(instructions.length ? { instructions } : {}), ...(memory.length ? { memory } : {}) };
+  const activity = findActivity(machine);
+  return { skills, tools, ...(instructions.length ? { instructions } : {}), ...(memory.length ? { memory } : {}), ...(Object.keys(activity).length ? { activity } : {}) };
 }
 
 /** Each kind on its own: one that fails reports what it was bringing in as failed, and the other still comes in. */

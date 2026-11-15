@@ -139,7 +139,7 @@ describe("the setup import routes", () => {
     const found = await call("GET", "/api/setup-import");
     expect(found.status).toBe(200);
     expect(found.headers.get("cache-control")).toBe("no-store");
-    expect(await found.json()).toEqual({ skills: [{ name: "pdf", source: "claudeCode" }], tools: [{ name: "notion", source: "cursor" }] });
+    expect(await found.json()).toMatchObject({ skills: [{ name: "pdf", source: "claudeCode" }], tools: [{ name: "notion", source: "cursor" }] });
 
     const brought = await call("POST", "/api/setup-import", { body: { skills: true, tools: true } });
     expect(brought.status).toBe(200);
@@ -151,7 +151,7 @@ describe("the setup import routes", () => {
     expect(text).not.toContain("notion_secret");
     expect(importedSkillsFor(bot.id, new Set()).map((skill) => skill.name)).toEqual(["pdf"]);
     expect(cfg.mcpServers).toEqual({ notion: { type: "http", url: "https://mcp.notion.com/mcp", headers: { Authorization: "Bearer notion_secret" }, enabled: false } });
-    expect(await (await call("GET", "/api/setup-import")).json()).toEqual({ skills: [], tools: [] });
+    expect(await (await call("GET", "/api/setup-import")).json()).toMatchObject({ skills: [], tools: [] });
 
     expect(await (await call("GET", "/api/setup-import/other")).json()).toEqual({ from: "next handler" });
     expect((await call("DELETE", "/api/setup-import")).status).toBe(405);
