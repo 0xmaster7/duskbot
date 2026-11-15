@@ -1,9 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { TOOLTIP } from "@/lib/motion-presets";
+import { AnimatePresence, motion } from "motion/react";
+import { EASE_OUT, REDUCED, SPRING, TOOLTIP } from "@/lib/motion-presets";
+import { useStretch } from "@/lib/use-stretch";
+import { useMotionReduced } from "./ui/SheetMotion";
 
-/** Grok's tooltip timing, measured in its renderer: 300ms on a first hover; leaving holds it 100ms, then it fades out
- * over 100ms. A trigger reached while one is still up shows at once, unanimated, as does one reached by keyboard. */
+/** Tooltip timing: 400ms on a first hover; leaving holds it 140ms, then it fades out over 100ms. A trigger reached while
+ * one is still up (or within 300ms of one closing) shows at once, as does one reached by keyboard. The first one grows
+ * out of its trigger; moving along a row of controls, the same tooltip travels and resizes (its edges stretch) while
+ * its words slide the way the pointer went. */
 export const TOOLTIP_DELAY_MS = TOOLTIP.openDelay;
 const TOOLTIP_CLOSE_DELAY_MS = TOOLTIP.closeDelay;
 const TOOLTIP_EXIT_MS = TOOLTIP.exit;
@@ -20,8 +25,7 @@ interface Tip { el: HTMLElement; text: string; instant: boolean; ending?: boolea
  */
 export function TitleTooltips() {
   const [tip, setTip] = useState<Tip | null>(null);
-  const [place, setPlace] = useState<{ left: number; top: number; side: "top" | "bottom" } | null>(null);
-  const tipRef = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<{ left: number; top: number; width: number; side: Side; single: boolean; text: string; originX: number; travel: boolean; dir: number; key: number } | null>(null);
 
   useEffect(() => {
     let pending: { el: HTMLElement; timer: number } | null = null;
@@ -29,6 +33,7 @@ export function TitleTooltips() {
     let closing = 0;
     let ending = 0;
     let poll = 0;
+    let cooled = 0;
     const strip = (el: HTMLElement): string | null => {
       const title = el.getAttribute("title");
       if (title == null) return el.dataset.tipTitle ?? null;
@@ -61,7 +66,7 @@ export function TitleTooltips() {
       cancel();
       stopClosing();
       window.clearInterval(poll);
-      if (shown) { restore(shown); shown = null; }
+      if (shown) { restore(shown); shown = null; cooled = performance.now(); }
       setTip(null);
     };
     // Grok's close: the tip fades out from where it is, and a trigger reached meanwhile still opens at once
@@ -95,7 +100,7 @@ export function TitleTooltips() {
         return;
       }
       if (pending?.el === el) return;
-      const warm = shown !== null;
+      const warm = shown !== null || performance.now() - cooled < TOOLTIP.warm;
       hide();
       if (strip(el) == null) return;
       if (warm || keyboard) { show(el, true); return; }
@@ -145,34 +150,77 @@ export function TitleTooltips() {
     };
   }, []);
 
-  // below the trigger and centred on it, above when there is no room, held 8px inside the window
+  // below the trigger and centred on it, above when there is no room, held 8px inside the window. Measured on a hidden
+  // copy, since the shown one may be mid-stretch.
+  const reduced = useMotionReduced();
+  const measureRef = useRef<HTMLDivElement>(null);
+  const last = useRef<{ el: HTMLElement; left: number; top: number; side: Side; single: boolean } | null>(null);
   const anchorEl = tip?.el;
   const anchorText = tip?.text;
   useLayoutEffect(() => {
-    if (!tip || !tipRef.current) { setPlace(null); return; }
+    if (!tip || !measureRef.current) { setPlace(null); last.current = null; return; }
     const anchor = tip.el.getBoundingClientRect();
-    const box = tipRef.current.getBoundingClientRect();
+    const box = measureRef.current.getBoundingClientRect();
     const below = anchor.bottom + GAP + box.height <= window.innerHeight - EDGE;
     const top = below ? anchor.bottom + GAP : Math.max(EDGE, anchor.top - GAP - box.height);
     const left = Math.min(Math.max(EDGE, anchor.left + anchor.width / 2 - box.width / 2), window.innerWidth - EDGE - box.width);
-    setPlace({ left, top, side: below ? "bottom" : "top" });
+    const side: Side = below ? "bottom" : "top";
+    const single = box.height <= 28;
+    // a warm move to a neighbour on the same line travels; anything else (another row, the far side of the window,
+    // a wrapped tip, reduced motion) just appears there
+    const prev = last.current;
+    const travel = Boolean(prev && tip.instant && !reduced && prev.el !== tip.el && prev.side === side && prev.single && single
+      && Math.abs(prev.top - top) < 4 && Math.abs(prev.left - left) < 400);
+    last.current = { el: tip.el, left, top, side, single };
+    setPlace((was) => ({ left, top, width: box.width, side, single, text: tip.text, originX: anchor.left + anchor.width / 2 - left,
+      travel, dir: prev && left < prev.left ? -1 : 1, key: (was?.key ?? 0) + 1 }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorEl, anchorText]);
+  const edges = useStretch(place ? { start: place.left, end: place.left + place.width } : null, !place?.travel);
 
   if (!tip) return null;
+  const words = { travel: place?.travel ?? false, dir: place?.dir ?? 1 };
   return createPortal(
-    <div
-      ref={tipRef}
-      id={TOOLTIP_ID}
-      role="tooltip"
-      data-side={place?.side ?? "bottom"}
-      data-instant={tip.instant ? "" : undefined}
-      data-ending={tip.ending ? "" : undefined}
-      className="ui-tooltip"
-      style={place ? { left: place.left, top: place.top } : { left: 0, top: 0, visibility: "hidden" }}
-    >
-      {tip.text}
-    </div>,
+    <>
+      <div ref={measureRef} aria-hidden="true" className="ui-tooltip" style={{ left: 0, top: 0, visibility: "hidden" }}>{tip.text}</div>
+      <motion.div
+        id={TOOLTIP_ID}
+        role="tooltip"
+        data-side={place?.side ?? "bottom"}
+        data-instant={tip.instant ? "" : undefined}
+        data-ending={tip.ending ? "" : undefined}
+        className="ui-tooltip overflow-hidden"
+        style={place ? {
+          left: edges.start,
+          top: place.top,
+          width: edges.size,
+          textAlign: place.single ? "center" : undefined,
+          whiteSpace: place.single ? "nowrap" : undefined,
+          transformOrigin: `${Math.round(place.originX)}px ${place.side === "bottom" ? "-6px" : "calc(100% + 6px)"}`,
+        } : { left: 0, top: 0, visibility: "hidden" }}
+        initial={tip.instant ? false : reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92 }}
+        animate={tip.ending
+          ? { opacity: 0, transition: { duration: TOOLTIP.exit / 1000, ease: EASE_OUT } }
+          : { opacity: 1, scale: 1, transition: reduced ? REDUCED : { ...SPRING.fade, opacity: { duration: 0.15, ease: EASE_OUT } } }}
+      >
+        <AnimatePresence initial={false} mode="popLayout" custom={words}>
+          <motion.span key={place?.key ?? 0} className="block" custom={words} variants={WORDS} initial="enter" animate="center" exit="exit">
+            {place?.text ?? tip.text}
+          </motion.span>
+        </AnimatePresence>
+      </motion.div>
+    </>,
     document.body,
   );
 }
+
+type Side = "top" | "bottom";
+
+/** the words of a travelling tooltip slide 14px the way it went, through a 3px blur; otherwise they just change */
+const WORDS = {
+  enter: ({ travel, dir }: { travel: boolean; dir: number }) => (travel ? { opacity: 0, x: dir * 14, filter: "blur(3px)" } : { opacity: 1, x: 0, filter: "blur(0px)" }),
+  center: { opacity: 1, x: 0, filter: "blur(0px)", transition: SPRING.fade },
+  exit: ({ travel, dir }: { travel: boolean; dir: number }) => (travel
+    ? { opacity: 0, x: dir * -10, filter: "blur(3px)", transition: { duration: 0.12, ease: EASE_OUT } }
+    : { opacity: 0, transition: { duration: 0 } }),
+};

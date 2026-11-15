@@ -248,7 +248,6 @@
   box-shadow: none;
   pointer-events: none;
 }
-.ui-tooltip[data-ending] { visibility: hidden; }
 
 /* Settings under the grok skin: Grok's settings dialog sits on the modal lift behind a half-pixel edge. */
 :root:is([data-skin="grok"]) [data-settings-look] .glass-surface {
