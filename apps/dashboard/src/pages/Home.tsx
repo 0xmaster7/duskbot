@@ -154,7 +154,8 @@ export function HomePage() {
             <Tile tint="rose" icon={<Smartphone {...ICON} />} title="link your phone" body="text your bots from anywhere." to="/account#devices" />
             <Tile tint="lemon" icon={<LayoutGrid {...ICON} />} title="apps" body="gmail, slack, github and more." to="/connectors" />
           </div>
-          <Activity detail={detail?.report?.activity ? detail : null} now={now} className="enter" style={{ ["--i" as string]: 3 }} />
+          {/* a year of empty squares says nothing to someone with no bots yet; it shows once there is anything to fill it */}
+          {(detail?.report?.activity || bots.length > 0) && <Activity detail={detail?.report?.activity ? detail : null} now={now} className="enter" style={{ ["--i" as string]: 3 }} />}
           <Recent rows={bots} />
         </>}
       </div>
