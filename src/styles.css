@@ -1945,6 +1945,19 @@ body {
   }
   :focus { --tw-ring-color: transparent !important; --tw-inset-ring-color: transparent !important; }
 }
+/* the bot panel's model pill keeps one look: its 7% hairline at rest and after a pick (the focus reset above would clear
+   it), swapped for a 6% fill on hover, open or keyboard focus, never both */
+[data-panel-row="model"] [data-tour="model"] { --tw-inset-ring-color: color-mix(in oklab, var(--color-ink) 7%, transparent) !important; }
+[data-panel-row="model"] [data-tour="model"]:is([aria-expanded="true"], :focus-visible) {
+  --tw-inset-ring-color: transparent !important;
+  background-color: color-mix(in oklab, var(--color-ink) 6%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-panel-row="model"] [data-tour="model"]:enabled:hover {
+    --tw-inset-ring-color: transparent !important;
+    background-color: color-mix(in oklab, var(--color-ink) 6%, transparent);
+  }
+}
 /* the tint shows only while someone moves with the keyboard (lib/focus-nav sets the flag on Tab or an arrow key):
    focus a dialog puts on its first button when it opens, or that a click or Enter leaves behind, draws nothing.
    Text fields keep the caret as their only cue. */
