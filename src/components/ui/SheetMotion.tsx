@@ -1,4 +1,4 @@
-import { motion, useReducedMotion, type HTMLMotionProps } from "motion/react";
+import { isMotionValue, motion, useReducedMotion, type HTMLMotionProps } from "motion/react";
 
 
 /** The app's reduced-motion choice or the system's. */
@@ -23,6 +23,13 @@ export function MotionDiv(props: HTMLMotionProps<"div">) {
   return live() ? <motion.div {...props} /> : <div {...(rest(props) as React.HTMLAttributes<HTMLDivElement>)} />;
 }
 
+/** A motion span where there is a window, a plain span at rest elsewhere (motion values in its style read once). */
+export function MotionSpan(props: HTMLMotionProps<"span">) {
+  if (live()) return <motion.span {...props} />;
+  const plain = rest(props) as React.HTMLAttributes<HTMLSpanElement> & { style?: Record<string, unknown> };
+  const style = plain.style ? Object.fromEntries(Object.entries(plain.style).map(([key, value]) => [key, isMotionValue(value) ? value.get() : value])) : undefined;
+  return <span {...plain} style={style as React.CSSProperties} />;
+}
 
 /** A centered sheet's own box. It opens with the app's one dialog motion, from overlays.css on its aria-modal role. */
 export function SheetMotion(props: HTMLMotionProps<"div">) {

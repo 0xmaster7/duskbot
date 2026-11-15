@@ -55,9 +55,9 @@ export const SHEET_EXIT = { duration: 0.12, ease: [0.22, 1, 0.36, 1] } as const;
 /** pane push and pop: incoming slides 100% (pop: -30%), outgoing leaves -30% (pop: 100%), 200ms */
 export const WIPE = { duration: 0.2, ease: EASE.out, pushFrom: "100%", popFrom: "-30%" } as const;
 
-/** tooltips, measured in Grok's renderer (ms): first hover waits 300; leaving holds 100, then the exit runs 100.
- * a trigger reached while one is still up, or by keyboard focus, shows at once with no enter animation. */
-export const TOOLTIP = { openDelay: 300, closeDelay: 100, exit: GROK_DURATION.fast * 1000 } as const;
+/** tooltips (ms): a first hover waits 400; leaving holds 140, then a 100ms fade. A trigger reached while one is up, within
+ * 300ms of one closing, or by keyboard focus, shows at once. */
+export const TOOLTIP = { openDelay: 400, closeDelay: 140, exit: 100, warm: 300 } as const;
 
 // bencho.dev's small token set (ref/BENCHO-MOTION.md): grok's look, bencho's feel. springs near critical damping for
 // overlays, opacity on its own 160ms clock, tiny distances, exits shorter than entrances.
@@ -123,4 +123,24 @@ export function dialogMotion(reduced: boolean) {
 export const SWAP = {
   initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0, transition: { duration: BENCHO.dur.base, ease: BENCHO.ease.out } },
+} as const;
+
+// the motion lab's spring set (2026-11 picks), mass 1. new motion uses these; older presets above stay as they ship.
+export const SPRING = {
+  /** opacity and small slides, a tooltip growing out of its trigger */
+  fade: { type: "spring", stiffness: 420, damping: 32, mass: 1 },
+  /** panels, columns, the sidebar */
+  soft: { type: "spring", stiffness: 260, damping: 24, mass: 1 },
+  /** release onto a value, a card gliding between rows */
+  settle: { type: "spring", stiffness: 280, damping: 22, mass: 1 },
+  /** a calm pop for direct acknowledgement (copy, check) */
+  pop: { type: "spring", stiffness: 520, damping: 26, mass: 1 },
+  /** a stretchy highlight: the edge facing the move */
+  lead: { type: "spring", stiffness: 620, damping: 36, mass: 1 },
+  /** a stretchy highlight: the edge that catches up */
+  trail: { type: "spring", stiffness: 190, damping: 19, mass: 1 },
+  /** container height, landing after its width */
+  height: { type: "spring", stiffness: 300, damping: 22, mass: 1 },
+  /** a layout move with no bounce */
+  layout: { type: "spring", bounce: 0, visualDuration: 0.3 },
 } as const;
