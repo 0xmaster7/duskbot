@@ -55,6 +55,9 @@ import { workspaceTurns } from "./admin/metrics.ts";
 import { createIncidents, type Incidents } from "./incidents/index.ts";
 import { memoryIncidentStore } from "./incidents/store.ts";
 import { createIncidentRoutes, IncidentRouteError } from "./incidents/routes.ts";
+import { BUG_REPORT_PATH, createBugReports } from "./bug-reports/index.ts";
+import { memoryBugReportStore, type BugReportStore } from "./bug-reports/store.ts";
+import { createSealer, parseSealKey } from "./clouds/seal.ts";
 import { aliasLegacyCookies, aliasLegacyHeaders } from "../../../electron/legacy-names.mjs";
 import { LINK_GRANT_PATH, linkGrantSignerFromEnv, signLinkGrant } from "./link-grant.ts";
 import { screenIceMinterFromEnv } from "./screen-ice.ts";
@@ -98,6 +101,8 @@ export interface DashboardAppOptions {
   admin?: { emails?: string[]; backupDir?: string | null; environment?: string; env?: NodeJS.ProcessEnv; opsFixture?: boolean; live?: LiveData | null };
   /** the owner's alert emails (main.ts); without it incidents are kept in memory and nothing is mailed */
   incidents?: Incidents;
+  /** @devs reports from the apps: MongoDB in production (main.ts), memory otherwise; mail goes where the alert emails go */
+  bugReports?: { store?: BugReportStore; mail?: { on: boolean; to: () => string[]; mailers: Mailer[] } };
 }
 class RequestError extends Error {
   status: number;
@@ -123,7 +128,7 @@ export function pagePolicy(html: string): string {
 const PAGE_ROUTES = ["/sign-in", "/signin", "/signup", "/welcome", "/claim", "/cloud", "/clouds", "/billing", "/usage", "/account", "/workspaces", "/bots", "/connectors", "/settings", "/devices", "/connect"];
 
 /** what the service answers itself on a shared origin; everything else outside the page base is the site's */
-const ACCOUNT_PREFIXES = ["/v1/", "/api/cloud/", "/api/public", "/api/bots", DASHBOARD_DISCOVERY_PATH];
+const ACCOUNT_PREFIXES = ["/v1/", "/api/cloud/", "/api/public", "/api/bots", BUG_REPORT_PATH, DASHBOARD_DISCOVERY_PATH];
 /** the owner's panel: the same page bundle at its own top-level path, served only to an admin's session */
 export const ADMIN_PATH = "/admin";
 /** where the page lived before /dashboard; old links (and /app/admin) are sent on */
@@ -411,6 +416,14 @@ export function createDashboardApp(options: DashboardAppOptions) {
   });
   const incidentRoutes = createIncidentRoutes({ incidents, json, readBody, bodyObject, rate, onClientError: (error, page) => { errorsSeen.note("page"); options.errors?.page.capture(error, { tags: { page } }); },
     admin: (req, mutation) => { const owner = auth.requireWeb(req, { mutation }); if (!admin.isAdmin(owner.email)) throw new AdminError(403, "not_admin", "This account is not an admin."); } });
+  const reportMail = options.bugReports?.mail;
+  const cloudSealer = createSealer((options.admin?.env ?? process.env).DUSK_CLOUD_SEAL_KEY ? parseSealKey((options.admin?.env ?? process.env).DUSK_CLOUD_SEAL_KEY!) : null);
+  const bugReports = createBugReports({ store: options.bugReports?.store ?? memoryBugReportStore(), now, json, bodyObject, ip: req => rateIp(clientIp(req, options.trustProxy ?? false)),
+    admin: (req, mutation) => { const owner = auth.requireWeb(req, { mutation }); if (!admin.isAdmin(owner.email)) throw new AdminError(403, "not_admin", "This account is not an admin."); return owner.id; },
+    audit: (actor, action, target, detail) => { void analytics.sink.audit({ id: `aud_${random(12)}`, at: now(), actor, action, target, detail }).catch(() => {}); },
+    clouds: { get: id => billing.clouds.get(id), unseal: sealed => cloudSealer.unseal(sealed) },
+    // test addresses (@qa.dusk.test) never leave this service, whichever mailer is first
+    mail: reportMail ? { on: reportMail.on, to: reportMail.to, mailers: reportMail.mailers.map(mailer => sinkTestMail(mailer, testMail)), email: emailCfg, panelUrl: `${publicUrl}${ADMIN_PATH}/bug-reports` } : undefined });
   const requestIp = new AsyncLocalStorage<string>();
   const limits = new Map<string, { count: number; until: number }>();
   const watching = new Map<string, number>();
@@ -735,6 +748,7 @@ export function createDashboardApp(options: DashboardAppOptions) {
       try { return auth.requireWeb(request, { mutation: strict }); } catch (error) { if (error instanceof AuthError && error.code === "signed_out") return null; throw error; }
     } })) return;
     if (await incidentRoutes.handle(req, res, url)) return;
+    if (await bugReports.handle(req, res, url)) return;
     // preview and development only: the latest code and link mailed to a test address, for test harnesses
     if (path === "/v1/ops/test-mail" && method === "GET") {
       const token = adminEnv.DUSK_OPS_TOKEN, given = String(req.headers.authorization ?? "");

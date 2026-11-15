@@ -161,6 +161,7 @@ What sends an email, to `DUSK_ALERT_EMAILS` (empty: `DUSK_ADMIN_EMAILS`), all lo
 | MongoDB state writes failing (checked every 30 s) | `incidents/process.ts` |
 | any `console.error` line, and `console.warn` lines with `ALERT` or a failure in them: failed emails, lease renewal failures, cloud setup, restore, backup, cost-ceiling and machine `ALERT` lines, the billing duplicate-subscription `ALERT` | console tap in `incidents/process.ts` |
 | a page error on the dashboard or /admin, or an error in the desktop app's page or main process | `POST /v1/errors` |
+| a new @devs report from an app (one email per report, never repeated, at most 50 a day; all of them at /admin/bug-reports) | `POST /api/bug-reports`, `apps/dashboard/server/bug-reports` |
 
 Throttle rules (`RULES` in `apps/dashboard/server/incidents/index.ts`):
 

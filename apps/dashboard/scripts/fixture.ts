@@ -1,6 +1,6 @@
 // a local dashboard service for development and verification: a memory mailer, the service on a temporary
 // data folder, an optional signed-in session and an optional demo workspace that reports made-up numbers.
-//   node apps/dashboard/scripts/fixture.ts [--port 7480] [--email you@example.test] [--demo] [--team] [--session-file path]
+//   node apps/dashboard/scripts/fixture.ts [--port 7480] [--email you@example.test] [--demo] [--team] [--session-file path] [--alerts someone@qa.dusk.test]
 // --team buys the team plan for the account (fake payments); mail to @qa.dusk.test (invites, their codes) is printed, never sent
 // the demo workspace is fixture data only; real workspaces connect from the app (POST /api/dashboard/link).
 import { createHash, generateKeyPairSync, sign, type KeyObject } from "node:crypto";
@@ -14,7 +14,7 @@ import type { BotReport, CommandResult, DashboardCommand, EnrollAnswer, ReportAn
 import { createDashboardApp } from "../server/app.ts";
 import { PULSE_INTERVAL_MS, PulseRing } from "../../../shared/machine-pulse.ts";
 import { startFakeProviders } from "../server/auth/fake-providers.ts";
-import { memoryMailer } from "../server/auth/mail.ts";
+import { isTestAddress, memoryMailer } from "../server/auth/mail.ts";
 import { CSRF_HEADER } from "../../../shared/account-api.ts";
 import { memorySink } from "../server/analytics/sink.ts";
 import { assertFixtureStore, seedAdminAuth, seedAdminData, seedWaitlist } from "./fixture-admin.ts";
@@ -22,7 +22,9 @@ import { assertFixtureStore, seedAdminAuth, seedAdminData, seedWaitlist } from "
 // a fixture is local and made up: it never starts with a real database in its environment
 assertFixtureStore();
 
-const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@duskbot.test" }, demo: { type: "boolean", default: false }, team: { type: "boolean", default: false }, "session-file": { type: "string" } } });
+const { values } = parseArgs({ options: { port: { type: "string", default: "7480" }, email: { type: "string", default: "sid@duskbot.test" }, demo: { type: "boolean", default: false }, team: { type: "boolean", default: false }, "session-file": { type: "string" }, alerts: { type: "string" } } });
+// --alerts mails each new @devs report to a test address, which stays in this process (printed below)
+if (values.alerts && !isTestAddress(values.alerts)) throw new Error("--alerts takes a test address (@qa.dusk.test) only.");
 const port = Number(values.port);
 const url = `http://127.0.0.1:${port}`;
 const dataDir = mkdtempSync(join(tmpdir(), "dusk-dashboard-"));
@@ -40,7 +42,8 @@ const testMail = { readable: true, latest: () => null, keep(message: { to: strin
   console.log(`test mail for ${message.to}: ${message.subject}${[message.text.match(/\b\d{8}\b/)?.[0], message.text.match(/https?:\/\/[^\s"'<>)]+/)?.[0]].filter(Boolean).map(v => ` | ${v}`).join("")}`);
 } };
 const app = createDashboardApp({ dataDir, publicUrl: url, mailer, testMail, oauth: providers.config, staticDir: decodeURIComponent(new URL("../dist", import.meta.url).pathname),
-  analytics: { sink: memorySink(), waitlist: values.demo ? seedWaitlist(Date.now()) : null }, admin: { emails: values.demo ? [values.email] : [], env: {}, opsFixture: values.demo } });
+  analytics: { sink: memorySink(), waitlist: values.demo ? seedWaitlist(Date.now()) : null }, admin: { emails: values.demo ? [values.email] : [], env: {}, opsFixture: values.demo },
+  bugReports: values.alerts ? { mail: { on: true, to: () => [values.alerts!], mailers: [mailer] } } : undefined });
 const server = createServer(app.handle);
 await new Promise<void>((resolve) => server.listen(port, "127.0.0.1", resolve));
 

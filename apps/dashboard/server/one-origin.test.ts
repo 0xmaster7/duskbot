@@ -70,6 +70,16 @@ describe("one origin: dashboard, admin and site", () => {
     expect(siteHits).toEqual(["/pricing"]);
   });
 
+  it("answers the apps' @devs reports itself, never the site's 404", async () => {
+    const report = { installId: "test-install-0001", source: "bot", description: "it broke", appVersion: "0.1.150", platform: "darwin arm64, desktop app", diagnostics: "" };
+    const sent = await fetch(`${url}/api/bug-reports`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(report) });
+    expect(sent.status).toBe(201);
+    const { id } = await sent.json() as { id: string };
+    const asked = await fetch(`${url}/api/bug-reports/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ installId: report.installId, ids: [id] }) });
+    expect(await asked.json()).toEqual({ reports: [{ id, status: "received", fixedIn: null }], notify: true });
+    expect(siteHits).toEqual([]);
+  });
+
   it("shows /admin only to the owner: signed out goes to sign-in, anyone else gets the site's not-found", async () => {
     const out = await get("/admin/people");
     expect(out.status).toBe(302);

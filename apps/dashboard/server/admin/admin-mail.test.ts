@@ -22,11 +22,13 @@ const SENDERS: Record<string, "customer" | "admin"> = {
   "apps/dashboard/server/admin/alerts.ts": "admin",
   // outages: "something's wrong" once per incident, "back to normal" once, and the daily email of ones the caps held back
   "apps/dashboard/server/incidents/index.ts": "admin",
+  // one email per new @devs report, never a repeat, at most RATES.mailsPerDay a day
+  "apps/dashboard/server/bug-reports/index.ts": "admin",
 };
 /** the only places an admin or alert address list reaches a sender */
 const ADMIN_WIRING: Record<string, RegExp[]> = {
   "apps/dashboard/server/app.ts": [/createAlerts\(\{[^\n]*emails: \(\) => adminEmails/],
-  "apps/dashboard/server/main.ts": [/createIncidents\(\{[^\n]*to: \(\) => alertEmails/],
+  "apps/dashboard/server/main.ts": [/createIncidents\(\{[^\n]*to: \(\) => alertEmails/, /bugReports: \{[^\n]*mail: \{ on: alertsOn, to: \(\) => alertEmails/],
 };
 
 function files(dir: string): string[] {

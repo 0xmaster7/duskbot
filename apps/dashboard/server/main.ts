@@ -21,6 +21,7 @@ import { parseAdminEmails } from "./admin/index.ts";
 import { emailConfig } from "./email/templates.ts";
 import { createIncidents } from "./incidents/index.ts";
 import { memoryIncidentStore, mongoIncidentStore } from "./incidents/store.ts";
+import { mongoBugReportStore } from "./bug-reports/store.ts";
 import { tapConsole, watchDatabase, watchProcess } from "./incidents/process.ts";
 import { stateBackend } from "./persistence/backend.ts";
 
@@ -81,7 +82,9 @@ console.log(`alerts: ${alertsOn ? `emailing ${alertEmails.length} address${alert
 // mail to @qa.dusk.test never leaves the service; only preview and development keep it for test harnesses to read
 const testMail = createTestMailbox({ readable: environment === "preview" || dev });
 console.log(`test mail: ${testMail.readable ? "kept for harnesses" : "dropped"}`);
-const app = createDashboardApp({ errors: { service, page }, incidents, version, dataDir, publicUrl, mailer, testMail, oauth: providersFromEnv(process.env), dev,
+// without MongoDB (development) reports are kept in memory; production refuses to start without it above
+const bugReportStore = database ? await mongoBugReportStore(database.db) : undefined;
+const app = createDashboardApp({ errors: { service, page }, incidents, bugReports: { store: bugReportStore, mail: { on: alertsOn, to: () => alertEmails, mailers: fallbackMailer ? [mailer, fallbackMailer] : [mailer] } }, version, dataDir, publicUrl, mailer, testMail, oauth: providersFromEnv(process.env), dev,
   signupOpen: process.env.DUSK_AUTH_SIGNUP_OPEN !== "0", trustProxy: process.env.DUSK_TRUST_PROXY === "1", staticDir: staticDir || null,
   pageBase: process.env.DUSK_DASHBOARD_PAGE_BASE || "", waitlistOnly: process.env.DUSK_PRELAUNCH_WAITLIST_ONLY === "1", mailPerHour: process.env.DUSK_AUTH_MAIL_PER_HOUR ? Number(process.env.DUSK_AUTH_MAIL_PER_HOUR) : undefined, mailPerDay: process.env.DUSK_AUTH_MAIL_PER_DAY ? Number(process.env.DUSK_AUTH_MAIL_PER_DAY) : undefined, siteUpstream: process.env.DUSK_SITE_UPSTREAM || null, linkUpstream: process.env.DUSK_LINK_UPSTREAM || null,
   analytics, admin: { emails: adminEmails, environment, live, backupDir: process.env.DUSK_BACKUP_DIR || (database ? "/root/backups/mongo-dusk" : null) } });

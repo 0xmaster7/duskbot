@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, ArrowUpRight, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Menu, MessageSquare, Moon, Repeat, Server, Sun, Table2, Users, X } from "@/icons";
+import { AlertTriangle, ArrowUpRight, Bug, ChartNoAxesColumn, ChartNoAxesCombined, ChevronDown, Cloud, CreditCard, Gauge, Globe as GlobeIcon, History, Inbox, LayoutDashboard, Menu, MessageSquare, Moon, Repeat, Server, Sun, Table2, Users, X } from "@/icons";
 import { setTheme, useTheme } from "../lib/theme";
 import { ButtonLink, cx } from "../ui/kit";
 import { Modal } from "../ui/controls";
@@ -25,6 +25,7 @@ import { OpsPage } from "./Ops";
 import { AccountsUsagePage } from "./OpsAccounts";
 import { FeedbackPage } from "./Feedback";
 import { ExperiencePage } from "./Experience";
+import { BugReportsPage } from "./BugReports";
 import { Loading, Tabs } from "./ui";
 import { CustomerSheetHost } from "./CustomerSheet";
 import { AnimatePresence, EASE_OUT, GLIDE, m, PageIn, ToastStack } from "../ui/motion";
@@ -43,6 +44,7 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     { to: "/admin/product", key: "i", label: "product", icon: <ChartNoAxesCombined {...ICON} /> },
     { to: "/admin/experience", key: "b", label: "experience", icon: <AlertTriangle {...ICON} /> },
     { to: "/admin/feedback", key: "f", label: "feedback", icon: <MessageSquare {...ICON} /> },
+    { to: "/admin/bug-reports", key: "d", label: "bug reports", icon: <Bug {...ICON} /> },
     { to: "/admin/retention", key: "r", label: "retention", icon: <Repeat {...ICON} /> },
   ] },
   { label: "operations", items: [
@@ -86,6 +88,7 @@ function page(path: string): ReactNode {
   if (path === "/admin/retention") return <RetentionPage />;
   if (path === "/admin/feedback") return <FeedbackPage />;
   if (path === "/admin/experience") return <ExperiencePage />;
+  if (path === "/admin/bug-reports") return <BugReportsPage />;
   if (path === "/admin/waitlist") return <WaitlistPage />;
   if (path === "/admin/clouds") return <CloudsPage />;
   if (path === "/admin/live") return <LivePage />;
