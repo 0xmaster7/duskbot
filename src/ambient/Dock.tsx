@@ -13,7 +13,8 @@ import { HISTORY, MiniChat, type ChatScroll } from "./MiniChat";
 import { useRowMoments } from "./rows";
 import { LOOK_MS, attention, dotOf, eventKey, isFresh, isSeenEvent, newsOf, useSeen, type News } from "./seen";
 import { say, type AmbientLabels } from "./say";
-import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, SOFT_EXIT, useAllClear, useSettledSignal, useTraceTransitions, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
+import { SPRING } from "@/lib/motion-presets";
+import { BotMark, EASE_OUT, FADE, FADE_OUT, LIVELY, SETTLE, useAllClear, useSettledSignal, useTraceTransitions, useAmbientFeed, useNow, usePointerRegion, useSurfaceValue } from "./shared";
 import type { AmbientAct, AmbientBot, AmbientBridge, AmbientMessage, DockLayout } from "./types";
 
 export { dotOf, newsOf };
@@ -48,6 +49,13 @@ const CARD_MARGIN = 8;
 /** The card leaves quickly and smoothly, words and all, where it was: a fade with a touch of scale and drift. */
 const CARD_OUT = { duration: 0.14, ease: EASE_OUT } as const;
 const JUMP = { duration: 0 } as const;
+/** The column slides out on the soft spring and away in 250ms on the out curve, after a 60ms beat. */
+const COLUMN_AWAY = { duration: 0.25, ease: EASE_OUT, delay: 0.06 } as const;
+/** The card grows out of its bot: width first (the stiffer spring), then height. */
+const GROW_W = { type: "spring", stiffness: 380, damping: 26, mass: 1 } as const;
+const GROW_H = SPRING.height;
+/** Hidden, the card waits small beside its bot so it grows out of it next time. */
+const SMALL = { scaleX: 0.6, scaleY: 0.5 } as const;
 // one empty list for "nothing yet": a fresh [] each render would rerun the order effect forever
 const NONE: readonly never[] = [];
 const FALLBACK_DOCK: DockLayout["dock"] = { cell: 56, tile: 36, column: 64, open: 404, pad: 8, ear: 18, sliver: 6, margin: 28, overhang: 4 };
@@ -139,7 +147,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   const bodyH = Math.min(contentH, maxBody);
   const traceAs = (what: string) => (bridge.trace ? (event: string, detail?: string) => bridge.trace!(`${what}:${event}`, detail) : undefined);
   const h = useSurfaceValue(bodyH, reduced, undefined, undefined, traceAs("height"));
-  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut, SOFT_EXIT, traceAs("column"));
+  const slide = useSurfaceValue(slidOut ? 0 : d.column - d.sliver, reduced, slidOut, COLUMN_AWAY, traceAs("column"), SPRING.soft);
   useTraceTransitions(bridge);
   const top = useTransform(h, (value) => Math.round((stageH - value) / 2));
   const clip = useTransform(() => {
@@ -176,7 +184,7 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
   if (cardShown) leavingAt.current = { y: cardY, h: cardH };
   // gliding is for moving between bots; a card coming out appears where the bot is
   const wasShown = useRef(false);
-  const glide = wasShown.current && !reduced ? SETTLE : JUMP;
+  const glide = wasShown.current && !reduced ? SPRING.settle : JUMP;
   useEffect(() => { wasShown.current = cardShown; });
 
   const live = useRef({ slidOut, cardShown, cardY, cardH });
@@ -380,19 +388,30 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
     bridge.viewing?.(history.id ? { botId: history.id, limit: history.limit } : null);
   }, [bridge, history]);
   const chatMax = Math.round(Math.min(stageH - 2 * CARD_MARGIN, CHAT_MAX_H, Math.max(CHAT_MIN_H, stageH * CHAT_SHARE)));
-  // one card, one chat: moving to another bot swaps the words in place (no blank frame, nothing mounted again) and
-  // they settle in from slightly faint
+  // one card, one chat: moving to another bot swaps the words in place (no blank frame, nothing mounted again); they
+  // rise the way the pointer moved through a small blur. Coming out, they follow the growing card 90ms later.
   const page = useRef<HTMLDivElement>(null);
   const pageOf = useRef<string | null>(null);
+  const shownIds = useRef<string[]>([]);
+  shownIds.current = shown.map((bot) => bot.id);
   useLayoutEffect(() => {
     const was = pageOf.current;
-    pageOf.current = cardBot?.id ?? null;
-    if (!was || !cardBot || was === cardBot.id || !wasShown.current) return;
+    pageOf.current = cardShown ? cardBot?.id ?? null : null;
+    if (!cardShown || !cardBot || was === cardBot.id) return;
+    const easing = `cubic-bezier(${EASE_OUT.join(", ")})`;
+    if (!was || !wasShown.current) {
+      page.current?.animate?.(
+        reduced ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: "translateY(8px)", filter: "blur(4px)" }, { opacity: 1, transform: "none", filter: "blur(0px)" }],
+        { duration: 200, delay: reduced ? 0 : 90, easing, fill: "backwards" },
+      );
+      return;
+    }
+    const dir = shownIds.current.indexOf(cardBot.id) >= shownIds.current.indexOf(was) ? 1 : -1;
     page.current?.animate?.(
-      reduced ? [{ opacity: 0.5 }, { opacity: 1 }] : [{ opacity: 0.5, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }],
-      { duration: SWAP_MS, easing: `cubic-bezier(${EASE_OUT.join(", ")})` },
+      reduced ? [{ opacity: 0.5 }, { opacity: 1 }] : [{ opacity: 0, transform: `translateY(${dir * 8}px)`, filter: "blur(4px)" }, { opacity: 1, transform: "none", filter: "blur(0px)" }],
+      { duration: reduced ? SWAP_MS : 200, easing },
     );
-  }, [cardBot?.id, reduced]);
+  }, [cardBot?.id, cardShown, reduced]);
   // the mascots' handlers, the same functions for the whole visit, so a mascot is drawn again only when it changes
   const handlers = useRef<MascotHandlers>(null!);
   handlers.current = {
@@ -453,13 +472,13 @@ export function Dock({ bridge }: { bridge: AmbientBridge }) {
         data-card={card ?? undefined}
         inert={!cardShown}
         style={{ left: cardLeft, top: 0, width: CARD_W, transformOrigin: "100% 50%" }}
-        initial={false}
+        initial={reduced ? false : { opacity: 0, ...SMALL }}
         animate={cardShown
-          ? { opacity: 1, scale: 1, x: 0, y: cardY, height: cardH }
-          : { opacity: 0, scale: reduced ? 1 : 0.97, x: reduced ? 0 : 6, y: leavingAt.current.y, height: leavingAt.current.h }}
+          ? { opacity: 1, scaleX: 1, scaleY: 1, x: 0, y: cardY, height: cardH }
+          : { opacity: 0, scaleX: reduced ? 1 : 0.97, scaleY: reduced ? 1 : 0.97, x: reduced ? 0 : 6, y: leavingAt.current.y, height: leavingAt.current.h, transitionEnd: reduced ? undefined : SMALL }}
         transition={cardShown
-          ? { opacity: FADE, scale: glide === SETTLE ? SETTLE : LIVELY, x: SETTLE, y: glide, height: glide }
-          : { opacity: CARD_OUT, scale: CARD_OUT, x: CARD_OUT, y: JUMP, height: JUMP }}
+          ? { opacity: { duration: 0.12, ease: EASE_OUT }, scaleX: glide === JUMP && !reduced ? GROW_W : SETTLE, scaleY: glide === JUMP && !reduced ? GROW_H : SETTLE, x: SETTLE, y: glide, height: glide === JUMP ? JUMP : GROW_H }
+          : { opacity: CARD_OUT, scaleX: CARD_OUT, scaleY: CARD_OUT, x: CARD_OUT, y: JUMP, height: JUMP }}
       >
         <div ref={cardInner} className="amb-card-inner">
           {cardBot && (
@@ -546,7 +565,10 @@ const DockMascot = memo(function DockMascot({ index, cheer, bot, labels, tile, c
         onKeyDown={onKeyDown}
       >
         <span className="amb-lift">
-          <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}>
+          {/* sliding out, the mascots follow the column 45ms apart */}
+          <motion.span className="amb-dock-mark" whileTap={reduced ? undefined : { scale: 0.96 }}
+            initial={false} animate={{ x: live || reduced ? 0 : 12 }}
+            transition={live && !reduced ? { ...SPRING.fade, delay: 0.06 + Math.min(index, 8) * 0.045 } : { duration: 0.1 }}>
             <BotMark bot={bot} size={tile} state={state} animated={live} awake={live} index={index} cheer={cheer} />
           </motion.span>
         </span>

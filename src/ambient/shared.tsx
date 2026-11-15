@@ -25,7 +25,7 @@ export const ISLAND_EXIT = { duration: 0.42, ease: SOFT_EASE, delay: 0.04 } as c
 
 /** A number that moves to `target`: out on the settle spring, away on the quick exit clock. Retargets from wherever it
  * is, keeping its velocity. `out` says which way is out; by default growing is. */
-export function useSurfaceValue(target: number, reduced: boolean, out?: boolean, away: { duration: number; ease: readonly [number, number, number, number]; delay?: number } = EXIT, trace?: (event: string, detail?: string) => void): MotionValue<number> {
+export function useSurfaceValue(target: number, reduced: boolean, out?: boolean, away: { duration: number; ease: readonly [number, number, number, number]; delay?: number } = EXIT, trace?: (event: string, detail?: string) => void, toward: { type: "spring"; stiffness: number; damping: number; mass?: number } = SETTLE): MotionValue<number> {
   const value = useMotionValue(target);
   const traceNow = useRef(trace);
   traceNow.current = trace;
@@ -36,10 +36,10 @@ export function useSurfaceValue(target: number, reduced: boolean, out?: boolean,
     if (from === Math.round(target)) return;
     const started = performance.now();
     traceNow.current?.("motion-start", `${from} -> ${Math.round(target)} ${outward ? "spring" : `${away.duration * 1000}ms`}`);
-    const controls = animate(value, target, outward ? SETTLE : { ...away, ease: [...away.ease] as [number, number, number, number] });
+    const controls = animate(value, target, outward ? toward : { ...away, ease: [...away.ease] as [number, number, number, number] });
     void controls.then(() => traceNow.current?.("motion-end", `${Math.round(target)} after ${Math.round(performance.now() - started)}ms`), () => {});
     return () => controls.stop();
-  }, [target, reduced, out, away, value]);
+  }, [target, reduced, out, away, toward, value]);
   return value;
 }
 
