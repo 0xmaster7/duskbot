@@ -240,7 +240,7 @@ const MENU = [...NAV, ['/changelog', "what's new"], ['/about', 'about'], ['/cont
 const FOOT = [
   ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [WAITLIST_HOME ? '/' : '/waitlist', 'join the waitlist'], [`${APP_URL}/`, 'sign in']]],
   ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
-  ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security'], ['https://x.com/duskbot_hq', 'x / @duskbot_hq']]],
+  ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
   ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/cookies', 'cookies'], ['/refunds', 'refunds'], ['/acceptable-use', 'acceptable use'], ['/subprocessors', 'subprocessors'], ['/license', 'license']]],
 ];
 // the seo hubs (seo/), once any of their pages is live
@@ -288,7 +288,6 @@ export function layout({ title, description, body, page, at, section = page, og 
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">${card.alt ? `\n<meta property="og:image:alt" content="${esc(card.alt)}">` : ''}
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@duskbot_hq">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(description)}">
 <meta name="twitter:image" content="${SITE_URL}${card.wide}">${card.alt ? `\n<meta name="twitter:image:alt" content="${esc(card.alt)}">` : ''}
@@ -334,7 +333,7 @@ const faqLd = (html) => {
   return qs.length ? [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: qs }] : [];
 };
 // who makes the site, on the home and about pages; sameAs lists only profiles the site itself links to
-const orgLd = { '@context': 'https://schema.org', '@type': 'Organization', name: 'dusk bot', url: `${SITE_URL}/`, logo: `${SITE_URL}/art/icon-512.png`, email: 'hello@dusk.bot', sameAs: ['https://x.com/duskbot_hq'] };
+const orgLd = { '@context': 'https://schema.org', '@type': 'Organization', name: 'dusk bot', url: `${SITE_URL}/`, logo: `${SITE_URL}/art/icon-512.png`, email: 'hello@dusk.bot' };
 const appLd = {
   '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'dusk bot', url: `${SITE_URL}/`, image: `${SITE_URL}/art/og.jpg`,
   applicationCategory: 'ProductivityApplication', operatingSystem: 'macOS, Windows, Linux',

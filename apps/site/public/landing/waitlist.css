@@ -101,10 +101,3 @@
 
 /* the one-page dusk.bot has no header, so the scene fills the whole window */
 .solo .wl { min-height: max(620px, 100dvh); }
-
-/* the x account, centred on the meadow */
-.wl-ground { position: relative; }
-.wl-x { position: absolute; z-index: 3; left: 50%; bottom: max(18px, calc(var(--ground) / 2 - 12px)); translate: -50% 0; padding: 6px 12px; border-radius: 999px; background: var(--lime); color: #212121; font-size: 15px; font-weight: 600; letter-spacing: -0.005em; text-decoration: none; white-space: nowrap; transition: background-color 0.15s; }
-.wl-x::before { content: ""; position: absolute; inset: -5px 0; }
-.wl-x:hover { background: rgba(255, 255, 255, 0.45); }
-.wl-x:focus-visible { background-image: linear-gradient(var(--focus), var(--focus)); }

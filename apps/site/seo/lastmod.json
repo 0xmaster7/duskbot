@@ -1,15 +1,15 @@
 {
  "/": {
-  "hash": "bcd8305e8da9087d",
+  "hash": "a6edc31dcb52d040",
   "lastmod": "2026-11-15"
  },
  "/download": {
-  "hash": "5e3a787ece7c4f1c",
+  "hash": "de2313d62c7f2e71",
   "lastmod": "2026-11-15"
  },
  "/waitlist": {
-  "hash": "b5049f9b8de679fe",
-  "lastmod": "2026-11-14"
+  "hash": "799f5ae949bf1d86",
+  "lastmod": "2026-11-15"
  },
  "/pricing": {
   "hash": "d5b7219b0fdff3a9",
@@ -44,12 +44,12 @@
   "lastmod": "2026-11-15"
  },
  "/privacy": {
-  "hash": "55a6e04702223f6a",
-  "lastmod": "2026-11-14"
+  "hash": "c0bad376f02e1f42",
+  "lastmod": "2026-11-15"
  },
  "/cookies": {
-  "hash": "2776e31648c51e76",
-  "lastmod": "2026-11-14"
+  "hash": "6b87097921163557",
+  "lastmod": "2026-11-15"
  },
  "/refunds": {
   "hash": "5fece10f5e735c1b",
@@ -60,8 +60,8 @@
   "lastmod": "2026-11-13"
  },
  "/subprocessors": {
-  "hash": "1a10f7b6c8421985",
-  "lastmod": "2026-11-13"
+  "hash": "8224a81f692cca2b",
+  "lastmod": "2026-11-15"
  },
  "/license": {
   "hash": "1d75fe6c6bddbfd4",
