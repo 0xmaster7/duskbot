@@ -12,6 +12,7 @@ import { CHANNEL, usd, where } from "./kit";
 import { Failed, n, stamp } from "./ui";
 import { identity, PersonFace } from "./identity";
 import { Journey, type Profile } from "./People";
+import type { PersonV2 } from "./v2";
 import { CopyEmail, ModeChip, PlanLength } from "./CustomerSheet";
 import { PlanEditor, endLabel } from "./PlanEditor";
 import { CloudTable } from "./Clouds";
@@ -92,7 +93,8 @@ function Origin({ profile }: { profile: Profile | null }) {
 
 function AccountCard({ id, titleId, pending }: { id: string; titleId: string; pending: MutableRefObject<(() => void) | null> }) {
   const detail = useAdmin<UserDetail>(`/users/${encodeURIComponent(id)}`);
-  const profile = useAdmin<Profile>(`/journeys/${encodeURIComponent(id)}`);
+  const full = useAdmin<PersonV2<Profile>>(`/v2/people/${encodeURIComponent(id)}`);
+  const profile = { data: full.data?.profile ?? null, error: full.error, reload: full.reload };
   const now = useNow(60_000);
   const d = detail.data;
   const [picked, setTab] = useState<Tab | null>(null);
@@ -100,11 +102,11 @@ function AccountCard({ id, titleId, pending }: { id: string; titleId: string; pe
   const onChange = useCallback((next: UserDetail) => { detail.setData(next); invalidateAdmin("/users"); invalidateAdmin("/revenue"); }, [detail.setData]);
   if (detail.error) return <div className="mt-4"><h2 id={titleId} className="sr-only">account</h2><Failed error={detail.error.status === 404 ? { message: "this account is gone. its payments stay in the money numbers." } : detail.error} retry={detail.reload} /></div>;
   if (!d) return <SheetSkeleton titleId={titleId} />;
-  const a = d.account, who = identity(a);
+  const a = d.account, person = full.data?.person, who = person ? identity({ id: a.id, identity: person }) : identity(a);
   const live = d.subscriptions.filter((s) => LIVE.includes(s.status)).sort((x, y) => y.createdAt - x.createdAt)[0] ?? null;
   const paid = d.payments.filter((p) => p.status === "paid");
-  const liveCents = paid.filter((p) => p.mode !== "test").reduce((s, p) => s + p.amountCents, 0);
-  const testCents = paid.filter((p) => p.mode === "test").reduce((s, p) => s + p.amountCents, 0);
+  const liveCents = full.data ? full.data.money.live.summary?.netCents ?? 0 : paid.filter((p) => p.mode !== "test").reduce((s, p) => s + p.amountCents, 0);
+  const testCents = full.data ? full.data.money.test.summary?.netCents ?? 0 : paid.filter((p) => p.mode === "test").reduce((s, p) => s + p.amountCents, 0);
   const mrr = live && !live.comp ? (live.interval === "year" ? Math.round(live.totalCents / 12) : live.totalCents) : 0;
   const providers = d.methods.filter((x) => x !== "email");
   const tab: Tab = picked ?? (d.payments.length || live ? "money" : d.devices.length || d.clouds.length || d.workspaces.length ? "installs" : "journey");
@@ -112,7 +114,7 @@ function AccountCard({ id, titleId, pending }: { id: string; titleId: string; pe
   return (
     <div className="flex flex-col">
       <div className="mt-2 flex items-center gap-4">
-        <PersonFace id={a.id} size={56} avatarUrl={(a as { avatarUrl?: string }).avatarUrl} />
+        <PersonFace id={a.id} size={56} avatarUrl={person?.avatarUrl} avatar={person?.avatar ?? undefined} />
         <div className="min-w-0">
           <h2 id={titleId} className="truncate text-[22px] font-medium leading-7 tracking-[-0.03em] text-ink">{who.name}</h2>
           <div className="flex min-w-0 items-center gap-1 text-14">
@@ -131,7 +133,7 @@ function AccountCard({ id, titleId, pending }: { id: string; titleId: string; pe
       <Origin profile={profile.data} />
 
       <div className="mt-5 grid grid-cols-4 rounded-[20px] bg-card max-sm:grid-cols-2">
-        <Cell label="paid in total" money value={usd(liveCents)} note={testCents ? <span className="inline-flex items-center gap-1">+{usd(testCents)} <ModeChip mode="test" /></span> : `${n(paid.length)} payment${paid.length === 1 ? "" : "s"}`} />
+        <Cell label="net paid" money value={usd(liveCents)} note={testCents ? <span className="inline-flex items-center gap-1">+{usd(testCents)} <ModeChip mode="test" /></span> : `${n(paid.length)} payment${paid.length === 1 ? "" : "s"}`} />
         <Cell label="plan" value={live ? live.plan ?? "custom" : "free"} note={live ? (live.comp ? "comp" : `${usd(mrr)} a month`) : "no plan"} />
         <Cell label="apps" value={n(d.devices.length)} note={d.devices[0] ? `${d.devices[0].platform ?? d.devices[0].kind}${d.devices[0].appVersion ? ` ${d.devices[0].appVersion}` : ""}` : "not installed"} />
         <Cell label="bot replies, 30 days" value={n(d.workspaces.reduce((s, w) => s + w.turns30d, 0))} note={`${n(d.workspaces.reduce((s, w) => s + w.bots, 0))} bots, ${n(d.clouds.length)} cloud${d.clouds.length === 1 ? "" : "s"}`} />
@@ -215,15 +217,18 @@ const Group = ({ title, children }: { title: string; children: ReactNode }) => (
 const Empty = ({ children }: { children: ReactNode }) => <li className="px-2.5 py-3 text-13 text-ink-3">{children}</li>;
 
 function VisitorCard({ id, titleId, pending }: { id: string; titleId: string; pending: MutableRefObject<(() => void) | null> }) {
-  const { data, error, reload } = useAdmin<Profile>(`/journeys/${encodeURIComponent(id)}`);
+  const full = useAdmin<PersonV2<Profile>>(`/v2/people/${encodeURIComponent(id)}`);
+  const { error, reload } = full, data = full.data?.profile ?? null, person = full.data?.person;
   if (error) return <div className="mt-4"><h2 id={titleId} className="sr-only">visitor</h2><Failed error={error} retry={reload} /></div>;
-  if (!data) return <SheetSkeleton titleId={titleId} />;
+  if (!full.data || !person) return <SheetSkeleton titleId={titleId} />;
+  if (person.kind === "account") return <AccountCard id={person.id} titleId={titleId} pending={pending} />;
+  if (!data) return <div className="mt-3"><h2 id={titleId} className="text-[22px] font-medium tracking-[-0.03em] text-ink">{person.name}</h2><p className="mt-1 text-13 text-ink-3">{person.label}. nothing else recorded.</p></div>;
   if (data.account) return <AccountCard id={data.account.id} titleId={titleId} pending={pending} />;
-  const who = identity({ id: data.seed });
+  const who = identity({ id: data.seed, identity: person });
   return (
     <div className="flex flex-col">
       <div className="mt-2 flex items-center gap-4">
-        <PersonFace id={data.seed} size={56} anonymous />
+        <PersonFace id={person.avatarSeed || data.seed} size={56} anonymous />
         <div className="min-w-0">
           <h2 id={titleId} className="truncate text-[22px] font-medium leading-7 tracking-[-0.03em] text-ink">{who.name}</h2>
           <p className="text-13 text-ink-3">anonymous visitor, no account{data.installs ? `, ${n(data.installs)} app install${data.installs === 1 ? "" : "s"}` : ""}</p>

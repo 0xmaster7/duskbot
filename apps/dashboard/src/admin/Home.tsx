@@ -5,7 +5,7 @@ import { Digits } from "../ui/Digits";
 import { ago } from "../lib/format";
 import { Link } from "../lib/router";
 import { useNow } from "../lib/now";
-import { useAdmin, type Overview, type UserRow } from "./api";
+import { useAdmin } from "./api";
 import { PersonLink } from "./sheet";
 import { Highlight } from "./motion";
 import { usd } from "./kit";
@@ -13,7 +13,7 @@ import { Failed, n } from "./ui";
 import { identity, PersonFace } from "./identity";
 import type { BugReportRow } from "./BugReports";
 import type { Note } from "./Feedback";
-import type { FeedItem, SubscriptionReport } from "./revenue-types";
+import { LIVE_PLAN, type OverviewV2, type PaymentsV2, type PeopleV2 } from "./v2";
 
 const DAY = 86_400_000;
 type Days = 7 | 30 | 90;
@@ -21,22 +21,19 @@ const midnight = (t: number) => { const d = new Date(t); d.setHours(0, 0, 0, 0);
 /** a window that only moves at midnight, so its reads stay cached all day */
 const windowOf = (days: Days) => { const to = midnight(Date.now()) + DAY; return { from: to - days * DAY, to }; };
 
-interface FunnelAnswer { steps: Array<{ id: string; label: string; count: number }> }
 interface ExperienceAnswer { days: string[]; series: Record<"bad" | "confusing" | "done", number[]>; totals: Record<"bad" | "confusing" | "done", number>; installs: number; top: Record<"bad" | "confusing" | "done", Array<{ key: string; count: number }>> }
 interface BugAnswer { reports: BugReportRow[]; counts: Record<"new" | "looking" | "fixed" | "wont-fix", number> }
 interface FeedbackAnswer { notes: Note[]; counts: Record<"bad" | "big" | "weekly", number> }
 
-export const USERS_ALL = "/users?q=&filter=all&offset=0&limit=200";
+export const PEOPLE_FIRST = "/v2/people?kind=accounts&limit=200";
+const LATEST_PAYMENTS = "/v2/payments?mode=live&limit=200";
 const reads = (days: Days) => {
   const { from, to } = windowOf(days);
-  return {
-    funnel: `/funnel?from=${from}&to=${to}&mode=visitors`, experience: `/experience?from=${from}&to=${to}`, overview: `/overview?days=${days}`,
-    revenue: `/revenue?days=${days}&mode=live`, bugs: "/bug-reports", feedback: "/feedback?kind=bad", users: USERS_ALL,
-  };
+  return { overview: `/v2/overview?days=${days}`, experience: `/experience?from=${from}&to=${to}`, bugs: "/bug-reports", feedback: "/feedback?kind=bad", people: PEOPLE_FIRST, payments: LATEST_PAYMENTS };
 };
 export const homeReads = () => Object.values(reads(30));
 
-const count = (steps: FunnelAnswer["steps"] | undefined, id: string) => steps?.find((s) => s.id === id)?.count ?? null;
+const step = (o: OverviewV2 | null, id: OverviewV2["funnel"][number]["id"]) => o?.funnel.find((f) => f.id === id)?.count ?? null;
 const rate = (part: number | null, whole: number | null) => part === null || !whole ? null : `${(Math.round((part / whole) * 1000) / 10).toLocaleString("en-US")}%`;
 
 function Stat({ label, value, sub, step, money, href }: { label: string; value: string | null; sub: ReactNode; step?: string | null; money?: boolean; href: string }) {
@@ -55,37 +52,31 @@ function Stat({ label, value, sub, step, money, href }: { label: string; value: 
 }
 
 function Pulse({ days }: { days: Days }) {
-  const r = reads(days);
-  const funnel = useAdmin<FunnelAnswer>(r.funnel);
-  const revenue = useAdmin<SubscriptionReport>(r.revenue, 120_000);
-  const steps = funnel.data?.steps;
-  const visitors = count(steps, "visit"), signups = count(steps, "signup"), paired = count(steps, "paired"), replied = count(steps, "replied");
-  const activated = paired === null ? null : Math.max(paired, replied ?? 0);
-  const paidInWindow = count(steps, "paid");
-  const live = revenue.data?.modes?.live ?? (revenue.data ? { mrr: revenue.data.headline.mrr, customers: revenue.data.headline.customers, gross: revenue.data.cash.gross, payments: revenue.data.cash.payments } : null);
-  const test = revenue.data?.modes?.test;
-  const month = revenue.data?.months.at(-1);
+  const { data: o, error, reload } = useAdmin<OverviewV2>(reads(days).overview, 120_000);
+  const visitors = o ? step(o, "visited") ?? o.visitors.unique : null, signups = o ? step(o, "signed_up") ?? o.signups.total : null;
+  const activated = o ? step(o, "activated") ?? o.accounts.activated : null, newPaying = o ? step(o, "paying") : null;
+  const live = o?.revenue.live, test = o?.revenue.test;
   return (
     <section aria-label="the funnel and money" className="rounded-[26px] bg-card p-1.5">
       <div className="grid grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.45fr)_minmax(0,1.45fr)] gap-1 max-xl:grid-cols-3 max-sm:grid-cols-2">
         <Stat label="visitors" value={visitors === null ? null : n(visitors)} sub={`in ${days} days`} href="/admin/people/visitors" />
-        <Stat label="signups" value={signups === null ? null : n(signups)} step={rate(signups, visitors)} sub={signups === null ? "" : `${rate(signups, visitors) ?? "-"} of visitors`} href="/admin/people" />
-        <Stat label="activated" value={activated === null ? null : n(activated)} step={rate(activated, signups)} sub={replied === null ? "" : `${n(replied)} got a reply`} href="/admin/retention" />
-        <Stat label="paying" value={live ? n(live.customers) : null} step={rate(paidInWindow, activated)} sub={paidInWindow === null ? "" : `${n(paidInWindow)} paid in ${days} days`} href="/admin/payments" />
-        <div className="rounded-[18px] bg-wash-lime max-xl:col-span-1">
-          <Stat money label="mrr" value={live ? usd(live.mrr) : null} sub={live ? `${usd(live.mrr * 12)} a year` : ""} href="/admin/payments" />
+        <Stat label="signups" value={signups === null ? null : n(signups)} step={rate(signups, visitors)} sub={o ? `${n(o.accounts.total)} in all` : ""} href="/admin/people" />
+        <Stat label="activated" value={activated === null ? null : n(activated)} step={rate(activated, signups)} sub="app or bot reply" href="/admin/retention" />
+        <Stat label="paying now" value={o ? n(o.paying.live) : null} step={rate(newPaying, activated)} sub={newPaying === null ? "" : `${n(newPaying)} new in ${days} days`} href="/admin/payments" />
+        <div className="rounded-[18px] bg-wash-lime">
+          <Stat money label="mrr" value={live ? usd(live.mrrCents) : null} sub={live ? `${usd(live.mrrCents * 12)} a year` : ""} href="/admin/payments" />
         </div>
         <div className="rounded-[18px] bg-wash-lime">
-          <Stat money label="revenue" value={live ? usd(live.gross) : null} sub={month ? `${usd(month.gross)} this month` : ""} href="/admin/payments" />
+          <Stat money label="revenue" value={live ? usd(live.grossCents) : null} sub={live ? `${usd(live.netCents)} net` : ""} href="/admin/payments" />
         </div>
       </div>
-      {(funnel.error || revenue.error) && <div className="p-1.5"><Failed error={(funnel.error ?? revenue.error)!} retry={() => { funnel.reload(); revenue.reload(); }} /></div>}
+      {error && <div className="p-1.5"><Failed error={error} retry={reload} /></div>}
       <p className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1 px-4 pb-1 pt-1.5 text-12 text-ink-3">
-        <span>live money only.</span>
-        {test && (test.payments > 0 || test.mrr > 0) && (
+        <span>{days} days for the funnel; money is live only, all time.</span>
+        {test && (test.payments > 0 || test.mrrCents > 0) && (
           <span>
             <span className="me-1.5 inline-flex h-5 items-center rounded-full bg-wash-lemon px-2 align-middle text-[11.5px] text-ink-2">test</span>
-            <span className="font-mono num">{usd(test.mrr)}</span> mrr, <span className="font-mono num">{usd(test.gross)}</span> from {n(test.payments)} test payments, not counted
+            <span className="font-mono num">{usd(test.mrrCents)}</span> mrr, <span className="font-mono num">{usd(test.grossCents)}</span> from {n(test.payments)} test payments, not counted
           </span>
         )}
       </p>
@@ -212,24 +203,25 @@ function WrongPanel({ days }: { days: Days }) {
 }
 
 function NewPeople() {
-  const { data, error, reload } = useAdmin<{ total: number; users: UserRow[] }>(USERS_ALL);
+  const { data, error, reload } = useAdmin<PeopleV2>(PEOPLE_FIRST);
   const now = useNow(60_000);
+  const rows = data ? [...data.people].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5) : [];
   return (
     <Panel title="newest accounts" to="/admin/people" className="h-full">
-      {error ? <Failed error={error} retry={reload} /> : !data ? <Rows n={5} /> : data.users.length ? (
+      {error ? <Failed error={error} retry={reload} /> : !data ? <Rows n={5} /> : rows.length ? (
         <ul className="flex flex-col">
-          {data.users.slice(0, 5).map((u) => {
-            const who = identity(u);
+          {rows.map((r) => {
+            const who = identity({ id: r.person.id, identity: r.person });
             return (
-              <li key={u.id}>
-                <PersonLink id={u.id} className="hover-row flex h-12 items-center gap-3 rounded-[12px] px-2">
-                  <PersonFace id={u.id} size={28} avatarUrl={u.identity?.avatarUrl} avatar={u.identity?.avatar ?? undefined} />
+              <li key={r.person.id}>
+                <PersonLink id={r.person.id} className="hover-row flex h-12 items-center gap-3 rounded-[12px] px-2">
+                  <PersonFace id={r.person.id} size={28} avatarUrl={r.person.avatarUrl} avatar={r.person.avatar ?? undefined} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-13 font-medium text-ink">{who.name}</span>
                     {who.sub && <span className="block truncate text-12 text-ink-3">{who.sub}</span>}
                   </span>
-                  {u.plan && <span className="shrink-0 rounded-full bg-wash-sky px-2 py-0.5 text-[11.5px] text-ink-2">{u.plan.plan ?? "custom"}</span>}
-                  <span className="w-16 shrink-0 whitespace-nowrap text-end text-12 text-ink-4">{ago(u.createdAt, now)}</span>
+                  {r.plan && r.planStatus && LIVE_PLAN.has(r.planStatus) && <span className="shrink-0 rounded-full bg-wash-sky px-2 py-0.5 text-[11.5px] text-ink-2">{r.plan}</span>}
+                  <span className="w-16 shrink-0 whitespace-nowrap text-end text-12 text-ink-4">{ago(r.createdAt, now)}</span>
                 </PersonLink>
               </li>
             );
@@ -240,29 +232,28 @@ function NewPeople() {
   );
 }
 
-const PAY_KINDS = new Set<FeedItem["kind"]>(["new", "renewal", "payment", "failed", "refund", "dispute", "recovered", "churned"]);
-const PAY_WORD: Partial<Record<FeedItem["kind"], string>> = { new: "started paying", renewal: "renewed", payment: "paid", failed: "payment failed", refund: "refunded", dispute: "disputed", recovered: "payment recovered", churned: "stopped paying" };
-function NewPayments({ days }: { days: Days }) {
-  const { data, error, reload } = useAdmin<SubscriptionReport>(reads(days).revenue, 120_000);
+function NewPayments() {
+  const { data, error, reload } = useAdmin<PaymentsV2>(LATEST_PAYMENTS, 120_000);
   const now = useNow(60_000);
-  const rows = data?.feed.filter((f) => PAY_KINDS.has(f.kind)).slice(0, 5) ?? [];
+  const rows = data?.payments.slice(0, 5) ?? [];
   return (
     <Panel title="latest money" to="/admin/payments" className="h-full">
       {error ? <Failed error={error} retry={reload} /> : !data ? <Rows n={5} /> : rows.length ? (
         <ul className="flex flex-col">
-          {rows.map((f) => {
-            const bad = f.kind === "failed" || f.kind === "refund" || f.kind === "dispute" || f.kind === "churned";
-            const line = (
-              <>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-13 font-medium text-ink">{f.email ?? "unknown payer"}</span>
-                  <span className="block truncate text-12 text-ink-3">{PAY_WORD[f.kind]}{f.plan ? `, ${f.plan}` : ""}</span>
-                </span>
-                <span className={cx("shrink-0 font-mono text-13 num", bad ? "text-bad" : "font-medium text-money")}>{f.amountCents !== null ? `${f.kind === "refund" ? "-" : ""}${usd(Math.abs(f.amountCents))}` : ""}</span>
-                <span className="w-16 shrink-0 whitespace-nowrap text-end text-12 text-ink-4">{ago(f.at, now)}</span>
-              </>
+          {rows.map((r) => {
+            const bad = r.type === "refund" || r.status === "failed";
+            return (
+              <li key={r.id}>
+                <PersonLink id={r.personId} className="hover-row flex h-12 items-center gap-3 rounded-[12px] px-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-13 font-medium text-ink">{r.person.name}</span>
+                    <span className="block truncate text-12 text-ink-3">{r.type === "refund" ? "refunded" : r.status === "failed" ? "payment failed" : "paid"}{r.plan ? `, ${r.plan}` : ""}</span>
+                  </span>
+                  <span className={cx("shrink-0 font-mono text-13 num", bad ? "text-bad" : "font-medium text-money")}>{r.amountCents < 0 ? "-" : ""}{usd(Math.abs(r.amountCents))}</span>
+                  <span className="w-16 shrink-0 whitespace-nowrap text-end text-12 text-ink-4">{ago(r.at, now)}</span>
+                </PersonLink>
+              </li>
             );
-            return <li key={f.id}>{f.accountId ? <PersonLink id={f.accountId} className="hover-row flex h-12 items-center gap-3 rounded-[12px] px-2.5">{line}</PersonLink> : <div className="flex h-12 items-center gap-3 px-2.5">{line}</div>}</li>;
           })}
         </ul>
       ) : <Quiet>no live payments yet.</Quiet>}
@@ -271,9 +262,9 @@ function NewPayments({ days }: { days: Days }) {
 }
 
 function Daily({ days }: { days: Days }) {
-  const { data } = useAdmin<Overview>(reads(days).overview, 300_000);
+  const { data } = useAdmin<OverviewV2>(reads(days).overview, 120_000);
   const [hover, setHover] = useState<number | null>(null);
-  const v = data?.series.visitors ?? [], s = data?.series.signups ?? [], range = data?.range ?? [];
+  const v = data?.visitors.perDay ?? [], s = data?.signups.perDay ?? [], range = data?.range ?? [];
   const max = Math.max(1, ...v);
   const at = hover ?? v.length - 1;
   return (
@@ -333,7 +324,7 @@ export function HomePage() {
       </div>
       <div className="mt-3 grid grid-cols-12 gap-3 max-xl:grid-cols-1">
         <div className="xl:col-span-7"><Daily days={days} /></div>
-        <div className="xl:col-span-5"><NewPayments days={days} /></div>
+        <div className="xl:col-span-5"><NewPayments /></div>
       </div>
       <p className="mt-6 flex flex-wrap gap-x-4 gap-y-1 text-12 text-ink-4">
         <Link to="/admin/traffic" className="text-link inline-flex items-center gap-1">traffic sources and pages <ArrowUpRight size={12} strokeWidth={1.75} aria-hidden /></Link>
