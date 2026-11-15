@@ -497,6 +497,19 @@ describe("team setup that applies on its own", () => {
     expect(h.apply).toHaveBeenCalledTimes(1);
   });
 
+  it("lets the person confirm, and undo, a Chief's change to itself while that Chief's own turn still runs", async () => {
+    const h = harness(); h.chief.busy = true;
+    h.targetBusy.mockImplementation((id, sourceThreadId) => Boolean(h.store.bot(id)?.busy) && sourceThreadId !== h.chief.threadId);
+    const card = await h.submit([{ action: "update", botId: h.chief.id, fields: { title: "Confirmed Chief" } }]);
+    expect(card).toMatchObject({ state: "pending" });
+    expect(await h.resolve(card.requestId)).toMatchObject({ result: { state: "applied" } });
+    expect(h.chief.title).toBe("Confirmed Chief");
+    h.autoApply.mockReturnValue("full-access");
+    const applied = await h.submit([{ action: "update", botId: h.chief.id, fields: { title: "Applied Chief" } }]);
+    expect(await h.service.undo({ botId: h.chief.id, threadId: h.chief.threadId, requestId: applied.requestId })).toMatchObject({ state: "undone" });
+    expect(h.targetBusy).not.toHaveBeenCalledWith(h.chief.id, undefined);
+  });
+
   it("retains model, scope, source, permission-field and deletion safety checks", async () => {
     const h = harness(); h.autoApply.mockReturnValue("full-access");
     await expect(h.submit([specialist("Mira", "Nowhere")])).rejects.toThrow(/no longer exists/);
@@ -514,7 +527,7 @@ describe("team setup that applies on its own", () => {
     const h = harness(); h.autoApply.mockReturnValue("full-access");
     h.validateChange.mockImplementation(() => { throw new TeamSetupError("Team computer is in use", 409); });
     expect(await h.submit([{ action: "update", botId: h.peer.id, fields: { section: "Engineering" } }])).toMatchObject({ state: "cancelled", applied: false, result: { error: "Team computer is in use" } });
-    expect(h.validateChange).toHaveBeenCalledWith(h.peer, expect.objectContaining({ section: "Engineering" }));
+    expect(h.validateChange).toHaveBeenCalledWith(h.peer, expect.objectContaining({ section: "Engineering" }), { botId: h.chief.id, threadId: h.chief.threadId });
     h.autoApply.mockReset().mockReturnValueOnce("level").mockReturnValue(null);
     expect(await h.submit([specialist("Mira", "Work")])).toMatchObject({ state: "cancelled", applied: false, result: { error: expect.stringContaining("on its own") } });
     expect(h.apply).not.toHaveBeenCalled();

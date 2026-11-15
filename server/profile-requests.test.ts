@@ -200,7 +200,8 @@ describe("ProfileRequestService", () => {
     const { service, bot } = harness({ name: "Scout" });
     const attempt = (changes: unknown, reason: unknown = "r") =>
       () => service.propose({ botId: bot.id, threadId: bot.threadId, changes, reason });
-    expect(attempt({ voice: "alloy" })).toThrow("unsupported profile field: voice");
+    expect(attempt({ mascotBody: "round" })).toThrow("unsupported profile field: mascotBody");
+    expect(attempt({ color: "plaid" })).toThrow("color must be one of");
     expect(attempt({ autoApprove: true })).toThrow("unsupported profile field: autoApprove");
     expect(attempt({ soul: "x".repeat(24_001) })).toThrow("standing instructions must be at most 24000 bytes");
     expect(attempt({ name: "Kiwi" }, "")).toThrow("reason is required");

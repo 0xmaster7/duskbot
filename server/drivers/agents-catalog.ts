@@ -2,9 +2,11 @@
 import { CREDENTIAL_TARGETS, LOGIN_CREDENTIAL } from "../../shared/credential-request.ts";
 import { EMAIL_CREDENTIAL } from "../../shared/email.ts";
 import { OPTIONS_CARD_LIMITS, WATCHER_OPTIONS_CARD_BOT_ID } from "../../shared/options-card.ts";
+import { REPLY_STYLES } from "../../shared/reply-style.ts";
 import { MAUS_COLOR_NAMES } from "../../shared/wire.ts";
 import { agentToolAnnotations } from "../agent-tool-policy.ts";
 import { CHAT_CARD_TOOL_DEFINITIONS } from "./agents-chat-card-tools.ts";
+import { APP_SETTINGS_TOOL_DEFINITIONS } from "./agents-app-settings-tool.ts";
 import { DEVS_TOOL_DEFINITIONS } from "./agents-devs-tools.ts";
 import { HELPER_TOOL_DEFINITIONS } from "./agents-helper-tools.ts";
 import { USAGE_LIMITS_TOOL_DEFINITION } from "./agents-usage-tool.ts";
@@ -415,16 +417,18 @@ const TOOL_DEFINITIONS = [
   {
     name: "manage_room",
     description:
-      "Chiefs only. create a room (was create_room) when the user asks for one (at most four per turn), with active bots from list_bots; you are included automatically as the default responder, and it creates no turns or messages. For a room from list_rooms: rename it, change its bulletin, add, remove or set members, with any bots you can reach (keep yourself as a member), or open a new thread in it (new_thread, at most four per turn), which becomes the room's current thread. Busy rooms, pending approvals and team-goal leads are protected. Moving rooms or bots between sidebar sections stays with the user; coordinate_bots reaches bots outside a room directly. Follow the tool result under the effective access level; if the change is refused, report the blocker, or ask the user to make the room change, without trying another route.",
+      "Chiefs only. create a room (was create_room) when the user asks for one (at most four per turn), with active bots from list_bots; you are included automatically as the default responder, and it creates no turns or messages. For a room from list_rooms: rename it, change its bulletin (the rules and instructions pinned for everyone in it), description, who answers (set_responder), add, remove or set members, with any bots you can reach (keep yourself as a member), or open a new thread in it (new_thread, at most four per turn), which becomes the room's current thread. Your own turn never blocks it; work by others is refused, naming what is busy: tell the person. Moving rooms or bots between sidebar sections stays with the user; coordinate_bots reaches bots outside a room directly. Follow the tool result under the effective access level; if the change is refused, report the blocker, or ask the user to make the room change, without trying another route.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         action: {
           type: "string",
-          enum: ["create", "add_members", "remove_members", "set_members", "rename", "set_bulletin", "new_thread"],
+          enum: ["create", "add_members", "remove_members", "set_members", "rename", "set_bulletin", "set_description", "set_responder", "new_thread"],
           description: "The change to make.",
         },
+        responder: { type: "string", description: "set_responder: everyone, mentions, auto, or a member's bot id." },
+        description: { type: "string", maxLength: 120, description: "set_description: one line; empty clears." },
         room_id: { type: "string", description: "Every action but create: the room's id from list_rooms." },
         name: { type: "string", minLength: 1, maxLength: 100, description: "create and rename: the room's display name (e.g. \"Nalamdesk Team\"). new_thread: the thread's title (optional)." },
         member_bot_ids: {
@@ -515,7 +519,7 @@ const TOOL_DEFINITIONS = [
       required: ["text"],
     },
   },
-  ...SLACK_TOOL_DEFINITIONS, ...RESEARCH_TOOL_DEFINITIONS, READ_PAGES_DEFINITION, ...HELPER_TOOL_DEFINITIONS, ...PERSON_TOOL_DEFINITIONS, ...DEVS_TOOL_DEFINITIONS,
+  ...SLACK_TOOL_DEFINITIONS, ...RESEARCH_TOOL_DEFINITIONS, READ_PAGES_DEFINITION, ...HELPER_TOOL_DEFINITIONS, ...PERSON_TOOL_DEFINITIONS, ...DEVS_TOOL_DEFINITIONS, ...APP_SETTINGS_TOOL_DEFINITIONS,
   {
     name: "memory_update",
     description:
@@ -652,7 +656,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "propose_profile",
     description:
-      "Submit user-requested changes to your own name, title, description, standing instructions (SOUL.md), working folder (cwd), or your alert and voice toggles (notifications, speakReplies). Keep SOUL.md short, who you are and the rules you never break; put step-by-step procedure into a skill instead." + CHIEF_PROFILE_TARGET + APPLIES_OUTCOME,
+      "Submit user-requested changes to your own name, title, description, standing instructions (SOUL.md), working folder (cwd), colour, reply style, voice, or your alert and voice toggles (notifications, speakReplies, voiceNotes). Keep SOUL.md short, who you are and the rules you never break; put step-by-step procedure into a skill instead. Permissions, connected apps, computer, memory on/off and sidebar sections are the person's to change in your settings: say so." + CHIEF_PROFILE_TARGET + APPLIES_OUTCOME,
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -674,6 +678,10 @@ const TOOL_DEFINITIONS = [
           type: "boolean",
           description: "Speak this bot's replies aloud as they settle, without being asked.",
         },
+        voiceNotes: { type: "boolean" },
+        color: { type: "string", enum: [...MAUS_COLOR_NAMES] },
+        replyStyle: { type: "string", enum: [...REPLY_STYLES] },
+        voice: { type: "string", maxLength: 200, description: "Voice id for spoken replies; empty: the app's." },
         reason: { type: "string", minLength: 1, maxLength: 500, description: "One sentence the user will see explaining why." },
         for_bot_id: {
           type: "string",

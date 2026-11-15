@@ -1,7 +1,9 @@
 // propose_profile applies at once with an Undo. The owner's card (direct-apply.ts) is re-validated at confirm time, since it can sit open for days.
 import { soulDiffLines } from "../shared/line-diff.ts";
 import { BOT_PROFILE_LIMITS } from "../shared/bot-profile.ts";
-import { PROFILE_REQUEST_FIELDS, type ProfileRequestCardData, type ProfileRequestChanges } from "../shared/profile-request.ts";
+import { isMausColor, MAUS_COLOR_NAMES } from "../shared/wire.ts";
+import { REPLY_STYLES, type ReplyStyle } from "../shared/reply-style.ts";
+import { isProfileRequestToggle, PROFILE_REQUEST_FIELDS, type ProfileRequestCardData, type ProfileRequestChanges } from "../shared/profile-request.ts";
 import { parseBotProfilePatch, type BotProfilePatchInput } from "./bot-profile.ts";
 import { validateBotCwd } from "./bot-cwd.ts";
 import { newId } from "./contracts.ts";
@@ -20,9 +22,15 @@ const LABELS: Record<Exclude<(typeof PROFILE_REQUEST_FIELDS)[number], "soul" | "
   description: "Description",
   notifications: "Notifications",
   speakReplies: "Speak replies",
+  color: "Colour",
+  replyStyle: "Reply style",
+  voice: "Voice",
+  voiceNotes: "Voice notes",
 };
 const PRIVATE_WORKSPACE = "its private workspace";
-const CHOOSE_ONE = "Choose at least one of name, title, description, soul, cwd, notifications, speakReplies";
+const CHOOSE_ONE = `Choose at least one of ${PROFILE_REQUEST_FIELDS.join(", ")}`;
+const isReplyStyle = (value: unknown): value is ReplyStyle => (REPLY_STYLES as readonly unknown[]).includes(value);
+const APP_VOICE = "the app's voice";
 const toggleText = (value: boolean | undefined): string => (value ? "on" : "off");
 const TEXT_FIELDS = ["name", "title", "description", "soul"] as const;
 
@@ -54,7 +62,7 @@ export interface ProfileRequestStore {
     },
   ): { id: string };
   patchMessage(threadId: string, messageId: string, patch: { card: OptionCardLike }): { id: string } | null;
-  patchBotProfile(id: string, patch: Partial<Pick<BotRecord, "name" | "title" | "description" | "cwd" | "soul" | "notifications" | "speakReplies" | "lastProfileRequestId">>): BotRecord | null;
+  patchBotProfile(id: string, patch: Partial<Pick<BotRecord, "name" | "title" | "description" | "cwd" | "soul" | "notifications" | "speakReplies" | "color" | "replyStyle" | "voice" | "voiceNotes" | "lastProfileRequestId">>): BotRecord | null;
 }
 
 export interface ProfileRequestServiceOptions {
@@ -122,7 +130,11 @@ function parseChanges(input: unknown): ProfileRequestChanges {
   if (keys.length === 0) {
     throw new ProfileRequestError(CHOOSE_ONE);
   }
-  const { cwd: rawCwd, ...profileInput } = input as Record<string, unknown>;
+  const { cwd: rawCwd, color: rawColor, voiceNotes: rawVoiceNotes, ...profileInput } = input as Record<string, unknown>;
+  if (rawColor !== undefined && !isMausColor(rawColor)) {
+    throw new ProfileRequestError(`color must be one of ${MAUS_COLOR_NAMES.join(", ")}`);
+  }
+  if (rawVoiceNotes !== undefined && typeof rawVoiceNotes !== "boolean") throw new ProfileRequestError("voiceNotes must be true or false");
   let cwdChange: string | undefined;
   if (rawCwd !== undefined) {
     const checked = validateBotCwd(rawCwd);
@@ -135,11 +147,17 @@ function parseChanges(input: unknown): ProfileRequestChanges {
   if (!parsed.ok) throw new ProfileRequestError(parsed.error, 400);
   const changes: ProfileRequestChanges = {};
   if (cwdChange !== undefined) changes.cwd = cwdChange;
+  if (rawColor !== undefined) changes.color = rawColor as string;
+  if (rawVoiceNotes !== undefined) changes.voiceNotes = rawVoiceNotes;
   for (const field of PROFILE_REQUEST_FIELDS) {
-    if (field === "cwd") continue;
+    if (field === "cwd" || field === "color" || field === "voiceNotes") continue;
     const value = parsed.patch[field];
-    if (field === "notifications" || field === "speakReplies") {
+    if (isProfileRequestToggle(field)) {
       if (value !== undefined) changes[field] = value as boolean;
+      continue;
+    }
+    if (field === "replyStyle") {
+      if (typeof value === "string") changes.replyStyle = value;
       continue;
     }
     // Hidden under the card's visible fields, where the store's shallow card redaction cannot reach.
@@ -179,8 +197,12 @@ export function profileCardCopy(
   for (const field of PROFILE_REQUEST_FIELDS) {
     if (field === "soul" || field === "cwd") continue;
     if (changes[field] === undefined) continue;
-    if (field === "notifications" || field === "speakReplies") {
+    if (isProfileRequestToggle(field)) {
       lines.push(`${LABELS[field]}: ${toggleText(before[field] as boolean | undefined)} → ${toggleText(changes[field] as boolean | undefined)}`);
+      continue;
+    }
+    if (field === "voice") {
+      lines.push(`${LABELS.voice}: ${before.voice || APP_VOICE} → ${changes.voice || APP_VOICE}`);
       continue;
     }
     lines.push(`${LABELS[field]}: "${before[field] ?? ""}" → "${changes[field]}"`);
@@ -191,7 +213,7 @@ export function profileCardCopy(
   if (changes.soul !== undefined) {
     lines.push(...soulDiffLines(before.soul ?? "", changes.soul));
   }
-  const changesText = TEXT_FIELDS.some((field) => changes[field] !== undefined);
+  const changesText = TEXT_FIELDS.some((field) => changes[field] !== undefined) || changes.replyStyle !== undefined;
   if (changes.cwd !== undefined) lines.push(`${target.name}'s tools will read and write files in that folder.`);
   lines.push(changesText ? `Changes what ${target.name} is told on every turn. Nothing runs.` : "Nothing runs.");
   const detail = lines.join("\n");
@@ -254,7 +276,7 @@ export class ProfileRequestService {
     const finalChanges: ProfileRequestChanges = {};
     let exactBefore = true;
     for (const field of PROFILE_REQUEST_FIELDS) {
-      if (field === "notifications" || field === "speakReplies") {
+      if (isProfileRequestToggle(field)) {
         const value = changes[field];
         if (value === undefined || value === snapshot[field]) continue;
         before[field] = snapshot[field];
@@ -424,8 +446,10 @@ export class ProfileRequestService {
       }
 
       const { cwd, ...rest } = payload.changes;
-      const validated = Object.keys(rest).length ? parseChanges(rest) : {};
-      const patch: Parameters<ProfileRequestStore["patchBotProfile"]>[1] = { ...validated, lastProfileRequestId: payload.requestId };
+      const { color, replyStyle, ...validated }: ProfileRequestChanges = Object.keys(rest).length ? parseChanges(rest) : {};
+      const patch: Parameters<ProfileRequestStore["patchBotProfile"]>[1] = {
+        ...validated, ...(isMausColor(color) ? { color } : {}), ...(isReplyStyle(replyStyle) ? { replyStyle } : {}), lastProfileRequestId: payload.requestId,
+      };
       if (cwd !== undefined) {
         const checked = validateBotCwd(cwd || null);
         if (!checked.ok) throw new ProfileRequestError(checked.error, 409, { terminal: true });

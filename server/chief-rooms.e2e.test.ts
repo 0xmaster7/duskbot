@@ -135,6 +135,12 @@ it("creates and manages an own-section room through the mounted Chief MCP proxy"
     const own = await roomTool({ room_id: room.id, action: "set_bulletin", bulletin: "All designs go through review." });
     expect(own.isError, JSON.stringify(own)).toBeFalsy();
     expect((await rooms()).find((candidate) => candidate.id === room.id)?.bulletin).toBe("All designs go through review.");
+    for (const args of [{ action: "add_members", member_bot_ids: [peer.id] }, { action: "set_responder", responder: "everyone" }, { action: "set_description", description: "Design reviews" }]) {
+      const changed = await roomTool({ room_id: room.id, ...args });
+      expect(changed.isError, JSON.stringify(changed)).toBeFalsy();
+    }
+    expect((await rooms()).find((candidate) => candidate.id === room.id))
+      .toMatchObject({ memberIds: [chief.id, second.id, peer.id], defaultResponder: { kind: "everyone" }, description: "Design reviews" });
     const other = (await api<{ group: Room }>("POST", "/api/groups", { name: "Second's room", memberIds: [second.id, chief.id], setup: { bulletin: "", defaultResponder: { kind: "member", botId: second.id } } })).group;
     await control(["send-channel", "--channel", other.id, "--text", "Start something long."]);
     await expect.poll(async () => (await rooms()).find((candidate) => candidate.id === other.id)?.working, { timeout: 15_000 }).toBe(true);

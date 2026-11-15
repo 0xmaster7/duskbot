@@ -1,7 +1,7 @@
 {
   "default": {
-    "bytes": 60836,
-    "sha256": "a90a9b4398f806fcb202015c4f9d434919ab1c008abe7b057420a39a5164df24",
+    "bytes": 62216,
+    "sha256": "fea752ad68d9889cdc32a3493938dfd5f02a471c43bb7296d72fe60ff3da7e51",
     "tools": [
       "set_status",
       "send_message",
@@ -36,6 +36,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -52,8 +53,8 @@
     ]
   },
   "voice": {
-    "bytes": 61614,
-    "sha256": "a1ee23c4f6f462eb9df70d226b2e8b842f860aea63f021e04d734afcb8376d14",
+    "bytes": 62994,
+    "sha256": "f84858f78e573e631a8b85dd04c3432c2078574895689de5ae6ee2538892aae6",
     "tools": [
       "set_status",
       "send_message",
@@ -89,6 +90,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -105,8 +107,8 @@
     ]
   },
   "skills": {
-    "bytes": 63655,
-    "sha256": "36763abef03cb56bcc2ad90eb63e5aa5becb1015bf6b1c97cd634b0ef93d9266",
+    "bytes": 65035,
+    "sha256": "a4ca81c4cc2d1399227c91bd488db90922570174563f7457348f6c0044a7839b",
     "tools": [
       "set_status",
       "send_message",
@@ -141,6 +143,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -159,8 +162,8 @@
     ]
   },
   "skills+voice": {
-    "bytes": 64433,
-    "sha256": "736a6608de71f65e0c676fef8eb6906fe3d481ca5fa37eea93acac7517c6c773",
+    "bytes": 65813,
+    "sha256": "8bea0bf12931168332b6fb8b1925547624dcb6b76e451df529064a6cc78eaa1f",
     "tools": [
       "set_status",
       "send_message",
@@ -196,6 +199,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -214,8 +218,8 @@
     ]
   },
   "non-chief": {
-    "bytes": 53194,
-    "sha256": "faed459ddb886b26024f9daa158d89b30be6c8405522bcc724c98250c0a0c40a",
+    "bytes": 54198,
+    "sha256": "66423915aa9b58f74f59d3af9e80caf1e4d251cf4e131d4e673f226e911aae38",
     "tools": [
       "set_status",
       "send_message",
@@ -246,6 +250,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "memory_log",
       "session_search",
@@ -261,8 +266,8 @@
     ]
   },
   "voice+non-chief": {
-    "bytes": 53972,
-    "sha256": "0636650d1a2934eb73ed5afc668a6b28637d7a7491d9b7c0a0a34292d528b824",
+    "bytes": 54976,
+    "sha256": "62c13f242f288ced283690cf40fdff8ff85253c5747531f3401de285fb574f82",
     "tools": [
       "set_status",
       "send_message",
@@ -294,6 +299,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "memory_log",
       "session_search",
@@ -309,8 +315,8 @@
     ]
   },
   "skills+non-chief": {
-    "bytes": 56013,
-    "sha256": "285feb82eaf2d926b64e1774bbd8dadbce19081c3fa0785f9cade58a8474cd91",
+    "bytes": 57017,
+    "sha256": "6fc5e044536ea5f2791f8f7fdee79c317fdc5c70490e19aa3a0160f965ee2b24",
     "tools": [
       "set_status",
       "send_message",
@@ -341,6 +347,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "memory_log",
       "session_search",
@@ -358,8 +365,8 @@
     ]
   },
   "skills+voice+non-chief": {
-    "bytes": 56791,
-    "sha256": "1b29771d6748495424c697728d72c50fa006510eb3ac6ca9a1be4783efbda7e0",
+    "bytes": 57795,
+    "sha256": "82d481d53651a81b42dfcd224bc00ae55df3a5aea86c132f4e97fe5d53e0303a",
     "tools": [
       "set_status",
       "send_message",
@@ -391,6 +398,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "memory_log",
       "session_search",
@@ -408,8 +416,8 @@
     ]
   },
   "skills+voice+cloud-home": {
-    "bytes": 63454,
-    "sha256": "89da197ceb426c31bdd4ba4b107f76a86c8b2cb17af9bd1ee4e7acb7ded29229",
+    "bytes": 64834,
+    "sha256": "06122353229eef826daa5328872c8aaf350238192e6805f3859d047511e5f6f8",
     "tools": [
       "set_status",
       "send_message",
@@ -444,6 +452,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -462,8 +471,8 @@
     ]
   },
   "skills+voice+non-chief+cloud-home": {
-    "bytes": 55812,
-    "sha256": "f0938b129cdfb7d3178d574ff2b49c29348dfc964c4aec66cb16ec16695e51f1",
+    "bytes": 56816,
+    "sha256": "247095b005a290d4c2a2c769d9ef8e5e0e9f33722eea1713193c21b96649ce3f",
     "tools": [
       "set_status",
       "send_message",
@@ -494,6 +503,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "memory_log",
       "session_search",
@@ -511,8 +521,8 @@
     ]
   },
   "skills+voice+x": {
-    "bytes": 69444,
-    "sha256": "33ffbc05c2e4a693a707def46bdf50e5b7d4d1646fbefe8271838fffc6789e88",
+    "bytes": 70824,
+    "sha256": "a47adf11716f117994ff3aa8348a1bc90ebfad21fad28e5d0bb3bbe4ff27bff2",
     "tools": [
       "set_status",
       "send_message",
@@ -553,6 +563,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -571,8 +582,8 @@
     ]
   },
   "skills+voice+x+team": {
-    "bytes": 69444,
-    "sha256": "33ffbc05c2e4a693a707def46bdf50e5b7d4d1646fbefe8271838fffc6789e88",
+    "bytes": 70824,
+    "sha256": "a47adf11716f117994ff3aa8348a1bc90ebfad21fad28e5d0bb3bbe4ff27bff2",
     "tools": [
       "set_status",
       "send_message",
@@ -613,6 +624,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -631,8 +643,8 @@
     ]
   },
   "default+legacy-switches": {
-    "bytes": 60836,
-    "sha256": "a90a9b4398f806fcb202015c4f9d434919ab1c008abe7b057420a39a5164df24",
+    "bytes": 62216,
+    "sha256": "fea752ad68d9889cdc32a3493938dfd5f02a471c43bb7296d72fe60ff3da7e51",
     "tools": [
       "set_status",
       "send_message",
@@ -667,6 +679,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -683,8 +696,8 @@
     ]
   },
   "default+dusk": {
-    "bytes": 61487,
-    "sha256": "604b832e398ede87a048a42c2efad68520fef909bdde0a5663010c9e09c7b4fb",
+    "bytes": 62867,
+    "sha256": "72d42b3c7c88faf7c146045b08d6b8a393cdf6ef546ab12466ba673335f51ae9",
     "tools": [
       "set_status",
       "send_message",
@@ -719,6 +732,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -737,8 +751,8 @@
     ]
   },
   "skills+voice+dusk": {
-    "bytes": 65084,
-    "sha256": "ff727c3e7e6c9ea4de8347df9299c8c82436c6188b38ff3c66853cc441016262",
+    "bytes": 66464,
+    "sha256": "a0b2ba4d35c766a6cbafd3cf43842ad3478182be285c1b9f28028d1416ea4d5b",
     "tools": [
       "set_status",
       "send_message",
@@ -774,6 +788,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -794,8 +809,8 @@
     ]
   },
   "default+no-computer-pick": {
-    "bytes": 59629,
-    "sha256": "17510b0f7c44ec23486fe69c23a97a967f7116b03560fdb808b837b9bde45060",
+    "bytes": 61009,
+    "sha256": "09cdd71b64e8e7e8b20e88860a0af1cdfb22feaeb69b9956fd8c80f0e40eb6eb",
     "tools": [
       "set_status",
       "send_message",
@@ -829,6 +844,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -845,8 +861,8 @@
     ]
   },
   "default+room": {
-    "bytes": 52551,
-    "sha256": "e44f0e311afa08bf46c47c59a480b4afe2f2015cbe6920350661728f54e16c19",
+    "bytes": 53931,
+    "sha256": "a8d77e1b171345f28713f07a121c9b723276cc3be8f9ce785b9529ae548d2762",
     "tools": [
       "set_status",
       "send_message",
@@ -878,6 +894,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "retry_thread",
       "memory_log",
@@ -891,8 +908,8 @@
     ]
   },
   "non-chief+room": {
-    "bytes": 44909,
-    "sha256": "d1c6190853a61d1c5255e1b5431199f6376c87a1ce893f085f374ad40ebcef41",
+    "bytes": 45913,
+    "sha256": "1eb3dcacf08cd9a565e61dff1b8ce3cccce03443d7fe4309200feee77dbd305c",
     "tools": [
       "set_status",
       "send_message",
@@ -920,6 +937,7 @@
       "extract",
       "message_person",
       "report_bug",
+      "app_settings",
       "memory_update",
       "memory_log",
       "session_search",

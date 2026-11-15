@@ -663,7 +663,7 @@ import { createPersonReplies } from "./person-replies.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
-import { roomBusyError, roomBusyReason } from "./room-busy.ts"; import { createDevsReports } from "./host/devs-reports.ts"; import { bugReportEndpoint, devsReportSender, devsStatusAsker } from "./devs-report-send.ts"; import { captureRecentLog } from "./recent-log.ts"; import { createShareAnswer } from "./host/share-answer.ts";
+import { roomBusyError, roomBusyReason } from "./room-busy.ts"; import { roomResponderFromTool, roomResponderLine } from "./room-responder-tool.ts"; import { createAppSettings } from "./host/app-settings.ts"; import { createDevsReports } from "./host/devs-reports.ts"; import { bugReportEndpoint, devsReportSender, devsStatusAsker } from "./devs-report-send.ts"; import { captureRecentLog } from "./recent-log.ts"; import { createShareAnswer } from "./host/share-answer.ts";
 import { createCardRequester, linePersonKey } from "./host/thread-person.ts"; import { selfThreadRefusal } from "./host/self-threads.ts"; import { lookedAfterBy } from "./host/looked-after.ts"; import { createActingPeople, HANDED_PEOPLE_FILE, HandedPeople, type HandedRun, keptPrivate, privateHandBack, withPerson } from "./host/acting-person.ts";
 import { createThreadRoutes } from "./routes/threads.ts";
 import { createWebhookRoutes } from "./routes/webhooks.ts";
@@ -6310,13 +6310,25 @@ function botComputerControlSnapshot(botId: string, pinnedComputerId?: string) {
   return own.held ? own : shared.held || shared.helpReason ? shared : own;
 }
 
-function teamComputerInUse(computer: TeamComputerRecord): boolean {
+/** The turn asking for a change: it never counts as its own bot's other work. */
+type AskingTurn = { botId: string; threadId: string };
+
+function botWorksElsewhere(botId: string, asking?: AskingTurn): boolean {
+  if (!asking || asking.botId !== botId) return botHasActiveTurn(botId);
+  const own = conversationOfRun(asking.threadId);
+  const group = activeGroupTurnForBot(botId);
+  return store.tasks(botId).some(task => task.threadId !== own && threadBusy(botId, task.threadId)) ||
+    [...directTurnDispatchClaims].some(([threadId, claim]) => threadId !== own && claim.botId === botId) ||
+    Boolean(group && conversationOfRun(group.threadId) !== own);
+}
+
+function teamComputerInUse(computer: TeamComputerRecord, asking?: AskingTurn): boolean {
   computer = teamComputers.get(computer.id) ?? computer;
   return computerControl.snapshot(teamComputerOwner(computer.id)).held ||
     [...teamComputerTurns.values()].some(turn => turn.computerId === computer.id) ||
     store.bots.some(bot => inheritedTeamComputer(bot)?.id === computer.id && computerControl.snapshot(bot.id).held) ||
     store.bots.some(bot => computer.section !== null && sectionKey(bot.section) === computer.section && (
-      botHasActiveTurn(bot.id) || Boolean(routines?.activeRunForBot(bot.id)) || computerControl.snapshot(bot.id).held
+      botWorksElsewhere(bot.id, asking) || Boolean(routines?.activeRunForBot(bot.id)) || computerControl.snapshot(bot.id).held
     ));
 }
 
@@ -6326,12 +6338,12 @@ function claimTeamComputerLifecycle(computer: TeamComputerRecord): () => void {
   return claimBotComputerLifecycle(teamComputerOwner(computer.id));
 }
 
-function assertTeamComputerChangeIdle(before: BotRecord, after: BotRecord): void {
+function assertTeamComputerChangeIdle(before: BotRecord, after: BotRecord, asking?: AskingTurn): void {
   const previous = inheritedTeamComputer(before);
   const next = inheritedTeamComputer(after);
   if (previous?.id === next?.id) return;
-  if (botHasActiveTurn(before.id) || routines?.activeRunForBot(before.id) || botComputerControlSnapshot(before.id).held ||
-      [previous, next].some(computer => computer && (teamComputerInUse(computer) || remoteComputerLifecycleBusyOwners.has(teamComputerOwner(computer.id))))) {
+  if (botWorksElsewhere(before.id, asking) || routines?.activeRunForBot(before.id) || botComputerControlSnapshot(before.id).held ||
+      [previous, next].some(computer => computer && (teamComputerInUse(computer, asking) || remoteComputerLifecycleBusyOwners.has(teamComputerOwner(computer.id))))) {
     throw Object.assign(new Error("Stop the affected team's work and release computer control before changing its computer access"), { status: 409 });
   }
 }
@@ -6359,13 +6371,13 @@ async function retireBotScreen(botId: string, ownLifecycle = false): Promise<voi
   return pending;
 }
 
-async function prepareTeamComputerChange(before: BotRecord, after: BotRecord): Promise<void> {
-  assertTeamComputerChangeIdle(before, after);
+async function prepareTeamComputerChange(before: BotRecord, after: BotRecord, asking?: AskingTurn): Promise<void> {
+  assertTeamComputerChangeIdle(before, after, asking);
   if (inheritedTeamComputer(before)?.id === inheritedTeamComputer(after)?.id) return;
   await retireBotScreen(before.id);
   const current = store.bot(before.id);
   if (!current) throw Object.assign(new Error("This bot changed while its screen was closing; retry the change"), { status: 409 });
-  assertTeamComputerChangeIdle(current, after);
+  assertTeamComputerChangeIdle(current, after, asking);
 }
 
 async function teamComputersPayload(): Promise<TeamComputersPayload> {
@@ -10149,16 +10161,13 @@ const teamSetupTeams = () => [...new Set(["", ...readSections(), ...store.bots.m
 const teamSetupRequests = new TeamSetupRequestService({
   store, teams: teamSetupTeams, hasTeamAuthority, canPersist: proposalPersistence, maxBots: MAX_WORKSPACE_BOTS, botLimit,
   autoApply: appliesDirectly,
-  validateChange: (before, fields) => assertTeamComputerChangeIdle(before, { ...before, ...fields }),
-  prepareChange: (before, fields) => prepareTeamComputerChange(before, { ...before, ...fields }),
+  validateChange: (before, fields, asking) => assertTeamComputerChangeIdle(before, { ...before, ...fields }, asking),
+  prepareChange: (before, fields, asking) => prepareTeamComputerChange(before, { ...before, ...fields }, asking),
   ownsThread: (botId, threadId) => Boolean(connectorThread(botId, threadId)),
   targetBusy: (botId, sourceThreadId) => {
-    if (!sourceThreadId) return Boolean(store.bot(botId)?.busy || hasDirectDispatch(botId) || activeGroupTurnForBot(botId) || routines?.activeRunForBot(botId));
-    const group = activeGroupTurnForBot(botId);
     const run = routines?.activeRunForBot(botId);
-    return store.tasks(botId).some(task => task.threadId !== sourceThreadId && threadBusy(botId, task.threadId)) ||
-      [...directTurnDispatchClaims].some(([threadId, claim]) => threadId !== sourceThreadId && claim.botId === botId) ||
-      Boolean(group && group.threadId !== sourceThreadId) || Boolean(run && run.threadId !== sourceThreadId);
+    if (!sourceThreadId) return botHasActiveTurn(botId) || Boolean(run);
+    return botWorksElsewhere(botId, { botId, threadId: sourceThreadId }) || Boolean(run && run.threadId !== sourceThreadId);
   },
   validateModel: validateModelProposal,
   driverCapabilities: driverCapabilitiesFor,
@@ -13416,6 +13425,9 @@ const settingsSync = createSettingsSync({ dataDir: DATA_DIR, config: () => cfg, 
   // the desktop brings the person's other places level at once
   changed: () => { settingsChangedSoon ??= setTimeout(() => { settingsChangedSoon = null; postDesktopPrivateMessage({ type: "duskbot:settings-changed" }); }, 500); settingsChangedSoon.unref?.(); } });
 settingsSyncRef = settingsSync;
+const appSettings = createAppSettings({ sync: () => (CLOUD_TEAM ? null : settingsSync), changed: () => broadcast({ kind: "ui-prefs" }),
+  refusal: (botId, threadId) => cloudGuestDriven(threadId) || botApiThread(threadId) ? "Only the app's owner changes its preferences, and this conversation is not theirs."
+    : routines?.isActiveThread(threadId) || isUnattended(botId, threadId) ? "An automation run cannot change the person's app preferences; only a conversation with them can." : null });
 // after the save's own reload of cfg, which the same tick finishes
 onConfigSaved(() => { setImmediate(() => settingsSync.touch()); });
 onAccountChoice(() => settingsSync.touch());
@@ -14029,7 +14041,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         catch (error) { if ((error as { code?: string }).code === "outside_workspace") return null; throw error; }
         try { requireActiveInternalCapability(); return opened; }
         catch (error) { await opened.handle.close(); throw error; }
-      } }) !== PASS || await waitRoutes({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, ...waitTurnChecks(internalCapability, internalSender) }) !== PASS || await teamMessages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await devsReports.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await slackHost.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, folders: botFolders, requireActive: requireActiveInternalCapability }) !== PASS) return; const pagesCall = new AbortController(); res.once("close", () => { if (!res.writableEnded) pagesCall.abort(); }); if (await publishedPages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, requireActive: requireActiveInternalCapability, signal: pagesCall.signal, folders: botFolders, post: (text, publishedPage, bundle) => { const source = connectorThread(internalSender.id, internalCapability.threadId); return !source ? null : (!source.group && bundle && publishedPages.show({ threadId: internalCapability.threadId, card: publishedPage, bundle })) || store.appendMessage(internalCapability.threadId, { role: "bot", kind: "text", text, publishedPage, ...(source.group ? { from: { botId: internalSender.id, name: internalSender.name, color: internalSender.color } } : {}) }).id; } }) !== PASS) return;
+      } }) !== PASS || await waitRoutes({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, ...waitTurnChecks(internalCapability, internalSender) }) !== PASS || await teamMessages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await devsReports.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await appSettings.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody }) !== PASS || await slackHost.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, folders: botFolders, requireActive: requireActiveInternalCapability }) !== PASS) return; const pagesCall = new AbortController(); res.once("close", () => { if (!res.writableEnded) pagesCall.abort(); }); if (await publishedPages.internal({ method, path, res, json, botId: internalSender.id, threadId: internalCapability.threadId, readBody: readInternalBody, requireActive: requireActiveInternalCapability, signal: pagesCall.signal, folders: botFolders, post: (text, publishedPage, bundle) => { const source = connectorThread(internalSender.id, internalCapability.threadId); return !source ? null : (!source.group && bundle && publishedPages.show({ threadId: internalCapability.threadId, card: publishedPage, bundle })) || store.appendMessage(internalCapability.threadId, { role: "bot", kind: "text", text, publishedPage, ...(source.group ? { from: { botId: internalSender.id, name: internalSender.name, color: internalSender.color } } : {}) }).id; } }) !== PASS) return;
       const delegatedThisTurn = (taskId: string) => {
         (internalCapability.delegatedThisTurn ??= new Set()).add(taskId);
       };
@@ -15393,16 +15405,17 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         }
         const parsed = z.object({
           fromBotId: z.string().optional(), fromThreadId: z.string().optional(),
-          roomId: z.string(), action: z.enum(["add_members", "remove_members", "set_members", "rename", "set_bulletin", "new_thread"]),
+          roomId: z.string(), action: z.enum(["add_members", "remove_members", "set_members", "rename", "set_bulletin", "set_responder", "set_description", "new_thread"]),
           memberIds: z.array(z.string()).min(1).max(100).optional(),
           name: z.string().trim().min(1).max(100).optional(), bulletin: z.string().max(12_000).optional(),
+          responder: z.string().trim().min(1).max(128).optional(), description: z.string().max(120).optional(),
         }).strict().safeParse(body);
         if (!parsed.success) return json(res, 400, { error: "provide roomId and a supported room action; section moves are user-only" });
         const room = store.group(parsed.data.roomId);
         if (!room || room.dm || !allowedRoster(room.memberIds)) {
           return json(res, 403, { error: "you can only manage rooms you belong to whose members you can all reach; no bot needs adding to get work, since coordinate_bots reaches bots outside the room directly" });
         }
-        const { action, memberIds, name, bulletin } = parsed.data;
+        const { action, memberIds, name, bulletin, responder, description } = parsed.data;
         if (cloudGuestDriven(internalCapability.threadId)) {
           if (action !== "set_bulletin" || bulletin === undefined) return json(res, 403, { error: OUTSIDE_STAYS_HERE });
           const proposed = outsideWrites.submitBulletin(chief, internalCapability.threadId, room, redactSecretsInText(bulletin));
@@ -15419,6 +15432,13 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
         } else if (action === "set_bulletin") {
           if (bulletin === undefined) return json(res, 400, { error: "set_bulletin requires bulletin text; use an empty string to clear it" });
           patch.bulletin = redactSecretsInText(bulletin);
+        } else if (action === "set_description") {
+          if (description === undefined) return json(res, 400, { error: "set_description requires description: one line, at most 120 characters; an empty string clears it" });
+          patch.description = redactSecretsInText(description);
+        } else if (action === "set_responder") {
+          const picked = roomResponderFromTool(responder, room.memberIds, deciderReady(cfg, "roomRouting"));
+          if ("error" in picked) return json(res, 400, { error: picked.error });
+          patch.defaultResponder = picked.responder;
         } else {
           if (!memberIds || memberIds.some((id) => !allowedIds.has(id))) {
             return json(res, 403, { error: "memberIds must name only yourself or active bots you can reach (list_bots)" });
@@ -15429,7 +15449,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
           patch.memberIds = next;
         }
         const updated = updateChannel(room.id, patch, { botId: chief.id, threadId: internalCapability.threadId });
-        return json(res, 200, { ok: true, memberIds: updated.memberIds, memberCount: updated.memberIds.length, message: `Updated room “${updated.name}”.` });
+        return json(res, 200, { ok: true, memberIds: updated.memberIds, memberCount: updated.memberIds.length, message: `Updated room “${updated.name}”${action === "set_responder" ? `: ${roomResponderLine(updated.defaultResponder, (id) => store.bot(id)?.name ?? id)}` : ""}.` });
       }
       if (await dispatchRoutes([createInternalMcpRoutes({
         ...mcpServerDeps(internalSender, internalCapability.threadId, internalCapability.generation), readBody: readInternalBody,

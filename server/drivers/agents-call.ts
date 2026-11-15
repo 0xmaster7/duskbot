@@ -22,6 +22,7 @@ import { callDuskTool, DUSK_TOOL_NAMES } from "./agents-dusk-tools.ts";
 import { callPageTool, PAGE_TOOL_NAMES } from "./agents-pages-tools.ts";
 import { callSlackTool, SLACK_TOOL_NAMES } from "./agents-slack-tools.ts";
 import { callPersonTool, PERSON_TOOL_NAMES } from "./agents-person-tools.ts";
+import { APP_SETTINGS_TOOL_NAMES, callAppSettingsTool } from "./agents-app-settings-tool.ts";
 import { callDevsTool, DEVS_TOOL_NAMES } from "./agents-devs-tools.ts";
 import { STATUS_TOOL } from "../../shared/turn-progress.ts";
 import { callStatusTool } from "./agents-status-tool.ts";
@@ -249,6 +250,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
   if (SLACK_TOOL_NAMES.has(name)) return callSlackTool(name, args, context);
   if (PERSON_TOOL_NAMES.has(name)) return callPersonTool(name, args, context);
   if (DEVS_TOOL_NAMES.has(name)) return callDevsTool(name, args, context);
+  if (APP_SETTINGS_TOOL_NAMES.has(name)) return callAppSettingsTool(name, args, context);
   if (TRIGGER_TOOL_NAMES.has(name)) return callTriggerTool(name, args, context);
   if (WAIT_TOOL_NAMES.has(name)) return callWaitTool(name, args, context);
   if (name === USAGE_LIMITS_TOOL) return callUsageLimitsTool(context);
@@ -557,6 +559,8 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       : undefined;
     const roomName = typeof args.name === "string" ? args.name.trim() : undefined;
     const bulletin = typeof args.bulletin === "string" ? args.bulletin.trim() : undefined;
+    const responder = typeof args.responder === "string" ? args.responder.trim() : undefined;
+    const description = typeof args.description === "string" ? args.description.trim() : undefined;
     const r = await api(`/api/internal/manage-room`, {
       method: "POST",
       body: JSON.stringify({
@@ -567,6 +571,8 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
         memberIds,
         name: roomName,
         bulletin,
+        responder,
+        description,
       }),
     });
     if (r.error) return { text: `Couldn't manage room: ${r.error}`, isError: true };
@@ -645,9 +651,8 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     }
   }
   if (name === "propose_profile") {
-    if ((args.notifications !== undefined && typeof args.notifications !== "boolean")
-      || (args.speakReplies !== undefined && typeof args.speakReplies !== "boolean")) {
-      return { text: "propose_profile notifications and speakReplies must be true or false.", isError: true };
+    if (["notifications", "speakReplies", "voiceNotes"].some((key) => args[key] !== undefined && typeof args[key] !== "boolean")) {
+      return { text: "propose_profile notifications, speakReplies and voiceNotes must be true or false.", isError: true };
     }
     const changes: Json = {};
     if (typeof args.name === "string") changes.name = args.name.trim();
@@ -657,8 +662,12 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (typeof args.cwd === "string") changes.cwd = args.cwd.trim();
     if (typeof args.notifications === "boolean") changes.notifications = args.notifications;
     if (typeof args.speakReplies === "boolean") changes.speakReplies = args.speakReplies;
+    if (typeof args.voiceNotes === "boolean") changes.voiceNotes = args.voiceNotes;
+    if (typeof args.color === "string") changes.color = args.color.trim();
+    if (typeof args.replyStyle === "string") changes.replyStyle = args.replyStyle.trim();
+    if (typeof args.voice === "string") changes.voice = args.voice.trim();
     if (!Object.keys(changes).length) {
-      return { text: "propose_profile needs at least one of name, title, description, soul, cwd, notifications, or speakReplies.", isError: true };
+      return { text: "propose_profile needs at least one of name, title, description, soul, cwd, color, replyStyle, voice, notifications, speakReplies, or voiceNotes.", isError: true };
     }
     const forBotId = String(args.for_bot_id ?? "").trim();
     const r = await api("/api/internal/profile-requests", {

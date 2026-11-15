@@ -74,6 +74,10 @@ const PROFILE_FIELD_LABEL: Record<ProfileRequestField, LocaleKey> = {
   cwd: "approval.applied.field.cwd",
   notifications: "approval.applied.field.notifications",
   speakReplies: "approval.applied.field.speakReplies",
+  color: "approval.applied.field.color",
+  replyStyle: "approval.applied.field.replyStyle",
+  voice: "approval.applied.field.voice",
+  voiceNotes: "approval.applied.field.voiceNotes",
 };
 
 /** A routine card no one answered is from before Triggers v2 applied changes on their own: nothing can confirm it now. */

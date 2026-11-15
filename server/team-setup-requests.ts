@@ -85,8 +85,9 @@ interface Options {
   /** Null only where the owner confirms on a card (direct-apply.ts). */
   autoApply?(botId: string, threadId: string): DirectApply | null;
   driverCapabilities?(instanceId: string): DriverCapabilities | undefined;
-  validateChange?(before: BotRecord, fields: TeamSetupFields): void;
-  prepareChange?(before: BotRecord, fields: TeamSetupFields): Promise<void>;
+  /** `asking`: the Chief's turn that asked, which never counts as its own other work. */
+  validateChange?(before: BotRecord, fields: TeamSetupFields, asking?: { botId: string; threadId: string }): void;
+  prepareChange?(before: BotRecord, fields: TeamSetupFields, asking?: { botId: string; threadId: string }): Promise<void>;
   maxBots: number;
   botLimit?: Pick<BotLimit, "refusal">;
   ownsThread(botId: string, threadId: string): boolean;
@@ -175,12 +176,12 @@ export class TeamSetupRequestService {
       } else {
         if (!target || target.hidden || !this.options.hasTeamAuthority(chief, target.section) || (target.id !== chief.id && Array.isArray(chief.peers) && !chief.peers.includes(target.id))) throw new TeamSetupError("A target bot is outside this Chief's authorized team and peer scope", 403);
         if (teamSetupRevision(target, operation.fields) !== operation.expectedRevision) throw new TeamSetupError(`@${target.name} changed. This setup was cancelled; review a new proposal.`, 409);
-        const sourceThreadId = immediate && target.id === chief.id ? request.threadId : undefined;
+        const sourceThreadId = target.id === chief.id ? request.threadId : undefined;
         if (this.options.targetBusy(target.id, sourceThreadId) && (confirming || target.id !== chief.id)) throw new TeamSetupError(`Stop @${target.name}'s work before changing its setup`, 409);
       }
       const fields = this.fields(operation.fields, target ?? undefined);
       if (fields.chiefOfStaff !== undefined && !chief.chiefOfStaff) throw new TeamSetupError(`Only the Chief of Staff changes who the Chief is; ${chief.name} doesn't.`, 403);
-      if (confirming && target) this.options.validateChange?.(target, fields);
+      if (confirming && target) this.options.validateChange?.(target, fields, { botId: chief.id, threadId: request.threadId });
       const destination = fields.section ?? target?.section ?? chief.section;
       if (!allowed(destination)) throw new TeamSetupError("The destination team is outside this Chief's authorized scope", 403);
       if (!request.newTeams.includes(section(destination)) && !existingTeams.has(section(destination))) throw new TeamSetupError("The destination team no longer exists", 409);
@@ -340,7 +341,7 @@ export class TeamSetupRequestService {
           if (operation.action !== "update") continue;
           revalidate();
           const target = this.options.store.bot(operation.botId);
-          if (target) await this.options.prepareChange?.(target, operation.fields);
+          if (target) await this.options.prepareChange?.(target, operation.fields, { botId: request.botId, threadId: request.threadId });
         }
         revalidate();
         return this.options.store.applyTeamSetup(request);
@@ -417,7 +418,7 @@ export class TeamSetupRequestService {
     });
     const ids = Object.keys(revisions);
     if (changed(ids)) return { ...cannot(UNDO_STALE), stale: true };
-    if (ids.some((id) => this.options.targetBusy(id))) return cannot("Wait for the bots this setup changed to finish their work, then undo.");
+    if (ids.some((id) => this.options.targetBusy(id, id === request.botId ? request.threadId : undefined))) return cannot("Wait for the bots this setup changed to finish their work, then undo.");
     try {
       for (const id of created) await this.options.deleteBot(id, () => { if (changed([id])) throw new TeamSetupError(UNDO_STALE, 409); });
       const restore = before.filter((entry) => Object.keys(entry.fields).length);
