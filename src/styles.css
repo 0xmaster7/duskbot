@@ -3387,6 +3387,48 @@ button:disabled.bg-danger {
   100% { opacity: 0; transform: translate(120px, 36px); }
 }
 
+/* dusk cloud's plans: the landing's stepped pixel corners and pastel underlips, picked by the skin's colour scheme. */
+.cloud-plans {
+  color-scheme: var(--code-color-scheme);
+  --cloud-price-dim: light-dark(transparent, rgb(0 0 0 / 0.26));
+  --cloud-plans-lip: light-dark(#c2ecfc, #2f6f99);
+  --cloud-plans-tab: light-dark(color-mix(in srgb, var(--color-app) 70%, #fff), color-mix(in srgb, var(--color-ink) 15%, var(--color-app)));
+  --cloud-step: polygon(5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px), 0 5px, 5px 5px);
+  --cloud-step-s: polygon(3px 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px), 0 3px, 3px 3px);
+}
+.cloud-plans-tabs { clip-path: var(--cloud-step); background: color-mix(in srgb, var(--color-ink) 5%, transparent); }
+.cloud-plans-tab {
+  clip-path: var(--cloud-step-s);
+  color: var(--color-ink-secondary);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.cloud-plans-tab[aria-selected="true"] { background: var(--cloud-plans-tab); color: var(--color-ink); }
+.cloud-plans-tab[aria-disabled="true"] { cursor: default; }
+/* clip-path cuts any outline away, so focus is a ring drawn inside the step */
+.cloud-plans-tab:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--color-focus); }
+.cloud-plans-tag { clip-path: var(--cloud-step-s); box-shadow: inset 0 -4px 0 var(--cloud-plans-lip); }
+.cloud-plans-buy.ui-button-primary {
+  min-height: 46px;
+  padding: 0 18px 5px;
+  border-radius: 0;
+  clip-path: var(--cloud-step);
+  box-shadow: inset 0 -5px 0 color-mix(in srgb, var(--color-app) 30%, transparent);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color 150ms ease, scale 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cloud-plans-buy.ui-button-primary:not(:disabled):active { scale: 0.985; }
+.cloud-plans-buy.ui-button-primary:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-ink), inset 0 0 0 4px var(--color-app), inset 0 -5px 0 color-mix(in srgb, var(--color-app) 30%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cloud-plans-tab:not([aria-selected="true"], [aria-disabled="true"]):hover { color: var(--color-ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cloud-plans-buy.ui-button-primary:not(:disabled):active { scale: 1; }
+}
+
 /* Trace waterfall: AI steps lavender, tools pale teal, errors red, each mixed into the skin's card so every skin keeps its contrast. */
 .trace-bar { border: 1px solid transparent; }
 .trace-bar-step {
