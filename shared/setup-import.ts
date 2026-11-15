@@ -14,12 +14,17 @@ export interface SetupDetection {
   tools: Array<{ name: string; source: SetupSource }>;
   /** Instruction files new or changed since they were last brought in, by the file's own name. */
   instructions?: Array<{ name: string; source: InstructionsSource }>;
+  /** Notes not brought in yet from each tool's own memory and standing-instructions files, counted, never shown. */
+  memory?: Array<{ source: InstructionsSource; files: number; notes: number }>;
 }
 
 export interface SetupImportRequest {
   skills?: boolean;
   tools?: boolean;
   instructions?: boolean;
+  /** The tools' memory and instructions, as unverified imported notes in this bot's memory. */
+  memory?: boolean;
+  memoryBot?: string;
   /** Only these tools' things; absent means every tool's. */
   sources?: SetupSource[];
 }
@@ -34,10 +39,12 @@ export interface SetupImportResult {
   tools?: { added: string[]; present: string[]; skipped: Array<{ name: string; reason: ToolSkip }> };
   /** The files' text, credentials redacted, for the first bot's memory; recorded as brought in once read. */
   instructions?: Array<{ name: string; source: InstructionsSource; text: string }>;
+  /** Notes added to the bot's memory, and the tools they came from. */
+  memory?: { added: number; sources: InstructionsSource[]; failed: boolean };
 }
 
 export function detectionCount(detection: SetupDetection | null | undefined): number {
-  return detection ? detection.skills.length + detection.tools.length + (detection.instructions?.length ?? 0) : 0;
+  return detection ? detection.skills.length + detection.tools.length + (detection.instructions?.length ?? 0) + (detection.memory?.length ?? 0) : 0;
 }
 
 /** Each source once, in the order first found. */

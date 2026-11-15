@@ -53,6 +53,7 @@ async function serve({ local = true, home = fixtureHome(), dataDir }: { local?: 
     mcpConfigBusy: { get: () => busy, set: (value) => { busy = value; } },
     mcpPolicyRefusal: () => undefined,
     persistMcpServers: (next) => { cfg.mcpServers = next; },
+    botExists: (id) => id === bot.id,
     machine: () => ({ ...thisMachine(), home, platform: "darwin", env: {} }),
     ...(dataDir ? { dataDir } : {}),
   })];
@@ -75,6 +76,13 @@ async function serve({ local = true, home = fixtureHome(), dataDir }: { local?: 
 }
 
 describe("the setup import routes", () => {
+  it("brings memory only into one of the person's own bots", async () => {
+    const { call } = await serve();
+    for (const body of [{ memory: true }, { memory: true, memoryBot: "../../elsewhere" }]) {
+      expect((await call("POST", "/api/setup-import", { body })).status, JSON.stringify(body)).toBe(400);
+    }
+  });
+
   it("hands out what Grok Bot left on this computer only to the owner's own loopback there", async () => {
     const home = fixtureHome();
     mkdirSync(join(home, "Downloads"));

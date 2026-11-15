@@ -11,6 +11,11 @@ General → About me**. You can type in it yourself; bots add lines to it too,
 each marked with the day and the bot that learned it
 (`- 2026-11-14 · learned by Scout · Priya lives in Porto`). Notes you import
 from another AI app land here the same way (`learned by ChatGPT`).
+Memory and standing instructions brought in from AI tools on this computer
+(Claude Code's `CLAUDE.md` and project memory, Codex's `AGENTS.md`, Gemini
+CLI's `GEMINI.md`, Windsurf's global rules) go to the first bot's notes, one
+`memory/imported-<tool>.md` topic per tool, as unverified imported notes:
+recalled when they fit, never loaded every time.
 
 **A bot's own memory** is what only that bot needs: the projects it works on,
 decisions made with it, its clients, its topic notes. It lives in that bot's

@@ -145,7 +145,7 @@ function factWhen(item: RecalledFact): string {
   return fact.validUntil ? `noted ${from}, until ${fact.validUntil}` : `noted ${from}`;
 }
 
-const UNTRUSTED: Partial<Record<FactRow["source"], string>> = { tool: "from a tool result", web: "from a web page", "other-bot": "from another bot" };
+const UNTRUSTED: Partial<Record<FactRow["source"], string>> = { tool: "from a tool result", web: "from a web page", "other-bot": "from another bot", import: "imported from another app" };
 
 export function factPassage(item: RecalledFact): RecallPassage {
   const caution = UNTRUSTED[item.fact.source];

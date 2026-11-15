@@ -5,7 +5,7 @@
 // and out of the tools' own logins and history. Skills are copied once into this computer's imported skills, which every bot uses (imported-skills.ts);
 // MCP servers go through the same parser as Plugins → MCP servers → Paste config, switched off.
 import { createHash } from "node:crypto";
-import { closeSync, constants, fstatSync, lstatSync, openSync, readdirSync, readFileSync, readlinkSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
+import { closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, readlinkSync, readSync, realpathSync, statSync, type Stats } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
@@ -17,6 +17,11 @@ import { isSkillName, parseSkillMd, scanSkillText, SKILL_FILE_MAX_BYTES, SKILL_N
 import { importedSkillIntact, readImportedSkills, storeImportedSkills, type ImportedSkillEntry, type ImportedSkillInput } from "./imported-skills.ts";
 import { importedMcpServerName, isRemoteMcpServer, MAX_MCP_SERVERS, parseMcpServersImport, parseStoredMcpServer, type StoredMcpServer } from "./mcp-registry.ts";
 import { parseToml } from "./toml-lite.ts";
+import { annotateFact } from "./memory-facts.ts";
+import { factIdentity } from "./memory-entries.ts";
+import { journalMemoryWrite } from "./memory-journal.ts";
+import { looksLikeInstruction } from "./memory-trust.ts";
+import { memoryEntry, readMemoryTopic } from "./workspace.ts";
 
 /** The file operations finding and copying use, so tests can see every path touched. Each answers null on failure. */
 export interface SetupFs {
@@ -148,6 +153,10 @@ export function setupPaths(machine: Pick<SetupMachine, "home" | "platform" | "en
       { source: "windsurf", path: join(home, ".codeium", "windsurf", "memories", "global_rules.md"), name: "global_rules.md" },
       { source: "windsurf", path: join(home, ".devin", "global_rules.md"), name: "global_rules.md" },
     ] satisfies Array<{ source: InstructionsSource; path: string; name: string }>,
+    /** Folders of per-project memory notes: <root>/<project>/memory/*.md, and nothing else under <root>. */
+    memoryFolders: [
+      { source: "claudeCode", root: join(home, ".claude", "projects"), inner: "memory" },
+    ] satisfies Array<{ source: InstructionsSource; root: string; inner: string }>,
   };
 }
 
@@ -801,6 +810,173 @@ function importTools(machine: SetupMachine, host: SetupHost, sources?: readonly 
   }
 }
 
+export const MEMORY_LIMITS = {
+  /** Project memory files read per tool. */
+  files: 400,
+  /** One note: longer is cut at a word. */
+  noteChars: 500,
+  /** Notes and characters brought in per tool: what one topic file holds comfortably. */
+  notes: 600,
+  chars: 160 * 1024,
+};
+
+const APP_NAMES: Record<InstructionsSource, string> = { claudeCode: "Claude Code", codex: "Codex", gemini: "Gemini CLI", windsurf: "Windsurf" };
+const MEMORY_TOPICS: Record<InstructionsSource, string> = {
+  claudeCode: "imported-claude-code.md", codex: "imported-codex.md", gemini: "imported-gemini-cli.md", windsurf: "imported-windsurf.md",
+};
+const MEMORY_INDEX = () => join(DATA_DIR, "skill-state", "imported-memory.json");
+const MEMORY_INDEX_MAX = 20_000;
+
+/** A note as dedupe compares it: case, punctuation and spacing aside. */
+const noteKey = (note: string) => sha256(note.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()).slice(0, 24);
+
+/** One markdown file as short notes: its lines of prose and its list items, without front matter, headings, code,
+ * tables or link targets. Credentials are redacted; a line that reads like an instruction to send data or override
+ * rules is dropped. */
+export function memoryNotes(text: string): string[] {
+  const body = text.replace(/^﻿?---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+  const notes: string[] = [];
+  let fenced = false;
+  for (const raw of body.split(/\r?\n/)) {
+    if (/^\s*(?:```|~~~)/.test(raw)) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced || /^\s*(?:#|\||<!--|-{3,}\s*$|\*{3,}\s*$|={3,}\s*$)/.test(raw)) continue;
+    let line = raw
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/^\s*(?:[-*+•]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/, "")
+      .replace(/\*\*|__/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (line.length < 12 || !/\p{L}{3}/u.test(line)) continue;
+    if (line.length > MEMORY_LIMITS.noteChars) {
+      const cut = line.slice(0, MEMORY_LIMITS.noteChars);
+      line = `${cut.slice(0, Math.max(cut.lastIndexOf(" "), MEMORY_LIMITS.noteChars - 60)).trimEnd()}…`;
+    }
+    line = redactSecretsInText(line);
+    if (looksLikeInstruction(line)) continue;
+    notes.push(line);
+  }
+  return notes;
+}
+
+function readMemoryIndex(): Set<string> {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(MEMORY_INDEX(), "utf8"));
+    const notes = isRecord(parsed) && Array.isArray(parsed.notes) ? parsed.notes : [];
+    return new Set(notes.filter((one): one is string => typeof one === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
+interface FoundMemory {
+  source: InstructionsSource;
+  files: number;
+  notes: string[];
+}
+
+/** Each tool's standing instructions and memory notes not brought in yet, deduped across files and tools, within the
+ * limits. Only the files setupPaths names are opened: never a transcript, a session or a login. */
+function findMemory(machine: SetupMachine): FoundMemory[] {
+  const index = readMemoryIndex();
+  const real = machine.fs.realpath(machine.home);
+  const places = { homes: [...new Set([machine.home, ...(real ? [real] : [])])], darwin: machine.platform === "darwin" };
+  const paths = setupPaths(machine);
+  const files = new Map<InstructionsSource, string[]>();
+  const add = (source: InstructionsSource, path: string) => files.set(source, [...(files.get(source) ?? []), path]);
+  for (const file of paths.instructions) {
+    const found = locate(machine, places, file.path);
+    if (found?.info.isFile() && /\.md$/i.test(found.path)) add(file.source, found.path);
+  }
+  for (const folder of paths.memoryFolders) {
+    const root = locate(machine, places, folder.root);
+    if (!root?.info.isDirectory()) continue;
+    let count = 0;
+    for (const project of (machine.fs.readdir(root.path) ?? []).filter((name) => !name.startsWith(".")).sort()) {
+      if (!machine.fs.lstat(join(root.path, project))?.isDirectory()) continue;
+      const inner = join(root.path, project, folder.inner);
+      if (!machine.fs.lstat(inner)?.isDirectory()) continue;
+      for (const name of (machine.fs.readdir(inner) ?? []).filter((one) => /\.md$/i.test(one) && !one.startsWith(".")).sort()) {
+        if (count >= MEMORY_LIMITS.files) break;
+        if (!machine.fs.lstat(join(inner, name))?.isFile()) continue;
+        add(folder.source, join(inner, name));
+        count += 1;
+      }
+    }
+  }
+  const seen = new Set<string>();
+  const found: FoundMemory[] = [];
+  for (const [source, list] of files) {
+    const notes: string[] = [];
+    let chars = 0, read = 0;
+    for (const path of list) {
+      const bytes = machine.fs.read(path, INSTRUCTIONS_MAX_BYTES, false, true);
+      const text = bytes ? utf8(bytes) : null;
+      if (!text) continue;
+      let took = false;
+      for (const note of memoryNotes(text)) {
+        const key = noteKey(note);
+        if (seen.has(key) || index.has(key)) continue;
+        if (notes.length >= MEMORY_LIMITS.notes || chars + note.length > MEMORY_LIMITS.chars) break;
+        seen.add(key);
+        notes.push(note);
+        chars += note.length;
+        took = true;
+      }
+      if (took) read += 1;
+    }
+    if (notes.length) found.push({ source, files: read, notes });
+  }
+  return found;
+}
+
+/** The notes as one topic of the bot's memory per tool, kept beside what an earlier import left there: recalled when a
+ * message needs them, never loaded every session, and each one recorded in the fact store as imported. */
+function keepMemory(botId: string, found: FoundMemory): number {
+  const app = APP_NAMES[found.source];
+  const topic = MEMORY_TOPICS[found.source];
+  const existing = readMemoryTopic(botId, topic);
+  const held = new Set((existing ?? "").split("\n").map((line) => factIdentity(line.replace(/^- \d{4}-\d{2}-\d{2} · (?:from [^·\n]* · )?/, ""))));
+  const fresh = found.notes.filter((note) => !held.has(factIdentity(note)));
+  if (!fresh.length) return 0;
+  const head = existing?.trim() ? existing.replace(/\s+$/, "")
+    : `---\ntitle: From ${app}\ndescription: Notes imported from ${app} on this computer. Unverified: recalled when they fit, never loaded every session.\n---\n`;
+  const source = `${app} import, unverified`;
+  const path = `memory/${topic}`;
+  journalMemoryWrite(botId, path, `${head}\n${fresh.map((note) => memoryEntry(note, { source })).join("\n")}\n`, { actor: "import", via: "setup-import" });
+  for (const note of fresh) annotateFact(botId, path, note, { source: "import" });
+  return fresh.length;
+}
+
+function importMemory(machine: SetupMachine, botId: string | undefined, sources?: readonly SetupSource[]): NonNullable<SetupImportResult["memory"]> {
+  const found = fromSources(findMemory(machine), sources);
+  const result: NonNullable<SetupImportResult["memory"]> = { added: 0, sources: [], failed: false };
+  if (!found.length) return result;
+  if (!botId) return { ...result, failed: true };
+  const kept: string[] = [];
+  for (const one of found) {
+    try {
+      result.added += keepMemory(botId, one);
+      result.sources.push(one.source);
+      kept.push(...one.notes.map(noteKey));
+    } catch {
+      result.failed = true;
+    }
+  }
+  if (kept.length) {
+    try {
+      const notes = [...readMemoryIndex(), ...kept].slice(-MEMORY_INDEX_MAX);
+      mkdirSync(dirname(MEMORY_INDEX()), { recursive: true, mode: 0o700 });
+      writeFileAtomic(MEMORY_INDEX(), `${JSON.stringify({ notes }, null, 2)}\n`, { mode: 0o600 });
+    } catch {
+      // offered again next time; the topic itself skips what it holds already
+    }
+  }
+  return result;
+}
 const INSTRUCTIONS_INDEX = () => join(DATA_DIR, "skill-state", "imported-instructions.json");
 
 /** Each instructions file brought in, by path, and the hash of the text it had. */
@@ -851,7 +1027,8 @@ export function detectSetup(machine: SetupMachine, host: SetupHost): SetupDetect
     ? findTools(machine, current, host).fresh.map(({ name, source }) => ({ name, source }))
     : [];
   const instructions = findInstructions(machine).map(({ name, source }) => ({ name, source }));
-  return { skills, tools, ...(instructions.length ? { instructions } : {}) };
+  const memory = findMemory(machine).map(({ source, files, notes }) => ({ source, files, notes: notes.length }));
+  return { skills, tools, ...(instructions.length ? { instructions } : {}), ...(memory.length ? { memory } : {}) };
 }
 
 /** Each kind on its own: one that fails reports what it was bringing in as failed, and the other still comes in. */
@@ -884,9 +1061,17 @@ export function applySetupImport(machine: SetupMachine, host: SetupHost, request
       return [];
     }
   };
+  const memory = (): NonNullable<SetupImportResult["memory"]> => {
+    try {
+      return importMemory(machine, request.memoryBot, request.sources);
+    } catch {
+      return { added: 0, sources: [], failed: true };
+    }
+  };
   return {
     ...(request.skills ? { skills: skills() } : {}),
     ...(request.tools ? { tools: tools() } : {}),
     ...(request.instructions ? { instructions: instructions() } : {}),
+    ...(request.memory ? { memory: memory() } : {}),
   };
 }
