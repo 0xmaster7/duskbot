@@ -230,8 +230,7 @@ export function Onboarding() {
         <form key="name" className="step-in" onSubmit={(e) => { e.preventDefault(); void saveName(); }} noValidate>
           <h1 className="t-title">what's your name?</h1>
           <p className="mt-3 text-16 text-ink-2">{direct ? "then checkout, and your dusk cloud starts setting up." : "two quick things and you're in."}</p>
-          <label htmlFor="onb-name" className="mb-2 mt-7 block text-14 text-ink-2">your name</label>
-          <input id="onb-name" autoComplete="given-name" maxLength={60} value={shownName} onChange={(e) => { setName(e.target.value); setError(null); }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "onb-error" : undefined} />
+          <input id="onb-name" aria-label="your name" placeholder="your name" autoComplete="given-name" maxLength={60} value={shownName} onChange={(e) => { setName(e.target.value); setError(null); }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field mt-7 !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "onb-error" : undefined} />
           {direct && (
             <div className="mt-4 flex items-center gap-3 rounded-[16px] bg-card p-2 pe-4">
               <img src={meadow} alt="" width={800} height={354} className="h-12 w-16 shrink-0 rounded-[10px] object-cover object-bottom" draggable={false} />
