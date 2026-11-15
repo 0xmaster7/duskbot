@@ -1,6 +1,7 @@
-// The first-run funnel's frame (back, progress, a step that slides in from where it was reached) and its simpler steps:
+// The first-run funnel's frame (back, progress, a step that arrives piece by piece) and its simpler steps:
 // the welcome, where bots live, the phone, and the help-improve line on the last screen.
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import { ChevronLeft, Check } from "../../icons";
 import { cn } from "@/lib/cn";
@@ -47,29 +48,73 @@ export function FunnelBar({ at, count, onBack }: { at: number; count: number; on
       )}
       <div role="progressbar" aria-label={t("funnel.progress")} aria-valuemin={1} aria-valuemax={count} aria-valuenow={at + 1}
         aria-valuetext={t("funnel.progressAt", { at: String(at + 1), count: String(count) })} data-funnel-progress={`${at + 1}/${count}`}
-        className="flex items-center gap-1.5">
+        className="relative flex items-center gap-1.5">
         {Array.from({ length: count }, (_, index) => (
-          <span key={index} aria-hidden="true"
-            className={cn("h-1 rounded-full transition-[width,background-color] duration-300 ease-[var(--dusk-ease-quint)] motion-reduce:transition-none",
-              index === at ? "w-6 bg-ink" : index < at ? "w-3 bg-ink/45" : "w-3 bg-ink/12")} />
+          <span key={index} aria-hidden="true" className={cn("h-1 rounded-full bg-ink/12", index === at ? "w-6" : "w-3")} />
         ))}
+        <ProgressInk at={at} />
       </div>
     </div>
   );
+}
+
+// the funnel's own springs (motion brief 2026-11): the stretchy pill's two edges, the done fill, the page cascade
+const LEAD = { type: "spring", stiffness: 620, damping: 36 } as const;
+const TRAIL = { type: "spring", stiffness: 190, damping: 19 } as const;
+const SOFT = { type: "spring", stiffness: 260, damping: 24 } as const;
+const DOT = 12, GAP = 6, WIDE = 24;
+
+/** The progress drawn over the dots: the steps behind fill in, and the current one is an ink pill that stretches to its
+ * new dot, the edge facing the move quick and the other catching up. Logical offsets, so it runs the right way in RTL. */
+function ProgressInk({ at }: { at: number }) {
+  const reduced = useReducedMotion() === true;
+  const start = at * (DOT + GAP);
+  const from = useMotionValue(start), to = useMotionValue(start + WIDE), done = useMotionValue(Math.max(0, start - GAP));
+  const first = useRef(true);
+  useLayoutEffect(() => {
+    const end = start + WIDE, fill = Math.max(0, start - GAP);
+    if (first.current || reduced) { from.set(start); to.set(end); done.set(fill); first.current = false; return; }
+    const forward = start >= from.get();
+    const moves = [animate(from, start, forward ? TRAIL : LEAD), animate(to, end, forward ? LEAD : TRAIL), animate(done, fill, SOFT)];
+    return () => moves.forEach((move) => move.stop());
+  }, [start, reduced, from, to, done]);
+  const inset = useTransform(from, (v) => `${v}px`);
+  const width = useTransform(() => `${Math.max(0, to.get() - from.get())}px`);
+  const doneWidth = useTransform(done, (v) => `${v}px`);
+  return <>
+    <motion.span aria-hidden="true" className="absolute inset-y-0 start-0 rounded-full bg-ink/45" style={{ width: doneWidth }} />
+    <motion.span aria-hidden="true" className="absolute inset-y-0 rounded-full bg-ink" style={{ insetInlineStart: inset, width }} />
+  </>;
+}
+
+/** One piece of a step arriving: the art first, then the title, the line, what to do and the way on, 45ms apart, each
+ * rising 12px out of a 4px blur on the enter spring. Under reduced motion they only fade. */
+function useCascade() {
+  const reduced = useReducedMotion() === true;
+  return (index: number) => {
+    if (reduced) return { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.15, ease: [0.22, 1, 0.36, 1] as const } };
+    if (index === 0) return { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { type: "spring" as const, stiffness: 520, damping: 26 } };
+    return {
+      initial: { opacity: 0, y: 12, filter: "blur(4px)" },
+      animate: { opacity: 1, y: 0, filter: "blur(0px)", transitionEnd: { filter: "none" } },
+      transition: { type: "spring" as const, stiffness: 300, damping: 22, delay: 0.06 + index * 0.045 },
+    };
+  };
 }
 
 /** One step's page: a picture that explains it, the title, a short line, what to do, and the way on. */
 export function StepFrame({ art, title, sub, children, footer, wide = false }: {
   art?: ReactNode; title: ReactNode; sub?: ReactNode; children?: ReactNode; footer?: ReactNode; wide?: boolean;
 }) {
+  const rise = useCascade();
   return (
-    <div className={cn("mx-auto my-auto flex w-full flex-col items-center px-6 pt-20 text-center", footer ? "pb-6" : "pb-12", wide ? "max-w-[640px]" : "max-w-[520px]")}>
-      {art && <div aria-hidden="true" className="mb-6 flex h-16 items-end justify-center">{art}</div>}
-      <h1 id="welcome-title" tabIndex={-1} className="text-balance text-[28px] font-normal leading-[34px] tracking-[-0.02em] text-ink outline-none">{title}</h1>
-      {sub && <p className="mt-2 max-w-[420px] text-pretty text-[15px] leading-[22px] text-ink-secondary">{sub}</p>}
-      {children && <div className="mt-8 flex w-full flex-col items-center">{children}</div>}
+    <div data-step-cascade="" className={cn("mx-auto my-auto flex w-full flex-col items-center px-6 pt-20 text-center", footer ? "pb-6" : "pb-12", wide ? "max-w-[640px]" : "max-w-[520px]")}>
+      {art && <motion.div aria-hidden="true" className="mb-6 flex h-16 items-end justify-center" {...rise(0)}>{art}</motion.div>}
+      <motion.h1 id="welcome-title" tabIndex={-1} className="text-balance text-[28px] font-normal leading-[34px] tracking-[-0.02em] text-ink outline-none" {...rise(1)}>{title}</motion.h1>
+      {sub && <motion.p className="mt-2 max-w-[420px] text-pretty text-[15px] leading-[22px] text-ink-secondary" {...rise(2)}>{sub}</motion.p>}
+      {children && <motion.div className="mt-8 flex w-full flex-col items-center" {...rise(3)}>{children}</motion.div>}
       {/* a step taller than the window keeps its way on in view, over the content scrolling under it */}
-      {footer && <div data-step-footer="" className="sticky bottom-0 z-[1] mt-4 flex w-full flex-col items-center gap-2 bg-app pb-6 pt-4">{footer}</div>}
+      {footer && <motion.div data-step-footer="" className="sticky bottom-0 z-[1] mt-4 flex w-full flex-col items-center gap-2 bg-app pb-6 pt-4" {...rise(4)}>{footer}</motion.div>}
     </div>
   );
 }

@@ -15,3 +15,5 @@
   .place-step, .place-step[data-from="back"], .place-mark, .place-reveal { animation: dusk-fade-in 150ms ease-out both; }
 }
 :root[data-reduced-motion="true"] :is(.place-step, .place-mark, .place-reveal) { animation: dusk-fade-in 150ms ease-out both !important; }
+/* a step built on StepFrame arrives piece by piece itself (FunnelSteps), so its page does not slide as well */
+.place-step:has([data-step-cascade]) { animation: none !important; }
