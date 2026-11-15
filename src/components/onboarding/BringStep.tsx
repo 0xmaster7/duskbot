@@ -65,17 +65,14 @@ export function BringStep({ finds, grokWaiting, run = { kind: "idle" }, onBring,
   const started = run.kind !== "idle";
   return (
     <StepFrame art={<BringScene moving={run.kind === "working"} />} title={t("bring.title")} sub={choice.found ? t("bring.sub") : t("bring.subNone")}
-      // each app has its own Import; Import all leads only while two or more are still to come
-      footer={choice.found && !started && choice.chosen.length > 1 ? (
-        <>
-          <button type="button" data-primary="" data-bring-go="" autoFocus disabled={!choice.chosen.length} onClick={() => onBring(choice.toBring, choice.memory)} className={PRIMARY}>{t("bring.bring")}</button>
-          <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
-        </>
+      // the hero's Bring it in is the one primary action; until something comes in, going on is a quiet Not now
+      footer={choice.found && !started ? (
+        <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("bring.notNow")}</button>
       ) : (
         <button type="button" data-primary="" data-bring-next="" autoFocus={started} onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
       )}>
       <div className="w-full max-w-[440px]">
-        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} onImport={(find) => onBring([find], choice.memory)} />
+        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} heroPrimary={!started} onImport={(find) => onBring([find], choice.memory)} />
       </div>
     </StepFrame>
   );

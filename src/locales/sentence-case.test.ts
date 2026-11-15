@@ -40,7 +40,6 @@ it("settings read in sentence case: the sidebar, page titles, section headers, r
 it("the pieces filled into the middle of another line stay lowercase", () => {
   expect(isFragment("call.live.device.ios")).toBe(true);
   expect(english["call.live.device.ios"]).toBe("an iPhone");
-  expect(english["bring.kindSkills"]).toBe("skills");
   expect(english["chat.event.and"]).toBe("and");
   expect(isFragment("settings.title")).toBe(false);
 });

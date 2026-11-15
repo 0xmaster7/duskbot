@@ -586,35 +586,41 @@ describe("bots from another app on this computer", () => {
     });
   };
 
-  it("leads with every app found on this Mac, each with its own Import, and brings them all in on one press while the run goes on", async () => {
-    desktop(found, { skills: [{ name: "pdf", source: "claudeCode" }], tools: [{ name: "notion", source: "cursor" }] });
+  it("leads with the source used most as one warm question, keeps the rest behind Show more, and brings it in on one press", async () => {
+    const now = Date.now();
+    desktop(found, {
+      skills: Array.from({ length: 9 }, (_, i) => ({ name: `s${i}`, source: "claudeCode" })), tools: [{ name: "notion", source: "cursor" }],
+      memory: [{ source: "claudeCode", files: 3, notes: 18 }], activity: { claudeCode: now - 3_600_000, cursor: now - 90 * 86_400_000, openclaw: now - 2 * 86_400_000 },
+    });
     await show({ initialBeat: "bring" });
     expect(title()).toBe("Bring what you already use");
-    expect(text()).toContain("Molty");
-    expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => [row.getAttribute("data-bring-find"), row.getAttribute("data-bring-state")]),
-      "a skill or an MCP server alone is a row too, never hidden")
-      .toEqual([["setup:claudeCode", "idle"], ["bots:openclaw", "idle"], ["setup:cursor", "idle"]]);
-    expect(document.body.querySelectorAll("[data-bring-import]")).toHaveLength(3);
+    const hero = document.body.querySelector("[data-bring-hero]")!;
+    expect(hero.getAttribute("data-bring-find")).toBe("setup:claudeCode");
+    expect(hero.textContent).toContain("You use Claude Code a lot");
+    expect(hero.textContent).toContain("Bring what it knows about you?");
+    expect(hero.textContent).toContain("18 notes about you and 9 skills. Last used today.");
+    expect(document.activeElement?.getAttribute("data-bring-import"), "its Bring it in is the one primary action").toBe("setup:claudeCode");
+    expect(document.body.querySelectorAll("[data-primary]"), "one primary on the screen").toHaveLength(1);
+    expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-find")), "OpenClaw's one bot is thin, Cursor idle: both wait")
+      .toEqual(["setup:claudeCode"]);
+    expect(button("Show 2 more")).toBeTruthy();
+    await press("Show 2 more");
+    expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-find"))).toEqual(["setup:claudeCode", "bots:openclaw", "setup:cursor"]);
+    expect(document.body.querySelector("[data-bring-memory]")?.textContent, "the notes line follows what is shown").toContain("18 notes from Claude Code");
     expect([...document.body.querySelectorAll("[data-bring-logo]")].map((one) => one.getAttribute("data-bring-logo")), "the AIs online in their own colours")
       .toEqual(["chatgpt", "claude", "gemini", "grok"]);
     const online = document.body.querySelector<HTMLButtonElement>("[data-bring-online]")!;
     expect(online.getAttribute("aria-expanded"), "the prompt for AIs online waits behind one quiet line").toBe("false");
-    await act(async () => { online.click(); });
-    expect(online.getAttribute("aria-expanded")).toBe("true");
-    expect(document.body.querySelector("[data-bring-prompt] [style*=background]"), "the steps' numbers are tonal, not coloured").toBeNull();
     expect(document.body.querySelector("[data-bring-scene]")?.getAttribute("data-bring-scene"), "nothing travels before anything is brought").toBe("still");
-    await press("Import all");
+    await act(async () => { document.body.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
     expect(button("Continue"), "the way on is there at once, without waiting").toBeTruthy();
-    expect(button("Import all")).toBeUndefined();
     await settle();
     const applied = f.api.mock.calls.filter(([path, init]) => path === "/api/setup-import" && init?.method === "POST").map(([, init]) => JSON.parse(init.body));
-    expect(applied).toEqual([{ skills: true, tools: true, sources: ["claudeCode", "cursor"] }]);
-    expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
-    expect(document.body.querySelector("[data-bring-run]")?.textContent, "what came in, said on the step itself").toBe("Brought in 1 bot and 1 skill.");
-    expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-state")), "each marked imported").toEqual(["done", "done", "done"]);
-    expect(document.body.querySelector("[data-bring-import]"), "what was brought is no longer a choice").toBeNull();
+    expect(applied).toEqual([{ skills: true, tools: true, sources: ["claudeCode"], memory: true, memoryBot: "maus" }]);
+    expect(document.body.querySelector("[data-bring-hero] [data-bring-said]")?.textContent, "what came in, said in the hero where the person is looking").toBe("Brought in 1 skill.");
+    expect(document.body.querySelector("[data-bring-run]"), "not twice").toBeNull();
+    expect(document.body.querySelector('[data-bring-hero]')?.getAttribute("data-bring-state")).toBe("done");
     expect(document.body.querySelector("[data-bring-status]"), "and not twice").toBeNull();
-    expect(document.body.querySelector("[data-bring-scene]")?.getAttribute("data-bring-scene"), "nothing travels once it's done").toBe("still");
     await press("Continue");
     expect(f.onDone).toHaveBeenCalledOnce();
   });

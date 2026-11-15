@@ -10,10 +10,12 @@ vi.mock("./bot-move", () => ({
 import { setLocale } from "@/lib/i18n";
 import type { SetupDetection } from "../../shared/setup-import";
 import type { AppMove, BotMovePlan } from "./bot-move";
-import { bringChosen, bringRunNow, localFinds, memoryLine, resetBringRunForTests } from "./first-run-import";
+import { bringChosen, bringRunNow, localFinds, memoryLine, onlyNotes, resetBringRunForTests, sourceScore, usedWhen } from "./first-run-import";
 
-const app = (name: string, bots: string[]): AppMove => ({
-  app: name, where: "~/.openclaw", from: { name, key: name.toLowerCase() }, channels: [], unreadable: [],
+const NOW = Date.parse("2026-11-15T12:00:00Z");
+const DAY = 86_400_000;
+const app = (name: string, bots: string[], where = "~/.openclaw"): AppMove => ({
+  app: name, where, from: { name, key: name.toLowerCase() }, channels: [], unreadable: [],
   preview: { plans: bots.map((addedAs) => ({ addedAs })) as never, moved: [], unreadable: [] },
 });
 const plan = (...apps: AppMove[]): BotMovePlan => ({ apps, grokWaiting: [] });
@@ -21,6 +23,7 @@ const DETECTION: SetupDetection = {
   skills: [{ name: "pdf", source: "claudeCode" }, { name: "review", source: "claudeCode" }, { name: "lint", source: "codex" }],
   tools: [{ name: "notion", source: "cursor" }, { name: "github", source: "claudeCode" }],
   memory: [{ source: "claudeCode", files: 3, notes: 12 }],
+  activity: { claudeCode: NOW - 2 * 3_600_000, codex: NOW - 3 * DAY, cursor: NOW - 90 * DAY, openclaw: NOW - 5 * DAY, hermes: NOW - DAY },
 };
 
 beforeEach(() => {
@@ -32,31 +35,44 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("the first run's list of what this Mac holds", () => {
-  it("lists only what has real content, Claude first, and keeps a few skills or tools as extras that come in with the rest", () => {
-    const finds = localFinds(plan(app("OpenClaw", ["Atlas", "Juno"])), DETECTION);
-    expect(finds.map((find) => [find.id, find.app, find.summary, Boolean(find.extra), Boolean(find.lead)])).toEqual([
-      ["setup:claudeCode", "Claude Code", "12 notes, 2 skills, and 1 tool", false, true],
-      ["bots:openclaw", "OpenClaw", "2 bots: Atlas and Juno", false, false],
-      ["setup:codex", "Codex", "1 skill", true, false],
-      ["setup:cursor", "Cursor", "1 tool", true, false],
+  it("puts what is used lately and holds enough first, best first, and leaves thin or idle sources for Show more", () => {
+    const finds = localFinds(plan(app("OpenClaw", ["Atlas", "Juno"])), DETECTION, { now: NOW });
+    // nothing passes the bar here: all by score, the bots first (2 bots outweigh 12 notes, 2 skills and a tool)
+    expect(finds.map((find) => [find.id, find.summary, find.strong])).toEqual([
+      ["bots:openclaw", "2 bots", false],
+      ["setup:claudeCode", "12 notes about you, 2 skills, and 1 tool", false],
+      ["setup:codex", "1 skill", false],
+      ["setup:cursor", "1 tool", false],
     ]);
+    const busy = localFinds(plan(app("OpenClaw", ["Atlas", "Juno", "Mo"])), {
+      ...DETECTION, skills: [...DETECTION.skills, ...Array.from({ length: 9 }, (_, i) => ({ name: `s${i}`, source: "codex" as const }))],
+    }, { now: NOW });
+    expect(busy.map((find) => [find.id, find.strong])).toEqual([["setup:codex", true], ["bots:openclaw", true], ["setup:claudeCode", false], ["setup:cursor", false]]);
   });
 
-  it("leads with Claude, then Hermes Agent and OpenClaw, keeps a tool whose agents became bots to one row, and leaves Grok Bot to its prompt", () => {
-    const hermes = app("Hermes Agent", ["Hermes", "Coder"]);
+  it("counts a source as in use only within a month, and as worth it only above a little", () => {
+    expect(sourceScore({ skills: 9 }, NOW - 10 * DAY, NOW).strong).toBe(true);
+    expect(sourceScore({ skills: 9 }, NOW - 40 * DAY, NOW).strong).toBe(false);
+    expect(sourceScore({ skills: 2, tools: 3 }, NOW, NOW).strong).toBe(false);
+    expect(sourceScore({ skills: 9 }, null, NOW).strong).toBe(false);
+    expect(sourceScore({ notes: 100 }, NOW, NOW).score).toBeGreaterThan(sourceScore({ notes: 100 }, NOW - 20 * DAY, NOW).score);
+    expect(usedWhen(NOW - 3_600_000, NOW)).toBe("today");
+    expect(usedWhen(NOW - 3 * DAY, NOW)).toBe("3 days ago");
+  });
+
+  it("keeps a tool whose agents became bots to one find, dated by its own files, and leaves Grok Bot to its prompt", () => {
+    const hermes = app("Hermes Agent", ["Hermes", "Coder"], "~/.hermes");
     (hermes.preview.plans[0] as unknown as { counts: object }).counts = { skills: 3, routines: 2, memories: 4, facts: 2 };
-    const claude = app("Claude Code", ["Code Reviewer"]);
-    const grok = { ...app("Grok Bot", ["Desk"]), from: { name: "Grok Bot", key: "grok-bot" } };
-    const finds = localFinds(plan(app("OpenClaw", ["Atlas"]), hermes, claude, grok), DETECTION);
-    expect(finds.map((find) => [find.id, find.summary, find.source ?? null])).toEqual([
-      ["bots:claude code", "1 bot: Code Reviewer. 12 notes, 2 skills, and 1 tool", "claudeCode"],
-      ["bots:hermes agent", "2 bots: Hermes and Coder. 3 skills, 2 paused routines, 4 memories, and 2 things about you", null],
-      ["bots:openclaw", "1 bot: Atlas", null],
-      ["setup:codex", "1 skill", "codex"],
-      ["setup:cursor", "1 tool", "cursor"],
-    ]);
+    const claude = app("Claude Code", ["Code Reviewer"], "~/.claude/agents");
+    const grok = { ...app("Grok Bot", ["Desk"], "~/Downloads"), from: { name: "Grok Bot", key: "grok-bot" } };
+    const finds = localFinds(plan(hermes, claude, grok), { ...DETECTION, memory: [{ source: "claudeCode", files: 3, notes: 40 }] }, { now: NOW });
+    const claudeFind = finds.find((find) => find.id === "bots:claude code")!;
+    expect(claudeFind).toMatchObject({ source: "claudeCode", summary: "40 notes about you, 1 bot, 2 skills, and 1 tool", lastUsed: NOW - 2 * 3_600_000, strong: true });
+    expect(finds.find((find) => find.id === "bots:hermes agent")).toMatchObject({ summary: "6 notes about you, 2 bots, 3 skills, and 2 paused routines", lastUsed: NOW - DAY, strong: true });
+    expect(finds.map((find) => find.id)).not.toContain("bots:grok-bot");
     expect(localFinds(plan(grok), DETECTION, { grokExports: true }).map((find) => find.id), "Settings, which may read Downloads, lists Grok bot's saved files")
       .toContain("bots:grok-bot");
+    expect(onlyNotes(localFinds(null, { skills: [], tools: [], memory: [{ source: "codex", files: 1, notes: 4 }] })[0]!)).toBe(true);
   });
 
   it("is empty when nothing is here, and leaves out an app whose bots are all here already", () => {
@@ -80,10 +96,10 @@ describe("bringing the chosen in", () => {
     await run;
     expect(apply).toHaveBeenCalledExactlyOnceWith({ skills: true, tools: true, sources: ["claudeCode"], memory: true, memoryBot: "dusk" });
     expect(f.runBotMove).toHaveBeenCalledOnce();
-    expect(bringRunNow()).toEqual({ kind: "done", failed: false, line: "Brought in 2 bots, 2 skills, 1 tool, and 12 notes.", brought: finds.map((find) => find.id) });
+    expect(bringRunNow()).toEqual({ kind: "done", failed: false, line: "Your bots now know 12 things about you. Also brought in 2 bots, 2 skills, and 1 tool.", brought: finds.map((find) => find.id) });
     await vi.waitFor(() => expect(f.api).toHaveBeenCalledWith("/api/bots/dusk/import-note", expect.anything()));
     const note = JSON.parse(f.api.mock.calls.find(([path]) => path === "/api/bots/dusk/import-note")![1].body);
-    expect(note).toMatchObject({ from: ["Claude Code", "OpenClaw"], skills: 2, tools: 1, memories: 12, instructions: ["Claude Code"], failed: false });
+    expect(note).toMatchObject({ from: ["OpenClaw", "Claude Code"], skills: 2, tools: 1, memories: 12, instructions: ["Claude Code"], failed: false });
   });
 
   it("leaves the memory out when it is unticked, and says what it holds per tool", async () => {

@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import type { Action } from "@/state/store";
-import type { SetupDetection, SetupSource } from "../../shared/setup-import";
+import type { ActivitySource, SetupDetection, SetupSource } from "../../shared/setup-import";
 import { movable, planCounts, runBotMove, type AppMove, type BotMovePlan } from "./bot-move";
 import { GROK_FROM } from "../../shared/grok-import";
 import { aboutMeSaver } from "./assistant-notes";
@@ -12,77 +12,127 @@ import { postImportNote } from "./import-note";
 import { setupImportApi, type SetupImportClient } from "./setup-import";
 
 export interface LocalFind {
-  /** "bots:<app key>" for another agent app's bots; "setup:<source>" for an AI tool's skills, tools and instructions. */
+  /** "bots:<app key>" for another agent app's bots; "setup:<source>" for an AI tool's skills, tools and memory. */
   id: string;
   app: string;
+  /** What it holds in plain words: "18 notes about you, 12 skills and 2 bots". */
   summary: string;
+  amount: SourceAmount;
   bots?: AppMove;
   source?: SetupSource;
-  /** Little to see on its own (a few skills, MCP servers, saved commands): not a row, brought in with the rest. */
-  extra?: boolean;
-  /** One of the sources people use most (Claude): listed first, above the prompt for AIs online. */
-  lead?: boolean;
-  /** What an AI tool's own setup holds, for the row's short line; `memory`: its notes not brought in yet. */
-  setup?: { skills: boolean; tools: boolean; instructions: boolean; memory: number };
+  /** What an AI tool's own setup holds; `memory`: its notes not brought in yet. */
+  setup?: { skills: number; tools: number; memory: number };
+  /** When the app was last used (ms), from its files' change times; null when unknown. */
+  lastUsed: number | null;
+  /** How worth bringing it is: how much it holds, weighed by how recently it was used. */
+  score: number;
+  /** Used lately and holding enough to matter: shown up front; the rest wait behind Show more. */
+  strong: boolean;
 }
 
 const list = (parts: string[]) => new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(parts);
 const count = (n: number, one: LocaleKey, many: LocaleKey) => (n === 1 ? t(one) : t(many, { count: n }));
 const SOURCE_ORDER: SetupSource[] = ["claudeCode", "claudeDesktop", "codex", "cursor", "gemini", "windsurf", "vscode", "openhands"];
 
-/** One app's bots in counts: the bots by name, then their skills, routines, memory and facts about the person. */
-function botsSummary(app: AppMove): string {
-  const names = app.preview.plans.map((one) => one.addedAs);
-  const counts = planCounts(app);
-  const bots = `${count(names.length, "botMove.botsOne", "botMove.bots")}: ${list(names.slice(0, 3))}${names.length > 3 ? "…" : ""}`;
-  const rest = [
-    ...(counts.skills ? [count(counts.skills, "botMove.skillsOne", "botMove.skills")] : []),
-    ...(counts.routines ? [count(counts.routines, "bring.routinesOne", "bring.routines")] : []),
-    ...(counts.memories ? [count(counts.memories, "bring.memoriesOne", "bring.memories")] : []),
-    ...(counts.facts ? [count(counts.facts, "botMove.factsOne", "botMove.facts")] : []),
-  ];
-  return rest.length ? `${bots}. ${list(rest)}` : bots;
+const DAY_MS = 86_400_000;
+/** Used within this long counts as in use. */
+export const RECENT_DAYS = 30;
+/** Below this much (a couple of skills, one config), a source is not worth leading with. */
+export const MIN_AMOUNT = 8;
+
+export interface SourceAmount { notes: number; skills: number; tools: number; bots: number; memories: number; routines: number }
+
+/** One number for how much a source holds: a bot or a routine is worth more than a skill, a note far less. */
+export function amountOf(amount: Partial<SourceAmount>): number {
+  return (amount.bots ?? 0) * 3 + (amount.routines ?? 0) + (amount.skills ?? 0) + (amount.tools ?? 0) * 0.5
+    + Math.min(amount.notes ?? 0, 500) / 5 + Math.min(amount.memories ?? 0, 300) / 3;
 }
 
-/** Where a find sits: Claude first, then the agent apps people move from (Hermes Agent, OpenClaw), then the rest. */
-function rank(find: LocalFind): number {
-  const key = (find.bots?.from.key ?? "").replace(/[^a-z0-9]+/g, "-");
-  if (find.source === "claudeCode" || find.source === "claudeDesktop" || key === "claude-code") return 0;
-  if (key === "hermes-agent") return 1;
-  if (/^(?:openclaw|clawdbot|moltbot)$/.test(key)) return 2;
-  return find.bots ? 3 : 4;
+/** Its score and whether it is up front: used in the last month and holding enough. */
+export function sourceScore(amount: Partial<SourceAmount>, lastUsed: number | null, now = Date.now()): { score: number; strong: boolean } {
+  const units = amountOf(amount);
+  const days = lastUsed === null ? Infinity : Math.max(0, (now - lastUsed) / DAY_MS);
+  const recency = days <= 7 ? 1 : days <= RECENT_DAYS ? 0.6 : 0.15;
+  return { score: units * recency, strong: days <= RECENT_DAYS && units >= MIN_AMOUNT };
 }
 
-/** What this computer holds, one row per app with real content in it: bots, standing instructions, or Claude's own
- * setup. A tool that would only add a few skills, MCP servers or saved commands is an `extra`: brought in with the rest,
- * never a row. Grok bot's exports already saved in Downloads are a row only with `grokExports` (Settings, which may read
- * Downloads); otherwise they are left to its prompt. A tool whose agents came in as bots (Claude Code's, Gemini CLI's)
- * is one row with both. */
-export function localFinds(plan: BotMovePlan | null, detection: SetupDetection | null, options: { grokExports?: boolean } = {}): LocalFind[] {
-  const finds: LocalFind[] = [];
+/** "today", "yesterday", "3 days ago", "2 weeks ago" in the person's language. */
+export function usedWhen(lastUsed: number, now = Date.now()): string {
+  const days = Math.max(0, Math.floor((now - lastUsed) / DAY_MS));
+  const format = new Intl.RelativeTimeFormat(activeLocale(), { numeric: "auto" });
+  if (days < 14) return format.format(-days, "day");
+  if (days < 60) return format.format(-Math.round(days / 7), "week");
+  return format.format(-Math.round(days / 30), "month");
+}
+
+/** What a source holds in plain words, most personal first; `most` keeps a line short (the rest is left unsaid). */
+export function amountLine(amount: Partial<SourceAmount>, most = Infinity): string {
+  const known = (amount.notes ?? 0) + (amount.memories ?? 0);
+  return list(([
+    ...(known ? [count(known, "bring.aboutYouOne", "bring.aboutYou")] : []),
+    ...(amount.bots ? [count(amount.bots, "botMove.botsOne", "botMove.bots")] : []),
+    ...(amount.skills ? [count(amount.skills, "botMove.skillsOne", "botMove.skills")] : []),
+    ...(amount.routines ? [count(amount.routines, "bring.routinesOne", "bring.routines")] : []),
+    ...(amount.tools ? [count(amount.tools, "bring.toolsOne", "bring.tools")] : []),
+  ] as string[]).slice(0, most));
+}
+
+/** The activity a bot app's files are dated by: its home folder's own app. */
+function botActivity(app: AppMove): ActivitySource | null {
+  const top = app.where.replace(/^~[\\/]/, "").split(/[\\/]/)[0]?.toLowerCase() ?? "";
+  if (/^\.(?:openclaw|clawdbot|moltbot)$/.test(top)) return "openclaw";
+  if (top === ".hermes") return "hermes";
+  if (top === ".claude") return "claudeCode";
+  if (top === ".gemini") return "gemini";
+  if (/^\.(?:openmausbot|opengrokbot|duskbot)$/.test(top)) return "openmausbot";
+  return null;
+}
+
+/** What this computer holds, one find per app, best first: how much it holds weighed by how lately it was used. A tool
+ * whose agents came in as bots (Claude Code's, Gemini CLI's) is one find with both. Grok bot's exports already saved in
+ * Downloads are a find only with `grokExports` (Settings, which may read Downloads); otherwise they are left to its
+ * prompt. */
+export function localFinds(plan: BotMovePlan | null, detection: SetupDetection | null, options: { grokExports?: boolean; now?: number } = {}): LocalFind[] {
+  const now = options.now ?? Date.now();
+  const activity = detection?.activity ?? {};
+  const found: Array<{ find: Omit<LocalFind, "summary" | "amount" | "score" | "strong">; amount: SourceAmount }> = [];
   for (const app of plan?.apps ?? []) {
     if (!app.preview.plans.length || (app.from.key === GROK_FROM.key && !options.grokExports)) continue;
-    finds.push({ id: `bots:${app.from.key}`, app: app.app, bots: app, summary: botsSummary(app) });
+    const counts = planCounts(app);
+    const source = botActivity(app);
+    // a Grok bot export was saved on purpose, just now or lately
+    const lastUsed = app.from.key === GROK_FROM.key ? now : source ? activity[source] ?? null : null;
+    found.push({ find: { id: `bots:${app.from.key}`, app: app.app, bots: app, lastUsed },
+      amount: { notes: 0, skills: counts.skills, tools: 0, bots: counts.bots, memories: counts.memories + (counts.facts ?? 0), routines: counts.routines } });
   }
   for (const source of SOURCE_ORDER) {
     const skills = detection?.skills.filter((one) => one.source === source).length ?? 0;
     const tools = detection?.tools.filter((one) => one.source === source).length ?? 0;
     const memory = detection?.memory?.find((one) => one.source === source)?.notes ?? 0;
-    // standing instructions come in as memory notes, so they count once, there
-    const instructions = memory > 0;
     if (!skills && !tools && !memory) continue;
-    const parts = [
-      ...(memory ? [count(memory, "bring.notesOne", "bring.notes")] : []),
-      ...(skills ? [count(skills, "botMove.skillsOne", "botMove.skills")] : []),
-      ...(tools ? [count(tools, "bring.toolsOne", "bring.tools")] : []),
-    ];
     const name = t(`onboarding.import.source.${source}` as LocaleKey);
-    const same = finds.find((find) => find.bots && !find.source && find.app === name);
-    const setup = { skills: skills > 0, tools: tools > 0, instructions, memory };
-    if (same) Object.assign(same, { source, setup, summary: `${same.summary}. ${list(parts)}` });
-    else finds.push({ id: `setup:${source}`, app: name, source, setup, summary: list(parts), ...(memory || source === "claudeDesktop" ? {} : { extra: true }) });
+    const setup = { skills, tools, memory };
+    const same = found.find((one) => one.find.bots && !one.find.source && one.find.app === name);
+    if (same) {
+      Object.assign(same.find, { source, setup, lastUsed: Math.max(same.find.lastUsed ?? 0, activity[source] ?? 0) || null });
+      Object.assign(same.amount, { notes: memory, skills: same.amount.skills + skills, tools });
+    } else {
+      found.push({ find: { id: `setup:${source}`, app: name, source, setup, lastUsed: activity[source] ?? null }, amount: { notes: memory, skills, tools, bots: 0, memories: 0, routines: 0 } });
+    }
   }
-  return finds.map((find) => (rank(find) === 0 ? { ...find, lead: true } : find)).sort((a, b) => rank(a) - rank(b));
+  return found
+    .map(({ find, amount }) => ({ ...find, amount, summary: amountLine(amount), ...sourceScore(amount, find.lastUsed, now) }))
+    .sort((a, b) => Number(b.strong) - Number(a.strong) || b.score - a.score);
+}
+
+let focus: string | null = null;
+/** The source the bring card named: Settings' import page leads with it, so the page answers the card. */
+export function focusBringFind(id: string | null) { focus = id; }
+export function bringFocus(): string | null { return focus; }
+
+/** A find that would bring nothing once its notes are left out. */
+export function onlyNotes(find: LocalFind): boolean {
+  return !find.bots && !find.setup?.skills && !find.setup?.tools;
 }
 
 /** `ids`: the finds being brought in now; `brought`: every find brought in so far, each its own Import pressed once. */
@@ -171,13 +221,18 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
       failed = true;
     }
   }
-  const parts = [
+  // what the bots now know about the person leads; the rest follows in one line
+  const known = notes + facts + memories;
+  const also = [
     ...(bots ? [count(bots, "botMove.botsOne", "botMove.bots")] : []),
     ...(skills ? [count(skills, "botMove.skillsOne", "botMove.skills")] : []),
+    ...(routines ? [count(routines, "bring.routinesOne", "bring.routines")] : []),
     ...(tools ? [count(tools, "bring.toolsOne", "bring.tools")] : []),
-    ...(notes ? [count(notes, "bring.notesOne", "bring.notes")] : []),
   ];
-  const line = [parts.length ? t("bring.done", { list: list(parts) }) : failed ? "" : t("bring.allHere"), failed ? t("bring.failed") : ""].filter(Boolean).join(" ");
+  const said = known
+    ? [count(known, "bring.knowNowOne", "bring.knowNow"), ...(also.length ? [t("bring.alsoCame", { list: list(also) })] : [])]
+    : also.length ? [t("bring.done", { list: list(also) })] : failed ? [] : [t("bring.allHere")];
+  const line = [...said, failed ? t("bring.failed") : ""].filter(Boolean).join(" ");
   // a find that failed stays one to import again
   set({ kind: "done", line, failed, brought: failed ? [...before] : [...new Set([...before, ...ids])] });
   if (context.firstBotId && (bots || skills || tools || notes)) {

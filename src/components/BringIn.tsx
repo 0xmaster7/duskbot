@@ -7,10 +7,8 @@ import { Check, ChevronDown, CircleAlert, Copy } from "../icons";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import { copyNotesPrompt, looksLikeNotes, notesInFiles } from "@/lib/assistant-notes";
-import { planCounts } from "@/lib/bot-move";
-import { MAUS_COLOR_NAMES, type MausColor } from "@/lib/mascot";
 import { NOTES_PROMPT } from "../../shared/assistant-notes";
-import { broughtIds, memoryLine, type BringRun, type LocalFind } from "@/lib/first-run-import";
+import { amountLine, bringFocus, broughtIds, memoryLine, onlyNotes, usedWhen, type BringRun, type LocalFind } from "@/lib/first-run-import";
 import { MausAvatar } from "./Avatar";
 import { GrokBotMark } from "./GrokBotMark";
 import { useNotesIntake, type NotesSay } from "./NotesWaiting";
@@ -34,63 +32,80 @@ function FindMark({ find, size = 18 }: { find: LocalFind; size?: number }) {
   return <PixelIcon name="laptop" size={size} />;
 }
 
-/** Each arriving bot as it will look here: its colour from the move, its name beside it. */
-function arriving(find: LocalFind): { name: string; color: MausColor }[] {
-  return (find.bots?.preview.plans ?? []).map((plan) => {
-    const color = plan.document.package.agents[0]?.appearance?.color;
-    return { name: plan.addedAs, color: (MAUS_COLOR_NAMES as readonly string[]).includes(color ?? "") ? color as MausColor : "chrome" };
-  });
-}
-
-/** "2 bots, with their memory and skills" or "your instructions and skills": what comes, never how many of each. */
-function shortLine(find: LocalFind): string {
-  const counts = find.bots ? planCounts(find.bots) : null;
-  const kinds = [
-    // the bots' memory, and the tool's own memory and standing instructions (CLAUDE.md and the like)
-    ...((counts && (counts.memories || counts.facts)) || find.setup?.memory ? [t("bring.kindMemory")] : []),
-    ...((counts?.skills || find.setup?.skills) ? [t("bring.kindSkills")] : []),
-    ...(counts?.routines ? [t("bring.kindRoutines")] : []),
-    ...(find.setup?.tools ? [t("bring.kindTools")] : []),
-  ];
-  if (!counts?.bots) return kinds.length ? t("bring.yours", { list: listFormat(kinds) }) : find.summary;
-  const bots = counts.bots === 1 ? t("botMove.botsOne") : t("botMove.bots", { count: counts.bots });
-  if (!kinds.length) return bots;
-  return t(counts.bots === 1 ? "bring.botWith" : "bring.botsWith", { bots, list: listFormat(kinds) });
-}
-
 type RowState = "idle" | "working" | "done";
 
-/** One app found here: its mark, what it holds, the bots arriving, and its own Import. */
-function FindRow({ find, state, busy, onImport }: { find: LocalFind; state: RowState; busy: boolean; onImport: () => void }) {
-  const bots = arriving(find);
-  const shown = bots.slice(0, 4);
+/** "18 notes about you and 12 skills. Last used today.": the most personal parts only, never a list of everything. */
+function lineFor(find: LocalFind, most: number): string {
+  const summary = amountLine(find.amount, most);
+  return find.lastUsed === null ? `${summary}.` : t("bring.summaryUsed", { summary, when: usedWhen(find.lastUsed) });
+}
+
+/** The bots arriving with it, by name, a few at most. */
+function arrivingLine(find: LocalFind): string | null {
+  const names = (find.bots?.preview.plans ?? []).map((plan) => plan.addedAs);
+  if (!names.length) return null;
+  return names.length > 3 ? t("bring.botsNamedMore", { names: listFormat(names.slice(0, 3)), count: names.length - 3 }) : t("bring.botsNamed", { names: listFormat(names) });
+}
+
+function Imported() {
+  return (
+    <span data-bring-imported="" className="inline-flex min-h-9 shrink-0 items-center gap-1 px-2 text-[13px] leading-[18px] text-ink-secondary">
+      <Check size={14} aria-hidden="true" />{t("bring.imported")}
+    </span>
+  );
+}
+
+const ROW_BUTTON = "ui-button ui-button-pill min-h-9 shrink-0 gap-1.5 px-3.5 text-[13px] transition-[background-color,transform] duration-150 ease-[ease] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100";
+
+/** The one source worth it most, said the way a person would: you use it a lot, bring what it knows? */
+function HeroFind({ find, state, busy, can, primary, said, onImport }: { find: LocalFind; state: RowState; busy: boolean; can: boolean; primary: boolean; said: string | null; onImport: () => void }) {
+  const knows = find.amount.notes + find.amount.memories > 0;
+  const bots = arrivingLine(find);
+  const done = state === "done";
+  return (
+    <div data-bring-find={find.id} data-bring-hero="" data-bring-state={state} className="flex flex-col gap-4 rounded-[20px] bg-ink/[0.035] p-5 text-start">
+      <div className="flex min-w-0 items-start gap-3.5">
+        <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-app"><FindMark find={find} size={22} /></span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="text-pretty text-[16px] font-medium leading-[22px] text-ink">
+            {find.strong ? t("bring.heroUses", { app: find.app }) : t("bring.heroHere", { app: find.app })}
+          </span>
+          {done ? (
+            <span role="status" data-bring-said="" className="flex items-start gap-1.5 text-pretty text-[14px] leading-5 text-ink">
+              <Check size={15} aria-hidden="true" className="mt-[3px] shrink-0" />{said ?? t("bring.imported")}
+            </span>
+          ) : (
+            <>
+              <span className="text-pretty text-[14px] leading-5 text-ink-secondary">{knows ? t("bring.heroAsk") : t("bring.heroAskSetup")}</span>
+              <span className="mt-1 text-[13px] leading-[18px] text-ink-tertiary">{lineFor(find, 3)}</span>
+              {bots && <span className="text-pretty text-[13px] leading-[18px] text-ink-tertiary">{bots}</span>}
+            </>
+          )}
+        </span>
+      </div>
+      {!done && can && (
+        <button type="button" data-bring-import={find.id} data-primary={primary ? "" : undefined} autoFocus={primary} disabled={busy} onClick={onImport}
+          aria-label={state === "working" ? undefined : t("bring.importApp", { app: find.app })}
+          className="ui-button ui-button-pill ui-button-primary min-h-10 w-full gap-1.5 px-4 text-[14px] transition-[background-color,transform] duration-150 ease-[ease] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto sm:self-start">
+          {state === "working" && <span aria-hidden="true" className="funnel-wait inline-block size-1.5 shrink-0 rounded-full bg-current" />}
+          {state === "working" ? t("bring.importing") : t("bring.bringIt")}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** A smaller source: its mark, its name, what it holds and when it was used, and its own quiet Bring in. */
+function FindRow({ find, state, busy, can, onImport }: { find: LocalFind; state: RowState; busy: boolean; can: boolean; onImport: () => void }) {
   return (
     <li data-bring-find={find.id} data-bring-state={state} className="flex min-w-0 items-center gap-3 rounded-[14px] px-3 py-2.5 text-start">
-      <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-app">
-        <FindMark find={find} />
-      </span>
+      <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-app"><FindMark find={find} size={16} /></span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-[14px] font-medium leading-5 text-ink">{find.app}</span>
-        <span className="truncate text-[12px] leading-4 text-ink-tertiary">{shortLine(find)}</span>
-        {shown.length > 0 && (
-          <span data-bring-bots="" className="mt-1 flex min-w-0 flex-wrap gap-1">
-            {shown.map((bot) => (
-              <span key={bot.name} className="inline-flex max-w-[150px] items-center gap-1 rounded-full bg-app py-0.5 pe-2 ps-0.5 text-[12px] leading-4 text-ink-secondary">
-                <MausAvatar color={bot.color} size={16} trackPointer={false} animated={false} label="" />
-                <span className="truncate">{bot.name}</span>
-              </span>
-            ))}
-            {bots.length > shown.length && <span className="inline-flex items-center px-1 text-[12px] leading-4 text-ink-tertiary">+{bots.length - shown.length}</span>}
-          </span>
-        )}
+        <span className="truncate text-[12px] leading-4 text-ink-tertiary">{lineFor(find, 2)}</span>
       </span>
-      {state === "done" ? (
-        <span data-bring-imported="" className="inline-flex min-h-9 shrink-0 items-center gap-1 px-2 text-[13px] leading-[18px] text-ink-secondary">
-          <Check size={14} aria-hidden="true" />{t("bring.imported")}
-        </span>
-      ) : (
-        <button type="button" data-bring-import={find.id} disabled={busy} onClick={onImport} aria-label={state === "working" ? undefined : t("bring.importApp", { app: find.app })}
-          className="ui-button ui-button-pill min-h-9 shrink-0 gap-1.5 px-3.5 text-[13px] transition-[background-color,transform] duration-150 ease-[ease] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100">
+      {state === "done" ? <Imported /> : can && (
+        <button type="button" data-bring-import={find.id} disabled={busy} onClick={onImport} aria-label={state === "working" ? undefined : t("bring.importApp", { app: find.app })} className={ROW_BUTTON}>
           {state === "working" && <span aria-hidden="true" className="funnel-wait inline-block size-1.5 shrink-0 rounded-full bg-ink/60" />}
           {state === "working" ? t("bring.importing") : t("bring.import")}
         </button>
@@ -129,26 +144,25 @@ function RunLine({ run }: { run: BringRun }) {
   return <StatusLine data-bring-run={run.kind} state={run.kind === "working" ? "working" : run.failed ? "failed" : "done"} line={run.kind === "working" ? t("bring.working") : run.line} />;
 }
 
-/** What was found here, every app a row of its own (Claude first, then the agent apps: the order localFinds gave), and
- * what Import all brings in: each row not brought in yet. */
+/** What was found here, best first: the one worth it most as the hero, the next strong ones (two at most) as rows, the
+ * rest behind Show more. The notes line counts only what is shown. */
 export function useBringChoice(finds: readonly LocalFind[] | null, run: BringRun = { kind: "idle" }) {
-  const [off, setOff] = useState<ReadonlySet<string>>(() => new Set());
-  // the tools' memory comes with them unless the person unticks it
+  // the tools' notes come with them unless the person unticks it
   const [memory, setMemory] = useState(true);
+  const [more, setMore] = useState(false);
   const brought = broughtIds(run);
   return useMemo(() => {
-    const rows = finds ?? [];
-    const extras: LocalFind[] = [];
-    const chosen = rows.filter((find) => !off.has(find.id) && !brought.includes(find.id));
-    const toggle = (id: string) => setOff((was) => {
-      const next = new Set(was);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    const memoryText = memoryLine(rows.filter((find) => !brought.includes(find.id)));
-    return { rows, off, chosen, toggle, found: rows.length > 0, toBring: [...chosen, ...extras], memory: memory && memoryText !== null, memoryText, setMemory };
-  }, [finds, off, brought, memory]);
+    const found = finds ?? [];
+    // the source the card named leads, so the page answers it
+    const named = found.findIndex((find) => find.id === bringFocus());
+    const rows = named > 0 ? [found[named]!, ...found.slice(0, named), ...found.slice(named + 1)] : found;
+    const hero = rows[0] ?? null;
+    const next = rows.slice(1).filter((find, index) => find.strong && index < 2);
+    const rest = rows.slice(1 + next.length);
+    const shown = [...(hero ? [hero] : []), ...next, ...(more ? rest : [])];
+    const memoryText = memoryLine(shown.filter((find) => !brought.includes(find.id)));
+    return { rows, hero, next, rest, more, setMore, found: rows.length > 0, memory: memory && memoryText !== null, memoryText, setMemory };
+  }, [finds, brought, memory, more]);
 }
 export type BringChoice = ReturnType<typeof useBringChoice>;
 
@@ -197,18 +211,17 @@ function useNotesHere(): { said: { line: string; state: "working" | "done" | "fa
   return { said, over };
 }
 
-export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, onBring, onImport }: {
-  /** null while still looking. Extras are never rows: they come in with whatever is chosen. */
+export function BringIn({ finds, choice, grokWaiting, run, heroPrimary = false, onImport }: {
+  /** null while still looking. */
   finds: readonly LocalFind[] | null;
   choice: BringChoice;
   /** Grok bot's bots on this computer with nothing saved yet, by name: they move through the prompt, like an AI online. */
   grokWaiting: readonly string[];
   /** The bringing in, once started (useBringRun). */
   run: BringRun;
-  /** Settings has no footer, so the press to bring the chosen in sits under the list. */
-  bringButton?: boolean;
-  onBring?: () => void;
-  /** One app's own Import. */
+  /** The hero's button is the screen's one primary action and takes focus (the first run). */
+  heroPrimary?: boolean;
+  /** One app's own Bring in. */
   onImport?: (find: LocalFind) => void;
 }) {
   const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
@@ -216,15 +229,17 @@ export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, 
   // with things found here the prompt for AIs online is one quiet line until asked for
   const [onlineOpen, setOnlineOpen] = useState(false);
   const notes = useNotesHere();
-  const started = run.kind !== "idle";
   const promptId = useId();
-  const { rows, chosen, found } = choice;
+  const { found } = choice;
   const brought = broughtIds(run);
-  const rowState = (find: LocalFind): RowState => brought.includes(find.id) ? "done" : run.kind === "working" && run.ids.includes(find.id) ? "working" : "idle";
+  const busy = run.kind === "working";
+  const rowState = (find: LocalFind): RowState => brought.includes(find.id) ? "done" : busy && run.ids.includes(find.id) ? "working" : "idle";
+  // with its notes left out, a source that holds only notes has nothing to bring
+  const can = (find: LocalFind) => choice.memory || !onlyNotes(find);
+  // the last bringing in was the hero's: it says how it went in its own words, where the person is looking
+  const [heroLast, setHeroLast] = useState(false);
   const showOnline = !found || onlineOpen;
   const copyPrompt = async () => setCopy((await copyNotesPrompt()) ? "copied" : "failed");
-
-  const label = "mb-2 flex items-center gap-2 px-1 text-start text-[12px] leading-4 text-ink-tertiary";
 
   const steps = (
     <div className={cn("rounded-[18px] bg-ink/[0.035] p-4 transition-[background-color] duration-150 ease-[ease] motion-reduce:transition-none", notes.over && "bg-ink/[0.07]")}>
@@ -287,12 +302,25 @@ export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, 
   return (
     <div data-bring-in="" data-bring-drop={notes.over ? "over" : undefined} className="w-full">
       {finds === null && <p role="status" data-bring-looking="" className="mb-6 text-[13px] leading-[18px] text-ink-tertiary">{t("bring.looking")}</p>}
-      {found && (
+      {found && choice.hero && (
         <section aria-labelledby={`${promptId}-found`} className="w-full text-start">
-          <h2 id={`${promptId}-found`} className={cn(label, "m-0 font-normal")}>{t("bring.foundLabel")}</h2>
-          <ul aria-label={t("bring.foundLabel")} className="m-0 flex list-none flex-col gap-0.5 rounded-[18px] bg-ink/[0.035] p-1.5">
-            {rows.map((find) => <FindRow key={find.id} find={find} state={rowState(find)} busy={run.kind === "working"} onImport={() => onImport?.(find)} />)}
-          </ul>
+          <h2 id={`${promptId}-found`} className="sr-only">{t("bring.foundLabel")}</h2>
+          <HeroFind find={choice.hero} state={rowState(choice.hero)} busy={busy} can={can(choice.hero)} primary={heroPrimary}
+            said={run.kind === "done" && heroLast ? run.line : null} onImport={() => { setHeroLast(true); onImport?.(choice.hero!); }} />
+          {(choice.next.length > 0 || (choice.more && choice.rest.length > 0)) && (
+            <ul aria-label={t("bring.alsoHere")} className="m-0 mt-2 flex list-none flex-col gap-0.5 p-0">
+              {[...choice.next, ...(choice.more ? choice.rest : [])].map((find) => (
+                <FindRow key={find.id} find={find} state={rowState(find)} busy={busy} can={can(find)} onImport={() => { setHeroLast(false); onImport?.(find); }} />
+              ))}
+            </ul>
+          )}
+          {choice.rest.length > 0 && !choice.more && (
+            <button type="button" data-bring-more="" onClick={() => choice.setMore(true)}
+              className="mt-1 flex min-h-9 items-center gap-1 rounded-full px-3 text-[13px] leading-[18px] text-ink-tertiary transition-colors duration-150 ease-[ease] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none">
+              {t("bring.showMore", { count: choice.rest.length })}
+              <ChevronDown size={14} aria-hidden="true" />
+            </button>
+          )}
           {choice.memoryText && run.kind !== "working" && (
             <label data-bring-memory={choice.memory ? "on" : "off"} className="mt-2 flex min-h-11 cursor-pointer items-start gap-3 rounded-[14px] px-3 py-2.5 text-start transition-[background-color] duration-150 ease-[ease] hover:bg-ink/[0.035] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus motion-reduce:transition-none">
               <input type="checkbox" checked={choice.memory} onChange={(event) => choice.setMemory(event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--color-ink)] focus-visible:outline-none" />
@@ -302,15 +330,7 @@ export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, 
               </span>
             </label>
           )}
-          {bringButton && !started && chosen.length > 1 && (
-            <div className="mt-3 px-1">
-              <button type="button" data-bring-go="" disabled={!chosen.length} onClick={onBring}
-                className="ui-button ui-button-pill min-h-9 px-3.5 text-[13px] transition-[background-color,transform] duration-150 ease-[ease] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 motion-reduce:transition-none motion-reduce:active:scale-100">
-                {t("bring.bring")}
-              </button>
-            </div>
-          )}
-          <RunLine run={run} />
+          {!(heroLast && run.kind === "done") && <RunLine run={run} />}
         </section>
       )}
       {finds !== null && online}

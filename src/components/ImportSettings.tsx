@@ -38,7 +38,7 @@ export function ImportSettings({ client = setupImportApi }: { client?: SetupImpo
   const run = useBringRun();
   const choice = useBringChoice(finds, run);
 
-  const bring = (chosen: readonly LocalFind[] = choice.toBring) => {
+  const bring = (chosen: readonly LocalFind[]) => {
     track("settings_bring", { apps: chosen.length, memory: choice.memory });
     void bringChosen(chosen, { client, dispatch, firstBotId: first?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), memory: choice.memory });
   };
@@ -46,7 +46,7 @@ export function ImportSettings({ client = setupImportApi }: { client?: SetupImpo
   return (
     <section data-import-section="bring" className="flex flex-col gap-4 px-1 pt-1">
       <p className="m-0 text-pretty text-[13px] leading-[18px] text-ink-secondary">{choice.found ? t("bring.sub") : t("bring.subNone")}</p>
-      <BringIn finds={finds} choice={choice} grokWaiting={move.plan?.grokWaiting ?? []} run={run} bringButton onBring={() => bring()} onImport={(find) => bring([find])} />
+      <BringIn finds={finds} choice={choice} grokWaiting={move.plan?.grokWaiting ?? []} run={run} onImport={(find) => bring([find])} />
     </section>
   );
 }

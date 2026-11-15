@@ -17,8 +17,9 @@ import { useTwoPlaces } from "@/lib/two-places";
 import { useUpdateDigest } from "@/lib/update-digest";
 import { useServerBehindHint } from "@/lib/server-behind";
 import { useBringNotice } from "@/lib/bring-notice";
+import { amountLine, focusBringFind, usedWhen } from "@/lib/first-run-import";
 import { cloudSignInDue, onboardingCloudOffered, type WelcomeViewer } from "@/lib/onboarding";
-import { activeLocale, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { engineReady } from "./EngineLibrary";
 import { CLOUD_NOTICE_CARD, cloudNoticeStep, CloudNoticeCard } from "./CloudNotice";
 import { CloudTrialIntroCard } from "./CloudTrialIntro";
@@ -169,7 +170,7 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     : notice === CLOUD_TRIAL_NOTICE ? (trial ? notice : null)
     : notice === CLOUD_NOTICE ? (kind && bridge ? notice : null)
     : notice === TWO_PLACES_NOTICE ? (two.suggest ? notice : null)
-    : notice === BRING_NOTICE ? (bring.apps.length ? notice : null) : null;
+    : notice === BRING_NOTICE ? (bring.find ? notice : null) : null;
   useEffect(() => { noticeOnScreen(card); }, [card]);
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;
   if (!notice && digest && !waits) return <NoticeToast text={digest.line} onDone={digest.seen} />;
@@ -211,13 +212,15 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     };
     return <CloudNoticeCard kind={kind} busy={busy} failed={failed} onAction={act} onNotNow={() => { close(); save(CLOUD_NOTICE_CARD[kind].dismissed); }} />;
   }
-  if (notice === BRING_NOTICE && bring.apps.length) {
+  if (notice === BRING_NOTICE && bring.find) {
+    const find = bring.find;
     const done = (action: string) => { track("bring_card", { action, ms: noticeActed() }); close(); save(BRING_NOTICE); };
-    const apps = new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(bring.apps.slice(0, 3));
-    return <NoticeCard titleId="bring-notice-title" notice="bring" icon={Download} title={t("notices.bring.title")} onDismiss={() => done("close")}>
-      <p className="mb-3 mt-1 text-pretty text-[13px] text-ink-secondary">{t("notices.bring.body", { apps })}</p>
+    return <NoticeCard titleId="bring-notice-title" notice="bring" icon={Download} title={t("notices.bring.title", { app: find.app })} onDismiss={() => done("close")}>
+      <p className="mb-3 mt-1 text-pretty text-[13px] text-ink-secondary">
+        {t("notices.bring.body", { app: find.app, summary: amountLine(find.amount, 2), when: find.lastUsed === null ? "" : usedWhen(find.lastUsed) })}
+      </p>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" data-bring-review="" className={PRIMARY_BUTTON} onClick={() => { done("review"); dispatch({ type: "toggleAppSettings", open: true, section: "import" }); }}>{t("notices.bring.review")}</button>
+        <button type="button" data-bring-review="" className={PRIMARY_BUTTON} onClick={() => { done("review"); focusBringFind(find.id); dispatch({ type: "toggleAppSettings", open: true, section: "import" }); }}>{t("notices.bring.review")}</button>
         <NotNowButton onClick={() => done("not_now")} />
       </div>
     </NoticeCard>;
