@@ -222,7 +222,7 @@ export function Onboarding() {
       step={at}
       scene={scene}
       snug
-      card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="font-pixel text-[72px] font-medium leading-[0.72] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{LABELS[at]}</span></p>}
+      card={<p key={step} className="swap-in flex items-end gap-3.5"><span className="text-[56px] font-medium leading-[0.8] tracking-[-0.05em] text-ink">{at + 1}</span><span className="pb-0.5 text-20 font-medium tracking-[-0.03em] text-ink">{LABELS[at]}</span></p>}
       aside={<button type="button" onClick={signOut} disabled={busy !== null} className="text-link -me-2 h-11 rounded-full px-2 text-14 disabled:opacity-50">sign out</button>}
     >
       <Rail at={Math.min(at, total - 1)} total={total} />
