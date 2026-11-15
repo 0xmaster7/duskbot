@@ -52,8 +52,8 @@ function Rail({ at, total }: { at: number; total: number }) {
 /** both homes keep the same light card; the chosen one shows a filled dot, never a darker card */
 function Dot({ on }: { on: boolean }) {
   return (
-    <span aria-hidden className={cx("grid size-5 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-[ease]", on ? "bg-ink" : "bg-track")}>
-      <span className={cx("size-2 rounded-full bg-bg transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none", on ? "scale-100 opacity-100" : "scale-75 opacity-0")} />
+    <span aria-hidden className={cx("grid size-4 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-[ease]", on ? "bg-ink-3" : "bg-track")}>
+      <span className={cx("size-1.5 rounded-full bg-bg transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none", on ? "scale-100 opacity-100" : "scale-75 opacity-0")} />
     </span>
   );
 }
@@ -77,7 +77,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
           </span>
           <span className="flex items-center justify-between gap-3 px-3 pt-4">
             <span className="text-17 font-medium tracking-[-0.02em] text-ink">dusk cloud</span>
-            <span className="flex items-center gap-3"><span className="t-meta">cancel any time</span><Dot on={cloud} /></span>
+            <Dot on={cloud} />
           </span>
           <ul key={plan} className="plan-points-in flex flex-col gap-2 px-3 pb-2 pt-3">
             {points(plan, catalog).map((p) => (
@@ -89,12 +89,12 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
         </label>
         {cloud && (
           <div role="radiogroup" aria-label="plan" className="step-in relative mt-1 grid grid-cols-2 rounded-full bg-bg p-1">
-            <StretchPill target={plan} className="bg-[color-mix(in_oklab,var(--ink)_7%,var(--bg))]" />
+            <StretchPill target={plan} className="bg-[color-mix(in_oklab,var(--ink)_5%,var(--bg))]" />
             {plans.map(({ id, b }) => {
               const on = plan === id;
               return (
                 <button key={id} type="button" role="radio" aria-checked={on} data-stretch-key={id} onClick={() => setPlan(id)}
-                  className={cx("relative inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-14", on ? "font-semibold text-ink" : "font-normal text-ink-2 hover-link")}>
+                  className={cx("relative inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-13", on ? "font-medium text-ink" : "font-normal text-ink-2 hover-link")}>
                   {b.name.toLowerCase()} <span className="num font-normal text-ink-3">{per(b.monthly, "month", catalog).amount}/mo</span>
                 </button>
               );
@@ -251,7 +251,7 @@ export function Onboarding() {
           {catalog ? <PlanStep catalog={catalog} home={home} setHome={(h) => { setHome(h); setError(null); }} plan={plan} setPlan={(p) => { setPlan(p); setError(null); }} /> : <div className="flex flex-col gap-2" aria-busy="true"><Skeleton className="h-[300px] !rounded-[22px]" /><Skeleton className="h-[72px] !rounded-[18px]" /></div>}
           {error && <p role="alert" className="mt-3 text-14 text-bad">{error}</p>}
           <Button variant="primary" className={cx("mt-5", big)} onClick={() => void choose(home)} disabled={busy !== null || !catalog}>{busy === "cloud" ? <Busy>opening checkout</Busy> : busy === "done" ? <Busy>opening</Busy> : home === "free" ? "continue with free" : price ? `continue to checkout, ${price.amount}${price.unit}` : "continue to checkout"}</Button>
-          <div className="mt-2">{back("name")}</div>
+          <div className="mt-2 flex items-center justify-between">{back("name")}{home === "cloud" && <span className="text-14 text-ink-3">cancel any time</span>}</div>
         </div>
       ) : inApp ? (
         <div key="app" className="min-h-[200px]" aria-busy="true" />
