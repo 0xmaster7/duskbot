@@ -82,6 +82,7 @@ export { PinnedBotCircle, PinnedCircleThreadSection } from "./PinnedCircleThread
 export { ArchivedBotRow, ArchivedBotsPanel, archivedDeleteAllCopy, botConfirmCopy, type BotConfirmKind } from "./ArchivedBotsPanel";
 import { roomDeleteCopy } from "./room-delete-copy"; export { roomDeleteCopy };
 import { friendlyError } from "@/lib/plain-error";
+import { useActivityReorder, useNamesReturn } from "./sidebar-motion";
 
 /** The centre of macOS's traffic lights (14px tall) with the window's frame off, where the window puts them at 16,16. */
 export const MAC_TRAFFIC_LIGHT_CENTER_Y = 23;
@@ -156,7 +157,7 @@ export function GroupListItem({
       aria-label={density === "icons" ? group.name : undefined}
     >
       <GroupAvatar members={members} you={you} size={36} />
-      <div className={cn("min-w-0 flex-1", density === "icons" && "hidden")}>
+      <div data-row-words className={cn("min-w-0 flex-1", density === "icons" && "hidden")}>
         <div className={cn("flex items-baseline justify-between gap-2", simpleRow && "pr-7")}>
           <span className={cn("truncate text-[14px] text-ink", simpleRow ? "font-medium leading-5" : "font-semibold")}>{group.name}</span>
           {simpleRow && group.unread && <RowDot />}
@@ -590,7 +591,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
           </span>
         )}
       </span>
-      <div className={cn("min-w-0 flex-1", iconOnly && "hidden", simpleRow && "flex flex-col gap-px")}>
+      <div data-row-words className={cn("min-w-0 flex-1", iconOnly && "hidden", simpleRow && "flex flex-col gap-px")}>
         <div className={cn("flex items-baseline justify-between gap-2", simpleRow && (unread || waiting ? "pr-7" : "group-has-[:focus-visible]:pr-7 touch:pr-7"))}>
           <span className={cn("flex min-w-0 grow items-center gap-1.5 truncate text-ink", simpleRow ? "text-[14px] font-medium leading-5 tracking-[0.01em]" : "text-[15px] font-semibold leading-5")}>
             {!simpleRow && bot.pinned && <Pin size={12} className="shrink-0 text-ink-secondary" />}
@@ -893,6 +894,8 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
     : undefined;
 
   const q = query.trim().toLowerCase();
+  useActivityReorder(sidebarRef, !q);
+  useNamesReturn(sidebarRef, rail);
   const sections = useSidebarSections({ simple, rail, density, query: q, label: sectionLabel, sidebarRef });
   const botDrag = useSidebarBotDrag({ dispatch, announce: sections.announce, onNamed: sections.focusHeader, onRenamed: sections.renamed,
     onError: (text) => setTeamFeedback({ error: true, text }), onCancelled: () => sidebarRef.current?.focus() });
@@ -1056,7 +1059,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
       style={{ ...drawer.props?.style, ["--sidebar-width" as string]: `${sizing.width}px` } as MotionStyle}
       className={cn(
         "relative flex h-full shrink-0 flex-col border-r-[0.5px] border-transparent bg-panel max-md:[--scroll-fade-surface:var(--color-app)]",
-        sizing.resizing && !sizing.snapping ? "transition-none" : "transition-[width] duration-200 ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none",
+        sizing.resizing && !sizing.snapping ? "transition-none" : "transition-[width] duration-500 ease-(--dusk-spring-soft) motion-reduce:transition-none",
         rail ? "w-[92px]" : "w-[280px] md:w-[var(--sidebar-width)]",
         "md:max-w-[calc(100vw-320px)]",
         // max-md: rather than an md: cancel: Tailwind v4 emits the native `translate`, and any value but `none` makes
