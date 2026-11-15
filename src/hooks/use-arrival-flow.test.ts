@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 
-import { ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, useArrivalFlow } from "./use-arrival-flow";
+import { ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, rowEnter, useArrivalFlow } from "./use-arrival-flow";
 
 // happy-dom has no layout: each element reports the offsets the test gives it, and animations are recorded
 type Recorded = { el: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions };
@@ -72,27 +72,28 @@ afterEach(() => {
 describe("useArrivalFlow", () => {
   const rises = (el: Element) => recorded.filter((r) => r.el === el);
 
-  it("puts a bot's reply on screen whole, rising 12px over 240ms at full opacity, with the view at its end at once", () => {
+  it("puts a bot's reply on screen whole: the view is at its end at once and the column glides up by what it added", () => {
     draw(true, 0);
+    const before = scroller.scrollTop;
     const reply = addRow(900, "start");
     place(slot, 960, column);
     scrollHeight = 1060;
     draw(true, 1);
 
     expect(scroller.scrollTop).toBe(scrollHeight - CLIENT);
-    expect(moved(column)).toHaveLength(0);
-    const [entrance] = rises(reply);
-    expect(entrance?.keyframes).toEqual([{ transform: `translateY(${ROW_RISE_PX}px)` }, { transform: "translateY(0px)" }]);
-    expect(entrance?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
-    expect(ROW_RISE_PX).toBe(12);
+    // the rows already on screen start where they were drawn, 60px lower, and glide into place: no one-frame jump
+    const [glide] = moved(column);
+    expect(glide?.keyframes).toEqual([{ transform: `translateY(${scroller.scrollTop - before}px)` }, { transform: "translateY(0px)" }]);
+    expect(glide?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
     expect(ROW_ENTER_MS).toBe(240);
     expect(ROW_ENTER_EASE).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
-    // no fade, no clip reveal, and the status line is left alone
-    expect(entrance?.keyframes.every((frame) => frame.opacity === undefined && frame.clipPath === undefined)).toBe(true);
+    // the reply rides the column: no rise, fade or clip reveal of its own, and the status line is left alone
+    expect(rises(reply)).toHaveLength(0);
+    expect(glide?.keyframes.every((frame) => frame.opacity === undefined && frame.clipPath === undefined)).toBe(true);
     expect(rises(slot)).toHaveLength(0);
   });
 
-  it("gives the person's own bubble the same entrance, and clips the column only while it rises", () => {
+  it("gives the person's own bubble the same glide, and clips the column only while it moves", () => {
     draw(true, 0);
     const mine = addRow(900, "end");
     place(slot, 956, column);
@@ -100,23 +101,52 @@ describe("useArrivalFlow", () => {
     draw(true, 1);
 
     expect(scroller.scrollTop).toBe(scrollHeight - CLIENT);
-    expect(moved(column)).toHaveLength(0);
-    expect(rises(mine)[0]?.keyframes[0]?.transform).toBe(`translateY(${ROW_RISE_PX}px)`);
-    expect(rises(mine)[0]?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
+    expect(moved(column)[0]?.keyframes[0]?.transform).toBe("translateY(56px)");
+    expect(rises(mine)).toHaveLength(0);
     expect(clip.style.overflowY).toBe("clip");
     act(() => finishers.forEach((finish) => finish()));
     expect(clip.style.overflowY).toBe("");
   });
 
-  it("gives every row in one batch its own entrance, with no stagger", () => {
+  it("moves a batch of rows as one column, with no stagger", () => {
     draw(true, 0);
     const file = addRow(900, "start");
     const summary = addRow(970, "start");
     place(slot, 1040, column);
     scrollHeight = 1140;
     draw(true, 1);
-    expect(rises(file)[0]?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
-    expect(rises(summary)[0]?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
+    expect(moved(column)).toHaveLength(1);
+    expect(rises(file)).toHaveLength(0);
+    expect(rises(summary)).toHaveLength(0);
+  });
+
+  it("lets a row rise 12px into place when there was room for it and nothing on screen moves", () => {
+    scrollHeight = CLIENT;
+    scroller.scrollTop = 0;
+    draw(true, 0);
+    const reply = addRow(300, "start");
+    draw(true, 1);
+    expect(moved(column)).toHaveLength(0);
+    const [entrance] = rises(reply);
+    expect(entrance?.keyframes).toEqual([{ transform: `translateY(${ROW_RISE_PX}px)` }, { transform: "translateY(0px)" }]);
+    expect(entrance?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
+    expect(rowEnter).toBeTypeOf("function");
+  });
+
+  it("never re-animates the rows that were already there when the next one lands", () => {
+    draw(true, 0);
+    const sent = addRow(900, "end");
+    place(slot, 956, column);
+    scrollHeight = 1056;
+    draw(true, 1);
+    const reply = addRow(956, "start");
+    place(slot, 1040, column);
+    scrollHeight = 1140;
+    draw(true, 2);
+    // the person's bubble (its optimistic copy's node, kept when the server's copy replaces it) is never animated alone
+    expect(rises(sent)).toHaveLength(0);
+    expect(rises(reply)).toHaveLength(0);
+    expect(moved(column)).toHaveLength(2);
   });
 
   it("keeps the end pinned in the frame the composer changes height, with no glide", () => {
@@ -125,11 +155,12 @@ describe("useArrivalFlow", () => {
     place(slot, 956, column);
     scrollHeight = 1056;
     draw(true, 1);
+    const glides = moved(column).length;
     // the composer's pad grows by 40px under a transcript resting at its end
     scrollHeight = 1096;
     draw(true, 2);
     expect(scroller.scrollTop).toBe(scrollHeight - CLIENT);
-    expect(moved(column)).toHaveLength(0);
+    expect(moved(column)).toHaveLength(glides);
   });
 
   it("moves nothing on screen for a reader scrolled up", () => {

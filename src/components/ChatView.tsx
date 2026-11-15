@@ -696,10 +696,11 @@ export function useLingering(on: boolean, ms: number): boolean {
   return on || lingering;
 }
 
-/** Simple mode's room under the last row, above the composer's own clearance: grok's last bubble ends 54px over the composer. */
-export const SIMPLE_TRAILING_GAP = 34;
+/** Simple mode's room under the last row, above the composer's own clearance: the last bubble ends 64px over the composer,
+ * 10px more than grok's 54 so the mascot's line is not crowded against the message box. */
+export const SIMPLE_TRAILING_GAP = 44;
 /** The part of that room the status line's slot takes: its 36px row and the 4px it sits under a bubble, so an idle chat's
- * last bubble still ends 54px over the composer and the line itself 14px over it, as in grok. */
+ * last bubble still ends 64px over the composer and the line itself 24px over it. */
 export const SIMPLE_STATUS_SLOT = 40;
 
 /** How many of a window's newest rows an opened chat paints in its first frame, and how many older ones each later step adds. */
@@ -1313,7 +1314,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           // groups sit 16px apart
           data-simple-rows=""
           className="glass-scroller-content chat-column relative flex w-full flex-col gap-4 rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          // grok leaves 54px between the last row and the composer: its 52px trailing inset and the row's own 2px
+          // 64px between the last row and the composer (grok leaves 54), so the working line has room above the message box
           style={{ paddingBottom: `calc(${composerDock.pad} + ${SIMPLE_TRAILING_GAP - (statusSlot ? SIMPLE_STATUS_SLOT : 0)}px)` }}
           role="log"
           aria-busy={transcriptPending || undefined}
