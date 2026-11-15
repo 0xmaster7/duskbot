@@ -3,8 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { api, type Action } from "@/state/store";
-import type { InstructionsSource, SetupDetection, SetupImportResult, SetupSource } from "../../shared/setup-import";
+import type { Action } from "@/state/store";
+import type { SetupDetection, SetupSource } from "../../shared/setup-import";
 import { movable, planCounts, runBotMove, type AppMove, type BotMovePlan } from "./bot-move";
 import { GROK_FROM } from "../../shared/grok-import";
 import { aboutMeSaver } from "./assistant-notes";
@@ -22,8 +22,8 @@ export interface LocalFind {
   extra?: boolean;
   /** One of the sources people use most (Claude): listed first, above the prompt for AIs online. */
   lead?: boolean;
-  /** What an AI tool's own setup holds, for the row's short line. */
-  setup?: { skills: boolean; tools: boolean; instructions: boolean };
+  /** What an AI tool's own setup holds, for the row's short line; `memory`: its notes not brought in yet. */
+  setup?: { skills: boolean; tools: boolean; instructions: boolean; memory: number };
 }
 
 const list = (parts: string[]) => new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(parts);
@@ -67,18 +67,20 @@ export function localFinds(plan: BotMovePlan | null, detection: SetupDetection |
   for (const source of SOURCE_ORDER) {
     const skills = detection?.skills.filter((one) => one.source === source).length ?? 0;
     const tools = detection?.tools.filter((one) => one.source === source).length ?? 0;
-    const instructions = detection?.instructions?.some((one) => one.source === source) ?? false;
-    if (!skills && !tools && !instructions) continue;
+    const memory = detection?.memory?.find((one) => one.source === source)?.notes ?? 0;
+    // standing instructions come in as memory notes, so they count once, there
+    const instructions = memory > 0;
+    if (!skills && !tools && !memory) continue;
     const parts = [
+      ...(memory ? [count(memory, "bring.notesOne", "bring.notes")] : []),
       ...(skills ? [count(skills, "botMove.skillsOne", "botMove.skills")] : []),
       ...(tools ? [count(tools, "bring.toolsOne", "bring.tools")] : []),
-      ...(instructions ? [t("bring.instructions")] : []),
     ];
     const name = t(`onboarding.import.source.${source}` as LocaleKey);
     const same = finds.find((find) => find.bots && !find.source && find.app === name);
-    const setup = { skills: skills > 0, tools: tools > 0, instructions };
+    const setup = { skills: skills > 0, tools: tools > 0, instructions, memory };
     if (same) Object.assign(same, { source, setup, summary: `${same.summary}. ${list(parts)}` });
-    else finds.push({ id: `setup:${source}`, app: name, source, setup, summary: list(parts), ...(instructions || source === "claudeDesktop" ? {} : { extra: true }) });
+    else finds.push({ id: `setup:${source}`, app: name, source, setup, summary: list(parts), ...(memory || source === "claudeDesktop" ? {} : { extra: true }) });
   }
   return finds.map((find) => (rank(find) === 0 ? { ...find, lead: true } : find)).sort((a, b) => rank(a) - rank(b));
 }
@@ -108,28 +110,13 @@ export function resetBringRunForTests() { run = { kind: "idle" }; }
 /** A finished run is forgotten (Settings opening afresh); one still going is kept. */
 export function forgetBringRun() { if (run.kind === "done") set({ kind: "idle" }); }
 
-const INSTRUCTIONS_FILE: Record<InstructionsSource, string> = {
-  claudeCode: "memory/instructions-from-claude-code.md",
-  codex: "memory/instructions-from-codex.md",
-  gemini: "memory/instructions-from-gemini-cli.md",
-  windsurf: "memory/instructions-from-windsurf.md",
-};
-
-/** A tool's standing instructions as a topic of the first bot's memory: there to look up, not read into every turn. */
-async function keepInstructions(files: NonNullable<SetupImportResult["instructions"]>, botId: string | null): Promise<number> {
-  if (!botId) return 0;
-  let kept = 0;
-  // one topic per tool, holding each of its files (Windsurf keeps one in its old place and one in Devin's)
-  for (const source of new Set(files.map((file) => file.source))) {
-    const own = files.filter((file) => file.source === source);
-    const app = t(`onboarding.import.source.${source}` as LocaleKey);
-    const text = `# Instructions from ${app}\n\nWhat you told ${app} in its ${[...new Set(own.map((file) => file.name))].join(" and ")}, brought over when you moved.\n\n${own.map((file) => file.text.trim()).join("\n\n")}\n`;
-    try {
-      await api(`/api/bots/${encodeURIComponent(botId)}/memory/file`, { method: "PUT", body: JSON.stringify({ path: INSTRUCTIONS_FILE[source], text }) });
-      kept += own.length;
-    } catch {}
-  }
-  return kept;
+/** Each chosen tool's memory notes, by app, for the line under the list: "148 notes from Claude Code and 2 from Codex". */
+export function memoryLine(finds: readonly LocalFind[]): string | null {
+  const parts = finds.filter((find) => (find.setup?.memory ?? 0) > 0).map((find, index) => {
+    const notes = find.setup!.memory;
+    return notes === 1 ? t("bring.memoryFromOne", { app: find.app }) : t(index === 0 ? "bring.memoryFrom" : "bring.memoryFromMore", { count: notes, app: find.app });
+  });
+  return parts.length ? list(parts) : null;
 }
 
 /** Brings the chosen finds in: the tools' things in one request, then each app's bots. Never throws; the line says what
@@ -138,6 +125,8 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
   dispatch: (action: Action) => void; firstBotId: string | null; client?: SetupImportClient;
   /** About me as it is now, and whether it is the team's profile: facts the bots knew about the person go there. */
   aboutMe?: string; team?: boolean;
+  /** The tools' memory and instructions come too, as notes in the first bot's memory. */
+  memory?: boolean;
 }): Promise<void> {
   if (run.kind === "working" || !finds.length) return;
   const before = broughtIds(run);
@@ -146,19 +135,19 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
   const client = context.client ?? setupImportApi;
   const sources = finds.flatMap((find) => (find.source ? [find.source] : []));
   const apps = finds.flatMap((find) => (find.bots ? [find.bots] : []));
-  let skills = 0, tools = 0, instructions = 0, bots = 0, failed = false;
+  let skills = 0, tools = 0, notes = 0, bots = 0, failed = false;
   const botNames: string[] = [];
   let facts = 0, memories = 0, routines = 0, reconnect = 0;
   const kept: string[] = [];
   if (sources.length) {
     try {
-      const result = await client.apply({ skills: true, tools: true, instructions: true, sources });
+      const memory = context.memory === true && context.firstBotId !== null && finds.some((find) => (find.setup?.memory ?? 0) > 0);
+      const result = await client.apply({ skills: true, tools: true, sources, ...(memory ? { memory: true, memoryBot: context.firstBotId! } : {}) });
       skills = result.skills?.added.length ?? 0;
       tools = result.tools?.added.length ?? 0;
-      instructions = await keepInstructions(result.instructions ?? [], context.firstBotId);
-      if (instructions) kept.push(...new Set((result.instructions ?? []).map((file) => t(`onboarding.import.source.${file.source}` as LocaleKey))));
-      failed ||= Boolean(result.skills?.skipped.some((one) => one.reason === "failed") || result.tools?.skipped.some((one) => one.reason === "failed"))
-        || instructions < (result.instructions?.length ?? 0);
+      notes = result.memory?.added ?? 0;
+      if (notes) kept.push(...(result.memory?.sources ?? []).map((source) => t(`onboarding.import.source.${source}` as LocaleKey)));
+      failed ||= Boolean(result.skills?.skipped.some((one) => one.reason === "failed") || result.tools?.skipped.some((one) => one.reason === "failed") || result.memory?.failed);
     } catch {
       failed = true;
     }
@@ -186,13 +175,13 @@ export async function bringChosen(finds: readonly LocalFind[], context: {
     ...(bots ? [count(bots, "botMove.botsOne", "botMove.bots")] : []),
     ...(skills ? [count(skills, "botMove.skillsOne", "botMove.skills")] : []),
     ...(tools ? [count(tools, "bring.toolsOne", "bring.tools")] : []),
-    ...(instructions ? [t("bring.instructions")] : []),
+    ...(notes ? [count(notes, "bring.notesOne", "bring.notes")] : []),
   ];
   const line = [parts.length ? t("bring.done", { list: list(parts) }) : failed ? "" : t("bring.allHere"), failed ? t("bring.failed") : ""].filter(Boolean).join(" ");
   // a find that failed stays one to import again
   set({ kind: "done", line, failed, brought: failed ? [...before] : [...new Set([...before, ...ids])] });
-  if (context.firstBotId && (bots || skills || tools || instructions)) {
+  if (context.firstBotId && (bots || skills || tools || notes)) {
     const from = [...new Set(finds.filter((find) => find.bots || find.source).map((find) => find.app))];
-    void postImportNote(context.firstBotId, { from, bots: botNames, facts, memories, skills, tools, routines, instructions: kept, reconnect, failed });
+    void postImportNote(context.firstBotId, { from, bots: botNames, facts, memories: memories + notes, skills, tools, routines, instructions: kept, reconnect, failed });
   }
 }

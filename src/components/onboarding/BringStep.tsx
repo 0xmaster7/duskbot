@@ -57,7 +57,8 @@ export function BringStep({ finds, grokWaiting, run = { kind: "idle" }, onBring,
   grokWaiting: readonly string[];
   /** The bringing in, once started (useBringRun). */
   run?: BringRun;
-  onBring: (chosen: LocalFind[]) => void;
+  /** `memory`: the tools' memory comes too (the person left it ticked). */
+  onBring: (chosen: LocalFind[], memory: boolean) => void;
   onNext: () => void;
 }) {
   const choice = useBringChoice(finds, run);
@@ -67,14 +68,14 @@ export function BringStep({ finds, grokWaiting, run = { kind: "idle" }, onBring,
       // each app has its own Import; Import all leads only while two or more are still to come
       footer={choice.found && !started && choice.chosen.length > 1 ? (
         <>
-          <button type="button" data-primary="" data-bring-go="" autoFocus disabled={!choice.chosen.length} onClick={() => onBring(choice.toBring)} className={PRIMARY}>{t("bring.bring")}</button>
+          <button type="button" data-primary="" data-bring-go="" autoFocus disabled={!choice.chosen.length} onClick={() => onBring(choice.toBring, choice.memory)} className={PRIMARY}>{t("bring.bring")}</button>
           <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("funnel.skip")}</button>
         </>
       ) : (
         <button type="button" data-primary="" data-bring-next="" autoFocus={started} onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
       )}>
       <div className="w-full max-w-[440px]">
-        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} onImport={(find) => onBring([find])} />
+        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} onImport={(find) => onBring([find], choice.memory)} />
       </div>
     </StepFrame>
   );

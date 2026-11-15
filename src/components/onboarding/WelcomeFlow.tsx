@@ -253,9 +253,9 @@ export function WelcomeFlow({
   };
   const chooseMac = () => { track("onboarding_place", { choice: "mac" }); toMac(); };
 
-  const bring = (chosen: Parameters<typeof bringChosen>[0]) => {
-    track("onboarding_bring", { apps: chosen.length });
-    void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
+  const bring = (chosen: Parameters<typeof bringChosen>[0], memory: boolean) => {
+    track("onboarding_bring", { apps: chosen.length, memory });
+    void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), memory });
   };
   // notes from another AI pasted on any step come in from here too (the bring step takes them itself, and says so there)
   const takeNotes = useNotesIntake();

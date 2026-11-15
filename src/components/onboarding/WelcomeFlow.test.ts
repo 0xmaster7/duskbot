@@ -578,7 +578,7 @@ describe("bots from another app on this computer", () => {
     f.api.mockImplementation(async (path: string, init?: { body?: string; method?: string }) => {
       if (path === "/api/setup-import/bots") return bots;
       if (path === "/api/setup-import") return init?.method === "POST"
-        ? { skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] }, tools: { added: [], present: [], skipped: [] }, instructions: [] }
+        ? { skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] }, tools: { added: [], present: [], skipped: [] } }
         : setup;
       if (path === "/api/mcp/servers") return { servers: [] };
       if (path.startsWith("/api/teams/import")) return { bots: [{ ...maus, id: "molty", name: JSON.parse(init!.body!).package.name, defaultBot: undefined }], routines: [] };
@@ -608,7 +608,7 @@ describe("bots from another app on this computer", () => {
     expect(button("Import all")).toBeUndefined();
     await settle();
     const applied = f.api.mock.calls.filter(([path, init]) => path === "/api/setup-import" && init?.method === "POST").map(([, init]) => JSON.parse(init.body));
-    expect(applied).toEqual([{ skills: true, tools: true, instructions: true, sources: ["claudeCode", "cursor"] }]);
+    expect(applied).toEqual([{ skills: true, tools: true, sources: ["claudeCode", "cursor"] }]);
     expect(f.api.mock.calls.filter(([path]) => String(path).startsWith("/api/teams/import"))).toHaveLength(1);
     expect(document.body.querySelector("[data-bring-run]")?.textContent, "what came in, said on the step itself").toBe("Brought in 1 bot and 1 skill.");
     expect([...document.body.querySelectorAll("[data-bring-find]")].map((row) => row.getAttribute("data-bring-state")), "each marked imported").toEqual(["done", "done", "done"]);

@@ -10,7 +10,7 @@ import { copyNotesPrompt, looksLikeNotes, notesInFiles } from "@/lib/assistant-n
 import { planCounts } from "@/lib/bot-move";
 import { MAUS_COLOR_NAMES, type MausColor } from "@/lib/mascot";
 import { NOTES_PROMPT } from "../../shared/assistant-notes";
-import { broughtIds, type BringRun, type LocalFind } from "@/lib/first-run-import";
+import { broughtIds, memoryLine, type BringRun, type LocalFind } from "@/lib/first-run-import";
 import { MausAvatar } from "./Avatar";
 import { GrokBotMark } from "./GrokBotMark";
 import { useNotesIntake, type NotesSay } from "./NotesWaiting";
@@ -46,9 +46,8 @@ function arriving(find: LocalFind): { name: string; color: MausColor }[] {
 function shortLine(find: LocalFind): string {
   const counts = find.bots ? planCounts(find.bots) : null;
   const kinds = [
-    ...(counts && (counts.memories || counts.facts) ? [t("bring.kindMemory")] : []),
-    // standing instructions (CLAUDE.md and the like) are the person's notes and preferences
-    ...(find.setup?.instructions ? [t("bring.kindInstructions"), t("bring.kindPreferences")] : []),
+    // the bots' memory, and the tool's own memory and standing instructions (CLAUDE.md and the like)
+    ...((counts && (counts.memories || counts.facts)) || find.setup?.memory ? [t("bring.kindMemory")] : []),
     ...((counts?.skills || find.setup?.skills) ? [t("bring.kindSkills")] : []),
     ...(counts?.routines ? [t("bring.kindRoutines")] : []),
     ...(find.setup?.tools ? [t("bring.kindTools")] : []),
@@ -134,6 +133,8 @@ function RunLine({ run }: { run: BringRun }) {
  * what Import all brings in: each row not brought in yet. */
 export function useBringChoice(finds: readonly LocalFind[] | null, run: BringRun = { kind: "idle" }) {
   const [off, setOff] = useState<ReadonlySet<string>>(() => new Set());
+  // the tools' memory comes with them unless the person unticks it
+  const [memory, setMemory] = useState(true);
   const brought = broughtIds(run);
   return useMemo(() => {
     const rows = finds ?? [];
@@ -145,8 +146,9 @@ export function useBringChoice(finds: readonly LocalFind[] | null, run: BringRun
       else next.add(id);
       return next;
     });
-    return { rows, off, chosen, toggle, found: rows.length > 0, toBring: [...chosen, ...extras] };
-  }, [finds, off, brought]);
+    const memoryText = memoryLine(rows.filter((find) => !brought.includes(find.id)));
+    return { rows, off, chosen, toggle, found: rows.length > 0, toBring: [...chosen, ...extras], memory: memory && memoryText !== null, memoryText, setMemory };
+  }, [finds, off, brought, memory]);
 }
 export type BringChoice = ReturnType<typeof useBringChoice>;
 
@@ -291,6 +293,15 @@ export function BringIn({ finds, choice, grokWaiting, run, bringButton = false, 
           <ul aria-label={t("bring.foundLabel")} className="m-0 flex list-none flex-col gap-0.5 rounded-[18px] bg-ink/[0.035] p-1.5">
             {rows.map((find) => <FindRow key={find.id} find={find} state={rowState(find)} busy={run.kind === "working"} onImport={() => onImport?.(find)} />)}
           </ul>
+          {choice.memoryText && run.kind !== "working" && (
+            <label data-bring-memory={choice.memory ? "on" : "off"} className="mt-2 flex min-h-11 cursor-pointer items-start gap-3 rounded-[14px] px-3 py-2.5 text-start transition-[background-color] duration-150 ease-[ease] hover:bg-ink/[0.035] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus motion-reduce:transition-none">
+              <input type="checkbox" checked={choice.memory} onChange={(event) => choice.setMemory(event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--color-ink)] focus-visible:outline-none" />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[13px] font-medium leading-[18px] text-ink">{t("bring.memoryTitle")}</span>
+                <span className="text-pretty text-[12px] leading-4 text-ink-tertiary">{t("bring.memoryBody", { list: choice.memoryText })}</span>
+              </span>
+            </label>
+          )}
           {bringButton && !started && chosen.length > 1 && (
             <div className="mt-3 px-1">
               <button type="button" data-bring-go="" disabled={!chosen.length} onClick={onBring}

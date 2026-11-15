@@ -39,8 +39,8 @@ export function ImportSettings({ client = setupImportApi }: { client?: SetupImpo
   const choice = useBringChoice(finds, run);
 
   const bring = (chosen: readonly LocalFind[] = choice.toBring) => {
-    track("settings_bring", { apps: chosen.length });
-    void bringChosen(chosen, { client, dispatch, firstBotId: first?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
+    track("settings_bring", { apps: chosen.length, memory: choice.memory });
+    void bringChosen(chosen, { client, dispatch, firstBotId: first?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team), memory: choice.memory });
   };
 
   return (

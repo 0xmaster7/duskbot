@@ -14,6 +14,8 @@ export const LATE_ROUTINE_NOTICE = "late-routine-v1";
 export const INVESTED_NOTICE = "cloud-invested-v1";
 /** The Move from Grok Bot popup: each person sees it once, first of all, after their welcome. */
 export const GROK_MOVE_NOTICE = "grok-move-2026-11";
+/** Other AI tools on this computer with memory or skills never brought in: the import offered once, after the welcome. */
+export const BRING_NOTICE = "bring-tools-v1";
 
 /**
  * Every notice, in the order a launch asks them: one launch shows one notice, the first one due. The rest wait for later launches, in this order.
@@ -21,6 +23,7 @@ export const GROK_MOVE_NOTICE = "grok-move-2026-11";
 export const NOTICES = [
   GROK_MOVE_NOTICE,
   WHATS_NEW_NOTICE,
+  BRING_NOTICE,
   TWO_PLACES_NOTICE,
   LATE_ROUTINE_NOTICE,
   CLOUD_INTRO,

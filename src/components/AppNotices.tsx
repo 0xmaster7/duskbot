@@ -10,21 +10,23 @@ import { jobRoutine, useCloudIntent } from "@/lib/cloud-intent";
 import { isInvested } from "@/lib/cloud-upsell";
 import { CLOUD_INTENT_GIVEN, cloudSetupStage } from "@/lib/cloud-setup";
 import { cornerPopupWaits, firstChatQuiet } from "@/lib/corner-popup";
-import { CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, LATE_ROUTINE_NOTICE, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
+import { BRING_NOTICE, CLOUD_INTRO, CLOUD_NOTICE, CLOUD_TRIAL_NOTICE, dismissNotice, GROK_MOVE_NOTICE, introShown, introStage, LATE_ROUTINE_NOTICE, launchNotice, markLaunchNotice, nextNotice, noticeSeen, TWO_PLACES_NOTICE, usedBefore, WHATS_NEW_NOTICE } from "@/lib/notices";
 import { lateRoutineRun } from "@/lib/late-routine";
 import { useAllowanceNotice } from "@/lib/allowance-notice";
 import { useTwoPlaces } from "@/lib/two-places";
 import { useUpdateDigest } from "@/lib/update-digest";
 import { useServerBehindHint } from "@/lib/server-behind";
+import { useBringNotice } from "@/lib/bring-notice";
 import { cloudSignInDue, onboardingCloudOffered, type WelcomeViewer } from "@/lib/onboarding";
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
 import { engineReady } from "./EngineLibrary";
 import { CLOUD_NOTICE_CARD, cloudNoticeStep, CloudNoticeCard } from "./CloudNotice";
 import { CloudTrialIntroCard } from "./CloudTrialIntro";
 import { LateRoutineCard } from "./LateRoutineCard";
 import { useMoveQuiet } from "./CloudSendStrip";
 import { CloudTrialNoticeCard, useCloudPlanSnapshot } from "./CloudTrialNotice";
-import { NoticeToast } from "./NoticeCard";
+import { NoticeCard, NoticeToast, NotNowButton, PRIMARY_BUTTON } from "./NoticeCard";
+import { Download } from "../icons";
 import { useDesktopNotices } from "./notice-dialogs";
 import { localDesktopPage } from "./onboarding/WelcomeGate";
 import { TwoPlacesCard } from "./TwoPlacesCard";
@@ -65,6 +67,8 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   // Bots in two places: this computer's page only, where main knows what lives here.
   const two = useTwoPlaces();
   const twoFact = !local || two.suggest === null ? false : two.suggest === undefined ? null : true;
+  // other AI tools here with memory or skills never brought in: the import, offered once
+  const bring = useBringNotice();
   useEffect(() => {
     if (!bridge) return;
     let active = true, updated = false;
@@ -125,9 +129,10 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
   const launch = launchNotice();
   const notice = waits || closed ? null
     : firstChatQuiet(state) ? null
-    : cards || twoFact !== false ? nextNotice({
+    : cards || twoFact !== false || bring.fact !== false ? nextNotice({
     [GROK_MOVE_NOTICE]: false,
     [WHATS_NEW_NOTICE]: false,
+    [BRING_NOTICE]: bring.fact,
     [TWO_PLACES_NOTICE]: twoFact,
     [LATE_ROUTINE_NOTICE]: moving ? false : moving === null ? null : lateDue(),
     [CLOUD_INTRO]: moving ? false : moving === null ? null : introDue(),
@@ -163,7 +168,8 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
     : notice === LATE_ROUTINE_NOTICE ? (late ? notice : null)
     : notice === CLOUD_TRIAL_NOTICE ? (trial ? notice : null)
     : notice === CLOUD_NOTICE ? (kind && bridge ? notice : null)
-    : notice === TWO_PLACES_NOTICE ? (two.suggest ? notice : null) : null;
+    : notice === TWO_PLACES_NOTICE ? (two.suggest ? notice : null)
+    : notice === BRING_NOTICE ? (bring.apps.length ? notice : null) : null;
   useEffect(() => { noticeOnScreen(card); }, [card]);
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;
   if (!notice && digest && !waits) return <NoticeToast text={digest.line} onDone={digest.seen} />;
@@ -204,6 +210,17 @@ export function AppNotices({ quiet = false, viewer = null, now = Date.now }: { q
       void cloudNoticeStep(kind, bridge).then(next => { noticeClosed(true); setAccount(next); }, () => setFailed(true)).finally(() => setBusy(false));
     };
     return <CloudNoticeCard kind={kind} busy={busy} failed={failed} onAction={act} onNotNow={() => { close(); save(CLOUD_NOTICE_CARD[kind].dismissed); }} />;
+  }
+  if (notice === BRING_NOTICE && bring.apps.length) {
+    const done = (action: string) => { track("bring_card", { action, ms: noticeActed() }); close(); save(BRING_NOTICE); };
+    const apps = new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(bring.apps.slice(0, 3));
+    return <NoticeCard titleId="bring-notice-title" notice="bring" icon={Download} title={t("notices.bring.title")} onDismiss={() => done("close")}>
+      <p className="mb-3 mt-1 text-pretty text-[13px] text-ink-secondary">{t("notices.bring.body", { apps })}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" data-bring-review="" className={PRIMARY_BUTTON} onClick={() => { done("review"); dispatch({ type: "toggleAppSettings", open: true, section: "import" }); }}>{t("notices.bring.review")}</button>
+        <NotNowButton onClick={() => done("not_now")} />
+      </div>
+    </NoticeCard>;
   }
   if (notice === TWO_PLACES_NOTICE && two.suggest) {
     const { key, kind } = two.suggest;

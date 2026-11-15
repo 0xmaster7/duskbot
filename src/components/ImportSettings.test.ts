@@ -30,7 +30,7 @@ const button = (label: string) => [...host.querySelectorAll("button")].find((nod
 const settle = async () => { for (let i = 0; i < 8; i++) await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); }); };
 const client = (detection: SetupDetection) => ({
   detect: vi.fn(async () => detection),
-  apply: vi.fn(async () => ({ skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] }, tools: { added: [], present: [], skipped: [] }, instructions: [] })),
+  apply: vi.fn(async () => ({ skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] }, tools: { added: [], present: [], skipped: [] } })),
 });
 async function show(options: { local?: boolean; detection?: SetupDetection } = {}) {
   if (options.local !== false) vi.stubGlobal("duskDesktop", { remoteClient: { active: false } });
@@ -92,9 +92,30 @@ describe("Settings → bring in from other apps", () => {
     expect(host.querySelector('[data-bring-import="bots:openclaw"]'), "no second import of the same").toBeNull();
     await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
     await settle();
-    expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, instructions: true, sources: ["claudeCode"] });
+    expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, sources: ["claudeCode"] });
     expect(host.querySelector('[data-bring-find="setup:claudeCode"]')?.getAttribute("data-bring-state")).toBe("done");
     expect(host.querySelector('[data-bring-find="bots:openclaw"]')?.getAttribute("data-bring-state"), "still marked").toBe("done");
+  });
+
+  it("shows each tool's memory before it comes in, ticked, and leaves it out once unticked", async () => {
+    const detection: SetupDetection = { ...SETUP, memory: [{ source: "claudeCode", files: 4, notes: 148 }, { source: "codex", files: 1, notes: 2 }] };
+    let setup = await show({ detection });
+    const memory = host.querySelector<HTMLLabelElement>("[data-bring-memory]")!;
+    expect(memory.getAttribute("data-bring-memory")).toBe("on");
+    expect(memory.textContent).toContain("148 notes from Claude Code and 2 from Codex");
+    await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
+    await settle();
+    expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, sources: ["claudeCode"], memory: true, memoryBot: maus.id });
+
+    await act(async () => root.unmount());
+    resetBringRunForTests();
+    root = createRoot(host);
+    setup = await show({ detection });
+    await act(async () => { host.querySelector<HTMLInputElement>("[data-bring-memory] input")!.click(); });
+    expect(host.querySelector("[data-bring-memory]")?.getAttribute("data-bring-memory")).toBe("off");
+    await act(async () => { host.querySelector<HTMLButtonElement>('[data-bring-import="setup:claudeCode"]')!.click(); });
+    await settle();
+    expect(setup.apply).toHaveBeenCalledWith({ skills: true, tools: true, sources: ["claudeCode"] });
   });
 
   it("forgets a bringing in that finished before the page opened", async () => {
