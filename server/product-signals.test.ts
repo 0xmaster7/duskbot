@@ -8,13 +8,30 @@ import { createUsageOutbox, hashId, turnRecord } from "./usage-signals.ts";
 
 const NOW = Date.now();
 const SECRET = "Email jane.doe@acme.com /Users/jane/Plan.xlsx https://acme.com";
-const valid: Record<string, Record<string, string | number>> = {
+const valid: Record<string, Record<string, string | number | boolean>> = {
   env: { os: "darwin", arch: "arm64", locale: "pt_br", screen: "m", theme: "dark", skin: "grok_dark", notifications: "granted", hour: 9 },
   account_sign_in: { step: "error", method: "email", via: "code", code: "wrong_code" },
   engine_sign_in: { engine: "claude", outcome: "failed", reason: "auth" },
   attachment: { kind: "pdf", size: "lt1m" },
   setting_changed: { key: "newBotDefaults" },
   chat_deleted: {},
+  turn_failed: { engine: "claude", reason: "rate_limit", from: "app", room: false },
+  turn_stopped: { engine: "codex", from: "app", ms: 4200 },
+  tool_failed: { tool: "app", app: "gmail", engine: "claude", reason: "auth" },
+  turn_done: { engine: "claude", tools: 2, category: "email", from: "routine", room: true },
+  routine_done: { outcome: "failed", trigger: "schedule", reason: "timeout" },
+  approval: { decision: "granted", about: "user" },
+  talk_change: { about: "model" },
+  refused: { by: "request", code: "bot_limit", status: 409 },
+  confused: { kind: "rephrase", after: "reply" },
+  engine_sign_in_failed: { engine: "gemini", reason: "network" },
+  devs_report: { outcome: "sent" },
+  created: { what: "room" },
+  file_made: { kind: "sheet" },
+  browser_download_failed: { reason: "checksum" },
+  crash: { kind: "gpu", reason: "launch_failed" },
+  update_failed: { stage: "download" },
+  settings_closed: { changed: false, ms: 12000 },
 };
 
 describe("product signal catalogue", () => {
@@ -42,7 +59,7 @@ describe("product signal catalogue", () => {
 
   it("every allowed value is a short word or a small number, never text", () => {
     for (const [name, props] of Object.entries(valid)) for (const value of Object.values(cleanSignal(name, props)!)) {
-      expect(typeof value === "number" ? Number.isInteger(value) && value < 1e6 : typeof value === "string" && /^[a-zA-Z0-9_]{1,32}$/.test(value)).toBe(true);
+      expect(typeof value === "boolean" || (typeof value === "number" ? Number.isInteger(value) && value < 1e6 : typeof value === "string" && /^[a-zA-Z0-9_]{1,32}$/.test(value))).toBe(true);
     }
   });
 

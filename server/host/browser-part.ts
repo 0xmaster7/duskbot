@@ -45,6 +45,8 @@ export function createBrowserPartHost(deps: {
   broadcast(frame: BrowserPartFrame): void;
   /** the part arrived: the browser settings and the bots' tools see it */
   onReady(): void;
+  /** the download failed; it keeps retrying by itself */
+  onFailed?(message: string): void;
   log?(line: string): void;
   downloader?: (spec: Parameters<typeof createPartsDownloader>[0]) => PartsDownloader;
   throttleMs?: number;
@@ -88,7 +90,10 @@ export function createBrowserPartHost(deps: {
         send(true);
         needed.clear();
         deps.onReady();
-      } else send(changed);
+      } else {
+        if (changed && state.phase === "failed") deps.onFailed?.(state.error);
+        send(changed);
+      }
     },
   });
 

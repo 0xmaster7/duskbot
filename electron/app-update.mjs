@@ -139,7 +139,7 @@ export function justUpdated(memory, current, installedHere = () => false) {
  * a downloaded version waits for a restart; `available` names a newer version found, and `progress` (0 to 1) its download
  * while it runs; `checking` while a check runs, and `failed` when the last one could not finish.
  */
-export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys = RELEASE_KEYS, signed, installer, quiet, fallback, onState = () => {}, log = () => {}, firstDelayMs = 20_000, intervalMs = HOUR_MS, jitterMs = JITTER_MS, random = Math.random, quietEveryMs = 60_000, timers = globalThis }) {
+export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys = RELEASE_KEYS, signed, installer, quiet, fallback, onState = () => {}, onFailed = () => {}, log = () => {}, firstDelayMs = 20_000, intervalMs = HOUR_MS, jitterMs = JITTER_MS, random = Math.random, quietEveryMs = 60_000, timers = globalThis }) {
   let ready = null, available = null, progress = null, timer = null, quietTimer = null, checking = null, installing = false, failed = false;
   const state = () => ({ ready, available, progress, checking: checking !== null, failed });
   const tell = () => onState(state());
@@ -202,6 +202,7 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
     checking = run().catch(async (error) => {
       failed = true;
       log(`app update: ${error instanceof Error ? error.message : String(error)}; telling the person instead`);
+      try { onFailed(error instanceof Error ? error.message : String(error)); } catch {}
       await fallback.check();
       return null;
     }).finally(() => { checking = null; tell(); });

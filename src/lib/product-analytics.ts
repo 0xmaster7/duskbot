@@ -178,6 +178,25 @@ export function usageSharingChanged(on: boolean, where: SharingPlace): void {
 }
 
 export function feature(name: Feature): void { track("app_feature", { feature: name }); }
+
+let settingsOpenedAt = 0, settingsChangedSince = false;
+export function settingsOpened(): void { settingsOpenedAt = Date.now(); settingsChangedSince = false; feature("settings_opened"); }
+/** a change the person asked for while Settings was open */
+export function settingsChange(): void { if (settingsOpenedAt) settingsChangedSince = true; }
+export function settingsClosed(): void {
+  if (!settingsOpenedAt) return;
+  action("settings_closed", { changed: settingsChangedSince, ms: Math.max(0, Date.now() - settingsOpenedAt) });
+  settingsOpenedAt = 0;
+}
+const REFUSED_STATUSES = new Set([403, 409, 423, 429]);
+/** the workspace said no to a request (busy, a limit, a permission): its status and fixed code, never its message */
+export function requestRefused(status: number, body: unknown): void {
+  if (!REFUSED_STATUSES.has(status)) return;
+  const answer = body && typeof body === "object" ? body as { code?: unknown; error?: unknown } : {};
+  const raw = typeof answer.code === "string" ? answer.code : typeof answer.error === "string" && /^[a-z][a-z0-9_-]{0,39}$/.test(answer.error) ? answer.error : "none";
+  const code = raw.replace(/-/g, "_").toLowerCase();
+  action("refused", { by: "request", status, code: /^[a-z][a-z0-9_]{0,39}$/.test(code) ? code : "other" });
+}
 export function action(name: string, props?: Record<string, unknown>): void { track("app_action", { ...props, name }); }
 export function feedback(score: number, moment: string): void { track("app_feedback", { score, moment }); }
 export function error(kind: string, code: string): void { track("app_error", { kind, code }); }

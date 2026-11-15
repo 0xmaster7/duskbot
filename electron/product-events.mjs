@@ -144,9 +144,9 @@ export function createProductEvents({ origin, token = () => null, platform, vers
     },
     /** An `app_action` of main's own (`name`, with `props`): sent with the page's install and session, so only while the
      * page sends its own (usage analytics on); held in memory until it does. */
-    action(name, props = {}) {
+    action(name, props = {}, at = now()) {
       if (closed) return false;
-      const event = cleanAppEvent({ name: "app_action", at: now(), props: { ...props, name } }, now());
+      const event = cleanAppEvent({ name: "app_action", at, props: { ...props, name } }, now());
       if (!event) return false;
       if (!rider) { waiting.push(event); if (waiting.length > BATCH) waiting.splice(0, waiting.length - BATCH); return true; }
       queue.push({ ...rider, event });

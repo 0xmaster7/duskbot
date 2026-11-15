@@ -116,8 +116,16 @@ async function writeDecision(dataDir: string, record: DecisionRow): Promise<void
   }
 }
 
+const decisionListeners = new Set<(row: Pick<DecisionRow, "decision" | "source">) => void>();
+/** hears each decision's kind and source as it is logged; returns the way to stop */
+export function onDecision(listener: (row: Pick<DecisionRow, "decision" | "source">) => void): () => void {
+  decisionListeners.add(listener);
+  return () => decisionListeners.delete(listener);
+}
+
 /** A full disk must not turn into denied tools. */
 export function appendDecision(dataDir: string, row: Omit<DecisionRow, "at">): void {
+  for (const listener of decisionListeners) try { listener({ decision: row.decision, source: row.source }); } catch {}
   const scope = row.source === "user" ? actorScope.getStore() : undefined;
   const actor = row.actor ?? scope?.actor;
   const via = row.via ?? scope?.via;

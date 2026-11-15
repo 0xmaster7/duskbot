@@ -4,7 +4,7 @@ import { asleepAnswer, BACKGROUND_HEADERS, cloudAsleep, markCloudAsleep, markClo
 import { lacksAdminScope } from "../lib/admin-scope";
 import { isBotLimitRefusal, showBotLimit } from "../lib/bot-limit";
 import { noteRefusedRequest } from "../lib/session-ended";
-import { feature } from "../lib/product-analytics";
+import { feature, requestRefused, settingsChange } from "../lib/product-analytics";
 import { plainErrorLine } from "../lib/plain-error";
 import { t } from "../lib/i18n";
 import { TRAIL_HEADER, newTrailId, trailApiCall, trailAvailable } from "../lib/trail";
@@ -73,6 +73,7 @@ export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
   trailApiCall(path, method, res.status, startedAt, rest.body, sent.get(TRAIL_HEADER));
   const answer = await answerOf<T>(res);
   if (path === "/api/config" && ["PUT", "PATCH"].includes((init?.method ?? "GET").toUpperCase())) feature("settings_changed");
+  if (method !== "GET" && method !== "HEAD") settingsChange();
   return answer;
 }
 
@@ -86,6 +87,7 @@ export async function answerOf<T = any>(res: Response): Promise<T> {
     const raw = typeof error === "string" ? error : typeof error?.message === "string" ? error.message : `${res.status} ${res.statusText}`;
     const { message, detail } = plainOrRaw(raw);
     const refused = new ApiError(message, res.status, body, detail);
+    requestRefused(res.status, body);
     if (res.status === 401 || (res.status === 403 && !lacksAdminScope(refused))) noteRefusedRequest();
     if (res.status === 409 && isBotLimitRefusal(refused)) showBotLimit();
     throw refused;

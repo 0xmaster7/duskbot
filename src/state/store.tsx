@@ -1,4 +1,4 @@
-import { feature as productFeature, noteMessageSent, noteAcceptedMessage, noteReplyTurn, noteRoutineRun } from "@/lib/product-analytics";
+import { feature as productFeature, settingsClosed, settingsOpened, noteMessageSent, noteAcceptedMessage, noteReplyTurn, noteRoutineRun } from "@/lib/product-analytics";
 import { pullSyncedPrefs } from "@/lib/synced-prefs";
 import { storeApp } from "@/lib/store-app";
 import { aiSendAllowed } from "@/lib/ai-consent-gate";
@@ -2339,7 +2339,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       trailAction(action);
       switch (action.type) {
         case "toggleAppSettings":
-          if (!stateRef.current.appSettingsOpen && (action.open ?? true)) productFeature("settings_opened");
+          if (!stateRef.current.appSettingsOpen && (action.open ?? true)) settingsOpened();
+          else if (stateRef.current.appSettingsOpen && !(action.open ?? false)) settingsClosed();
           break;
         case "loadOlderMessages": {
           // The guard, not the reducer flag: stateRef still holds the pre-dispatch state.

@@ -24,6 +24,7 @@ import { PlanError, createPlanEditor } from "./plans.ts";
 import { marginReport, type InfraStore } from "./infra.ts";
 import { RelayError, createRelays } from "./ops/relays.ts";
 import { SHARING_LOOKBACK_DAYS, sharingOf } from "./sharing.ts";
+import { EXPERIENCE_EVENTS, experienceAnswer, itemsOf, timelineAnswer } from "./experience.ts";
 import { isRange, rangeDays, topAccounts } from "./ops/accounts.ts";
 import { ACCOUNT_NOTES, type AccountNotes } from "./ops/index.ts";
 import type { OpsAccountsAnswer, OpsAccountsRange, OpsRelayCard } from "../../src/admin/ops-types.ts";
@@ -485,6 +486,21 @@ export function createAdmin(options: AdminOptions) {
       if (route === "/ops") {
         if (!options.ops) throw new AdminError(404, "not_found", "The ops page is not connected.");
         return send(await options.ops.answer());
+      }
+      if (route === "/experience" || route === "/experience/timeline") {
+        const view = await viewOf(req), time = now(), timeline = route === "/experience/timeline";
+        const to = int(url.searchParams.get("to"), time, 0, Number.MAX_SAFE_INTEGER), from = int(url.searchParams.get("from"), to - 14 * DAY, 0, Number.MAX_SAFE_INTEGER);
+        const who = url.searchParams.get("who") ?? "";
+        if (timeline && !/^(?:ws:)?[A-Za-z0-9_-]{8,80}$/.test(who)) throw new AdminError(400, "invalid_request", "Name an install.");
+        const since = timeline ? time - 30 * DAY : Math.max(from, to - 90 * DAY) - DAY, until = timeline ? time + 1 : to + 1;
+        const ids = view.hidden(), clean = !showTests(req);
+        const [events, signals] = await Promise.all([view.sink.scan(since, until, EXPERIENCE_EVENTS),
+          view.live ? Promise.resolve([]) : options.usage.store.records("signal", since, until, 50_000)
+            .then(rows => clean ? rows.filter(row => !isTestInstall(row.workspaceId) && !(row.accountId && ids.has(row.accountId))) : rows)]);
+        const items = itemsOf(events, signals);
+        if (!timeline) return send(experienceAnswer(items, { from, to, now: time }));
+        await audit(owner.id, "experience.timeline", who);
+        return send(timelineAnswer(items, who, time));
       }
       if (route === "/ops/relays") return send(await relays.list());
       if (route === "/ops/sharing") {

@@ -116,6 +116,13 @@ users (search, plan, clouds, devices, timeline), clouds (pause, resume, delete w
   people use it for"; `GET /v1/admin/feedback?kind=bad|big|weekly&before` lists the notes newest first for the feedback page. Named signals (`shared/product-signals.ts`)
   carry an exact key allowlist each; app ones ride `app_action`, workspace ones the report's `usage.signals`.
   `usage_routines` keeps each salted routine hash's first and last run (TTL 400 days) for routine survival.
+- **Experience.** Experience signals (`shared/product-signals.ts`, source `any`): failed, stopped and tool-using turns, failed
+  tools, routine ends, approvals, changes made by talking, refusals, follow-ups right after a reply classified on the
+  computer (`server/experience.ts`), creations, files made, failed sign-ins, browser downloads and updates, crashes and
+  Settings closed unchanged. A desktop's workspace queues them for its app (`GET /api/dashboard/experience`), which
+  forwards them as `app_action` events with the install id (`electron/experience-relay.mjs`); a cloud's ride its usage
+  report. `GET /v1/admin/experience?from&to` counts them per day as bad, confusing and done with the top reasons, and
+  derives abandoned first runs; `GET /v1/admin/experience/timeline?who=` is one install's last 30 days (audited).
 - **Site and app analytics.** `tracker/dusk.js` (about 3 KB gzip, no dependencies, ideas from Minilytics, MIT) is copied to the
   site as `/a.js` by the site's `build-pages.mjs`. It sends page views, goals (`cta_click`, `download_click`, `waitlist_join`,
   `outbound`, any `data-dusk-goal`), and each page view's end (scroll depth, visible time) to `POST /v1/t` as text/plain

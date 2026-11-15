@@ -66,7 +66,7 @@ export const USAGE_REASONS = ["rate_limit", "quota", "auth", "timeout", "network
 export type UsageReason = (typeof USAGE_REASONS)[number];
 const REASON_PATTERNS: ReadonlyArray<[RegExp, UsageReason]> = [
   [/rate.?limit|too many requests|\b429\b|overloaded|\b529\b/i, "rate_limit"],
-  [/quota|usage limit|credit|billing|insufficient|out of|exceeded your|plan limit/i, "quota"],
+  [/quota|usage limit|credit|billing|insufficient|out of|exceeded your|plan limit|reached (?:its|your|the) [\w -]{0,24}limit/i, "quota"],
   [/auth|sign(?:ed)? ?in|log(?:ged)? ?in|unauthori[sz]ed|forbidden|\b401\b|\b403\b|api key|token (?:expired|invalid)|expired/i, "auth"],
   [/time ?out|timed out|took too long|stalled|deadline/i, "timeout"],
   [/network|econn|enotfound|socket|fetch failed|unreachable|dns|offline|\b50[234]\b/i, "network"],

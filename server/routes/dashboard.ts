@@ -14,6 +14,8 @@ export interface DashboardRouteDeps {
   onUsageChoice?(): void;
   /** the usage outbox's waiting notes (usage-signals.ts) */
   usageNotes?: { notes(): object | null; sent(ids: readonly string[]): void };
+  /** experience signals for the desktop app to forward (server/experience.ts); taking them removes them */
+  experience?: { take(max?: number): object[] };
   env?: NodeJS.ProcessEnv;
   fetch?: typeof fetch;
 }
@@ -38,6 +40,11 @@ export function createDashboardRoutes(deps: DashboardRouteDeps): RouteHandler {
         deps.onUsageChoice?.();
       }
       return json(res, 200, deps.usageSignals.choice());
+    }
+    if (path === "/api/dashboard/experience" && deps.experience && method === "GET") {
+      res.setHeader("cache-control", "no-store");
+      if (!ownerOrAdmin(auth)) return json(res, 403, { error: "Only the owner or an admin can read experience signals." });
+      return json(res, 200, { signals: deps.experience.take() });
     }
     if (path === "/api/dashboard/usage-notes" && deps.usageNotes && (method === "GET" || method === "POST")) {
       res.setHeader("cache-control", "no-store");

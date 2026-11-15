@@ -35,6 +35,6 @@ export interface AppUpdater { check(): Promise<string | null>; restart(): boolea
 export declare function createAppUpdater(options: {
   current: string; arch: string; dir: string; fetchImpl?: typeof fetch; keys?: readonly { kid: string; x: string }[];
   signed(): Promise<boolean>; installer: AppInstaller; quiet(): Promise<boolean>; fallback: { check(): Promise<unknown> };
-  onState?(state: AppUpdateState): void; log?(line: string): void; firstDelayMs?: number; intervalMs?: number; jitterMs?: number; random?: () => number; quietEveryMs?: number;
+  onState?(state: AppUpdateState): void; /** a check or download failed, with its error message */ onFailed?(message: string): void; log?(line: string): void; firstDelayMs?: number; intervalMs?: number; jitterMs?: number; random?: () => number; quietEveryMs?: number;
   timers?: Pick<typeof globalThis, "setTimeout" | "clearTimeout">;
 }): AppUpdater;

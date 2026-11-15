@@ -17,7 +17,9 @@ export declare function cleanAppEvent(input: unknown, at?: number): AppEvent | n
 export interface ProductEvents {
   send(input: unknown): boolean;
   /** An app_action of main's own, sent with the page's install and session once the page sent a batch. */
-  action(name: string, props?: Record<string, string | number | boolean>): boolean;
+  action(name: string, props?: Record<string, string | number | boolean>, at?: number): boolean;
+  /** the page's install id while it sends events (usage analytics on), else null */
+  install(): string | null;
   clear(): void;
   last(input: unknown): Promise<boolean>;
   flush(): Promise<boolean | undefined>;

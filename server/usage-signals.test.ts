@@ -47,6 +47,7 @@ describe("categorize", () => {
   it("turns an error line into a code and never keeps the line", () => {
     expect(failureReason("429 Too Many Requests for org acme")).toBe("rate_limit");
     expect(failureReason("You've hit your usage limit")).toBe("quota");
+    expect(failureReason("This Claude account has reached its 5-hour limit, which resets Jan 1")).toBe("quota");
     expect(failureReason("OAuth token expired for jane@acme.com")).toBe("auth");
     expect(failureReason("request timed out after 600s")).toBe("timeout");
     expect(failureReason("something odd")).toBe("unknown");

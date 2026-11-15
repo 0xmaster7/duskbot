@@ -4,6 +4,8 @@ export function createServerSupervisor({
   stop,
   onReady,
   onUnavailable,
+  /** a ready server exited on its own, while recovery was not paused */
+  onCrash = () => {},
   onExhausted,
   log = () => {},
   retryDelaysMs = [1_000, 2_000, 4_000],
@@ -65,6 +67,7 @@ export function createServerSupervisor({
       current = null;
       readySince = null;
       onUnavailable();
+      if (wasReady && !paused) { try { onCrash(); } catch {} }
       if (wasReady) schedule();
     });
   }
