@@ -3,6 +3,7 @@
 //
 //   node apps/mobile/scripts/asc.mjs status                  the app record and its latest builds
 //   node apps/mobile/scripts/asc.mjs testflight [email...]   make the internal group (all builds) and add testers
+//   node apps/mobile/scripts/asc.mjs testflight-public [n]   anyone with the link (up to n testers) once Beta App Review passes
 //   node apps/mobile/scripts/asc.mjs metadata                listing, categories, age rating, review notes (store/app-store.json)
 //   node apps/mobile/scripts/asc.mjs screenshots <dir> [type] replace the en-US screenshots (default APP_IPHONE_67)
 //   node apps/mobile/scripts/asc.mjs free                    price Free (USD 0), every territory but mainland China
@@ -254,10 +255,48 @@ async function screenshots(dir, displayType) {
   console.log(`${displayType}: ${ids.length} screenshots, in order`);
 }
 
+/** opens TestFlight to anyone with the link: an external group with a public link, the beta listing and review contact,
+ *  the newest valid build in the group and sent to Beta App Review. The link works once Apple approves that build. */
+async function publicTestflight(limit) {
+  const one = await app();
+  const want = JSON.parse(readFileSync(new URL("../store/app-store.json", import.meta.url), "utf8"));
+  const review = reviewDetail(want.reviewNotes);
+  if (review.missing.length) throw new Error(`add ${review.missing.join(", ")} to dusk.env first`);
+  // the beta listing: what testers read, and where their feedback goes
+  const { data: locs } = await call("GET", `/v1/apps/${one.id}/betaAppLocalizations?limit=50`);
+  const listing = { feedbackEmail: review.attributes.contactEmail, description: want.version.description.slice(0, 3900),
+    marketingUrl: want.version.marketingUrl, privacyPolicyUrl: want.appInfo?.privacyPolicyUrl };
+  for (const key of Object.keys(listing)) if (!listing[key]) delete listing[key];
+  const en = locs.find((l) => l.attributes.locale === "en-US");
+  if (en) await call("PATCH", `/v1/betaAppLocalizations/${en.id}`, { data: { type: "betaAppLocalizations", id: en.id, attributes: listing } });
+  else await call("POST", "/v1/betaAppLocalizations", { data: { type: "betaAppLocalizations", attributes: { locale: "en-US", ...listing }, relationships: { app: { data: { type: "apps", id: one.id } } } } });
+  console.log("beta listing: description and feedback email");
+  // Beta App Review's contact and demo account, the same as App Review's
+  const { notes, demoAccountRequired, demoAccountName, demoAccountPassword, contactFirstName, contactLastName, contactEmail, contactPhone } = review.attributes;
+  await call("PATCH", `/v1/betaAppReviewDetails/${one.id}`, { data: { type: "betaAppReviewDetails", id: one.id, attributes: { notes, demoAccountRequired, demoAccountName, demoAccountPassword, contactFirstName, contactLastName, contactEmail, contactPhone } } });
+  console.log(`beta review details: demo account ${demoAccountName}, contact set`);
+  // the public group
+  const { data: groups } = await call("GET", `/v1/apps/${one.id}/betaGroups?limit=50`);
+  let group = groups.find((g) => !g.attributes.isInternalGroup && g.attributes.name === "public");
+  const open = { publicLinkEnabled: true, publicLinkLimitEnabled: true, publicLinkLimit: limit, feedbackEnabled: true };
+  if (!group) ({ data: group } = await call("POST", "/v1/betaGroups", { data: { type: "betaGroups", attributes: { name: "public", ...open }, relationships: { app: { data: { type: "apps", id: one.id } } } } }));
+  else ({ data: group } = await call("PATCH", `/v1/betaGroups/${group.id}`, { data: { type: "betaGroups", id: group.id, attributes: open } }));
+  // the newest valid build joins the group and goes to Beta App Review
+  const { data: builds } = await call("GET", `/v1/builds?filter[app]=${one.id}&filter[processingState]=VALID&sort=-uploadedDate&limit=1`);
+  if (!builds.length) throw new Error("no valid build to share");
+  const build = builds[0];
+  await call("POST", `/v1/betaGroups/${group.id}/relationships/builds`, { data: [{ type: "builds", id: build.id }] });
+  const sub = await call("POST", "/v1/betaAppReviewSubmissions", { data: { type: "betaAppReviewSubmissions", relationships: { build: { data: { type: "builds", id: build.id } } } } })
+    .then(() => "sent to Beta App Review").catch((error) => /already|ANOTHER_BUILD_IN_REVIEW|STATE_ERROR/i.test(error.message) ? `review: ${error.message}` : Promise.reject(error));
+  console.log(`build ${build.attributes.version}: in the public group, ${sub}`);
+  console.log(`public link (works once Apple approves the build, up to ${limit} testers): ${group.attributes.publicLink ?? "not issued yet, run again in a minute"}`);
+}
+
 const [verb, ...rest] = process.argv.slice(2);
 const run = {
   status: () => status(),
   testflight: () => testflight(rest),
+  "testflight-public": () => publicTestflight(Number(rest[0]) || 1000),
   get: async () => console.log(JSON.stringify(await call("GET", rest[0]), null, 1)),
   "dist-cert": () => distCert(rest[0], rest[1]),
   "store-profile": () => storeProfile(rest[0], rest[1], rest[2]),
@@ -266,5 +305,5 @@ const run = {
   submit: () => submit(rest.includes("--yes")),
   free: () => free(),
 }[verb];
-if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...] | get <path> | dist-cert <csr> <out.cer> | store-profile <certId> <out.mobileprovision> [name] | metadata [app-store.json] | screenshots <dir> [displayType] | free | submit [--yes]"); process.exit(2); }
+if (!run) { console.error("usage: node apps/mobile/scripts/asc.mjs status | testflight [email...] | testflight-public [limit] | get <path> | dist-cert <csr> <out.cer> | store-profile <certId> <out.mobileprovision> [name] | metadata [app-store.json] | screenshots <dir> [displayType] | free | submit [--yes]"); process.exit(2); }
 run().catch((error) => { console.error(`error: ${error.message}`); process.exit(1); });
