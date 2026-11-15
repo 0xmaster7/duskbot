@@ -8,6 +8,7 @@ import { delimiter, dirname, join, resolve } from "node:path";
 import { writeFileAtomic } from "./atomic.ts";
 import { DATA_DIR } from "./config.ts";
 import { browserBundlePaths } from "./browser-bundle-release.ts";
+import { declaredPart } from "./app-parts.ts";
 import { browserProcessesRunning, browserProcessTree, releaseBrowserProfile, stopBrowserProcesses } from "./browser-processes.ts";
 import { BROWSER_VIEWPORT, viewportArgs, type PageSize } from "./browser-page-size.ts";
 import { browserRuntimeEnv, ownsBrowserViewport } from "./browser-runtime.ts";
@@ -372,14 +373,29 @@ interface BrowserLookupOptions {
   versionOf?: (binaryPath: string) => string | null | undefined;
 }
 
+/** The packaged app's browser: in Resources when the installer carries it, otherwise the verified part the app
+ * downloads on its first open (server/app-parts.ts). */
 function packagedBrowser(options: BrowserLookupOptions) {
-  const resources = (options.env ?? process.env).DUSK_RESOURCES_PATH;
+  const env = options.env ?? process.env;
+  const resources = env.DUSK_RESOURCES_PATH;
   if (!resources) return null;
+  const target = `${options.platform ?? process.platform}-${options.arch ?? process.arch}`;
   try {
-    return browserBundlePaths(join(resolve(resources), "browser-engine"), `${options.platform ?? process.platform}-${options.arch ?? process.arch}`);
+    const bundled = join(resolve(resources), "browser-engine");
+    const part = (options.exists ?? existsSync)(bundled) ? null : declaredPart("browser", env);
+    if (part?.installed) return browserBundlePaths(part.directory, target);
+    return browserBundlePaths(bundled, target);
   } catch {
     return null;
   }
+}
+
+/** The packaged app's browser is still on its way: a turn waits for it, nothing falls back to another engine. */
+export function browserPartPending(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (!env.DUSK_RESOURCES_PATH || env.DUSK_AGENT_BROWSER_PATH?.trim()) return false;
+  if (existsSync(join(resolve(env.DUSK_RESOURCES_PATH), "browser-engine"))) return false;
+  const part = declaredPart("browser", env);
+  return Boolean(part && !part.installed);
 }
 
 function completePackage(bundle: NonNullable<ReturnType<typeof packagedBrowser>>, exists: (p: string) => boolean) {
@@ -394,6 +410,7 @@ export function resolveAgentBrowserBinary(options: BrowserLookupOptions = {}): s
   if (override) return resolve(override) && exists(resolve(override)) ? resolve(override) : null;
   const bundle = packagedBrowser(options);
   if (bundle && exists(bundle.directory)) return completePackage(bundle, exists) ? bundle.engine : null;
+  if (browserPartPending(env)) return null;
   const pinned = pinnedBinaryPath(options.dataDir, platform, options.arch);
   if (exists(pinned)) return pinned;
   if (options.managedOnly) return null;
@@ -540,6 +557,9 @@ export function browserEngineStatus(options: BrowserLookupOptions = {}): Browser
   }
   if (bundle && (options.exists ?? existsSync)(bundle.directory)) {
     return { kind: "unavailable", reason: "The desktop browser bundle is incomplete. Reinstall or update dusk bot to repair it.", installable: false };
+  }
+  if (browserPartPending(options.env ?? process.env)) {
+    return { kind: "unavailable", reason: "The built-in browser is still downloading. It will be ready in a moment.", installable: true };
   }
   const platform = options.platform ?? process.platform;
   const arch = options.arch ?? process.arch;

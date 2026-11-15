@@ -7,6 +7,7 @@ import {
 } from "./prepare-cloudflared.mjs";
 import { fileURLToPath } from "node:url";
 import { verifyBrowserBundle } from "./prepare-browser.mjs";
+import { parsePartsManifest } from "../server/app-parts.ts";
 import { pinnedDuckdbVersion, pinnedOnePasswordVersion, pinnedResvgVersion, verifyDuckdbTree } from "./prepare-duckdb.mjs";
 import { LIPO_ARCH, isMachO, writeThinMachO } from "./mac-thin.mjs";
 
@@ -26,6 +27,17 @@ async function requireRegularFile(file, mode) {
     throw new Error(`Package resource must be a regular file: ${file}`);
   }
   if (mode !== undefined) await chmod(file, mode);
+}
+
+/** A Mac app without the browser must pin the downloadable one for its own architecture. */
+export async function validateBrowserPart(resources, target, required) {
+  const text = await readFile(path.join(resources, "parts.json"), "utf8").catch((error) => {
+    if (error?.code === "ENOENT" && !required) return null;
+    throw new Error(`The Mac app ships neither the browser nor parts.json: ${error?.message ?? error}`);
+  });
+  if (text === null) return;
+  const browser = parsePartsManifest(JSON.parse(text)).parts.find((part) => part.name === "browser");
+  if (!browser || browser.target !== target) throw new Error(`parts.json pins no browser for ${target}`);
 }
 
 async function validateCloudflared(resources, platform, required) {
@@ -125,7 +137,9 @@ export default async function afterPack(context) {
   const arch = { 1: "x64", 3: "arm64" }[context.arch];
   // electron-builder warns and skips missing extraResources. A real package
   // must fail here, before signing, rather than silently ship without Chrome.
-  if (hasBrowser || context.packager) {
+  if (!hasBrowser && context.electronPlatformName === "darwin") {
+    await validateBrowserPart(resources, `darwin-${arch}`, Boolean(context.packager));
+  } else if (hasBrowser || context.packager) {
     if (!arch) throw new Error(`Unsupported desktop browser package architecture: ${context.arch}`);
     await verifyBrowserBundle(browserRoot, `${context.electronPlatformName}-${arch}`);
   }

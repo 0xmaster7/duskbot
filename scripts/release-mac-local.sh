@@ -272,6 +272,7 @@ if [ "$SKIP_BUILD" = 0 ]; then
   # never let electron-builder notarize or open anything; notarization happens below
   if [ "$IDENTITY" != "-" ]; then
     CSC_NAME="${IDENTITY#Developer ID Application: }" CSC_KEYCHAIN="$KEYCHAIN" CSC_IDENTITY_AUTO_DISCOVERY=false \
+      DUSK_PARTS_SIGN_IDENTITY="$IDENTITY" DUSK_PARTS_KEYCHAIN="$KEYCHAIN" \
       pnpm run package:mac ${arch_flags[@]+"${arch_flags[@]}"}
   else
     pnpm run package:mac -c.mac.identity=- ${arch_flags[@]+"${arch_flags[@]}"}
@@ -366,6 +367,9 @@ staple() {
 
 dmg_for() { echo "release/DuskBot-$VERSION-$1.dmg"; }
 zip_for() { echo "release/DuskBot-$VERSION-$1.zip"; }
+# the bots' browser, left out of the installer: the app downloads it from the release and checks the sha256 it pins
+part_for() { echo "release/DuskBot-$VERSION-browser-darwin-$1.zip"; }
+for a in "${ARCHES[@]}"; do [ -s "$(part_for "$a")" ] || die "missing $(part_for "$a") (scripts/pack-browser-part.mjs)"; done
 mkdir -p release/notary
 
 if [ "$MODE" = release ]; then
@@ -374,6 +378,8 @@ if [ "$MODE" = release ]; then
   for a in "${ARCHES[@]}"; do
     ditto -c -k --sequesterRsrc --keepParent "$(app_dir "$a")/$APP_NAME.app" "$WORK/app-$a.zip"
     notarize "$WORK/app-$a.zip" "release/notary/app-$a.json" & pids+=($!)
+    # a zip cannot be stapled: Gatekeeper finds the browser's ticket online
+    notarize "$(part_for "$a")" "release/notary/browser-$a.json" & pids+=($!)
   done
   for p in "${pids[@]}"; do wait "$p" || die "app notarization failed (logs in release/notary/)"; done
   say "stapling the apps"
@@ -428,6 +434,13 @@ for a in "${ARCHES[@]}"; do
   find "$WORK/q-$a/$APP_NAME.app" -print0 | xargs -0 xattr -w com.apple.quarantine "0083;$(printf %x "$(date +%s)");Safari;$(uuidgen)"
   gate "$a updater zip, unpacked and quarantined: spctl -t exec" spctl -a -vvv -t exec "$WORK/q-$a/$APP_NAME.app"
   gate "$a updater zip, unpacked: stapler validate" xcrun stapler validate "$WORK/q-$a/$APP_NAME.app"
+  mkdir -p "$WORK/part-$a"; ditto -x -k "$(part_for "$a")" "$WORK/part-$a"
+  part_requirement=()
+  [ "$IDENTITY" != "-" ] && part_requirement=(--test-requirement="=anchor apple generic and certificate leaf[subject.OU] = \"$TEAM_ID\"")
+  while IFS= read -r -d '' f; do
+    file -b "$f" | grep -q Mach-O || continue
+    gate "$a browser part: codesign $(basename "$f")" codesign --verify --strict ${part_requirement[@]+"${part_requirement[@]}"} "$f"
+  done < <(find "$WORK/part-$a" -type f -print0)
   if command -v syspolicy_check >/dev/null; then
     gate "$a app: syspolicy_check distribution" syspolicy_check distribution "$app"
   fi
@@ -444,3 +457,4 @@ fi
 case "$MODE" in dry) d="dry run, ad-hoc signed, not notarized" ;; signed) d="Developer ID signed, not notarized" ;; *) d="signed, notarized and stapled" ;; esac
 say "done ($d)"
 (cd release && shasum -a 256 DuskBot*.dmg DuskBot-*.zip | tee SHA256SUMS-mac | sed 's/^/  /')
+echo "  upload with the installers: $(for a in "${ARCHES[@]}"; do printf '%s ' "$(part_for "$a")"; done)(the apps download them from the downloads release)"

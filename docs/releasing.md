@@ -50,6 +50,17 @@ dusk.bot/download links to), then puts `latest.json` and `SHA256SUMS` on dusk.bo
 Desktop apps read `https://dusk.bot/releases/latest.json` (the Mac app hourly, the others daily) and accept it only when a pinned release key
 signed it.
 
+### The Mac browser part
+
+The Mac installers leave out the bots' browser (agent-browser and Chromium's headless shell, about 92 MB zipped).
+`pnpm package:mac` runs `scripts/pack-browser-part.mjs`, which signs it with the release's Developer ID (hardened
+runtime), zips it as `DuskBot-<version>-browser-darwin-<arch>.zip` in `release/`, and writes the `parts.json` the app
+ships, pinning the zip's size and SHA-256 and the signing team. Both release paths notarize the zip and upload it with
+the installers; `publish-downloads.sh` copies it to the public downloads release, where the app fetches it on its first
+open (`server/app-parts.ts`) and uses it only after the size, SHA-256 and every Mach-O's signature check out. A release
+without these zips leaves new Mac installs without a browser. Windows and Linux still bundle the browser (Linux's
+AppArmor profile is bound to its install path).
+
 ### How the Mac app updates itself
 
 `electron/app-update.mjs`, packaged Mac builds only:

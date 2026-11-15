@@ -28,14 +28,18 @@ export interface StatusRouteDeps {
   broadcast(payload: Record<string, unknown>): void;
   browserEngineInstall: { get(): Promise<void> | null; set(install: Promise<void> | null): void };
   browserEngineInstallError: { set(error: string | null): void };
+  /** The packaged app's downloaded browser (server/app-parts.ts): while it is on its way, an install request tries it again. */
+  browserPart?: { pending(): boolean; retry(): void };
   /** On a Team Cloud: false for someone else's private chat, whose words never reach this session's lists. */
   threadShown?(auth: RequestAuth): (threadId: string) => boolean;
 }
 
-type InstallDeps = Pick<StatusRouteDeps, "browserEngineInstall" | "browserEngineInstallError" | "broadcast" | "configStatus">;
+type InstallDeps = Pick<StatusRouteDeps, "browserEngineInstall" | "browserEngineInstallError" | "broadcast" | "configStatus" | "browserPart">;
 
 /** Installs agent-browser and its Chrome for this data directory; one install at a time. */
-export function startBrowserEngineInstall({ browserEngineInstall, browserEngineInstallError, broadcast, configStatus }: InstallDeps): void {
+export function startBrowserEngineInstall({ browserEngineInstall, browserEngineInstallError, broadcast, configStatus, browserPart }: InstallDeps): void {
+  // security: a packaged app runs only the browser its signed parts manifest pins, never one fetched another way
+  if (browserPart?.pending()) { browserPart.retry(); return; }
   if (browserEngineInstall.get()) return;
   browserEngineInstallError.set(null);
   browserEngineInstall.set((async () => {

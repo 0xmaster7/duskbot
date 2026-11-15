@@ -61,6 +61,7 @@ import { duplicateBotProfile, duplicateCreateRequest } from "@/lib/bot-duplicate
 import { botShowsUnread } from "@/lib/bot-unread";
 import { firstUnreadMessageId, threadOpensUnread, threadReadCursor } from "@/lib/unread-divider";
 import type { ComputerStart } from "@/lib/computer-start";
+import { browserPartFromFrame, type BrowserPart } from "@/lib/browser-part";
 import { parseComputerHelp } from "@/lib/computer-control";
 import { answerResponse, dismissResponse } from "@/lib/card-answer";
 import { forgetLiveTurns, forgetStopPress, noteRuntimeTurn, sendStop } from "@/lib/stop-turn"; import { forgetTurnStatuses } from "@/state/turn-status"; import { forgetLiveReplies } from "@/state/live-reply";
@@ -609,6 +610,7 @@ export interface AppState {
   /** Counts requests to show a bot's computer: the bot panel lands on its Computer tab again even when already open. */
   computerTabRequest: number;
   computerStarts: Record<string, ComputerStart>;
+  browserPart: BrowserPart | null;
   deletingBots: Record<string, true>;
   computerControl: Record<string, ComputerControlState>;
   dataSheets: Record<string, DataSheet>;
@@ -787,6 +789,7 @@ export type Action =
   | { type: "messagePatched"; threadId: string; message: Message }
   | { type: "optimisticMessageRemoved"; threadId: string; sendId: string; restoreLeafId?: string | null }
   | { type: "computerStart"; botId: string; start: ComputerStart | null }
+  | { type: "browserPart"; part: BrowserPart | null }
   | ({ type: "computerControl"; botId: string } & ComputerControlState)
   | { type: "dataSheet"; sheet: DataSheet; tables?: DataTable[] }
   | { type: "loadDataSheet"; botId: string; onError?: (message: string) => void }
@@ -1400,6 +1403,8 @@ export function reducer(state: AppState, action: Action): AppState {
         previewMessages: b.previewMessages?.map((m) => m.id === action.message.id ? action.message : m),
       }));
     }
+    case "browserPart":
+      return { ...state, browserPart: action.part };
     case "computerStart": {
       const { [action.botId]: _ended, ...others } = state.computerStarts;
       return {
@@ -1893,6 +1898,7 @@ export const initialState: AppState = {
   botSettingsExpandRemembered: false,
   computerTabRequest: 0,
   computerStarts: {},
+  browserPart: null,
   deletingBots: {},
   computerControl: {},
   dataSheets: {},
@@ -3256,6 +3262,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         case "computer":
           rawDispatch({ type: "computerStart", botId: frame.botId,
             start: { state: frame.state, ...(frame.place ? { place: frame.place } : {}) } });
+          break;
+        case "browser-part":
+          rawDispatch({ type: "browserPart", part: frame.phase === "ready" ? null : browserPartFromFrame(frame) });
           break;
         case "computer-pointer":
           publishBotPointer(frame);

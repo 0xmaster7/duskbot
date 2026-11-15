@@ -1013,6 +1013,9 @@ export type ServerFrame =
   | { kind: "computer"; botId: string; state: "provisioning" | "waking"; place?: "cloud" }
   | { kind: "computer-state"; botId: string; resourceKey: string; state: "starting" | "ready" | "stopped" | "failed"; problem?: string }
   | { kind: "computer-control"; botId: string; held: boolean; helpReason: string | null; help?: ComputerHelpRef | null }
+  /** The desktop app's built-in browser is still downloading (server/app-parts.ts): `botIds` are the bots that needed it
+   * since, whose chats show one progress line until `phase` is "ready". */
+  | { kind: "browser-part"; phase: "download" | "setup" | "failed" | "ready"; received: number; total: number; botIds: string[] }
   /** Where a bot just acted on its computer, in the desktop's own pixels (server/bot-pointer.ts). */
   | { kind: "computer-pointer"; botId: string; threadId: string; x: number; y: number; phase: "move" | "click" }
   /** A bot's data sheet changed. Whole sheet each time. */

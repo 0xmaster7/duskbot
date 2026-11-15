@@ -121,8 +121,10 @@ mac:
       to: cua-sdk
     - from: dist-native/cloudflared/darwin-${arch}/cloudflared
       to: cloudflared/cloudflared
-    - from: dist-native/browser/darwin-${arch}
-      to: browser-engine
+    # The bots' browser is not in the Mac installer: scripts/pack-browser-part.mjs signs and zips it for the release
+    # and pins its size and SHA-256 here; the app downloads and checks it on its first open (server/app-parts.ts).
+    - from: dist-native/parts/darwin-${arch}/parts.json
+      to: parts.json
     # The Data engine's native modules (DuckDB, resvg; server/data/engine.ts)
     # as a node_modules tree the server requires at runtime; prepare-duckdb
     # stages this arch's slice. The copy names the node_modules directory

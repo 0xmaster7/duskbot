@@ -206,7 +206,12 @@ jobs:
             bin_team=$(codesign -dv --verbose=4 "$bin" 2>&1 | sed -n 's/^TeamIdentifier=//p')
             test -n "$app_team" && test "$bin_team" = "$app_team" || {
               echo "::error::cloudflared is not signed by the app's Developer ID team in $app"; exit 1; }
-            for browser_bin in "$app/Contents/Resources/browser-engine/agent-browser" "$app/Contents/Resources/browser-engine/chrome/"*/chrome-headless-shell; do
+            test ! -e "$app/Contents/Resources/browser-engine" || { echo "::error::the browser is a downloaded part, not in $app"; exit 1; }
+            test -s "$app/Contents/Resources/parts.json" || { echo "::error::missing parts.json in $app"; exit 1; }
+            case "$app" in *mac-arm64*) parch=arm64 ;; *) parch=x64 ;; esac
+            part="$RUNNER_TEMP/part-$parch/browser-engine"; rm -rf "$part"; mkdir -p "$part"
+            ditto -x -k "release/DuskBot-$(node -p "require('./package.json').version")-browser-darwin-$parch.zip" "$part"
+            for browser_bin in "$part/agent-browser" "$part/chrome/"*/chrome-headless-shell; do
               test -x "$browser_bin"
               codesign --verify --strict "$browser_bin"
               browser_team=$(codesign -dv --verbose=4 "$browser_bin" 2>&1 | sed -n 's/^TeamIdentifier=//p')
@@ -222,8 +227,10 @@ jobs:
             x64) resources="$PWD/release/mac/Dusk Bot.app/Contents/Resources" ;;
             *) exit 1 ;;
           esac
-          node scripts/smoke-browser-bundle.mjs --resources "$resources"
-          DUSK_SMOKE_DIST="$resources/server" node scripts/smoke-packaged-server.mjs --browser-bundle "$resources/browser-engine"
+          # the browser is a downloaded part: smoke the signed copy the release ships, unpacked as the app unpacks it
+          part="$RUNNER_TEMP/part-$(node -p process.arch)"
+          node scripts/smoke-browser-bundle.mjs --resources "$part"
+          DUSK_SMOKE_DIST="$resources/server" node scripts/smoke-packaged-server.mjs --browser-bundle "$part/browser-engine"
 
       - name: "Gate: both packaged servers start and every helper path resolves"
         run: |
@@ -303,6 +310,8 @@ jobs:
             arch="${pair%%:*}"; app="${pair#*:}/Dusk Bot.app"
             ditto -c -k --sequesterRsrc --keepParent "$app" "$RUNNER_TEMP/app-$arch.zip"
             notarize "$RUNNER_TEMP/app-$arch.zip"
+            # a zip cannot be stapled: Gatekeeper finds the browser part's ticket online
+            notarize "release/DuskBot-$v-browser-darwin-$arch.zip"
             staple "$app"
             scripts/mac-dmg-swap-app.sh "release/DuskBot-$v-$arch.dmg" "$app" "$MAC_SIGN_IDENTITY" "$MAC_KEYCHAIN"
             notarize "release/DuskBot-$v-$arch.dmg"
@@ -562,6 +571,8 @@ jobs:
             "DuskBot-$VERSION-setup.exe"
             "DuskBot-$VERSION-x64.dmg"
             "DuskBot-$VERSION-x64.zip"
+            "DuskBot-$VERSION-browser-darwin-arm64.zip"
+            "DuskBot-$VERSION-browser-darwin-x64.zip"
             "DuskBot-$VERSION-x86_64.AppImage"
             DuskBot-amd64.deb DuskBot-intel.dmg DuskBot-setup.exe
             DuskBot.AppImage DuskBot.dmg SHA256SUMS-ubuntu-x64.txt

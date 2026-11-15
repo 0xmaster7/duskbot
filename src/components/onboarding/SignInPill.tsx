@@ -105,14 +105,14 @@ const MB = 1024 * 1024;
 
 /** A measured install: the calm line with a percent, one thin bar that glides between readings, and the megabytes or
  * setup under it. */
-export function InstallBusy({ label, progress }: { label: string; progress: InstallProgress & { total: number } }) {
+export function InstallBusy({ label, progress, align = "center" }: { label: string; progress: InstallProgress & { total: number }; align?: "center" | "start" }) {
   const setup = progress.phase === "setup";
   const fraction = setup ? 1 : progress.received / progress.total;
   const percent = Math.min(99, Math.floor(fraction * 100));
   const totalMb = Math.max(1, Math.round(progress.total / MB));
   const detail = setup ? t("connect.stage.settingUp") : t("connect.stage.downloaded", { received: Math.min(totalMb, Math.floor(progress.received / MB)), total: totalMb });
   return (
-    <div role="status" aria-live="polite" className="flex flex-col items-center gap-1 text-center">
+    <div role="status" aria-live="polite" className={align === "start" ? "flex flex-col items-start gap-1 text-left" : "flex flex-col items-center gap-1 text-center"}>
       <p className="m-0 flex items-center gap-2 text-[14px] leading-5 text-ink">
         <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin motion-reduce:animate-none" />
         {label}

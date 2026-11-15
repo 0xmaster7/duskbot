@@ -50,6 +50,8 @@ import type { MarkState } from "./mascot-engine";
 import { turnMarkState } from "./mascot-presence";
 import type { LiveStatus } from "@/state/turn-status";
 import { TurnPresence, TYPING_PHASE } from "./TurnPresence";
+import { BrowserPartLine } from "./BrowserPartLine";
+import { browserPartFor } from "@/lib/browser-part";
 import { MarkCrossfade } from "./MarkCrossfade";
 import { liveCallEnabled, showToolCallsEnabled } from "@/lib/feature-flags";
 import { normalizeState } from "@/lib/mascot";
@@ -956,6 +958,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const simpleHead = !remoteClient;
   const canWrite = useCanWriteIn(bot.threadId, bot.yourAccess);
 
+  const browserPart = browserPartFor(state.browserPart, bot.id);
   const computerStarting = computerStartLine(state.computerStarts[bot.id], bot.name); useScreensWhile(Boolean(computerStarting));
   const mascotMotion = state.mascotMotion?.botId === bot.id ? state.mascotMotion : null;
   const [findOpen, setFindOpen] = useState(false);
@@ -1362,6 +1365,11 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               >
                 {t("chat.showLater", { count: laterCount })}
               </button>
+            </div>
+          )}
+          {browserPart && (
+            <div className="flex justify-start">
+              <BrowserPartLine part={browserPart} />
             </div>
           )}
           {computerStarting && (
