@@ -175,6 +175,7 @@ export function arrivedCounts(here, there) {
  *   installation?(): Promise<string | null>,
  *   reportMove?(): Promise<boolean>,
  *   reportKept?(): Promise<boolean>,
+ *   backupAfterMove?(origin: string): Promise<"started" | "not_managed" | null>,
  *   restart?(): void,
  *   version?: string,
  *   onChange?(view: unknown): void,
@@ -363,7 +364,17 @@ export function createOneHome(deps) {
       try { counts = arrivedCounts(await deps.local.json("/api/cloud-send/manifest"), (await session.call("GET", "/api/cloud-send/manifest")).body); }
       finally { await session.close().catch(() => {}); }
     } catch {}
+    backupOnce(journal);
     return write({ ...journal, phase: "switch", passes, checkedAt: now(), ...(counts ? { counts } : {}), ...(stuck?.length ? { stuck } : {}) });
+  }
+
+  /** Once a move's check passed, My Cloud is backed up right away, beside its own schedule; asked as the check passes, never
+   * waited on: the Admin takes the backup on its own time, and a failure here leaves the schedule's backup to come. */
+  function backupOnce(journal) {
+    const origin = journal.cloud?.origin;
+    if (!deps.backupAfterMove || typeof origin !== "string") return;
+    void deps.backupAfterMove(origin).then((state) => log(`one home: My Cloud's backup after the move: ${state ?? "not offered"}`),
+      (error) => log(`one home: My Cloud's backup after the move was not asked (${error?.message ?? error})`));
   }
 
   /** The point of no return: My Cloud switches on what was on here, and keeps which computer its bots came from. What was

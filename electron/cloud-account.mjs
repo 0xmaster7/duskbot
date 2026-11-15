@@ -1179,6 +1179,17 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
       catch (error) { if (error?.status === 404 && !error.opaque) return null; throw error; }
       return grant === current && result?.cloudContractVersion === 1 && MOVED_TO.includes(result.state) ? result.state : null;
     },
+    /** Asks the Admin for a backup of this account's own Cloud at `cloudOrigin` now (POST /api/cloud/desktop/backup), once a
+     * move into it was checked: "started", or "not_managed" for a Cloud the Admin does not back up. Null without a sign-in, or
+     * from an Admin that doesn't take it (404). */
+    async requestBackup(cloudOrigin) {
+      const current = grant;
+      if (!current || typeof cloudOrigin !== "string") return null;
+      let result;
+      try { result = await request("backup", { method: "POST", body: { origin: cloudOrigin }, token: current.token }); }
+      catch (error) { if (error?.status === 404 && !error.opaque) return null; throw error; }
+      return result?.state === "started" || result?.state === "not_managed" ? result.state : null;
+    },
     /** Tells the Admin where this computer's move to My Cloud stands (POST /api/cloud/desktop/move-status; move-status.mjs
      * builds `report`). False when there is no sign-in or the Admin doesn't take it yet (404). */
     async reportMoveStatus(report) {

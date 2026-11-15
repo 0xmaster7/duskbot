@@ -287,6 +287,9 @@ export function installOneHome({ localRequest: anyServer, clean = null, account,
       const client = account(), mine = await installation();
       return Boolean(client?.reportMove && mine && await client.reportMove({ installation: mine }));
     },
+    async backupAfterMove(origin) {
+      return (await account()?.requestBackup?.(origin)) ?? null;
+    },
     async reportKept() {
       const client = account(), mine = await installation();
       return Boolean(client?.reportKept && mine && await client.reportKept({ installation: mine }));

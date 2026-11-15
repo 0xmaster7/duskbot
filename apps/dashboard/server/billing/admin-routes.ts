@@ -100,7 +100,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (!path.startsWith("/api/cloud/desktop/")) return false;
     const route = path.slice("/api/cloud/desktop/".length);
     // identity, devices and the session belong to the accounts service
-    if (!/^(?:license|checkout|clouds|clouds\/[^/]+(?:\/(?:hide|cancel|keep|ai-signins))?|feedback|upgrade|upgrade\/preview|pairing|wake|resize-now|moved-to)$/.test(route)) return false;
+    if (!/^(?:license|checkout|clouds|clouds\/[^/]+(?:\/(?:hide|cancel|keep|ai-signins))?|feedback|upgrade|upgrade\/preview|pairing|wake|resize-now|moved-to|backup)$/.test(route)) return false;
     try {
       const match = /^Bearer (omc_[A-Za-z0-9_-]{43})$/.exec(req.headers.authorization ?? "");
       const account = match ? await ctx.accounts.fromBearer(req) : null;
@@ -191,6 +191,15 @@ export function createAdminRoutes(ctx: BillingContext) {
         if (cloud.backend && clouds.managed) { clouds.managed.resizeNow(cloud); await clouds.reconcile(); return send({ state: clouds.managed.resizing(cloud) ? "restarting" : "current" }); }
         await clouds.reconcile();
         return send({ state: Object.keys(cloud.spec).every(k => cloud.spec[k as keyof typeof cloud.spec] === cloud.desiredSpec[k as keyof typeof cloud.spec]) ? "current" : "restarting" });
+      }
+      if (route === "backup") {
+        // the owner's app, once its move into this cloud was checked: one backup now, beside the schedule's
+        const origin = text(data.origin);
+        const cloud = listed(account).find(c => c.origin === origin);
+        if (!cloud) throw new BillingError(404, "not_found");
+        if (!cloud.backend || !clouds.managed?.backupNow || cloud.status !== "running") return send({ state: "not_managed" });
+        void clouds.managed.backupNow(cloud).catch((error: unknown) => console.warn(`clouds: a backup after a move failed for ${cloud.id}: ${error instanceof Error ? error.message : "error"}`));
+        return send({ state: "started" });
       }
       if (route === "moved-to") {
         const origin = text(data.origin);

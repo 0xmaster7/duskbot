@@ -1022,6 +1022,13 @@ export function createLifecycle(deps: LifecycleDeps) {
       return !verdict.delete && (verdict.earliestAt === null || now() < verdict.earliestAt);
     },
     backup: (c: StoredCloud) => backup(c, "manual"),
+    /** a backup now, asked by its owner's app once a move into it was checked: only while it runs, and at most once per
+     *  BACKUP_RETRY_MS whoever asks, so asking again never costs more than the schedule's own tries */
+    async backupNow(c: StoredCloud): Promise<boolean> {
+      const b = state(c);
+      if (!c.managed || c.status !== "running" || (b.lastBackupTryAt ?? 0) + BACKUP_RETRY_MS > now()) return false;
+      return backup(c, "after_move");
+    },
     requestDelete(c: StoredCloud, link: (token: string) => string) {
       const b = state(c);
       if (c.status === "destroyed" || c.status === "destroying") throw new ManagedCloudError(409, "unavailable");

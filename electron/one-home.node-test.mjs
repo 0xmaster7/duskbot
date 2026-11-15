@@ -21,7 +21,7 @@ function world({ cloud = {}, switches = { "routine:r1": true, "routine:r2": fals
   const w = {
     cloud: { origin: CLOUD, account: "acct-1", machine: CLOUD, ready: true, moves: true, ended: false, paid: false, ...cloud },
     server: { frozen: false, freezes: 0, unfreezes: 0, forgot: 0 },
-    passes: [], checked: 0, cloudCalls: [], localCalls: [], lent: [], phone: { paired: true, stopped: 0, started: 0 }, opened: [], restarted: 0, brought: [],
+    passes: [], checked: 0, backups: [], backupFails: false, cloudCalls: [], localCalls: [], lent: [], phone: { paired: true, stopped: 0, started: 0 }, opened: [], restarted: 0, brought: [],
     again: null, version: "0.1.121",
     get journal() { return journal; },
     set journal(value) { journal = value; },
@@ -86,6 +86,7 @@ function world({ cloud = {}, switches = { "routine:r1": true, "routine:r2": fals
         lastInput: () => typedAt,
         again: { bring: async () => { const next = w.again?.() ?? { later: 60_000 }; w.brought.push(next); return next; } },
         restart: () => { w.restarted++; },
+        async backupAfterMove(origin) { w.backups.push(origin); if (w.backupFails) throw new Error("the Admin did not answer"); return "started"; },
         version: w.version,
         now: () => clock,
         timers: { set: (work, ms) => { const timer = { work, ms }; timers.push(timer); return timer; }, clear: (timer) => { const at = timers.indexOf(timer); if (at >= 0) timers.splice(at, 1); } },
@@ -119,6 +120,22 @@ test("a new buyer's move runs every phase and ends with home on My Cloud, this c
   assert.equal(w.lent.length, 1, "a relaunch lends nothing again");
   assert.equal(w.phone.stopped, 1);
   assert.equal(w.server.unfreezes, 0);
+});
+
+test("My Cloud is backed up as soon as the move's check passes, once, and a backup that can't be asked never holds the move", async () => {
+  const w = world({ checks: [false, true] });
+  await w.home.kick();
+  assert.equal(w.journal.phase, "done");
+  assert.equal(w.checked, 2);
+  assert.deepEqual(w.backups, [CLOUD], "asked once, for the Cloud the move went to, only after a check passed");
+  await w.relaunch().kick();
+  assert.deepEqual(w.backups, [CLOUD], "a relaunch after the move asks for none again");
+
+  const failing = world();
+  failing.backupFails = true;
+  await failing.home.kick();
+  assert.equal(failing.journal.phase, "done");
+  assert.deepEqual(failing.backups, [CLOUD]);
 });
 
 test("a Cloud too old to take a move says My Cloud is updating, never that the move fails, and the move starts once it has", async () => {

@@ -100,7 +100,7 @@ it("rejects expired app sessions on every Admin billing route", async () => {
   for (const [path, method] of [
     ["license", "GET"], ["checkout", "POST"], ["clouds", "POST"], ["clouds/missing", "PATCH"],
     ...["hide", "cancel", "keep"].map(action => [`clouds/missing/${action}`, "POST"]),
-    ...["feedback", "upgrade", "upgrade/preview", "pairing", "wake", "resize-now", "moved-to"].map(path => [path, "POST"]),
+    ...["feedback", "upgrade", "upgrade/preview", "pairing", "wake", "resize-now", "moved-to", "backup"].map(path => [path, "POST"]),
   ]) {
     expect(await f.request(path, method === "GET" ? undefined : {}, token, method), path).toEqual({ status: 401, data: { error: "invalid_token" } });
   }
@@ -250,6 +250,10 @@ it("enforces Admin ownership, one-time confirmations, typed bodies, and the desk
   const cloud = f.billing.clouds.get(id)!;
   expect(await f.request("moved-to", { origin: cloud.origin }, stranger)).toMatchObject({ data: { state: "unknown" } });
   expect(await f.request("moved-to", { origin: cloud.origin })).toMatchObject({ data: { state: "live", cloudContractVersion: 1 } });
+  // a backup after a move: only of the asker's own Cloud, and only one the managed backend backs up
+  expect(await f.request("backup", { origin: cloud.origin }, stranger)).toMatchObject({ status: 404, data: { error: "not_found" } });
+  expect(await f.request("backup", { origin: cloud.origin })).toMatchObject({ status: 200, data: { state: "not_managed", cloudContractVersion: 1 } });
+  expect(await f.client.requestBackup(cloud.origin!)).toBe("not_managed");
   expect(await f.request("wake", {})).toMatchObject({ data: { state: "awake", cloudContractVersion: 1 } });
   // only real intent wakes a sleeping desktop: opening the app or viewing chats leaves it asleep
   await f.billing.clouds.power(cloud.accountId, id, "off");

@@ -400,6 +400,8 @@ export interface CloudAccountClient {
    * kept only until it is deleted), live, or unknown (none of this account's). Null without a verified sign-in, or from an
    * Admin that doesn't say. */
   movedTo(origin: string): Promise<"deleted" | "ended" | "live" | "unknown" | null>;
+  /** A backup of this account's own Cloud at `origin` now, once a move into it was checked (POST /api/cloud/desktop/backup). */
+  requestBackup(origin: string): Promise<"started" | "not_managed" | null>;
   /** Tells the Admin where this computer's move to My Cloud stands (POST /api/cloud/desktop/move-status); false without a
    * sign-in or when the Admin doesn't take it yet. */
   reportMoveStatus(report: import("./move-status.mjs").MoveStatusReport): Promise<boolean>;

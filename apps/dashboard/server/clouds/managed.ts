@@ -61,6 +61,8 @@ export interface ManagedCloud {
   operatorDelete(cloud: StoredCloud, reason: string): void;
   /** its account was deleted: deleted at once (no 7-day undo, nobody is left to undo it), past any paid period, unless held */
   accountDeleted?(cloud: StoredCloud): void;
+  /** a backup of a running cloud now (its owner's move into it was checked); false when it did not run or was asked too soon */
+  backupNow?(cloud: StoredCloud): Promise<boolean>;
   /** apply a pending plan change now instead of at the next idle sleep */
   resizeNow(cloud: StoredCloud): void;
   resizing(cloud: StoredCloud): boolean;
