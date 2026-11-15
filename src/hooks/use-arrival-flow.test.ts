@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 
-import { FOLLOW, OWN_ENTRANCE, ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, rowEnter, springTiming, useArrivalFlow } from "./use-arrival-flow";
+import { ARRIVAL_ANCHOR, FOLLOW, OWN_ENTRANCE, ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, rowEnter, springTiming, useArrivalFlow } from "./use-arrival-flow";
 
 // happy-dom has no layout: each element reports the offsets the test gives it, and animations are recorded
 type Recorded = { el: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions };
@@ -129,6 +129,22 @@ describe("useArrivalFlow", () => {
     expect(entrance?.keyframes).toEqual([{ transform: `translateY(${ROW_RISE_PX}px)` }, { transform: "translateY(0px)" }]);
     expect(entrance?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
     expect(rowEnter).toBeTypeOf("function");
+  });
+
+  it("holds the transcript's end still while the rows above glide up to make room, so what lands there never moves", () => {
+    slot.setAttribute(ARRIVAL_ANCHOR, "");
+    draw(true, 0);
+    // the reply being typed mounts unseen in its room above the mascot's line
+    addRow(900, "start").setAttribute(OWN_ENTRANCE, "");
+    place(slot, 965, column);
+    scrollHeight = 1065;
+    draw(true, 1);
+    const [glide] = moved(column);
+    const [still] = moved(slot);
+    expect(glide?.keyframes[0]?.transform).toBe("translateY(65px)");
+    // the column comes up from 65px below and the end from 65px above it, on the same curve: on screen it never moves
+    expect(still?.keyframes).toEqual([{ transform: "translateY(-65px)" }, { transform: "translateY(0px)" }]);
+    expect(still?.options).toEqual(glide?.options);
   });
 
   it("lets a row that plays its own entrance land with no rise, when there was room for it", () => {

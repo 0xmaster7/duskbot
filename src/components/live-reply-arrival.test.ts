@@ -39,7 +39,8 @@ it.each(["bot", "group"])("renders completed live replies for a %s in order, a b
     at: Date.now(), parentId: index ? rows[index - 1] : user.id, ...(kind === "group" ? { from: { botId: bot.id, name: bot.name, color: bot.color } } : {}) }));
   state = { ...state, bots: [{ ...bot, messages: [user, ...replies], activeLeafId: "third" }], groups: [{ ...group, messages: [user, ...replies] }] };
   await act(async () => draw());
-  const rows = () => [...host.querySelectorAll("[data-mid]")].map((row) => row.getAttribute("data-mid"));
+  // a bubble still being typed is in its place but unseen: it is not shown yet
+  const rows = () => [...host.querySelectorAll("[data-mid]")].filter((row) => !row.querySelector("[data-message-row][aria-hidden]")).map((row) => row.getAttribute("data-mid"));
   if (kind === "bot") {
     // a bot's chat says Typing… first, then its finished turn's bubbles land together
     expect(rows()).toEqual(["person"]);

@@ -219,7 +219,8 @@ describe("the working line", () => {
 
 describe("each bubble's typing beat", () => {
   const fresh = (id: string, text: string): Message => ({ id, role: "bot", kind: "text", at: Date.now(), text, turnId: "t1" });
-  const rows = () => [...host.querySelectorAll("[data-mid]")].map((row) => row.getAttribute("data-mid"));
+  // a bubble still being typed is in its place but unseen: it is not shown yet
+  const rows = () => [...host.querySelectorAll("[data-mid]")].filter((row) => !row.querySelector("[data-message-row][aria-hidden]")).map((row) => row.getAttribute("data-mid"));
 
   it("says Typing… for at least 500ms before each bubble lands, the line staying for the turn", () => {
     engine({ type: "turn.started" });
@@ -227,6 +228,8 @@ describe("each bubble's typing beat", () => {
     const ack = fresh("ack", "On it, checking reviews now.");
     render(busyBot([ask, ack]));
     expect(rows(), "held while the line types").toEqual(["ask"]);
+    const unseen = host.querySelector('[data-mid="ack"] [data-message-row]');
+    expect(unseen?.getAttribute("aria-hidden"), "the typed bubble already holds its room, unseen").toBe("true");
     expect(statusLine()).toBe("Typing…");
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS - 10));
     expect(rows()).toEqual(["ask"]);

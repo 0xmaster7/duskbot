@@ -19,6 +19,8 @@ export interface TypingHold {
   rows: Message[];
   /** a bubble is held: the status line says "Typing…" */
   typing: boolean;
+  /** the bubble being typed, drawn unseen in the room it will land in so nothing moves when it shows */
+  held: Message | null;
   /** when the hold next changes, or Infinity */
   wakeAt: number;
 }
@@ -35,7 +37,7 @@ export function holdRows(messages: readonly Message[], state: TypingHoldState, {
   const release = (): TypingHold => {
     for (const message of messages) state.known.add(message.id);
     state.heldAt.clear();
-    return { rows: messages as Message[], typing: false, wakeAt: Infinity };
+    return { rows: messages as Message[], typing: false, held: null, wakeAt: Infinity };
   };
   for (;;) {
     const at = messages.findIndex((message) => !state.known.has(message.id) && message.at > state.openedAt - 2_000 && isBotTextRow(message, botId) && Boolean(message.text?.trim()));
@@ -47,7 +49,7 @@ export function holdRows(messages: readonly Message[], state: TypingHoldState, {
     state.heldAt.set(held.id, since);
     const typed = since + TYPING_MIN_MS;
     const rows = messages.slice(0, at);
-    if (now < typed) return { rows, typing: true, wakeAt: typed };
+    if (now < typed) return { rows, typing: true, held, wakeAt: typed };
     if (!busy) return release();
     // the bubble lands; the next one, if it came with it, gets its own typing beat from now
     state.heldAt.delete(held.id);

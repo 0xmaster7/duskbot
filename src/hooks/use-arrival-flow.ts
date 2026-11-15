@@ -15,6 +15,9 @@ export const ROW_ENTER_EASE = `cubic-bezier(${ROW_ENTER_CURVE.join(", ")})`;
  * column still follows it, but it does not rise as well. */
 export const OWN_ENTRANCE = "data-arrival-own";
 
+/** The transcript's end (the mascot's line): it holds still while the rows above it glide up to make room. */
+export const ARRIVAL_ANCHOR = "data-arrival-anchor";
+
 export interface SpringTiming { duration: number; easing: string }
 
 /** A spring from rest at 0 to rest at 1 (mass 1) as a WAAPI duration and linear() easing, so it runs off the main thread
@@ -103,6 +106,7 @@ export function useArrivalFlow({
   const rising = useRef(new Set<Animation>());
   const played = useRef(new WeakSet<Element>());
   const glide = useRef<Animation | null>(null);
+  const hold = useRef<Animation | null>(null);
 
   const take = (key: string): void => {
     const scroller = scrollRef.current;
@@ -130,6 +134,8 @@ export function useArrivalFlow({
       all.clear();
       glide.current?.cancel();
       glide.current = null;
+      hold.current?.cancel();
+      hold.current = null;
       if (clip) clip.style.overflowY = "";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the ref object is stable; only the conversation matters
@@ -168,6 +174,15 @@ export function useArrivalFlow({
       const carried = glide.current ? glideOffset(column) : 0;
       if (glide.current) { glide.current.cancel(); rising.current.delete(glide.current); glide.current = null; }
       const glided = columnGlide(column, shift + carried);
+      hold.current?.cancel();
+      hold.current = null;
+      const anchor = glided ? column.querySelector<HTMLElement>(`[${ARRIVAL_ANCHOR}]`) : null;
+      if (anchor && canAnimate(anchor)) {
+        hold.current = anchor.animate(
+          [{ transform: `translateY(${-(shift + carried)}px)` }, { transform: "translateY(0px)" }],
+          { duration: FOLLOW.duration, easing: FOLLOW.easing },
+        );
+      }
       if (glided) {
         glide.current = glided;
         glided.addEventListener("finish", () => { if (glide.current === glided) glide.current = null; });
