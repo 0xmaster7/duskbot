@@ -375,7 +375,7 @@ export function createAuth(options: AuthOptions) {
     const revoke = fresh ? { revoke: seal(JSON.stringify([...(existing ? grantsOf(existing) : []).filter(item => item.clientId !== fresh.clientId), fresh])) } : {};
     if (!existing) state.identities.push({ accountId: owner.id, provider, subject: profile.subject, email: profile.email, label: profile.label, addedAt: now(), ...revoke });
     else if (revoke.revoke) existing.revoke = revoke.revoke;
-    if (provider !== "x" && owner.name === null && profile.name) owner.name = profile.name;
+    if (owner.name === null && profile.name) owner.name = profile.name;
     if (profile.picture) owner.avatarUrl = profile.picture;
     store.changed();
   }

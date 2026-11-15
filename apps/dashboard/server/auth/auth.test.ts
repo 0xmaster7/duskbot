@@ -953,9 +953,9 @@ describe("local account service", () => {
   });
 
   it("advertises an empty provider registry, with coming soon only in development", async () => {
-    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, recovery: true, providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: true })) });
+    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, recovery: true, providers: ["google", "apple"].map(id => ({ id, enabled: false, comingSoon: true })) });
     restart({ dev: false });
-    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, recovery: true, providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: false })) });
+    expect(await body(call("/v1/auth/providers"))).toEqual({ v: 1, signupOpen: true, recovery: true, providers: ["google", "apple"].map(id => ({ id, enabled: false, comingSoon: false })) });
   });
 
   it("works with the desktop client's email flow, browser flow, identity parser and revoke", async () => {

@@ -145,7 +145,7 @@ export function NoteDialog({ note, onClose, onSave, onDelete }: { note: Note | {
         <Button variant="ghost" onClick={onClose} disabled={busy}>cancel</Button>
         <Button variant="primary" disabled={busy || !text.trim() || text.length > 140} onClick={() => void run(() => onSave({ at: new Date(`${day}T12:00:00`).getTime(), text: text.trim() }))}>{editing ? "save" : "add note"}</Button>
       </>}>
-      <p>a short line, like "launch thread on x" or "pricing page v2".</p>
+      <p>a short line, like "launch post" or "pricing page v2".</p>
       <label htmlFor={textId} className="mt-4 block text-13 text-ink-2">note</label>
       <input id={textId} value={text} maxLength={140} onChange={(e) => setText(e.target.value)} className="field mt-1.5" aria-invalid={error ? true : undefined} />
       <label htmlFor={dayId} className="mt-3 block text-13 text-ink-2">day</label>

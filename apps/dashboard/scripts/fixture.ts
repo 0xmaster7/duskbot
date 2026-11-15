@@ -53,7 +53,7 @@ const cookie = (verify.res.headers.get("set-cookie") ?? "").split(";")[0]!;
 if (values["session-file"]) writeFileSync(values["session-file"], cookie, { mode: 0o600 });
 console.log(JSON.stringify({ url, dataDir, signedIn: verify.res.ok, sessionFile: values["session-file"] ?? null }));
 
-console.log("Google, Apple and X sign in instantly as local fake users (X asks for an email code first).");
+console.log("Google and Apple sign in instantly as local fake users.");
 
 if (values.demo) { await seedAdminData(app, seeded, Date.now()); console.log("admin panel: /admin"); void demo(cookie); }
 

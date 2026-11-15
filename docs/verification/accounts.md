@@ -4,7 +4,7 @@ Run `pnpm test:accounts` (or `pnpm exec vitest run electron/accounts-e2e.test.mj
 With a read-only `node_modules` link, append `--configLoader native --no-cache`
 to the direct Vitest command.
 The eight cases use isolated temporary data folders, ephemeral loopback ports,
-a memory mailer and fake Google, Apple and X providers. They cover website
+a memory mailer and fake Google and Apple providers. They cover website
 email and provider sign-in, browser-bound pending identities, CSRF, the desktop
 sign-in sheet IPC and browser approval, bearer revocation, signed automatic
 workspace enrollment and ownership transfer, mobile PKCE deep links, account

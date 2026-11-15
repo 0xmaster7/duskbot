@@ -190,7 +190,7 @@ function route(method: string, path: string, body: unknown, query: URLSearchPara
   advance(now);
   const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
   const account = () => ({ id: s.account.profile.id, email: s.account.profile.email, name: s.account.profile.name });
-  if (method === "GET" && path === "/v1/auth/providers") return { providers: ["google", "x", "apple", "email"].map((id) => ({ id, enabled: true })) };
+  if (method === "GET" && path === "/v1/auth/providers") return { providers: ["google", "apple", "email"].map((id) => ({ id, enabled: true })) };
   if (method === "GET" && path === "/v1/billing/catalog") return fixtureCatalog;
   if (method === "POST" && path === "/v1/auth/start") {
     if (typeof b.email !== "string" || !b.email.includes("@")) fail("Enter a valid email address.", 400, "invalid_email");

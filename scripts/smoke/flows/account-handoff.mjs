@@ -63,7 +63,7 @@ await runFlow(flow, async () => {
     return `providers: ${providers.join(", ")}`;
   }, { critical: true });
 
-  if (!flag("--no-providers")) for (const provider of ["google", "x", "apple"]) {
+  if (!flag("--no-providers")) for (const provider of ["google", "apple"]) {
     await flow.step(`provider-${provider}`, `${provider} opens the website's provider start with this app's code`, async (entry) => {
       if (!(await flow.evaluate(`Boolean(document.querySelector('[data-funnel-provider="${provider}"]'))`))) throw flow.skip(`no ${provider} button`);
       const since = Date.now();

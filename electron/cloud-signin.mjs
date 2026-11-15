@@ -72,7 +72,7 @@ export const APP_START = "/v1/auth/app/start";
 export const APP_TOKEN = "/v1/auth/app/token";
 export const APP_PROVIDERS = "/v1/auth/providers";
 export const APP_LINK = "duskbot://auth";
-export const LINK_PROVIDERS = Object.freeze(["google", "apple", "x"]);
+export const LINK_PROVIDERS = Object.freeze(["google", "apple"]);
 /** How long the browser has to come back: the service keeps an app flow 10 minutes. */
 export const LINK_MS = 600_000;
 

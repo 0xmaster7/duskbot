@@ -7,7 +7,6 @@ export interface EmailConfig {
   site: string;
   /** the account page (publicUrl plus page base): billing, cloud, devices */
   app: string;
-  x: string;
   /** the postal address legal wants in marketing mail; null leaves the line out */
   address: string | null;
 }
@@ -221,7 +220,7 @@ const darkCss = `
 export function render(cfg: EmailConfig, email: Email): Rendered {
   const fonts = `@font-face { font-family: 'General Sans'; src: url(${cfg.assets}/fonts/general-sans.woff2) format('woff2'); font-weight: 200 700; }
 @font-face { font-family: 'Geist Mono'; src: url(${cfg.assets}/fonts/geist-mono.woff2) format('woff2'); font-weight: 100 900; }`;
-  const links: Array<[string, string]> = [["help", `${cfg.site}/docs`], ["x", cfg.x], ["privacy", `${cfg.site}/privacy`]];
+  const links: Array<[string, string]> = [["help", `${cfg.site}/docs`], ["privacy", `${cfg.site}/privacy`]];
   if (email.unsubscribe) links.push(["unsubscribe", email.unsubscribe]);
   if (email.transactional) links.length = 0;
   const html = `<!doctype html>

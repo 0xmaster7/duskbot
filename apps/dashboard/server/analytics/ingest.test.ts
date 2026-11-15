@@ -272,7 +272,7 @@ describe("site tracker and app ingest", () => {
   it("takes the app's account sign-in funnel steps, and keeps only the name of one carrying anything else", async () => {
     const install = "inst_0123456789abcdef";
     const action = (props: Record<string, unknown>) => ({ name: "app_action", props: { name: "account_sign_in", ...props } });
-    const events = [action({ step: "shown" }), action({ step: "method", method: "google", via: "browser" }), action({ step: "handoff", method: "x", via: "browser" }),
+    const events = [action({ step: "shown" }), action({ step: "method", method: "google", via: "browser" }), action({ step: "handoff", method: "apple", via: "browser" }),
       action({ step: "returned", method: "apple", via: "browser" }), action({ step: "cancelled", method: "email", via: "link" }), action({ step: "skipped" }),
       action({ step: "error", method: "email", via: "code", code: "wrong_code" }),
       action({ step: "error", method: "email", code: "failed", email: "someone@example.test" }), action({ step: "error", code: "tok_abc123" }), action({ step: "teleported" })];
@@ -281,7 +281,7 @@ describe("site tracker and app ingest", () => {
     await settle();
     expect(sink.all.map(event => [event.name, event.props])).toEqual([
       ["app_action", { name: "account_sign_in", step: "shown" }], ["app_action", { name: "account_sign_in", step: "method", method: "google", via: "browser" }],
-      ["app_action", { name: "account_sign_in", step: "handoff", method: "x", via: "browser" }], ["app_action", { name: "account_sign_in", step: "returned", method: "apple", via: "browser" }],
+      ["app_action", { name: "account_sign_in", step: "handoff", method: "apple", via: "browser" }], ["app_action", { name: "account_sign_in", step: "returned", method: "apple", via: "browser" }],
       ["app_action", { name: "account_sign_in", step: "cancelled", method: "email", via: "link" }], ["app_action", { name: "account_sign_in", step: "skipped" }],
       ["app_action", { name: "account_sign_in", step: "error", method: "email", via: "code", code: "wrong_code" }],
       // an email, a free-form code or an unknown step drops the whole signal to its name

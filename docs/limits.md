@@ -23,7 +23,7 @@ Short version:
 | Sign-in emails, everyone together | 120 an hour, 250 a day (`DUSK_AUTH_MAIL_PER_HOUR`, `DUSK_AUTH_MAIL_PER_DAY`) | same, and one incident email a day | same |
 | Share of the day for new addresses | 80% (200 of 250); the rest is kept for people who already have an account | new addresses wait until tomorrow | same |
 | Wrong code guesses | 5 per code, codes live 10 min, 600 checks an hour per ip | code is dead / 429 | `shared/account-api.ts`, `auth/index.ts` |
-| Google / X sign-in starts | 600 an hour per ip | 429 | `auth/index.ts` |
+| Google / Apple sign-in starts | 600 an hour per ip | 429 | `auth/index.ts` |
 | Desktop sign-in (device code) | 300 an hour per ip | 429 | same |
 | Web sessions / app sessions | 30 days / 90 days (renewed while used) | signed out | same |
 

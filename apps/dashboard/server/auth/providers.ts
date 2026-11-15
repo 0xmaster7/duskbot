@@ -4,7 +4,7 @@ import { OAUTH_PROVIDERS, type OAuthProvider } from "../../../../shared/account-
 import { createJwtVerifier, decodeJws, fetchJson, signEs256Jwt } from "./jwt.ts";
 
 export interface ProviderConfig {
-  clientId: string; clientSecret?: string; authorizeUrl: string; tokenUrl: string; revokeUrl?: string; jwksUrl?: string; issuers?: string[]; userUrl?: string; scopes: string;
+  clientId: string; clientSecret?: string; authorizeUrl: string; tokenUrl: string; revokeUrl?: string; jwksUrl?: string; issuers?: string[]; scopes: string;
   apple?: { teamId: string; keyId: string; privateKey: string };
   /** apple: the native apps' bundle ids (bot.dusk.mobile) whose identity tokens /api/cloud/app/sign-in/apple accepts */
   nativeClientIds?: string[];
@@ -13,7 +13,7 @@ export type ProviderConfigs = Partial<Record<OAuthProvider, ProviderConfig>>;
 /** `refreshToken`: Apple's, kept (sealed) only so the account's deletion can revoke it, with the client id that got it
  *  (`refreshClient`: the website's services id, or the iphone app's bundle id); `privateEmail`: an apple private relay
  *  address, which only gets mail from a registered email source (account@dusk.bot) */
-/** `picture`: the provider's https profile photo (google, x); apple shares none */
+/** `picture`: the provider's https profile photo (google); apple shares none */
 export interface ProviderProfile { subject: string; email: string | null; label: string | null; name: string | null; picture?: string | null; refreshToken?: string; refreshClient?: string; privateEmail?: boolean }
 export interface NativeAppleInput { identityToken: string; authorizationCode: string; nonce: string; givenName?: string | null; familyName?: string | null }
 export interface Provider {
@@ -27,7 +27,6 @@ export interface Provider {
 const defaults = {
   google: { authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth", tokenUrl: "https://oauth2.googleapis.com/token", jwksUrl: "https://www.googleapis.com/oauth2/v3/certs", issuers: ["https://accounts.google.com", "accounts.google.com"], scopes: "openid email profile" },
   apple: { authorizeUrl: "https://appleid.apple.com/auth/authorize", tokenUrl: "https://appleid.apple.com/auth/token", revokeUrl: "https://appleid.apple.com/auth/revoke", jwksUrl: "https://appleid.apple.com/auth/keys", issuers: ["https://appleid.apple.com"], scopes: "name email" },
-  x: { authorizeUrl: "https://x.com/i/oauth2/authorize", tokenUrl: "https://api.x.com/2/oauth2/token", userUrl: "https://api.x.com/2/users/me?user.fields=confirmed_email,profile_image_url", scopes: "users.read tweet.read" },
 };
 const text = (value: unknown, max: number) => typeof value === "string" && value.trim() && value.trim().length <= max && !Array.from(value).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) ? value.trim() : null;
 /** an https photo address the app may show: no credentials, no port games, at most 1024 characters */
@@ -68,28 +67,17 @@ export function createProviderRegistry(configs: ProviderConfigs = {}, options: {
         for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
         if (id === "apple") url.searchParams.set("response_mode", "form_post");
         else { url.searchParams.set("code_challenge", createHash("sha256").update(verifier).digest("base64url")); url.searchParams.set("code_challenge_method", "S256"); }
-        if (id !== "x") url.searchParams.set("nonce", nonce);
+        url.searchParams.set("nonce", nonce);
         return url.href;
       },
       async profile({ code, nonce, verifier, redirectUri, user }) {
         const body = new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: redirectUri });
         const headers: Record<string, string> = { "content-type": "application/x-www-form-urlencoded" };
-        if (id === "x" && config.clientSecret) headers.authorization = `Basic ${Buffer.from(`${encodeURIComponent(config.clientId)}:${encodeURIComponent(config.clientSecret)}`).toString("base64")}`;
-        else body.set("client_id", config.clientId);
+        body.set("client_id", config.clientId);
         if (id !== "apple") body.set("code_verifier", verifier);
         if (id === "apple") body.set("client_secret", appleSecret());
         else if (id === "google" && config.clientSecret) body.set("client_secret", config.clientSecret);
         const tokens = await fetchJson(request, config.tokenUrl, { method: "POST", headers, body: body.toString() });
-        if (id === "x") {
-          if (typeof tokens.access_token !== "string" || !tokens.access_token || !config.userUrl) throw new Error("Invalid provider token.");
-          const result = await fetchJson(request, config.userUrl, { headers: { authorization: `Bearer ${tokens.access_token}` } });
-          const data = result.data as Record<string, unknown> | undefined;
-          if (!data || !text(data.id, 256)) throw new Error("Invalid provider subject.");
-          // x does not vouch that the address is still the person's today: it never links or creates an account by itself
-          // x's profile_image_url is its 48px "_normal" size; the same address with "_400x400" is the full one
-          const picture = pictureUrl(typeof data.profile_image_url === "string" ? data.profile_image_url.replace(/_normal(\.[a-z]+)$/i, "_400x400$1") : null);
-          return { subject: data.id as string, email: null, label: text(data.username, 100), name: text(data.name, 80), picture };
-        }
         if (typeof tokens.id_token !== "string" || !config.jwksUrl || !config.issuers) throw new Error("Missing identity token.");
         const claims = await verifyJwt(tokens.id_token, { jwksUrl: config.jwksUrl, issuers: config.issuers, clientId: config.clientId, nonce, algorithms: ["RS256"] });
         if (!text(claims.sub, 256)) throw new Error("Invalid provider subject.");
@@ -142,7 +130,6 @@ export function providersFromEnv(env: NodeJS.ProcessEnv): ProviderConfigs {
     if (!Object.keys(env).some(key => key.startsWith(prefix) && env[key] !== undefined)) continue;
     const clientId = required(`${prefix}CLIENT_ID`);
     if (id === "google") configs.google = { ...defaults.google, clientId, clientSecret: required(`${prefix}CLIENT_SECRET`) };
-    else if (id === "x") configs.x = { ...defaults.x, clientId, ...(env.DUSK_AUTH_X_CLIENT_SECRET ? { clientSecret: env.DUSK_AUTH_X_CLIENT_SECRET } : {}), scopes: env.DUSK_AUTH_X_SCOPES?.trim() || defaults.x.scopes };
     else {
       const teamId = required(`${prefix}TEAM_ID`), keyId = required(`${prefix}KEY_ID`);
       let privateKey: string;

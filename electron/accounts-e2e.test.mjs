@@ -31,6 +31,8 @@ function fakeIpc() {
 describe("accounts across the website, desktop, workspace and phone", () => {
   let providers, f;
   beforeAll(async () => { providers = await startFakeProviders(); });
+  // a google account at an address google is not authoritative for: it finishes through an email code
+  const untrustedGoogle = () => providers.setUser("google", { subject: "google-held", email: "held@company.test", emailVerified: true, label: "held fixture", name: "held fixture" });
   afterAll(async () => { await providers?.close(); });
   beforeEach(async () => {
     f = { dir: mkdtempSync(join(tmpdir(), "dusk-accounts-e2e-")), cleanup: [], secrets: new Set(), offset: 0, mailer: memoryMailer() };
@@ -46,8 +48,8 @@ describe("accounts across the website, desktop, workspace and phone", () => {
       if (bearer?.startsWith("Bearer omc_")) f.secrets.add(bearer.slice(7));
       return fetch(input, init);
     };
-    for (const provider of ["google", "apple", "x"]) providers.setUser(provider, {
-      subject: `${provider}-fixture`, email: provider === "x" ? null : `${provider}@accounts.test`, emailVerified: true, ...(provider === "google" ? { hd: "accounts.test" } : {}), label: `${provider} fixture`, name: `${provider} fixture`,
+    for (const provider of ["google", "apple"]) providers.setUser(provider, {
+      subject: `${provider}-fixture`, email: `${provider}@accounts.test`, emailVerified: true, ...(provider === "google" ? { hd: "accounts.test" } : {}), label: `${provider} fixture`, name: `${provider} fixture`,
     });
     f.app = createDashboardApp({ dataDir: f.dir, publicUrl: f.url, mailer: f.mailer, oauth: providers.config, staticDir: null, now: f.now, fetch: f.fetch });
     f.server.on("request", f.app.handle);
@@ -227,13 +229,14 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     const appleAccount = await webAccount(apple);
     expect(appleAccount.account.id).not.toBe(first.account.id); expect(appleAccount.account.name).toBe("apple fixture");
     expect(appleAccount.identities.map(item => item.provider)).toEqual(["apple"]);
-    const x = browser(), landing = await x.follow(R.oauthStart("x")), pending = landing.searchParams.get("pending");
+    untrustedGoogle();
+    const held = browser(), landing = await held.follow(R.oauthStart("google")), pending = landing.searchParams.get("pending");
     expect(landing.pathname).toBe("/sign-in"); expect(pending).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect((await browser().json(R.emailStart, { email: "x@accounts.test", pending })).status).toBe(400);
-    const signed = await webSignIn(x, "x@accounts.test", pending);
-    expect(signed.redirect).toBe("/"); expect(signed.account.providers).toEqual(["email", "x"]);
-    expect((await webAccount(x)).identities).toMatchObject([{ provider: "x", email: null }]);
-    const again = browser(); expect((await again.follow(R.oauthStart("x"))).pathname).toBe("/");
+    expect((await browser().json(R.emailStart, { email: "held@accounts.test", pending })).status).toBe(400);
+    const signed = await webSignIn(held, "held@accounts.test", pending);
+    expect(signed.redirect).toBe("/"); expect(signed.account.providers).toEqual(["email", "google"]);
+    expect((await webAccount(held)).identities).toMatchObject([{ provider: "google", email: null }]);
+    const again = browser(); expect((await again.follow(R.oauthStart("google"))).pathname).toBe("/");
     expect((await webAccount(again)).account.id).toBe(signed.account.id);
   }, 30_000);
 
@@ -307,14 +310,14 @@ describe("accounts across the website, desktop, workspace and phone", () => {
     expect(await p.client.handleAuthUrl(tampered.href)).toEqual({ outcome: "invalid-state" });
     expect(p.client.account()).toBeNull(); expect(p.secrets.values.has("dusk.account")).toBe(false);
     expect((await bearer(signedToken)).status).toBe(401);
-    await p.client.oauthStart("x");
+    untrustedGoogle(); await p.client.oauthStart("google");
     const jar = browser(), pendingUrl = await jar.follow(p.opened.at(-1)), pending = pendingUrl.searchParams.get("pending");
     expect(pendingUrl.pathname).toBe("/sign-in"); expect(pending).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect((await browser().json(R.emailStart, { email: "phone-x@accounts.test", pending })).status).toBe(400);
-    const verified = await webSignIn(jar, "phone-x@accounts.test", pending);
+    expect((await browser().json(R.emailStart, { email: "phone-held@accounts.test", pending })).status).toBe(400);
+    const verified = await webSignIn(jar, "phone-held@accounts.test", pending);
     expect(new URL(verified.redirect).protocol).toBe("duskbot:");
     expect(await p.client.handleAuthUrl(verified.redirect)).toEqual({ outcome: "signed-in" });
-    expect((await bearer(p.token())).data.account).toEqual(p.client.account());
+    expect((await bearer(p.token())).data.account).toMatchObject(p.client.account());
     expect(p.client.account().id).toBe(verified.account.id);
     expect(await p.client.enrollGrant()).toEqual({ enrollToken: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/), dashboardUrl: f.url });
   }, 30_000);

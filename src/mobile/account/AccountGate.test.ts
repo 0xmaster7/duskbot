@@ -111,10 +111,10 @@ const providers = (...enabled: string[]) => response({ v: 1, signupOpen: true, p
 const buttons = () => [...host.querySelectorAll("button")].map(button => button.textContent ?? "");
 
 it("an iPhone offers another company's sign-in only beside Sign in with Apple, and Apple leads", () => {
-  expect(providersFor("ios", ["google", "apple", "x"])).toEqual(["apple", "google", "x"]);
-  expect(providersFor("ios", ["google", "x"])).toEqual([]);
+  expect(providersFor("ios", ["google", "apple"])).toEqual(["apple", "google"]);
+  expect(providersFor("ios", ["google"])).toEqual([]);
   expect(providersFor("ios", [])).toEqual([]);
-  expect(providersFor("android", ["google", "x"])).toEqual(["google", "x"]);
+  expect(providersFor("android", ["google"])).toEqual(["google"]);
 });
 it("shows only the sign-in buttons the service has switched on, all with the same weight", async () => {
   fetcher.mockResolvedValue(providers("google", "apple"));

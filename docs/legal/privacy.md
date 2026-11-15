@@ -1,6 +1,6 @@
 ## Privacy policy and controller
 
-Effective date: 12 November 2026. Last updated: 13 November 2026.
+Effective date: 12 November 2026. Last updated: 15 November 2026.
 
 dusk bot, the operator of the services (“dusk bot”, “we” or “us”), is the controller for personal data processed through the dusk bot services described here. You can contact privacy@dusk.bot about your information or this policy. Our website is dusk.bot. Our optional account dashboard is dusk.bot/dashboard. Our link service is link.dusk.bot.
 
@@ -26,7 +26,7 @@ Scrubbing removes secrets, email addresses, web addresses, quoted text and perso
 
 ## Optional account service
 
-If you use the account dashboard at dusk.bot/dashboard, we store your email address and optional display name. For linked Google, Apple or X sign-in, we store the provider name, its account identifier and email address. Sign-in codes are emailed and kept in memory only.
+If you use the account dashboard at dusk.bot/dashboard, we store your email address and optional display name. For linked Google or Apple sign-in, we store the provider name, its account identifier and email address. Sign-in codes are emailed and kept in memory only.
 
 Sign-in session records contain your device name, platform, app version, creation time and last-seen time. We store only a hash of the session token. The hash lets the service check a session without storing the original token in its session records.
 
@@ -86,7 +86,7 @@ Server access logs include IP addresses. We keep them for 14 days for security a
 
 Where GDPR applies, we rely on the following legal bases. Contract covers processing needed to provide the services you request. This includes account sign-in, linked workspace reporting, paid plan administration, cloud hosting, pairing, push delivery and connected-app actions.
 
-Legitimate interests cover keeping services secure, preventing abuse and diagnosing errors. We consider your rights when relying on these interests. You can object to processing based on legitimate interests. Product analytics, including the descriptions of how sessions went, rely on legitimate interests in understanding and improving dusk bot, and you can switch them off at any time as described under Product analytics. Consent applies to the waitlist and to optional sign-in with Google, Apple or X. You withdraw it by unsubscribing from the waitlist or unlinking the sign-in method on your Account page. Withdrawing consent does not affect earlier lawful processing.
+Legitimate interests cover keeping services secure, preventing abuse and diagnosing errors. We consider your rights when relying on these interests. You can object to processing based on legitimate interests. Product analytics, including the descriptions of how sessions went, rely on legitimate interests in understanding and improving dusk bot, and you can switch them off at any time as described under Product analytics. Consent applies to the waitlist and to optional sign-in with Google or Apple. You withdraw it by unsubscribing from the waitlist or unlinking the sign-in method on your Account page. Withdrawing consent does not affect earlier lawful processing.
 
 Legal obligations apply to payment records: Dodo Payments keeps invoices and transaction records as merchant of record, and we keep our billing records (plans, amounts and payment identifiers) for as long as tax and accounting law requires. We do not use your data for ads, and our product analytics stay first-party, as described below. We do not collect your message content on our account or link services. Your own dusk cloud desktop and the optional tool traffic described above have separate processing roles.
 
@@ -94,7 +94,7 @@ Legal obligations apply to payment records: Dodo Payments keeps invoices and tra
 
 We use a small number of service providers to run dusk bot: Contabo (hosting), Cloudflare (proxy, DNS, connected-apps broker, cloud edge, email forwarding and encrypted backup storage), Oracle Cloud (encrypted backup storage), InstaBox on Amazon Web Services (dusk cloud desktops), Dodo Payments (payments), Brevo (email and the waitlist), Composio (connected apps), Apple and Google (push notifications), Spaceship (domain registrar) and Let's Encrypt (TLS certificates). The [subprocessors page](subprocessors.md) lists each one with its purpose, the data involved and where it processes data.
 
-Dodo Payments acts as merchant of record and is an independent controller for the payment data it collects. Google, Apple and X are independent controllers for the sign-in data they hold about you. The other providers process data on our behalf as sub-processors. A provider's company location does not establish where all processing occurs.
+Dodo Payments acts as merchant of record and is an independent controller for the payment data it collects. Google and Apple are independent controllers for the sign-in data they hold about you. The other providers process data on our behalf as sub-processors. A provider's company location does not establish where all processing occurs.
 
 AI model providers you choose have a direct relationship with you. They are not our sub-processors. On dusk cloud, the cloud desktop connects to the providers you sign in to. You still use your own provider account and their terms apply; those connections are part of operating your hosted desktop.
 

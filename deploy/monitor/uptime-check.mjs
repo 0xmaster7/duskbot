@@ -88,7 +88,7 @@ export function decide(state, results, cfg, time) {
   return { down, recovered };
 }
 
-const EMAIL_CFG = { assets: "https://dusk.bot/email", site: "https://dusk.bot", app: "https://dusk.bot/dashboard", x: "https://x.com/duskbot_hq", address: null };
+const EMAIL_CFG = { assets: "https://dusk.bot/email", site: "https://dusk.bot", app: "https://dusk.bot/dashboard", address: null };
 const REASON = "you got this because your address is in DUSK_ALERT_TO on the oracle uptime checker.";
 const PANEL = "https://dusk.bot/admin/health";
 

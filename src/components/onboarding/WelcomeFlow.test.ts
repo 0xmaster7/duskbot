@@ -479,17 +479,17 @@ describe("on the desktop app", () => {
     expect(step()).toBe("account");
   });
 
-  it("shows Google, Apple and X with the email from the first frame, and only takes away what the service doesn't offer", async () => {
+  it("shows Google and Apple with the email from the first frame, never X, and only takes away what the service doesn't offer", async () => {
     let answer: (value: { providers: string[]; recovery: boolean }) => void = () => {};
     desktop({ accountGate: { state: async () => ({ required: false, blocked: false, status: "signed-out" }), options: () => new Promise((done) => { answer = done; }), onChange: () => () => {} } });
     await show({ initialBeat: "account" });
     expect(step()).toBe("account");
     const shown = () => [...document.body.querySelectorAll("[data-funnel-provider]")].map((one) => one.getAttribute("data-funnel-provider"));
-    expect(shown(), "before the service has answered").toEqual(["google", "apple", "x"]);
+    expect(shown(), "before the service has answered").toEqual(["google", "apple"]);
     expect(document.body.querySelector("input[type=email]")).not.toBeNull();
     await act(async () => { answer({ providers: ["google", "apple", "x"], recovery: true }); });
     await settle();
-    expect(shown(), "nothing moves when the service agrees").toEqual(["google", "apple", "x"]);
+    expect(shown(), "nothing moves when the service agrees, and an X it still lists is not shown").toEqual(["google", "apple"]);
   });
 
   it("where the install requires an account, asks for it by Google or an emailed code, and goes on once signed in", async () => {

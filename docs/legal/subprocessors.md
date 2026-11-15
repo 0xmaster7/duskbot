@@ -1,6 +1,6 @@
 ## Subprocessors
 
-Effective date: 12 November 2026. Last updated: 13 November 2026.
+Effective date: 12 November 2026. Last updated: 15 November 2026.
 
 These are the service providers dusk bot uses to run its services, what each one does and what data it handles. Our [privacy policy](privacy.md) explains the data in more detail. A provider's company location does not establish where all of its processing occurs.
 
@@ -28,7 +28,7 @@ These providers are not our sub-processors. They act under their own terms and p
 | Name | Role | Data involved |
 | --- | --- | --- |
 | Dodo Payments | Merchant of record for paid plans: payments, tax and invoices | Billing details, card data and transaction records. We never receive card numbers. |
-| Google, Apple and X | Optional sign-in to your dusk bot account | Your account identifier and email address at that provider |
+| Google and Apple | Optional sign-in to your dusk bot account | Your account identifier and email address at that provider |
 | Your AI providers | The AI engines you choose, such as Anthropic, OpenAI, Google or xAI | Your prompts and replies, sent directly from the machine running your bots under your own account |
 
 ## Not used

@@ -196,8 +196,8 @@ Two runs drive real clients:
 
 | Item | Status | Notes |
 |---|---|---|
-| Third-party sign-in offered | conditional | Google and X show only if the service has them on |
-| Sign in with Apple beside them | **fixed** in the app, **needs owner** on the service | the iPhone app hides Google and X unless Apple is on too (`providersFor`, tested). Configure Apple on the account service before turning the others on |
+| Third-party sign-in offered | conditional | Google shows only if the service has it on |
+| Sign in with Apple beside them | **fixed** in the app, **needs owner** on the service | the iPhone app hides Google unless Apple is on too (`providersFor`, tested). Configure Apple on the account service before turning the others on |
 | Apple's button | **fixed** | Apple's mark, "Continue with Apple", white fill, first in the list on iPhone |
 | Account creation in the app | yes | the email code creates an account when sign-up is open |
 | Account deletion in the app | **fixed** to the allowed minimum, **needs owner** for better | Settings, Account, Delete account: a confirm page, then the account page's delete section on the web (Apple allows finishing on the web with a direct link). See the 3.1.1 row above |

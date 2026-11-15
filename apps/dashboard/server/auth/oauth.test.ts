@@ -50,6 +50,8 @@ describe("OAuth over isolated HTTP", () => {
     browser.read(res); return res;
   }
   const location = (response: Response) => { expect(response.status).toBe(302); return response.headers.get("location")!; };
+  // a google account at an address google is not authoritative for (no gmail, no hd): it goes through an email code
+  const untrusted = () => fake.setUser("google", { subject: "google-pending", email: "sid@company.test", emailVerified: true, label: "Pending Fixture", name: "Pending Fixture" });
   async function authorization(provider: OAuthProvider, query = "") {
     const start = await call(`/v1/auth/oauth/${provider}/start${query}`);
     const authorizeUrl = location(start);
@@ -169,33 +171,24 @@ describe("OAuth over isolated HTTP", () => {
     restart({ oauth: { ...fake.config, apple: { ...fake.config.apple!, apple: { ...fake.config.apple!.apple!, privateKey: key } } } });
     expect(error(await oauth("apple"))).toBe("oauth_failed");
   });
-  it("completes X without email through an email code, attaches once, and signs in directly next time", async () => {
-    const target = new URL(location(await oauth("x", "?next=/account")), url), pending = target.searchParams.get("pending")!;
-    const verified = await emailLogin("x-owner@example.test", pending); expect(verified.status).toBe(200);
+  it("completes a Google sign-in without a trusted email through an email code, attaches once, and signs in directly next time", async () => {
+    untrusted();
+    const target = new URL(location(await oauth("google", "?next=/account")), url), pending = target.searchParams.get("pending")!;
+    const verified = await emailLogin("pending-owner@example.test", pending); expect(verified.status).toBe(200);
     const signed = await verified.json() as WebSignInAnswer;
-    expect(signed.redirect).toBe("/account"); expect(signed.account.providers).toEqual(["email", "x"]);
-    expect((await account()).identities).toMatchObject([{ provider: "x", email: null, label: "sid_fixture" }]);
+    expect(signed.redirect).toBe("/account"); expect(signed.account.providers).toEqual(["email", "google"]);
+    expect((await account()).identities).toMatchObject([{ provider: "google", email: null, label: "Pending Fixture" }]);
     expect((await call("/v1/auth/start", { email: "other@example.test", pending })).status).toBe(400);
-    jar = new CookieJar(); expect(location(await oauth("x"))).toBe("/"); expect((await account()).account.id).toBe(signed.account.id);
+    jar = new CookieJar(); expect(location(await oauth("google"))).toBe("/"); expect((await account()).account.id).toBe(signed.account.id);
   });
   it("finishes a pending identity only in the browser that signed in to the provider", async () => {
-    const pending = new URL(location(await oauth("x")), url).searchParams.get("pending")!;
+    untrusted(); const pending = new URL(location(await oauth("google")), url).searchParams.get("pending")!;
     // the pending link sent to someone else: their browser has no binding cookie, so it cannot attach the attacker's identity
     expect((await call("/v1/auth/start", { email: "victim@example.test", pending }, {}, "POST", new CookieJar())).status).toBe(400);
     const started = await call("/v1/auth/start", { email: "owner-x@example.test", pending }); expect(started.status).toBe(200);
     const { attempt } = await started.json() as { attempt: string };
     const code = /\b\d{8}\b/.exec(mailer.outbox.at(-1)!.text)![0];
     expect((await call("/v1/auth/verify", { attempt, code }, {}, "POST", new CookieJar())).status).toBe(410);
-  });
-  it("never links or creates by an X confirmed_email and supports a public client", async () => {
-    const owner = await (await emailLogin("upper@example.test")).json() as WebSignInAnswer;
-    jar = new CookieJar();
-    fake.setUser("x", { subject: "x-email", email: "UPPER@example.test", label: "handle", name: "X Name" });
-    delete fake.config.x!.clientSecret; restart({ oauth: fake.config });
-    const target = new URL(location(await oauth("x")), url);
-    expect(target.pathname).toBe("/sign-in"); expect(target.searchParams.get("pending")).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect((await call("/v1/me")).status).toBe(401);
-    expect(owner.account.providers).toEqual(["email"]);
   });
   it("links a Google address only where Google is authoritative (gmail or a workspace hd)", async () => {
     const victim = await (await emailLogin("person@company.test")).json() as WebSignInAnswer;
@@ -214,7 +207,7 @@ describe("OAuth over isolated HTTP", () => {
     expect(location(await oauth("google"))).toBe("/");
     expect((await account()).account.email).toBe("someone@gmail.com");
   });
-  it.each(["google", "apple", "x"] as const)("maps %s denial and clears the binding", async provider => {
+  it.each(["google", "apple"] as const)("maps %s denial and clears the binding", async provider => {
     fake.deny(provider); const response = await oauth(provider, "?next=/account");
     expect(error(response)).toBe("oauth_denied"); expect(new URL(location(response), url).searchParams.get("next")).toBe("/account");
     expect(jar.values.has("dusk_oauth")).toBe(false);
@@ -227,7 +220,7 @@ describe("OAuth over isolated HTTP", () => {
   });
   it("refuses replay, mismatched providers, duplicate parameters, and expired state", async () => {
     const auth = await authorization("google"); await callback(auth); expect(error(await callback(auth))).toBe("oauth_failed");
-    const mismatched = await authorization("google"); mismatched.callback = mismatched.callback.replace("/google/callback", "/x/callback"); expect(error(await callback(mismatched))).toBe("oauth_failed");
+    const mismatched = await authorization("google"); mismatched.callback = mismatched.callback.replace("/google/callback", "/apple/callback"); expect(error(await callback(mismatched))).toBe("oauth_failed");
     const duplicate = await authorization("google"); duplicate.callback += "&code=other"; expect(error(await callback(duplicate))).toBe("oauth_failed");
     const expired = await authorization("google"); time += 600_000; expect(error(await callback(expired))).toBe("oauth_expired");
   });
@@ -241,7 +234,7 @@ describe("OAuth over isolated HTTP", () => {
   it("reuses a well-formed binding across starts and sets HTTPS cross-site cookie flags", async () => {
     const first = await call("/v1/auth/oauth/google/start"), binding = jar.values.get("dusk_oauth");
     expect(first.headers.getSetCookie()[0]).toContain("HttpOnly; Path=/v1/auth; Max-Age=600; SameSite=Lax");
-    await call("/v1/auth/oauth/x/start"); expect(jar.values.get("dusk_oauth")).toBe(binding);
+    await call("/v1/auth/oauth/apple/start"); expect(jar.values.get("dusk_oauth")).toBe(binding);
     restart({ publicUrl: "https://accounts.example.test" });
     const secure = await call("/v1/auth/oauth/apple/start"); expect(secure.headers.getSetCookie()[0]).toContain("SameSite=None; Secure");
   });
@@ -280,49 +273,46 @@ describe("OAuth over isolated HTTP", () => {
     expect(error(await callback(auth))).toBe("oauth_failed");
   });
   it("refuses a pending identity that another email account claimed in the meantime", async () => {
-    const first = new URL(location(await oauth("x")), url).searchParams.get("pending")!;
-    const second = new URL(location(await oauth("x")), url).searchParams.get("pending")!;
+    untrusted();
+    const first = new URL(location(await oauth("google")), url).searchParams.get("pending")!;
+    const second = new URL(location(await oauth("google")), url).searchParams.get("pending")!;
     await emailLogin("first@example.test", first);
     const response = await emailLogin("second@example.test", second); expect(response.status).toBe(409); expect(await response.json()).toMatchObject({ code: "identity_taken" });
     app.close(); expect(JSON.parse(readFileSync(`${dataDir}/auth.json`, "utf8")).accounts).toHaveLength(1);
   });
   it("expires pending identities and preserves closed-signup behavior", async () => {
-    const pending = new URL(location(await oauth("x")), url).searchParams.get("pending")!;
-    time += 900_000; expect((await call("/v1/auth/start", { email: "x@example.test", pending })).status).toBe(400);
+    untrusted(); const pending = new URL(location(await oauth("google")), url).searchParams.get("pending")!;
+    time += 900_000; expect((await call("/v1/auth/start", { email: "pending@example.test", pending })).status).toBe(400);
     time = Date.now();
     const signed = await (await emailLogin()).json() as WebSignInAnswer;
+    fake.setUser("google", { subject: "google-sid", email: "sid@duskbot.test", emailVerified: true, hd: "duskbot.test", label: "Sid Fixture", name: "Sid Fixture" });
     restart({ signupOpen: false }); jar = new CookieJar(); await oauth("google"); expect((await account()).account.id).toBe(signed.account.id);
     expect(error(await oauth("apple"))).toBe("signup_closed");
-    const next = new URL(location(await oauth("x")), url).searchParams.get("pending")!;
+    untrusted(); const next = new URL(location(await oauth("google")), url).searchParams.get("pending")!;
     const start = await call("/v1/auth/start", { email: "new@example.test", pending: next }); expect(start.status).toBe(200);
     expect(mailer.outbox.some(message => message.to === "new@example.test")).toBe(false);
   });
-  it("gives the app the account's name and its google photo, and a later x sign-in's larger photo", async () => {
+  it("gives the app the account's name and its google photo", async () => {
     fake.setUser("google", { subject: "google-photo", email: "photo@gmail.com", emailVerified: true, label: "Photo Person", name: "Photo Person", picture: "https://lh3.googleusercontent.test/a/photo=s96-c" });
     const flow = await appAuthorization();
     const grant = await (await redeem(flow.target.searchParams.get("code")!, flow.verifier)).json() as AppGrant;
     expect(grant.account).toEqual({ id: grant.account.id, email: "photo@gmail.com", name: "Photo Person", avatarUrl: "https://lh3.googleusercontent.test/a/photo=s96-c" });
     const session = await call("/api/cloud/desktop/session", undefined, { authorization: `Bearer ${grant.accessToken}` });
     expect(await session.json()).toMatchObject({ account: grant.account });
-    await oauth("google");
-    fake.setUser("x", { subject: "x-photo", email: null, label: "photo", name: "X Photo", picture: "https://pbs.twimg.test/profile_images/1/me_normal.jpg" });
-    await oauth("x", "?link=1");
-    const again = await call("/api/cloud/desktop/session", undefined, { authorization: `Bearer ${grant.accessToken}` });
-    expect((await again.json() as AppGrant).account).toMatchObject({ name: "Photo Person", avatarUrl: "https://pbs.twimg.test/profile_images/1/me_400x400.jpg" });
   });
   it("keeps only https photos without credentials or ports", () => {
     expect(pictureUrl("https://lh3.googleusercontent.com/a/x=s96-c")).toBe("https://lh3.googleusercontent.com/a/x=s96-c");
     for (const bad of ["http://lh3.googleusercontent.com/a", "javascript:alert(1)", "https://user:pass@example.test/a.png", "https://example.test:8443/a.png", `https://example.test/${"a".repeat(1100)}`, 42, null]) expect(pictureUrl(bad), String(bad)).toBeNull();
   });
   it("advertises configured providers and hides unavailable ones in production", async () => {
-    expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple", "x"].map(id => ({ id, enabled: true, comingSoon: false })) });
+    expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple"].map(id => ({ id, enabled: true, comingSoon: false })) });
     restart({ oauth: {} }); expect(error(await call("/v1/auth/oauth/google/start?next=/account"))).toBe("provider_unavailable");
-    expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: true })) });
-    restart({ dev: false }); expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple", "x"].map(id => ({ id, enabled: false, comingSoon: false })) });
+    expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple"].map(id => ({ id, enabled: false, comingSoon: true })) });
+    restart({ dev: false }); expect(await (await call("/v1/auth/providers")).json()).toMatchObject({ providers: ["google", "apple"].map(id => ({ id, enabled: false, comingSoon: false })) });
   });
   it("limits OAuth starts per IP across app and web routes", async () => {
     for (let i = 0; i < AUTH_LIMITS.oauthPerIp; i++) expect((await call("/v1/auth/oauth/google/start")).status).toBe(302);
-    expect((await call("/v1/auth/oauth/x/start")).status).toBe(429);
+    expect((await call("/v1/auth/oauth/apple/start")).status).toBe(429);
     expect((await call("/v1/auth/app/start")).status).toBe(429);
   });
   it("exchanges an app deep-link code for an accepted mobile omc_ grant, without cookies", async () => {
@@ -345,13 +335,13 @@ describe("OAuth over isolated HTTP", () => {
     const malformed = await fetch(url + "/v1/auth/app/token", { method: "POST", body: "{" }); expect(malformed.status).toBe(400); expect(await malformed.json()).toEqual({ error: "invalid_grant" });
   });
   it("completes the app's pending email and returns a fresh PKCE deep link", async () => {
-    const flow = await appAuthorization("x"); expect(flow.target.pathname).toBe("/sign-in");
+    untrusted(); const flow = await appAuthorization(); expect(flow.target.pathname).toBe("/sign-in");
     const signed = await (await emailLogin("phone@example.test", flow.target.searchParams.get("pending")!)).json() as WebSignInAnswer;
     const deep = new URL(signed.redirect!); expect(deep.protocol).toBe("duskbot:"); expect(deep.searchParams.get("state")).toBe(flow.state);
     expect((await redeem(deep.searchParams.get("code")!, flow.verifier)).status).toBe(200);
   });
   it("ends a desktop sign-up that needed an email on the landing page, with the app's code in the fragment only", async () => {
-    const flow = await appAuthorization("x", { landing: "page" }); expect(flow.target.pathname).toBe("/sign-in");
+    untrusted(); const flow = await appAuthorization("google", { landing: "page" }); expect(flow.target.pathname).toBe("/sign-in");
     const signed = await (await emailLogin("new-desk@example.test", flow.target.searchParams.get("pending")!)).json() as WebSignInAnswer;
     const landing = new URL(signed.redirect!, url); expect(landing.pathname).toBe(APP_LANDING_PATH); expect(landing.search).toBe("");
     const fragment = new URLSearchParams(landing.hash.slice(1)); expect(fragment.get("state")).toBe(flow.state);
@@ -362,7 +352,7 @@ describe("OAuth over isolated HTTP", () => {
     expect(flow.target.protocol).toBe("duskbot:"); expect(flow.target.searchParams.get("error")).toBe("oauth_denied"); expect(flow.target.searchParams.get("state")).toBe(flow.state);
   });
   it.each([
-    { provider: "missing" }, { provider: "email" }, { code_challenge: "bad" }, { code_challenge_method: "plain" }, { state: "short" }, { state: "x".repeat(257) }, { redirect_uri: "https://evil.example" }, { redirect_uri: "duskbot://auth/" }, { link: "1" }, { landing: "app" },
+    { provider: "missing" }, { provider: "email" }, { provider: "x" }, { code_challenge: "bad" }, { code_challenge_method: "plain" }, { state: "short" }, { state: "x".repeat(257) }, { redirect_uri: "https://evil.example" }, { redirect_uri: "duskbot://auth/" }, { link: "1" }, { landing: "app" },
   ])("rejects invalid app authorization parameters %j", async change => {
     const params = new URLSearchParams({ provider: "google", code_challenge: random(), code_challenge_method: "S256", state: random(), redirect_uri: APP_AUTH_REDIRECT });
     for (const [key, value] of Object.entries(change)) if (value !== undefined) params.set(key, value);
@@ -377,7 +367,7 @@ describe("OAuth over isolated HTTP", () => {
     const client = desktop(true);
     try {
       await client.start();
-      expect(await client.signInOptions()).toEqual({ providers: ["google", "apple", "x"], recovery: true });
+      expect(await client.signInOptions()).toEqual({ providers: ["google", "apple"], recovery: true });
       expect(await client.begin({ plan: "pro", source: "app_settings" }, { provider: "google" })).toMatchObject({ status: "connecting", browser: "google" });
       expect(client.state().enrollment).toBeUndefined();
       const start = new URL(opened[0]!);
@@ -484,12 +474,12 @@ describe("OAuth over isolated HTTP", () => {
 });
 
 describe("provider environment configuration", () => {
-  it("loads production defaults, optional X auth and escaped Apple PEM without env URL overrides", () => {
+  it("loads production defaults and escaped Apple PEM without env URL overrides, and ignores X settings", () => {
     const key = generateKeyPairSync("ec", { namedCurve: "prime256v1" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
     const env = { DUSK_AUTH_GOOGLE_CLIENT_ID: "google", DUSK_AUTH_GOOGLE_CLIENT_SECRET: "secret", DUSK_AUTH_GOOGLE_TOKEN_URL: "https://evil.example", DUSK_AUTH_X_CLIENT_ID: "x", DUSK_AUTH_X_SCOPES: "users.read offline.access", DUSK_AUTH_APPLE_CLIENT_ID: "apple", DUSK_AUTH_APPLE_TEAM_ID: "team", DUSK_AUTH_APPLE_KEY_ID: "key", DUSK_AUTH_APPLE_PRIVATE_KEY: key.replace(/\n/g, "\\n") };
     const config = providersFromEnv(env);
     expect(config.google).toMatchObject({ tokenUrl: "https://oauth2.googleapis.com/token", scopes: "openid email profile" });
-    expect(config.x).toMatchObject({ clientId: "x", scopes: "users.read offline.access" }); expect(config.x?.clientSecret).toBeUndefined();
+    expect(Object.keys(config).sort()).toEqual(["apple", "google"]);
     expect(config.apple?.apple?.privateKey).toBe(key); expect(config.apple?.authorizeUrl).toBe("https://appleid.apple.com/auth/authorize");
     const dir = mkdtempSync(join(tmpdir(), "dusk-apple-key-"));
     try {
@@ -509,7 +499,6 @@ describe("provider environment configuration", () => {
   it.each([
     [{ DUSK_AUTH_GOOGLE_CLIENT_ID: "client" }, "DUSK_AUTH_GOOGLE_CLIENT_SECRET"],
     [{ DUSK_AUTH_GOOGLE_CLIENT_SECRET: "secret" }, "DUSK_AUTH_GOOGLE_CLIENT_ID"],
-    [{ DUSK_AUTH_X_CLIENT_SECRET: "secret" }, "DUSK_AUTH_X_CLIENT_ID"],
     [{ DUSK_AUTH_APPLE_CLIENT_ID: "client" }, "DUSK_AUTH_APPLE_TEAM_ID"],
     [{ DUSK_AUTH_APPLE_CLIENT_ID: "client", DUSK_AUTH_APPLE_TEAM_ID: "team" }, "DUSK_AUTH_APPLE_KEY_ID"],
     [{ DUSK_AUTH_APPLE_CLIENT_ID: "client", DUSK_AUTH_APPLE_TEAM_ID: "team", DUSK_AUTH_APPLE_KEY_ID: "key" }, "DUSK_AUTH_APPLE_PRIVATE_KEY"],

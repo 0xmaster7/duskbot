@@ -121,7 +121,7 @@ describe("browser sign-in", () => {
     expect(fetcher).not.toHaveBeenCalled(); expect(secrets.has("dusk.account.pending")).toBe(false);
   });
   it("refuses an old attempt", async () => {
-    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("dusk.account.pending")!); pending.at -= 15 * 60_000;
+    await client.oauthStart("google"); const pending = JSON.parse(secrets.get("dusk.account.pending")!); pending.at -= 15 * 60_000;
     secrets.set("dusk.account.pending", JSON.stringify(pending));
     expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "invalid-state" }); expect(fetcher).not.toHaveBeenCalled();
   });
@@ -133,12 +133,12 @@ describe("browser sign-in", () => {
     expect(client.account()).toEqual(grant().account); expect(secrets.has("dusk.account.pending")).toBe(false); expect(secrets.has("dusk.account")).toBe(true);
   });
   it.each(["oauth_denied", "oauth_failed", "oauth_expired", "provider_unavailable", "signup_closed", "identity_taken"])("surfaces provider error %s", async error => {
-    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("dusk.account.pending")!);
+    await client.oauthStart("google"); const pending = JSON.parse(secrets.get("dusk.account.pending")!);
     expect(await client.handleAuthUrl(`duskbot://auth?error=${error}&state=${pending.state}`)).toEqual({ outcome: error });
     expect(secrets.has("dusk.account.pending")).toBe(false); expect(fetcher).not.toHaveBeenCalled();
   });
   it("clears a pending attempt when code exchange fails", async () => {
-    await client.oauthStart("x"); const pending = JSON.parse(secrets.get("dusk.account.pending")!); fetcher.mockRejectedValue(new Error("offline"));
+    await client.oauthStart("google"); const pending = JSON.parse(secrets.get("dusk.account.pending")!); fetcher.mockRejectedValue(new Error("offline"));
     expect(await client.handleAuthUrl(`duskbot://auth?code=abc&state=${pending.state}`)).toEqual({ outcome: "failed" }); expect(secrets.has("dusk.account.pending")).toBe(false);
   });
 });

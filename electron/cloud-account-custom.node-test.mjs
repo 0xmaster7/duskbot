@@ -70,7 +70,7 @@ test("browser sign-in accepts the supported providers only after validating the 
   const f = await fixture(t);
   for (const provider of ["google", "apple", "x", "unknown", { provider: "google" }]) {
     await f.client.begin(null, { provider });
-    assert.equal(f.browsers.at(-1), typeof provider === "string" && ["google", "apple", "x"].includes(provider)
+    assert.equal(f.browsers.at(-1), typeof provider === "string" && ["google", "apple"].includes(provider)
       ? `${f.origin}/v1/auth/oauth/${provider}/start?next=${encodeURIComponent("/cloud/desktop?code=ABCDE-FGHJK")}` : `${f.origin}/cloud/desktop?code=ABCDE-FGHJK`);
     await f.client.cancel();
   }

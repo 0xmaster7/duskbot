@@ -1,5 +1,4 @@
 import { Apple, Mail } from "@/icons";
-import xLogo from "@/assets/app-logos/x.tile.svg";
 import type { IdentityProvider } from "../data/contracts";
 
 // google's published four-colour "G", as its sign-in branding guidelines ask for
@@ -14,11 +13,10 @@ function GoogleMark({ size }: { size: number }) {
   );
 }
 
-export const PROVIDER_NAME: Record<IdentityProvider, string> = { google: "google", x: "X", apple: "apple", email: "email" };
+export const PROVIDER_NAME: Record<IdentityProvider, string> = { google: "google", apple: "apple", email: "email" };
 
 export function ProviderMark({ provider, size = 18 }: { provider: IdentityProvider; size?: number }) {
   if (provider === "google") return <GoogleMark size={size} />;
-  if (provider === "x") return <img src={xLogo} alt="" width={size} height={size} className="rounded-[4px]" style={{ width: size, height: size }} aria-hidden />;
   if (provider === "apple") return <Apple size={size} strokeWidth={1.75} aria-hidden />;
   return <Mail size={size} strokeWidth={1.5} aria-hidden />;
 }

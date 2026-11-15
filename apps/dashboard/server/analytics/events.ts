@@ -44,7 +44,7 @@ const flag: Check = (value): value is boolean => typeof value === "boolean";
 const score: Check = (value): value is number => Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 5;
 
 export const EVENTS = {
-  signup: { source: "server", props: { method: oneOf("email", "google", "apple", "x") }, active: true },
+  signup: { source: "server", props: { method: oneOf("email", "google", "apple") }, active: true },
   sign_in: { source: "server", props: { kind: oneOf("web", "desktop", "mobile"), platform, appVersion: version }, active: true },
   /** the desktop or phone app signed in to the account, or a workspace was connected to it */
   app_paired: { source: "server", props: { via: oneOf("app", "workspace"), platform, kind: oneOf("mac", "vps", "linux", "windows") }, active: true },

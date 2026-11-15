@@ -104,8 +104,8 @@ and redirect (app to `/dashboard`, dev home, www to the apex); old `/app/...` an
 5. **Dodo Payments**: live mode products for each plan id in `shared/billing-api.ts`; webhook
    `https://dusk.bot/v1/billing/webhooks/dodo` with its secret; business verification and payout details
    (payment details are yours to enter).
-6. **Sign in with Google / Apple / X** (optional): register the callbacks
-   `https://dusk.bot/v1/auth/oauth/{google,apple,x}/callback` (and the preview.dusk.bot ones) and set the client names in the env file.
+6. **Sign in with Google / Apple** (optional): register the callbacks
+   `https://dusk.bot/v1/auth/oauth/{google,apple}/callback` (and the preview.dusk.bot ones) and set the client names in the env file.
 7. **Mailboxes**: done 2026-11-10: Cloudflare Email Routing forwards every @dusk.bot address (MX on Cloudflare).
 8. **Backups**: done 2026-11-13. `dusk-backup@dusk.timer` and `dusk-backup@make.timer` run daily (04:17 UTC + up to
    20 min) on the VPS; config in `/etc/dusk-backup/` (root-only: `<set>.env`, `rclone.conf`, `alert.env`,

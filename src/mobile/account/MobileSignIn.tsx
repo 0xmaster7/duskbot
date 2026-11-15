@@ -14,7 +14,7 @@ import { ErrorLine, FIELD, HEADLINE, LINE, PRIMARY, QUIET, TONAL } from "../onbo
 import { useMobileAccount } from "./AccountGate";
 import { MARKS } from "./marks";
 
-const PROVIDER_LABEL = { apple: "accountGate.apple", google: "accountGate.google", x: "accountGate.x" } as const;
+const PROVIDER_LABEL = { apple: "accountGate.apple", google: "accountGate.google" } as const;
 const CODE_LENGTH = 8;
 
 const digits = (value: string) => value.replace(/\D/g, "").slice(0, CODE_LENGTH);

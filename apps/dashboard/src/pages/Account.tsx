@@ -14,7 +14,7 @@ import { Field, Modal, Switch } from "../ui/controls";
 import { Button, ButtonLink, PageHeader, SectionTitle, Segmented, Skeleton } from "../ui/kit";
 import { useNow } from "../lib/now";
 
-const PROVIDERS: Array<{ id: IdentityProvider; label: string }> = [{ id: "google", label: "google" }, { id: "apple", label: "apple" }, { id: "x", label: "X" }, { id: "email", label: "email" }];
+const PROVIDERS: Array<{ id: IdentityProvider; label: string }> = [{ id: "google", label: "google" }, { id: "apple", label: "apple" }, { id: "email", label: "email" }];
 const NOTIFICATIONS: Array<{ id: keyof NotificationPrefs; label: string; hint: string }> = [
   { id: "cloudStatus", label: "dusk cloud status", hint: "when it is ready, or was set up again from a backup." },
   { id: "product", label: "product news", hint: "new features, a few times a year." },

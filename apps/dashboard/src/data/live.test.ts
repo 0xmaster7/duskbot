@@ -155,10 +155,9 @@ test("a managed cloud we put to sleep reads as live; the owner's pause, billing 
 });
 
 const account: AccountAnswer = {
-  account: { id: "account", email: "me@example.test", name: null, providers: ["google", "email", "x", "apple"], createdAt: 1000 },
+  account: { id: "account", email: "me@example.test", name: null, providers: ["google", "email", "apple"], createdAt: 1000 },
   identities: [
     { provider: "google", label: "My name", email: "google@example.test", addedAt: 2000 },
-    { provider: "x", label: null, email: "x@example.test", addedAt: 3000 },
     { provider: "apple", label: null, email: null, addedAt: 4000 },
   ],
   sessions: ["web", "desktop", "mobile"].map((kind, index) => ({ id: String(index), kind: kind as "web" | "desktop" | "mobile", name: `Device ${index}`, platform: "Platform", appVersion: null, createdAt: 1000, lastSeenAt: 5000, expiresAt: 10000, current: index === 0 })),
@@ -169,7 +168,7 @@ const account: AccountAnswer = {
 test("account prepends email, preserves OAuth identities, and maps devices, preferences and the onboarded mark", () => {
   const emptyStorage = { getItem: () => null };
   const result = accountFromWire(account, 5000, emptyStorage);
-  assert.deepEqual(result.identities, [{ provider: "email", label: "me@example.test", linkedAt: 1000 }, { provider: "google", label: "My name", linkedAt: 2000 }, { provider: "x", label: "x@example.test", linkedAt: 3000 }, { provider: "apple", label: "", linkedAt: 4000 }]);
+  assert.deepEqual(result.identities, [{ provider: "email", label: "me@example.test", linkedAt: 1000 }, { provider: "google", label: "My name", linkedAt: 2000 }, { provider: "apple", label: "", linkedAt: 4000 }]);
   assert.deepEqual(result.devices.map((device) => [device.kind, device.label, device.location, device.current]), [["browser", "Device 0", null, true], ["desktop", "Device 1", null, false], ["phone", "Device 2", null, false]]);
   assert.equal(result.profile.onboarded, false);
   assert.equal(result.profile.avatarUrl, null);

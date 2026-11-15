@@ -518,7 +518,7 @@ export function createCloudAccountClient({ store, openBrowser, platform, deviceN
         !desktopApprovalLink(result.verificationUriComplete, origin, result.userCode) || !Number.isSafeInteger(result.expiresIn) || result.expiresIn < 1 || result.expiresIn > MAX_ENROLL_SECONDS ||
         !Number.isSafeInteger(result.interval) || result.interval < 5 || result.interval > 60) throw new Error("Invalid Cloud authorization.");
       const next = "";
-      pending = { deviceCode: result.deviceCode, verificationUri: ["google", "apple", "x"].includes(provider) ? `${origin}/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(`/cloud/desktop?code=${result.userCode}`)}` : `${result.verificationUriComplete}${next}`, expiresAt: now() + result.expiresIn * 1000, interval: result.interval * 1000 };
+      pending = { deviceCode: result.deviceCode, verificationUri: ["google", "apple"].includes(provider) ? `${origin}/v1/auth/oauth/${provider}/start?next=${encodeURIComponent(`/cloud/desktop?code=${result.userCode}`)}` : `${result.verificationUriComplete}${next}`, expiresAt: now() + result.expiresIn * 1000, interval: result.interval * 1000 };
       publish({ status: "connecting", enrollment: { userCode: result.userCode, expiresAt: pending.expiresAt }, ...(magic ? { magic } : {}) });
       // a magic link: the person opens it from their mail, so no page opens here
       if (!magic) await openBrowser(pending.verificationUri);

@@ -5,7 +5,7 @@ import { randomBytes } from "node:crypto";
 import type { AccountIntent, NotificationPrefs, OAuthProvider, SessionView } from "../../../../shared/account-api.ts";
 
 /** `notifications`: only what the owner changed (NOTIFICATION_DEFAULTS fill the rest); `onboardedAt`: first-run steps done;
- *  `avatarUrl`: the photo of the newest google or x sign-in that had one; `avatar`: the person's choice of avatar
+ *  `avatarUrl`: the photo of the newest google sign-in that had one; `avatar`: the person's choice of avatar
  *  (shared/user-avatar.ts), absent for the default */
 export interface Account { id: string; email: string; name: string | null; avatarUrl?: string; avatar?: string; createdAt: number; notifications?: Partial<NotificationPrefs>; onboardedAt?: number;
   /** the app install whose sign-in made this account (its hand-back: the desktop sign-in code it opened the website with) */

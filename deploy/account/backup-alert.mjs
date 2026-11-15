@@ -21,7 +21,7 @@ export function decide(state, ok, time) {
 
 const days = ms => { const h = Math.round(ms / 3_600_000); return h < 48 ? `${h}h` : `${Math.round(h / 24)} days`; };
 
-const EMAIL_CFG = { assets: "https://dusk.bot/email", site: "https://dusk.bot", app: "https://dusk.bot/dashboard", x: "https://x.com/duskbot_hq", address: null };
+const EMAIL_CFG = { assets: "https://dusk.bot/email", site: "https://dusk.bot", app: "https://dusk.bot/dashboard", address: null };
 
 /** `render` is the shared email layout when it loads; without it the email is the plain text in a pre */
 export function message(kind, set, { log = "", downFor = 0, host = "the contabo vps", render = null } = {}) {

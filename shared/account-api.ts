@@ -3,8 +3,8 @@
 // (/api/cloud/app/sign-in/*, /api/cloud/desktop/{authorize,token,session}) keep their shapes; everything here is additive.
 // owned by the accounts work: other modules import it, they do not edit it.
 
-export type SignInProvider = "email" | "google" | "apple" | "x";
-export const OAUTH_PROVIDERS = ["google", "apple", "x"] as const;
+export type SignInProvider = "email" | "google" | "apple";
+export const OAUTH_PROVIDERS = ["google", "apple"] as const;
 export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
 
 /** the email code the apps' sign-in sheet takes (Admin contract v1: eight digits). */

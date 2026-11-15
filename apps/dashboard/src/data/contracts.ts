@@ -4,7 +4,7 @@ export type { CheckoutSource } from "../../../../shared/billing-api";
 // the account and billing shapes the dashboard reads. they follow CLOUD-PLAN.md until shared/account-api.ts and
 // shared/billing-api.ts land; then these become re-exports of those files.
 
-export type IdentityProvider = "google" | "x" | "apple" | "email";
+export type IdentityProvider = "google" | "apple" | "email";
 
 export interface AccountProfile {
   id: string;

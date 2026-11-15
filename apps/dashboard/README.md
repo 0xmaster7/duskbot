@@ -184,7 +184,7 @@ opens. Onboarding keeps its step in the address (`?step=name|plan|app`; the olde
 
 ### Sign-in providers
 
-Google uses `DUSK_AUTH_GOOGLE_CLIENT_ID` and `DUSK_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `DUSK_AUTH_APPLE_CLIENT_ID` (Services ID), `DUSK_AUTH_APPLE_TEAM_ID`, `DUSK_AUTH_APPLE_KEY_ID`, and the .p8 key in `DUSK_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `DUSK_AUTH_APPLE_PRIVATE_KEY_FILE`. X uses `DUSK_AUTH_X_CLIENT_ID`, optional `DUSK_AUTH_X_CLIENT_SECRET`, and optional `DUSK_AUTH_X_SCOPES` (default `users.read tweet.read`). Register `<public url>/v1/auth/oauth/google/callback`, `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL), and `<public url>/v1/auth/oauth/x/callback`. Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google, Apple and X providers without external accounts.
+Google uses `DUSK_AUTH_GOOGLE_CLIENT_ID` and `DUSK_AUTH_GOOGLE_CLIENT_SECRET`. Apple uses `DUSK_AUTH_APPLE_CLIENT_ID` (Services ID), `DUSK_AUTH_APPLE_TEAM_ID`, `DUSK_AUTH_APPLE_KEY_ID`, and the .p8 key in `DUSK_AUTH_APPLE_PRIVATE_KEY` (PEM, literal `\n` accepted) or `DUSK_AUTH_APPLE_PRIVATE_KEY_FILE`. Register `<public url>/v1/auth/oauth/google/callback` and `<public url>/v1/auth/oauth/apple/callback` (Apple's Return URL). Partial provider configuration fails startup; endpoint overrides are available only through code options for isolated fixtures. The dashboard fixture runs local fake Google and Apple providers without external accounts.
 
 ## Look
 

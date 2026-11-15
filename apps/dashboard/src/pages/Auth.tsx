@@ -24,7 +24,7 @@ const REASON: Record<string, string> = {
   offline: "can't reach dusk bot. check your connection and try again.",
 };
 
-const OAUTH: IdentityProvider[] = ["google", "apple", "x"];
+const OAUTH: IdentityProvider[] = ["google", "apple"];
 const SUPPORT = "hello@dusk.bot";
 const LINK_ATTEMPT = /^[A-Za-z0-9_-]{43}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

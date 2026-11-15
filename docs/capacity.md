@@ -77,7 +77,7 @@ good start). New servers start landing there at once; existing ones move when th
 
 - **Sign-in email.** Brevo's free 300 a day (we stop at 250, 200 for new addresses). 2000 people signing up in one
   week means about 300 new addresses a day: past it they wait until tomorrow. Before a launch push, move Brevo to a
-  paid plan and raise `DUSK_BREVO_DAILY_LIMIT` and `DUSK_AUTH_MAIL_PER_DAY`, or lean on Google and X sign-in.
+  paid plan and raise `DUSK_BREVO_DAILY_LIMIT` and `DUSK_AUTH_MAIL_PER_DAY`, or lean on Google and Apple sign-in.
 - **One box.** The account service, MongoDB, the preview and the Contabo relay node share the Contabo box. If it
   goes down, servers move to Oracle by themselves, but sign-in, the dashboard, billing and cloud upkeep stop. Mongo
   backups go to Oracle and R2 daily, so data survives; the service does not run anywhere else.

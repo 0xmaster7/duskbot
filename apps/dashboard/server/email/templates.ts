@@ -12,7 +12,6 @@ export function emailConfig(env: NodeJS.ProcessEnv, { publicUrl, pageBase = "" }
     assets: trim(env.DUSK_EMAIL_ASSET_BASE || "https://dusk.bot/email"),
     site: trim(env.DUSK_EMAIL_SITE_URL || (pageBase ? origin : "https://dusk.bot")),
     app: `${origin}${pageBase}`,
-    x: "https://x.com/duskbot_hq",
     address: env.DUSK_MAIL_POSTAL_ADDRESS?.trim() || null,
   };
 }
@@ -80,7 +79,7 @@ export function magicLinkEmail(cfg: EmailConfig, { link }: { link: string }): Re
   });
 }
 
-const WAYS: Record<string, string> = { email: "an emailed code", google: "google", apple: "apple", x: "x" };
+const WAYS: Record<string, string> = { email: "an emailed code", google: "google", apple: "apple" };
 /** "can't sign in?": the code, a one-time link for the website, and the ways this address signs in. `ways` null: no
  *  account uses the address, so no code goes out */
 export function recoveryEmail(cfg: EmailConfig, { code, link = null, ways }: { code: string; link?: string | null; ways: string[] | null }): Rendered {

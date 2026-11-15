@@ -1,6 +1,6 @@
 ## Cookie policy
 
-Effective date: 12 November 2026. Last updated: 12 November 2026.
+Effective date: 12 November 2026. Last updated: 15 November 2026.
 
 This policy lists the cookies and browser storage that dusk bot uses on dusk.bot, including the website, the account dashboard at dusk.bot/dashboard, the admin and the API. It also covers the preview site at preview.dusk.bot, which works the same way. Our [privacy policy](privacy.md) explains the data behind them.
 
@@ -14,7 +14,7 @@ These cookies are needed for signing in and keeping your account secure. They ar
 | --- | --- | --- |
 | `dusk_dash` | Keeps you signed in. HttpOnly, so page scripts cannot read it. | 30 days from sign-in |
 | `dusk_csrf` | Protects requests that change your account against cross-site request forgery. | 30 days from sign-in |
-| `dusk_oauth` | Remembers a sign-in with Google, Apple or X while you are away at that provider. | 10 minutes |
+| `dusk_oauth` | Remembers a sign-in with Google or Apple while you are away at that provider. | 10 minutes |
 
 Cloudflare, which sits in front of dusk.bot, may set its own strictly necessary security cookies, such as `__cf_bm`, to tell people apart from abusive automated traffic. They do not track you across sites.
 

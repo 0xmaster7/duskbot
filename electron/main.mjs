@@ -989,7 +989,7 @@ function ensureCloudAccount() {
   cloudAccount = createCloudAccountClient({
     store: cloudAccountStore(),
     platform: process.platform, deviceName: os.hostname().slice(0, 100) || "my computer", appVersion: app.getVersion(), origin: cloudTarget(process.env).origin, custom: cloudTarget(process.env).custom,
-    // every browser sign-in (Google, Apple, X, a magic link) goes through the website with this app's sign-in code, so a new
+    // every browser sign-in (Google, Apple, a magic link) goes through the website with this app's sign-in code, so a new
     // account gets the website's first steps there, and this app signs itself in when the website approves it
     openBrowser: url => shell.openExternal(url), awaitingWake: () => cloudPower.awaiting(), appLinks: false,
     onState: state => {

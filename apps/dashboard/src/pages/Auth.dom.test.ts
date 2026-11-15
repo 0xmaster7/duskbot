@@ -85,11 +85,13 @@ test("a malformed link is ignored and the page starts at sign-in", async () => {
 test("every sign-in button shows; one without keys yet says so in place instead of leaving the page", async () => {
   history.replaceState(null, "", "/sign-in");
   const assign = vi.spyOn(window.location, "assign").mockImplementation(() => {});
+  vi.spyOn(state.api, "authProviders").mockResolvedValue({ providers: [{ id: "google", enabled: true }, { id: "apple", enabled: false }] });
   const host = await render();
-  for (const label of ["continue with google", "continue with apple", "continue with x"]) expect(button(host, label)).not.toBeNull();
-  await act(async () => button(host, "continue with x")!.click());
+  for (const label of ["continue with google", "continue with apple"]) expect(button(host, label)).not.toBeNull();
+  expect(button(host, "continue with x"), "no X sign-in").toBeNull();
+  await act(async () => button(host, "continue with apple")!.click());
   expect(assign).not.toHaveBeenCalled();
-  expect(host.querySelector("#auth-soon")?.textContent).toBe("x sign-in is coming soon. use email or google for now.");
+  expect(host.querySelector("#auth-soon")?.textContent).toBe("apple sign-in is coming soon. use email or google for now.");
   expect(host.textContent).toContain("don't have an account? sign up");
 });
 
