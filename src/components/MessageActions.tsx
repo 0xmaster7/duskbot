@@ -1,4 +1,5 @@
 import { createContext, use, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { AnimatePresence } from "motion/react";
 import { Check, Copy, X } from "../icons";
 import { Icon } from "./Icon";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
@@ -7,6 +8,8 @@ import { useCopyFeedback } from "@/lib/copy-text";
 import { copyMessage } from "@/lib/message-copy";
 import { t } from "@/lib/i18n";
 import { MENU_ITEM, MENU_SHEET } from "./menu-recipe";
+import { EASE_OUT, REDUCED, SPRING } from "@/lib/motion-presets";
+import { MotionSpan, useMotionReduced } from "./ui/SheetMotion";
 
 export const ACTION_ICON = { size: 16, strokeWidth: 1.6 } as const;
 
@@ -266,7 +269,35 @@ export function CopyButton({ text, className }: { text: string; className?: stri
         className,
       )}
     >
-      {state === "copied" ? <Check {...ACTION_ICON} className="text-success" /> : state === "failed" ? <X {...ACTION_ICON} className="text-danger" /> : <Copy {...ACTION_ICON} />}
+      <CopyGlyph state={state} />
     </button>
+  );
+}
+
+/** The copy glyph turns away as the check (or the cross) pops in on the pop spring; coming back, the copy glyph fades
+ * up from a little smaller. Reduced motion keeps only the crossfade. */
+function CopyGlyph({ state }: { state: "idle" | "copied" | "failed" }) {
+  const reduced = useMotionReduced();
+  const still = { opacity: 0 };
+  return (
+    <span className="relative flex size-4 items-center justify-center">
+      <AnimatePresence initial={false}>
+        {state === "idle" ? (
+          <MotionSpan key="copy" className="absolute flex"
+            initial={reduced ? still : { opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0, transition: reduced ? REDUCED : SPRING.fade }}
+            exit={reduced ? { ...still, transition: REDUCED } : { opacity: 0, scale: 0.5, rotate: -40, transition: { duration: 0.15, ease: EASE_OUT } }}>
+            <Copy {...ACTION_ICON} />
+          </MotionSpan>
+        ) : (
+          <MotionSpan key={state} className="absolute flex"
+            initial={reduced ? still : { opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1, transition: reduced ? REDUCED : { ...SPRING.pop, opacity: { duration: 0.12, ease: EASE_OUT } } }}
+            exit={reduced ? { ...still, transition: REDUCED } : { opacity: 0, scale: 0.6, transition: { duration: 0.12, ease: EASE_OUT } }}>
+            {state === "copied" ? <Check {...ACTION_ICON} className="text-success" /> : <X {...ACTION_ICON} className="text-danger" />}
+          </MotionSpan>
+        )}
+      </AnimatePresence>
+    </span>
   );
 }
