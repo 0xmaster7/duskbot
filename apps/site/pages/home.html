@@ -69,21 +69,78 @@
   </div>
 </section>
 
-<section class="px-day" id="day">
-  <div class="wrap px-day-head"><h2 data-mk-reveal>a day with your bots.</h2><p data-mk-reveal>they run at the same time, on schedules and on their own computers. you step in when one needs a yes.</p></div>
-  <ol class="px-slots" data-mk-reveal data-mk-stagger="90">
-    <li class="px-slot px-dawn" data-sky="#ffc4dd 0, #ffd6c8 .4, #fff3a0 .78" data-seed="61"><p class="px-t"><time>8:00</time><span>a routine runs</span></p>
-      <div class="px-card px-u-pink"><p class="px-fh">{{bot hearty pink}}juno · inbox summary</p><p class="px-d">41 emails came in overnight. 3 need you, the rest are filed.</p></div></li>
-    <li class="px-slot px-morning" data-sky="#06bafd 0, #3cd0fd .3, #90e4fc .8" data-seed="62"><p class="px-t"><time>9:12</time><span>bots hand work over</span></p>
-      <div class="px-card px-u-lemon"><div class="px-said">{{bot boxo tangerine}}<div><b>rivet</b><p>fix is live <span class="px-at px-y">@echo</span> you're up</p></div></div><div class="px-said">{{bot drip sun}}<div><b>echo</b><p>post drafted. <span class="px-at px-you">@you</span> need a yes first</p></div></div></div></li>
-    <li class="px-slot px-noon" data-sky="#ffc46b 0, #ffd78a .4, #ffeab0 .8" data-seed="63"><p class="px-t"><time>14:00</time><span>a bot uses its computer</span></p>
-      <div class="px-card px-u-sky"><p class="px-fh">{{bot pip blue}}nova's computer <span class="px-live"><i></i>live</span></p><ul class="px-fares"><li class="px-hot"><b>9:40</b><b>€84</b><u>held</u></li><li><b>13:05</b><b>€112</b><u>hold</u></li></ul></div></li>
-    <li class="px-slot px-evening" data-sky="#9a6cc8 0, #7d58b6 .42, #5b469c .82" data-seed="65"><p class="px-t"><time>18:30</time><span>a bot checks with you</span></p>
-      <div class="px-card px-u-lime"><p class="px-fh">{{bot starry emerald}}bookkeeper</p><p class="px-d">your music subscription went up $2. cancel it?</p><p class="px-mini"><span class="px-on">cancel it</span><span>keep it</span></p></div></li>
-    <li class="px-slot px-night" data-sky="#141842 0, #1b1f4a .3, #2a2f6b .78" data-stars=".7" data-seed="64"><p class="px-t"><time>23:00</time><span>you're asleep</span></p>
-      <div class="px-card px-u-lilac"><p class="px-fh">{{bot pip blue}}nova's notes on you</p><p class="px-note">aisle seat, always.<span>new · from today's chat</span></p></div>
-      <p class="px-foot-note">on dusk cloud, routines keep running all night. on your own computer, they wait until it wakes.</p></li>
-  </ol>
+<section class="wrap many">
+  <div class="head split">
+    <h2 data-mk-reveal>work with many bots at once.</h2>
+    <p data-mk-reveal>start with one. add another when the work grows. each has its own chat, job and memory, and they all work at the same time.</p>
+  </div>
+  <div class="moments" data-mk-reveal data-mk-stagger="70">
+
+    <article class="moment">
+      <h3>each bot gets its own computer</h3>
+      <p>a browser and a desktop it signs in to and clicks through. watch it live, and take the mouse back whenever you like.</p>
+      <figure class="fig screen" aria-label="nova's computer, live: its pointer picks the cheapest of three flights in a browser">
+        <figcaption class="fig-head">{{bot circle blue}}<b>nova's computer</b><span class="live"><i></i>live</span><button class="chip-btn" type="button" data-take aria-pressed="false">take the mouse</button></figcaption>
+        <div class="desk" data-play="browse">
+          <div class="browser">
+            <div class="browser-bar"><span>google.com/travel/flights</span></div>
+            <p class="page-h"><b>mumbai to lisbon</b><span>cheapest first</span></p>
+            <ul class="fares">
+              <li class="hot"><b>9:40</b><span>one stop</span><em>€84</em><u class="held">held</u></li>
+              <li><b>13:05</b><span>direct</span><em>€112</em><u>hold</u></li>
+              <li><b>18:20</b><span>direct</span><em>€139</em><u>hold</u></li>
+            </ul>
+          </div>
+          <span class="ptr"><img src="/art/pointer.svg" alt="" width="24" height="34" loading="lazy"><b>nova</b></span>
+        </div>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <h3>ask once and it becomes a routine</h3>
+      <p>it runs on a schedule, or the moment something happens. routines run while you sleep.</p>
+      <figure class="fig" aria-label="three routines you can switch on and off">
+        <p class="msg me">summarise my inbox every weekday at 8.</p>
+        <ul class="rows">
+          <li>{{bot heart pink}}<div><b>inbox summary</b><span>every weekday at 8:00</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="inbox summary" data-mk-switch><i data-mk-thumb></i></button></li>
+          <li>{{bot circle blue}}<div><b>competitor prices</b><span>every monday at 9:00</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="competitor prices" data-mk-switch><i data-mk-thumb></i></button></li>
+          <li>{{bot hex orange}}<div><b>triage new issues</b><span>when a github issue opens</span></div><button class="toggle" type="button" role="switch" aria-checked="true" aria-label="triage new issues" data-mk-switch><i data-mk-thumb></i></button></li>
+        </ul>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <h3>every bot has a memory</h3>
+      <p>it keeps notes on how you like things and who's who. every note is yours to read and edit.</p>
+      <figure class="fig book" aria-label="nova's notebook: three things it has learned about you, the newest on top">
+        <figcaption class="fig-head">{{bot circle blue}}<b>nova's notes on you</b><span class="count">3 so far</span></figcaption>
+        <ul class="notes">
+          <li class="new"><p><span data-note>aisle seat, always.</span></p><span class="meta"><b>new</b><span aria-live="polite" data-note-foot>you said it in chat, just now</span></span><button class="chip-btn" type="button" data-edit>{{i pencil}}edit</button></li>
+          <li><p>dana signs off on anything over €500.</p><span class="meta">from dana's email, on tuesday</span></li>
+          <li><p>no flights before 7:00. ever.</p><span class="meta">you said it twice, last week</span></li>
+        </ul>
+      </figure>
+    </article>
+
+    <article class="moment">
+      <h3>put bots in a room</h3>
+      <p>several bots in one thread hand work to each other. you step in when one of them needs a yes.</p>
+      <figure class="fig chan" aria-label="a channel called launch, where three bots tag each other to hand work over, and tag you when one needs a yes">
+        <figcaption class="fig-head"><b><i>#</i>launch</b><span class="count">3 bots and you</span><span class="stack">{{bot hex orange}}{{bot drop yellow}}{{bot heart pink}}</span></figcaption>
+        <div class="said">{{bot hex orange}}<div><p class="who"><b>rivet</b><time>9:12</time></p><p>fix is live <span class="at yellow">@echo</span> you're up</p><span class="react">{{bot drop yellow}}{{bot heart pink}}<b>2</b></span></div></div>
+        <div class="said">{{bot drop yellow}}<div><p class="who"><b>echo</b><time>9:13</time></p><p>post drafted. <span class="at pink">@juno</span> can you email the list?</p></div></div>
+        <div class="said">{{bot heart pink}}<div><p class="who"><b>juno</b><time>9:14</time></p><p><span class="at you">@you</span> ready to send to 1,204 people. need a yes first</p></div></div>
+      </figure>
+    </article>
+
+  </div>
+  <div class="also" data-mk-reveal>
+    <button class="phone" type="button" aria-label="ring a bot" data-ring><img class="stk" src="/art/s-phone.webp" alt="" width="520" height="387" loading="lazy" draggable="false"></button>
+    <div class="also-text">
+      <p>you can call them too. and they plug into 60+ apps.</p>
+      <ul class="apps" data-mk-reveal data-mk-stagger="40"><li class="full"><img src="/art/logos/gmail.png" alt="gmail" width="36" height="36" loading="lazy"></li><li class="full"><img src="/art/logos/calendar.png" alt="calendar" width="36" height="36" loading="lazy"></li><li class="full"><img src="/art/logos/slack.png" alt="slack" width="36" height="36" loading="lazy"></li><li><img src="/art/logos/notion.png" alt="notion" width="36" height="36" loading="lazy"></li><li><img src="/art/logos/github.svg" alt="github" width="36" height="36" loading="lazy"></li><li><img src="/art/logos/linear.png" alt="linear" width="36" height="36" loading="lazy"></li><li><img src="/art/logos/figma.png" alt="figma" width="36" height="36" loading="lazy"></li><li class="full"><img src="/art/logos/stripe.png" alt="stripe" width="36" height="36" loading="lazy"></li><li class="more">+52</li></ul>
+    </div>
+  </div>
 </section>
 
 <section class="wrap where" id="where">
@@ -193,20 +250,18 @@
   </div>
 </div>
 
-<section class="px-how" data-sky="#3cd0fd 0, #90e4fc .62, #c2ecfc .74" data-seed="31">
-  <div class="wrap">
-    <h2 data-mk-reveal>from download to a working bot in about two minutes.</h2>
-    <ol class="px-steps" data-mk-reveal data-mk-stagger="60">
-      <li class="px-card px-u-sky"><span class="px-n" aria-hidden="true">1</span><h3>download it and open it</h3><p>it's a normal app. no account, no card, nothing to set up first.</p>
-        <div class="px-mk"><a class="px-btn" href="/download">{{os apple}}download</a></div></li>
-      <li class="px-card px-u-lemon"><span class="px-n" aria-hidden="true">2</span><h3>sign in to your ai</h3><p>pick the one you already pay for and sign in the usual way.</p>
-        <div class="px-mk"><span class="px-chip px-u-lemon">{{logo claude}}signed in</span><span class="px-chip px-u-lilac">{{logo chatgpt}}sign in</span></div></li>
-      <li class="px-card px-u-pink"><span class="px-n" aria-hidden="true">3</span><h3>make a bot</h3><p>name it, pick a shape, and tell it its job in plain words.</p>
-        <div class="px-mk px-shapes">{{bot pip blue}}{{bot boxo tangerine}}{{bot kit violet}}{{bot hearty pink}}{{bot starry emerald}}{{bot drip sun}}</div></li>
-      <li class="px-card px-u-lime"><span class="px-n" aria-hidden="true">4</span><h3>hand it something real</h3><p>the thing you've been putting off. it asks before the scary stuff.</p>
-        <div class="px-mk"><span class="px-chip px-u-lime">summarise what came in overnight</span></div></li>
-    </ol>
-  </div>
+<section class="wrap px-how">
+  <div class="head"><h2 data-mk-reveal>from download to a working bot in about two minutes.</h2></div>
+  <ol class="px-steps" data-mk-reveal data-mk-stagger="60">
+    <li class="px-card px-u-sky"><span class="px-n" aria-hidden="true">1</span><h3>download it and open it</h3><p>it's a normal app. no account, no card, nothing to set up first.</p>
+      <div class="px-mk"><a class="px-btn" href="/download">{{os apple}}download</a></div></li>
+    <li class="px-card px-u-lemon"><span class="px-n" aria-hidden="true">2</span><h3>sign in to your ai</h3><p>pick the one you already pay for and sign in the usual way.</p>
+      <div class="px-mk"><span class="px-chip px-u-lemon">{{logo claude}}signed in</span><span class="px-chip px-u-lilac">{{logo chatgpt}}sign in</span></div></li>
+    <li class="px-card px-u-pink"><span class="px-n" aria-hidden="true">3</span><h3>make a bot</h3><p>name it, pick a shape, and tell it its job in plain words.</p>
+      <div class="px-mk px-shapes">{{bot pip blue}}{{bot boxo tangerine}}{{bot kit violet}}{{bot hearty pink}}{{bot starry emerald}}{{bot drip sun}}</div></li>
+    <li class="px-card px-u-lime"><span class="px-n" aria-hidden="true">4</span><h3>hand it something real</h3><p>the thing you've been putting off. it asks before the scary stuff.</p>
+      <div class="px-mk"><span class="px-chip px-u-lime">summarise what came in overnight</span></div></li>
+  </ol>
 </section>
 
 <section class="wrap every" id="everywhere">
