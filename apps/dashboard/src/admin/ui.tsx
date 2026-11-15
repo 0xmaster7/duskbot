@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { createContext, useContext, useId, useState, type ReactNode } from "react";
 import { Search } from "@/icons";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Modal } from "../ui/controls";
@@ -15,7 +15,19 @@ export function stamp(t: number | null | undefined) {
   return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
 }
 
+/** inside a section the section owns the title and the tabs; a view's own header shrinks to its line and its controls */
+export const InSection = createContext(false);
+
 export function AdminHeader({ title, sub, action, tabs }: { title: string; sub?: ReactNode; action?: ReactNode; tabs?: ReactNode }) {
+  if (useContext(InSection)) {
+    if (!sub && !action) return null;
+    return (
+      <div className="mb-6 flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        {sub ? <p className="min-w-0 max-w-[68ch] text-13 text-ink-3">{sub}</p> : <span />}
+        {action}
+      </div>
+    );
+  }
   return (
     <>
       <header className={cx("flex flex-wrap items-end justify-between gap-4", tabs ? "mb-5" : "mb-8 max-sm:mb-6")}>

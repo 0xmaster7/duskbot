@@ -21,7 +21,8 @@ export function rangeOf(key: RangeKey, now = Date.now(), custom?: { from: string
     if (Number.isFinite(from) && Number.isFinite(to) && from < to) return { key, from, to: Math.min(to, now) };
   }
   const days = key === "7d" ? 7 : key === "30d" ? 30 : key === "90d" ? 90 : 1;
-  return { key: key === "custom" ? "30d" : key, from: midnight(now) - (days - 1) * DAY, to: now };
+  // the end steps by the minute, so the same window is the same read (and the same cache entry) for that minute
+  return { key: key === "custom" ? "30d" : key, from: midnight(now) - (days - 1) * DAY, to: Math.ceil(now / 60_000) * 60_000 };
 }
 const isoDay = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 

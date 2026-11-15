@@ -58,31 +58,81 @@ export async function adminCall<T>(path: string, init: { method?: string; body?:
   return data as T;
 }
 
-/** one admin read: loading, its error, and a reload; an older answer never lands on a newer key */
+interface Entry { data?: unknown; error?: AdminApiError; at: number; inflight?: Promise<void>; subs: Set<() => void> }
+const cache = new Map<string, Entry>();
+/** answers younger than this are shown as they are; older ones show at once and refresh behind */
+const FRESH_MS = 30_000;
+const scope = () => `${adminData()}|${adminTests() ? "t" : ""}|${adminMoney()}`;
+const entryOf = (key: string) => {
+  let entry = cache.get(key);
+  if (!entry) {
+    entry = { at: 0, subs: new Set() };
+    cache.set(key, entry);
+    // a long visit never grows without bound: the oldest unwatched answers go first
+    if (cache.size > 160) for (const [k, e] of cache) { if (cache.size <= 120) break; if (!e.subs.size && !e.inflight) cache.delete(k); }
+  }
+  return entry;
+};
+const notify = (entry: Entry) => { for (const fn of entry.subs) fn(); };
+function load(key: string, path: string): Promise<void> {
+  const entry = entryOf(key);
+  if (entry.inflight) return entry.inflight;
+  entry.inflight = adminCall<unknown>(path)
+    .then((answer) => { entry.data = answer; entry.error = undefined; entry.at = Date.now(); })
+    .catch((err: unknown) => { entry.error = err instanceof AdminApiError ? err : new AdminApiError("the request failed.", 0, null); entry.at = Date.now(); })
+    .finally(() => { entry.inflight = undefined; notify(entry); });
+  notify(entry);
+  return entry.inflight;
+}
+/** start a read before it is needed (a hovered nav item, the next page), so arriving there is instant */
+export function prefetchAdmin(path: string) {
+  const key = `${scope()} ${path}`, entry = cache.get(key);
+  if (!entry || (!entry.inflight && Date.now() - entry.at > FRESH_MS)) void load(key, path);
+}
+/** drop every cached answer whose path starts with this, and refetch the ones on screen */
+export function invalidateAdmin(prefix: string) {
+  for (const [key, entry] of cache) {
+    const path = key.slice(key.indexOf(" ") + 1);
+    if (!path.startsWith(prefix)) continue;
+    entry.at = 0;
+    if (entry.subs.size) void load(key, path);
+  }
+}
+const base = (path: string | null) => path?.split("?")[0] ?? null;
+
+/** one admin read, cached across pages: a cached answer shows at once and refreshes behind when old, two readers of one
+ * path share one request, and a new query on the same path keeps the last answer up until the new one lands (no flash) */
 export function useAdmin<T>(path: string | null, refreshMs?: number) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<AdminApiError | null>(null);
-  const [loading, setLoading] = useState(path !== null);
-  const [tick, setTick] = useState(0);
-  const current = useRef(path);
-  current.current = path;
+  const key = path === null ? null : `${scope()} ${path}`;
+  const [, bump] = useState(0);
   useEffect(() => {
-    if (path === null) return;
-    const controller = new AbortController();
-    setLoading(true);
-    adminCall<T>(path, { signal: controller.signal })
-      .then((answer) => { if (current.current === path) { setData(answer); setError(null); } })
-      .catch((err: unknown) => { if ((err as Error).name !== "AbortError" && current.current === path) setError(err instanceof AdminApiError ? err : new AdminApiError("the request failed.", 0, null)); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => controller.abort();
-  }, [path, tick]);
+    if (key === null || path === null) return;
+    const entry = entryOf(key), fn = () => bump((v) => v + 1);
+    entry.subs.add(fn);
+    if (!entry.inflight && Date.now() - entry.at > FRESH_MS) void load(key, path);
+    fn();
+    return () => { entry.subs.delete(fn); };
+  }, [key, path]);
   useEffect(() => {
-    if (!refreshMs) return;
-    const timer = setInterval(() => { if (document.visibilityState === "visible") setTick((n) => n + 1); }, refreshMs);
+    if (!refreshMs || key === null || path === null) return;
+    // never faster than every 5 s, and only while the tab is in view
+    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(key, path); }, Math.max(5_000, refreshMs));
     return () => clearInterval(timer);
-  }, [refreshMs]);
-  const reload = useCallback(() => setTick((n) => n + 1), []);
-  return { data, error, loading, reload, setData };
+  }, [refreshMs, key, path]);
+  const entry = key === null ? null : cache.get(key) ?? null;
+  const shown = useRef<{ base: string | null; data: T | null }>({ base: null, data: null });
+  let data: T | null = (entry?.data as T | undefined) ?? null;
+  if (data !== null) shown.current = { base: base(path), data };
+  else if (shown.current.base === base(path) && !entry?.error) data = shown.current.data;
+  const reload = useCallback(() => { if (key !== null && path !== null) void load(key, path); }, [key, path]);
+  const setData = useCallback((next: T | null | ((prev: T | null) => T | null)) => {
+    if (key === null) return;
+    const e = entryOf(key);
+    e.data = typeof next === "function" ? (next as (prev: T | null) => T | null)((e.data as T | undefined) ?? null) : next;
+    e.at = Date.now();
+    notify(e);
+  }, [key]);
+  return { data, error: data === null || entry?.data === undefined ? entry?.error ?? null : null, loading: !!entry?.inflight || (key !== null && !entry?.at), reload, setData };
 }
 
 export interface FunnelStep { id: string; label: string; count: number; total: number }

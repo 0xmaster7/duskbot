@@ -98,10 +98,10 @@ export function ExperiencePage() {
                 {data.recent.map((row) => (
                   <li key={row.who}>
                     <button type="button" onClick={() => setWho(row.who === who ? null : row.who)} aria-expanded={row.who === who}
-                      className={cx("flex min-h-12 w-full items-center gap-3 rounded-[10px] px-2 py-2 text-left text-14 hover:bg-card-2", row.who === who && "bg-card-2")}>
+                      className={cx("flex min-h-12 w-full flex-wrap items-center gap-x-3 gap-y-0.5 rounded-[10px] px-2 py-2 text-left text-14 hover:bg-card-2", row.who === who && "bg-card-2")}>
                       <span className="w-[150px] shrink-0 truncate font-mono text-13 text-ink">{shortId(row.who)}</span>
-                      <span className="w-[132px] shrink-0 font-mono text-12 text-ink-3 num">{stamp(row.last)}</span>
-                      <span className="min-w-0 flex-1 truncate text-13 text-ink-3">{[row.platform, row.version && `v${row.version}`, row.signedIn ? "signed in" : "anonymous"].filter(Boolean).join(" · ")}</span>
+                      <span className="w-[132px] shrink-0 font-mono text-12 text-ink-3 num max-sm:hidden">{stamp(row.last)}</span>
+                      <span className="min-w-0 flex-1 truncate text-13 text-ink-3 max-sm:basis-full max-sm:order-last">{[row.platform, row.version && `v${row.version}`, row.signedIn ? "signed in" : "anonymous"].filter(Boolean).join(" · ")}</span>
                       <span className="shrink-0 text-13 num"><span className="text-bad">{n(row.bad)} bad</span><span className="text-ink-4">{" \u00b7 "}</span><span className="text-warn">{n(row.confusing)} confusing</span><span className="text-ink-4">{" \u00b7 "}</span><span className="text-ink-2">{n(row.done)} done</span></span>
                     </button>
                   </li>
