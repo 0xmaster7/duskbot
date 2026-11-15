@@ -30,6 +30,7 @@ import {
   advancedTitle, type AdvancedPage, type Disclose, type RemoteAccessCards,
 } from "./SettingsPanes";
 import { ADVANCED_PAGES, SETTINGS_PANES, consumeBotTarget, settingsLocation, useBotTarget, type SettingsPane } from "@/lib/open-settings";
+import type { LocaleKey } from "@/locales";
 import { VaultNewItem } from "./LoginsSettings";
 import { VoiceInputSettings } from "./VoiceInputSettings";
 import { BotsPane, chooseBotsScope, scopeOf, targetPage } from "./SettingsBots";
@@ -39,6 +40,12 @@ import "../styles/settings.css";
 export { openBotSettings, openSettings, settingsLocation, SETTINGS_PANES, type SettingsLocation, type SettingsPane } from "@/lib/open-settings";
 
 const REMOTE_SECTIONS: readonly AppSettingsSection[] = ["appearance", "companion", "desktopWorkspaces", "looks", "voice"];
+
+const RAIL_GROUPS: ReadonlyArray<{ id: string; labelKey: LocaleKey; panes: readonly SettingsPane[] }> = [
+  { id: "you", labelKey: "settings.rail.you", panes: ["general", "voice"] },
+  { id: "bots", labelKey: "settings.rail.yourBots", panes: ["computer", "permissions", "vault", "models", "texting", "bots"] },
+  { id: "app", labelKey: "settings.rail.thisApp", panes: ["usage", "updates", "advanced"] },
+];
 
 export function revealSettingsBlock(
   scroller: Parameters<typeof scrollWithin>[0] & { querySelector: (selector: string) => Parameters<typeof scrollWithin>[1] | null },
@@ -315,26 +322,35 @@ export function SettingsModal() {
           <Icon name="close" size={18} />
         </button>
       </div>
-      <div className="settings-nav-list">
-        {railPanes.map((entry) => {
-          const current = entry.id === pane && !phone;
-          return (
-            <button
-              key={entry.id}
-              type="button"
-              data-settings-page={entry.id}
-              aria-current={current ? "page" : undefined}
-              aria-controls={current ? `settings-panel-${entry.id}` : undefined}
-              onClick={() => go(entry.sections.find(has)!)}
-              className="settings-nav-item"
-            >
-              <Icon name={entry.icon} size={phone ? 20 : 15} />
-              <span>{t(entry.labelKey)}</span>
-              <Icon name="chevron-right" size={14} className="settings-nav-chevron" />
-            </button>
-          );
-        })}
-      </div>
+      {RAIL_GROUPS.map((group) => {
+        const entries = group.panes.flatMap((id) => railPanes.filter((entry) => entry.id === id));
+        if (!entries.length) return null;
+        return (
+          <div key={group.id} role="group" aria-label={t(group.labelKey)} data-settings-rail-group={group.id} className="settings-nav-group">
+            <p aria-hidden="true" className="settings-nav-label">{t(group.labelKey)}</p>
+            <div className="settings-nav-list">
+              {entries.map((entry) => {
+                const current = entry.id === pane && !phone;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    data-settings-page={entry.id}
+                    aria-current={current ? "page" : undefined}
+                    aria-controls={current ? `settings-panel-${entry.id}` : undefined}
+                    onClick={() => go(entry.sections.find(has)!)}
+                    className="settings-nav-item"
+                  >
+                    <Icon name={entry.icon} size={phone ? 20 : 15} />
+                    <span>{t(entry.labelKey)}</span>
+                    <Icon name="chevron-right" size={14} className="settings-nav-chevron" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </nav>
   );
   const panel = (

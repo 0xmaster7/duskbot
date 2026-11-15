@@ -174,7 +174,9 @@ describe("Settings, drawn as Grok Bot's", () => {
     expect(current(open("texting"))).toBe("general");
     expect(markers(open("companion"))).not.toContain("pairing");
     vi.stubEnv("VITE_DUSK_PHONE_APP", "1");
-    expect(panes(open("general"))).toEqual(["general", "voice", "texting", "computer", "vault", "models", "usage", "updates", "advanced"]);
+    expect(panes(open("general"))).toEqual(["general", "voice", "computer", "vault", "models", "texting", "usage", "updates", "advanced"]);
+    const groups = [...open("general").matchAll(/data-settings-rail-group="([^"]+)" class="settings-nav-group"><p aria-hidden="true" class="settings-nav-label">([^<]+)</g)].map((match) => `${match[1]}:${match[2]}`);
+    expect(groups).toEqual(["you:You", "bots:Your bots", "app:This app"]);
   });
 
   it("draws Computer's connect from elsewhere as its one simple page, without the phones", () => {
