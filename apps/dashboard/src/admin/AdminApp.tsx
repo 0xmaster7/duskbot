@@ -121,10 +121,16 @@ function Nav({ current, onGo }: { current: Section | null; onGo?: () => void }) 
 }
 
 function SectionTabs({ section, path }: { section: Section; path: string }) {
-  if (section.tabs.length < 2) return null;
   const on = currentItem(path)?.to ?? null;
+  const strip = useRef<HTMLElement>(null);
+  // on a narrow screen the strip scrolls, so the open view is scrolled into sight
+  useEffect(() => {
+    const nav = strip.current, item = nav?.querySelector<HTMLElement>("[aria-current=page]");
+    if (nav && item && (item.offsetLeft < nav.scrollLeft || item.offsetLeft + item.offsetWidth > nav.scrollLeft + nav.clientWidth)) nav.scrollTo({ left: item.offsetLeft - 16 });
+  }, [on]);
+  if (section.tabs.length < 2) return null;
   return (
-    <nav aria-label={`${section.label} views`} className="scroll-x -mx-1 mb-7 px-1 max-sm:mb-5">
+    <nav ref={strip} aria-label={`${section.label} views`} className="scroll-x -mx-1 mb-7 px-1 max-sm:mb-5">
       <div className="relative inline-flex gap-0.5 rounded-full bg-card p-1">
         <Highlight target={on} className="bg-pop" />
         {section.tabs.map((tab) => (

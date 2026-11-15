@@ -56,7 +56,7 @@ export function StagingTag({ environment, live }: { environment: string; live: s
   return (
     <p className="mb-5 flex flex-wrap items-center gap-2 text-12 text-ink-3">
       <span className="inline-flex h-[22px] items-center rounded-full bg-wash-lemon px-2 text-ink">{environment === "preview" ? "staging data" : `${environment} data`}</span>
-      <span>{analytics}people, money and clouds from {environment === "preview" ? "preview" : "this service"}, counting {money === "all" ? "live and test money" : `${money} money only`}{money !== "test" && !adminTests() ? ", test accounts left out" : ""}.</span>
+      <span className="max-sm:hidden">{analytics}people, money and clouds from {environment === "preview" ? "preview" : "this service"}, counting {money === "all" ? "live and test money" : `${money} money only`}{money !== "test" && !adminTests() ? ", test accounts left out" : ""}.</span>
     </p>
   );
 }

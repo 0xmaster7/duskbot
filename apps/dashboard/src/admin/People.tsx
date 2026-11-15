@@ -5,7 +5,8 @@ import { PersonLink } from "./sheet";
 import { useNow } from "../lib/now";
 import { useAdmin } from "./api";
 import { AdminHeader, Failed, Loading, n, SearchBox } from "./ui";
-import { Avatar, Chip, RangePicker, duration, personName, rangeOf, usd, where, type Range } from "./kit";
+import { Chip, RangePicker, duration, rangeOf, usd, where, type Range } from "./kit";
+import { identity, PersonFace } from "./identity";
 import { Platform, flagOf } from "./person";
 import type { PersonBilling } from "./revenue-types";
 
@@ -56,10 +57,10 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
             <li key={person.id}>
               <PersonLink id={person.id} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
                 <span className="flex min-w-0 items-center gap-3">
-                  <Avatar seed={person.seed} customer={person.customer} account={person.account} />
+                  <PersonFace id={person.account?.id ?? person.seed} size={36} anonymous={!person.account} avatarUrl={person.account?.avatarUrl} avatar={person.account?.avatar} />
                   <span className="min-w-0">
                     <span className="flex items-center gap-2">
-                      <span className="truncate text-14 font-medium text-ink">{personName(person.seed, person.account?.email)}</span>
+                      <span className="truncate text-14 font-medium text-ink">{identity(person.account ? { id: person.account.id, name: person.account.name, email: person.account.email } : { id: person.seed }).name}</span>
                       {person.customer ? <span className="tag !h-[22px] !px-2 text-accent-ink">customer</span> : person.account ? <span className="tag !h-[22px] !px-2">signed up</span> : null}
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1.5">
