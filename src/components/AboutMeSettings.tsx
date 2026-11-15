@@ -127,7 +127,7 @@ interface HistoryEntry {
   at: number;
 }
 
-/** What consolidation or a newer fact took out of general memory, with Restore; and Tidy up now. */
+/** What consolidation or a newer fact took out of general memory, with Restore. */
 function GeneralHistory({ onChanged }: { onChanged: (aboutMe: string) => void }) {
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -155,38 +155,30 @@ function GeneralHistory({ onChanged }: { onChanged: (aboutMe: string) => void })
     }
   };
 
-  // a server without a shared general memory (a team) answers 404 and shows nothing
-  if (history === null) return null;
+  // a server without a shared general memory (a team) answers 404 and shows nothing; the tidy-up runs on its own each
+  // night, so with nothing it took out there is nothing to show
+  if (history === null || history.length === 0) return null;
   const reason = (entry: HistoryEntry) => entry.reason === "trimmed"
     ? t("settings.profile.general.trimmed")
     : t(entry.reason === "replaced" ? "settings.profile.general.replaced" : "settings.profile.general.duplicate", { fact: entry.by ?? "" });
   return (
     <div className="mt-1 rounded-lg border border-transparent bg-inset p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-0 flex-1 text-[12px] text-ink-secondary">{t("settings.profile.general.tidyHint")}</span>
-        <button type="button" disabled={busy !== null} onClick={() => void run("tidy", "/api/profile/general/consolidate")}
-          className="rounded-md px-2 py-1 text-[13px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50">
-          {busy === "tidy" ? t("settings.profile.general.tidying") : t("settings.profile.general.tidy")}
-        </button>
-      </div>
-      {history.length > 0 && <>
-        <div className="mt-3 text-[13px] font-medium text-ink">{t("settings.profile.general.title")}</div>
-        <p className="mt-0.5 text-[12px] text-ink-secondary">{t("settings.profile.general.hint")}</p>
-        <ul className="mt-2 flex flex-col gap-2">
-          {history.map((entry) => (
-            <li key={entry.id} className="flex flex-wrap items-center gap-2 text-[13px] text-ink">
-              <span className="min-w-0 flex-1">
-                <span className="text-ink-secondary line-through">{entry.fact}</span>{" "}
-                <span className="text-[12px] text-ink-secondary">{reason(entry)}</span>
-              </span>
-              <button type="button" disabled={busy !== null} onClick={() => void run(entry.id, `/api/profile/general/history/${encodeURIComponent(entry.id)}/restore`)}
-                className="rounded-md px-2 py-1 text-[13px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50">
-                {t("settings.profile.general.restore")}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </>}
+      <div className="text-[13px] font-medium text-ink">{t("settings.profile.general.title")}</div>
+      <p className="mt-0.5 text-[12px] text-ink-secondary">{t("settings.profile.general.hint")}</p>
+      <ul className="mt-2 flex flex-col gap-2">
+        {history.map((entry) => (
+          <li key={entry.id} className="flex flex-wrap items-center gap-2 text-[13px] text-ink">
+            <span className="min-w-0 flex-1">
+              <span className="text-ink-secondary line-through">{entry.fact}</span>{" "}
+              <span className="text-[12px] text-ink-secondary">{reason(entry)}</span>
+            </span>
+            <button type="button" disabled={busy !== null} onClick={() => void run(entry.id, `/api/profile/general/history/${encodeURIComponent(entry.id)}/restore`)}
+              className="rounded-md px-2 py-1 text-[13px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50">
+              {t("settings.profile.general.restore")}
+            </button>
+          </li>
+        ))}
+      </ul>
       {error && <div className="mt-2 text-[12px] text-danger">{t("settings.profile.general.error")}</div>}
     </div>
   );

@@ -525,18 +525,12 @@
 }
 :root .settings-dialog .settings-pane [data-settings-rows] > [data-settings-account][data-settings-account] { column-gap: 10px; min-height: 44px; padding: 6px 8px; }
 
-/* pills answer a press with bencho's .96; their colour, and the rail and rows, change at once */
-:root .settings-dialog .settings-pane .ui-button {
-  transition: scale 200ms var(--dusk-ease-release, ease-out);
-}
-:root .settings-dialog .settings-pane .ui-button:enabled:active { scale: 0.96; transition-duration: 160ms; transition-timing-function: var(--dusk-ease-out, ease-out); }
+/* nothing in the sheet scales on hover or press: pills, selects, segmented and sliding pills, the rail and rows answer
+   with their colour alone, including the shared controls (dusk-press, Tailwind's active:scale) drawn inside it */
 .settings-nav-item, .settings-nav-item:active { transition: none; scale: none; }
-@media (prefers-reduced-motion: reduce) {
-  :root .settings-dialog .settings-pane .ui-button:enabled:active { scale: none; }
-}
-:root[data-reduced-motion="true"] .settings-dialog .settings-pane .ui-button:active { scale: none; }
+.settings-dialog :is(button, a, [role="button"], [role="combobox"], [role="radio"], [role="tab"], .dusk-press, .dusk-press-soft):is(:hover, :active) { scale: none !important; }
 
-/* the close button: bencho's icon press, the hover disc growing in from 86% behind a glyph that leans in */
+/* the close button: a hover disc that fades in behind the glyph, no scale */
 .settings-close::before {
   content: "";
   position: absolute;
@@ -545,15 +539,11 @@
   border-radius: inherit;
   background: color-mix(in srgb, var(--color-ink) 11%, transparent);
   opacity: 0;
-  scale: 0.86;
-  transition: opacity 0.15s ease, scale 0.26s cubic-bezier(0.3, 1.12, 0.4, 1);
+  transition: opacity 0.15s ease;
 }
 .settings-close { isolation: isolate; }
-.settings-close > .ui-icon { transition: scale 0.26s cubic-bezier(0.3, 1.12, 0.4, 1); }
 .settings-close:hover { background: transparent; }
-.settings-close:hover::before, .settings-close:focus-visible::before { opacity: 1; scale: 1; }
-.settings-close:hover > .ui-icon { scale: 1.04; }
-.settings-close:active > .ui-icon { scale: 0.96; transition-duration: 90ms; }
+.settings-close:hover::before, .settings-close:focus-visible::before { opacity: 1; }
 
 
 /* The phone: a full-screen grey page. The list of panes and each pane are one screen each, under a 56px header (a back or
@@ -703,10 +693,8 @@
   border-radius: 9999px;
   background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
   color: var(--color-ink);
-  transition: color 100ms ease, background-color 100ms ease, scale 120ms var(--dusk-ease-out);
+  transition: color 100ms ease, background-color 100ms ease;
 }
 :root .settings-dialog .settings-pane [data-select-pill]:is(:enabled:hover, [aria-expanded="true"]) { background-color: color-mix(in srgb, var(--color-ink) 9%, transparent); }
-:root .settings-dialog .settings-pane [data-select-pill]:enabled:active { scale: 0.97; }
 :root .settings-dialog .settings-pane [data-select-pill] > svg { transition: rotate 150ms ease-out; }
 :root .settings-dialog .settings-pane [data-select-pill][aria-expanded="true"] > svg { rotate: 180deg; }
-@media (prefers-reduced-motion: reduce) { :root .settings-dialog .settings-pane [data-select-pill]:enabled:active { scale: 1; } }

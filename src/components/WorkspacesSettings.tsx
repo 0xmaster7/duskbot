@@ -14,7 +14,7 @@ import { useWorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { NavRow, NoteRow } from "./ListRows";
 import { Icon } from "./Icon";
 import { PixelIcon, type PixelIconName } from "./ui/PixelIcon";
-import { SettingGlyph, type SettingGlyphName } from "./ui/SettingGlyph";
+import type { SettingGlyphName } from "./ui/SettingGlyph";
 import { SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 
 type Health = "online" | "offline" | "problem" | "setting-up";
@@ -67,7 +67,7 @@ function WorkspaceRow({ place, onOpen, onRemove, busy }: { place: RailPlace; onO
   const body = (
     <>
       <span aria-hidden="true" className="relative flex size-6 shrink-0 items-center justify-center">
-        <SettingGlyph name={KIND_ICON[place.kind]} />
+        <PixelIcon name={KIND_ICON[place.kind]} size={24} />
         <span data-workspace-dot={health} className={cn("absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-app", DOT[health])} />
       </span>
       <span className="min-w-0 flex-1">
@@ -140,11 +140,11 @@ export function WorkspacesGroup({ onAdd }: { onAdd: () => void }) {
             onRemove={place.removable ? () => void remove(place) : undefined} />
         ))}
         <CloudMoveRow otherwise={!hasCloud && canBuy
-          ? <NavRow data-settings-open="get-cloud" pixel="cloud" title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")}
+          ? <NavRow data-settings-open="get-cloud" pixel={<PixelIcon name="cloud" size={24} />} title={t("settings.docs.ws.getCloud")} hint={t("settings.docs.ws.getCloudHint")}
               onClick={() => dispatch({ type: "openCloudAdd", source: "app_settings" })} />
-          : serverMove ? <NavRow data-settings-open="server-cloud-move" pixel="cloud" title={t("vpsMove.title")} hint={t("vpsMove.perk.server")} onClick={moveServer} />
+          : serverMove ? <NavRow data-settings-open="server-cloud-move" pixel={<PixelIcon name="cloud" size={24} />} title={t("vpsMove.title")} hint={t("vpsMove.perk.server")} onClick={moveServer} />
           : null} />
-        <NavRow data-settings-open="add-workspace" pixel="plus" title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
+        <NavRow data-settings-open="add-workspace" pixel={<PixelIcon name="plus" size={24} />} title={t("settings.docs.ws.add")} hint={t("settings.docs.ws.addHint")} onClick={onAdd} />
         {(error || here.error) && <NoteRow tone="danger">{error || here.error}</NoteRow>}
       </SettingsRows>
     </SettingsGroup>
@@ -157,7 +157,7 @@ export function InstallOnVpsGroup({ onStart }: { onStart: () => void }) {
   if (!vpsLinkAvailable()) return null;
   const steps = ["settings.docs.vps.step1", "settings.docs.vps.step2", "settings.docs.vps.step3"] as const;
   return (
-    <SettingsGroup label={t("settings.docs.vps.title")} hint={t("settings.docs.vps.hint")} block="install-vps">
+    <SettingsGroup label={t("settings.docs.vps.title")} block="install-vps">
       <div className="flex flex-col gap-3 px-2.5">
         <ol className="m-0 flex list-none flex-col gap-2 p-0">
           {steps.map((step, index) => (
