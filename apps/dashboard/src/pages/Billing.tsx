@@ -20,7 +20,8 @@ import sky from "../art/p-sky.webp";
 import layers from "../art/wide-layers-plain.webp";
 import { SectionHead } from "../ui/table";
 import { regionName } from "./cloud-bits";
-import { AnimatePresence } from "../ui/motion";
+import { AnimatePresence, EASE_OUT, m } from "../ui/motion";
+import { Digits } from "../ui/Digits";
 import { CancelFlow, CONTACT } from "./cancel-flow";
 import { BUSY, cartText, ChargeLine, CHECKOUT_PLAN_KEY, IntervalToggle, LicenseSheet, money, PlanSheet, planSelection, priceText, sharedRegions, useInterval, Working, type PaidPlan } from "./plan-sheet";
 import { CHECKOUT_SOON } from "./cloud-offer";
@@ -44,6 +45,9 @@ export function points(id: Exclude<Tier, "free">, catalog: PlanCatalog): string[
 const ART = { free: sky, starter: meadow, pro: layers, team: peaks } as const;
 const FREE_POINTS = ["your bots on this computer", "they work while it's awake", "every bot, chat and connector, for personal use"];
 
+// the motion brief's (2026-11) enter spring: a card rising into place
+const ENTER = { type: "spring" as const, stiffness: 300, damping: 22 };
+
 function PlanCard({ id, catalog, interval, current, onChoose, href, action, disabled, busy = false, note, i }: { id: Tier; catalog: PlanCatalog; interval: BillingInterval; current: boolean; onChoose: (() => void) | null; href?: string; action: string; disabled: boolean; busy?: boolean; note?: ReactNode; i: number }) {
   const b = bundleOf(catalog, id);
   const paid = id !== "free";
@@ -51,7 +55,8 @@ function PlanCard({ id, catalog, interval, current, onChoose, href, action, disa
   const perMonth = interval === "year" ? Math.round(perMonthOn(monthly, interval, catalog)) : monthly;
   const sub = !paid ? "on your own computer" : interval === "year" ? `per month · ${priceText(monthly, interval, catalog).replace("/yr", "")} billed yearly, + tax where applicable` : "per month, + tax where applicable";
   return (
-    <article className={cx("surface enter flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", !paid && "max-lg:order-last")} style={{ ["--i" as string]: i }} aria-labelledby={`plan-card-${id}`}>
+    <m.article className={cx("surface flex min-w-0 flex-col rounded-card bg-card p-2.5 pb-7", !paid && "max-lg:order-last")} aria-labelledby={`plan-card-${id}`}
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...ENTER, delay: i * 0.045 }}>
       <img src={ART[id]} alt="" width={800} height={354} className="aspect-[800/300] w-full rounded-[16px] object-cover object-bottom" draggable={false} />
       <div className="flex flex-1 flex-col px-4 pt-5 max-sm:px-3">
         <div className="flex min-w-0 items-center gap-2.5">
@@ -59,8 +64,13 @@ function PlanCard({ id, catalog, interval, current, onChoose, href, action, disa
           {paid && <span className="text-14 text-ink-3">dusk cloud</span>}
           {current && <Badge>current</Badge>}
         </div>
-        <p className="num mt-4 text-[48px] font-medium leading-none tracking-[-0.05em] text-ink">${perMonth}</p>
-        <p className="num mt-2 text-13 text-ink-3">{sub}</p>
+        <p className="num mt-4 text-[48px] font-medium leading-none tracking-[-0.05em] text-ink"><Digits text={`$${perMonth}`} /></p>
+        <p className="num mt-2 grid text-13 text-ink-3">
+          <AnimatePresence initial={false}>
+            <m.span key={sub} className="[grid-area:1/1]" initial={{ opacity: 0, y: 8, filter: "blur(3px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
+              exit={{ opacity: 0, y: -6, filter: "blur(2px)", transition: { duration: 0.12, ease: EASE_OUT } }} transition={{ duration: 0.2, ease: EASE_OUT }}>{sub}</m.span>
+          </AnimatePresence>
+        </p>
         {href ? (
           <a href={href} className="press hover-btn mt-6 grid h-12 w-full place-items-center rounded-full bg-btn text-15 font-medium text-ink">{action}</a>
         ) : onChoose ? (
@@ -72,7 +82,7 @@ function PlanCard({ id, catalog, interval, current, onChoose, href, action, disa
           {(paid ? points(id, catalog) : FREE_POINTS).map((pt) => <li key={pt} className={cx("flex gap-2.5 text-14", paid ? "text-ink-2" : "text-ink-3")}><Check size={17} strokeWidth={1.75} className={cx("mt-0.5 shrink-0", paid ? "text-good" : "text-ink-4")} aria-hidden />{pt}</li>)}
         </ul>
       </div>
-    </article>
+    </m.article>
   );
 }
 

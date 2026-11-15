@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown, X } from "@/icons";
 import { cx } from "./kit";
 import { AnimatePresence, EASE_OUT, GLIDE, m, Pill, SPRING, usePill } from "./motion";
+import { StretchPill } from "./Digits";
 
 export function Switch({ checked, onChange, label, disabled, id }: { checked: boolean; onChange(v: boolean): void; label: string; disabled?: boolean; id?: string }) {
   return (
@@ -49,20 +50,24 @@ export function Slider({ label, value, min, max, step, onChange, format, hint }:
 }
 
 /** a two to four way choice with a thumb that slides between options; transitions retarget on rapid clicks */
-export function Toggle<T extends string>({ value, options, onChange, label, className }: { value: T; options: Array<{ value: T; label: ReactNode }>; onChange(v: T): void; label: string; className?: string }) {
+/** `stretch`: the highlight stretches to the picked option instead of sliding (the billing period) */
+export function Toggle<T extends string>({ value, options, onChange, label, className, stretch = false }: { value: T; options: Array<{ value: T; label: ReactNode }>; onChange(v: T): void; label: string; className?: string; stretch?: boolean }) {
   const pill = usePill();
+  const box = useRef<HTMLDivElement>(null);
   return (
-    <div role="radiogroup" aria-label={label} className={cx("relative inline-grid shrink-0 rounded-full bg-card-2 p-1", className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div ref={box} role="radiogroup" aria-label={label} className={cx("relative inline-grid shrink-0 rounded-full bg-card-2 p-1", className)} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      {stretch && <StretchPill box={box} target={value} />}
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          data-stretch-key={o.value}
           onClick={() => onChange(o.value)}
           className={cx("relative inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13 font-medium", value === o.value ? "text-ink" : "text-ink-3 hover-link")}
         >
-          {value === o.value && <Pill id={pill} />}
+          {!stretch && value === o.value && <Pill id={pill} />}
           <span className="relative inline-flex items-center gap-1.5">{o.label}</span>
         </button>
       ))}

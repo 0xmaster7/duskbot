@@ -11,6 +11,7 @@ import { Choice, Field, Select, Sheet, Toggle } from "../ui/controls";
 import { track } from "../lib/analytics";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { CHECKOUT_SOON } from "./cloud-offer";
+import { EASE_OUT, m } from "../ui/motion";
 
 /** a submit in flight: the button keeps its color and shows a quiet spinner */
 export const Working = ({ children }: { children: ReactNode }) => <><LoaderCircle size={17} strokeWidth={2} className="spin" aria-hidden />{children}</>;
@@ -46,8 +47,11 @@ export function IntervalToggle({ value, onChange, catalog }: { value: BillingInt
       onChange={onChange}
       options={[
         { value: "month", label: "monthly" },
-        { value: "year", label: <>yearly <span className="text-ink-4">{yearlyPerk(catalog)}</span></> },
+        // the perk nudges once as yearly is picked
+        { value: "year", label: <>yearly <m.span className="inline-block origin-right text-ink-4" initial={false} animate={value === "year" ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+          transition={{ duration: 0.32, ease: EASE_OUT }}>{yearlyPerk(catalog)}</m.span></> },
       ]}
+      stretch
     />
   );
 }
