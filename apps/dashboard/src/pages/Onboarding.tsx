@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, LoaderCircle } from "@/icons";
+import { ArrowLeft, Check, LoaderCircle, Monitor } from "@/icons";
 import meadow from "../art/p-meadow.webp";
 import layers from "../art/wide-layers-plain.webp";
 import { useCloud } from "../data/cloud";
@@ -10,6 +10,7 @@ import { api, FIXTURE } from "../lib/api";
 import { navigate, useLocation } from "../lib/router";
 import { planIntent } from "../lib/site";
 import { Downloads } from "../ui/Downloads";
+import { StretchPill } from "../ui/Digits";
 import { SplitFrame } from "../ui/Frame";
 import { Button, cx, Skeleton } from "../ui/kit";
 import { Mascot, type MascotHandle } from "../ui/Mascot";
@@ -22,6 +23,7 @@ import { fromApp } from "../lib/from-app";
 
 const STEPS = ["name", "plan", "app"] as const;
 type Step = (typeof STEPS)[number];
+type Home = "cloud" | "free";
 
 const SAVED = "dusk-onboarding-step";
 const isStep = (v: string | null): v is Step => (STEPS as readonly string[]).includes(v ?? "");
@@ -47,42 +49,64 @@ function Rail({ at, total }: { at: number; total: number }) {
   );
 }
 
-/** dusk cloud with its two plans, priced monthly; the plans are real radios, each on its own visible fill */
-function CloudOffer({ catalog, plan, setPlan }: { catalog: PlanCatalog; plan: PaidPlan; setPlan(p: PaidPlan): void }) {
+/** the chosen card sits a soft step above the page, the other a step lighter still; never the dark grey */
+const PICKED = "bg-[color-mix(in_oklab,var(--card-2)_50%,var(--card))]";
+const UNPICKED = "hover-card bg-[color-mix(in_oklab,var(--card)_60%,var(--bg))]";
+
+/** dusk cloud first and chosen, its plans on a white track with one grey thumb that stretches between them; this
+ * computer below it as the free way */
+function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCatalog; home: Home; setHome(h: Home): void; plan: PaidPlan; setPlan(p: PaidPlan): void }) {
+  const cloud = home === "cloud";
   const plans = (["starter", "pro"] as const).flatMap((id) => { const b = bundleOf(catalog, id); return b ? [{ id, b }] : []; });
   return (
-    <div className="rounded-[22px] bg-card p-2">
-      <span className="relative block overflow-hidden rounded-[16px]">
-        <img src={meadow} alt="" width={800} height={354} className="h-[84px] w-full object-cover object-bottom" draggable={false} />
-        {/* pro has its own scene, crossfading in over plus's meadow */}
-        <img src={layers} alt="" width={800} height={354} className={cx("absolute inset-0 h-[84px] w-full object-cover object-bottom transition-opacity duration-300 ease-out motion-reduce:transition-none", plan === "pro" ? "opacity-100" : "opacity-0")} draggable={false} />
-        <span className="absolute bottom-1 right-4" aria-hidden><Mascot body="kit" color="blue" size={44} state="working" still /></span>
-      </span>
-      <span className="flex items-baseline justify-between gap-3 px-3 pt-4">
-        <span className="text-17 font-medium tracking-[-0.02em] text-ink">dusk cloud</span>
-        <span className="t-meta">cancel any time</span>
-      </span>
-      <ul key={plan} className="plan-points-in flex flex-col gap-2 px-3 pb-1 pt-3">
-        {points(plan, catalog).map((p) => (
-          <li key={p} className="flex gap-2.5 text-14 leading-[1.45] text-ink-2">
-            <Check size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-good" aria-hidden />{p}
-          </li>
-        ))}
-      </ul>
-      <fieldset className="mt-3 grid min-w-0 grid-cols-2 gap-1.5">
-        <legend className="sr-only">plan</legend>
-        {plans.map(({ id, b }) => {
-          const on = plan === id;
-          return (
-            <label key={id} className={cx("focus-tint press flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full px-3 text-14 font-medium", on ? "bg-lime text-ink" : "hover-card bg-bg text-ink-2")}>
-              <input type="radio" name="plan" value={id} checked={on} onChange={() => setPlan(id)} className="sr-only" />
-              {on && <Check size={15} strokeWidth={2.25} className="shrink-0" aria-hidden />}
-              {b.name.toLowerCase()} <span className="num font-normal text-ink-3">{per(b.monthly, "month", catalog).amount}/mo</span>
-            </label>
-          );
-        })}
-      </fieldset>
-    </div>
+    <fieldset className="min-w-0">
+      <legend className="sr-only">where your bots live</legend>
+      <div className={cx("rounded-[22px] p-2", cloud ? PICKED : UNPICKED)}>
+        <label htmlFor="home-cloud" className="focus-tint block cursor-pointer rounded-[16px]">
+          <input id="home-cloud" type="radio" name="home" value="cloud" checked={cloud} onChange={() => setHome("cloud")} className="sr-only" />
+          <span className="relative block overflow-hidden rounded-[16px]">
+            <img src={meadow} alt="" width={800} height={354} className="h-[84px] w-full object-cover object-bottom" draggable={false} />
+            {/* pro has its own scene, crossfading in over plus's meadow */}
+            <img src={layers} alt="" width={800} height={354} className={cx("absolute inset-0 h-[84px] w-full object-cover object-bottom transition-opacity duration-300 ease-out motion-reduce:transition-none", plan === "pro" ? "opacity-100" : "opacity-0")} draggable={false} />
+            <span className="absolute bottom-1 right-4" aria-hidden><Mascot body="kit" color="blue" size={44} state="working" still /></span>
+          </span>
+          <span className="flex items-baseline justify-between gap-3 px-3 pt-4">
+            <span className="text-17 font-medium tracking-[-0.02em] text-ink">dusk cloud</span>
+            <span className="t-meta">cancel any time</span>
+          </span>
+          <ul key={plan} className="plan-points-in flex flex-col gap-2 px-3 pb-2 pt-3">
+            {points(plan, catalog).map((p) => (
+              <li key={p} className="flex gap-2.5 text-14 leading-[1.45] text-ink-2">
+                <Check size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-good" aria-hidden />{p}
+              </li>
+            ))}
+          </ul>
+        </label>
+        {cloud && (
+          <div role="radiogroup" aria-label="plan" className="step-in relative mt-1 grid grid-cols-2 rounded-full bg-bg p-1">
+            <StretchPill target={plan} className="bg-[color-mix(in_oklab,var(--ink)_7%,var(--bg))]" />
+            {plans.map(({ id, b }) => {
+              const on = plan === id;
+              return (
+                <button key={id} type="button" role="radio" aria-checked={on} data-stretch-key={id} onClick={() => setPlan(id)}
+                  className={cx("relative inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-14", on ? "font-semibold text-ink" : "font-normal text-ink-2 hover-link")}>
+                  {b.name.toLowerCase()} <span className="num font-normal text-ink-3">{per(b.monthly, "month", catalog).amount}/mo</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <label htmlFor="home-free" className={cx("focus-tint mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] px-4 py-3.5", home === "free" ? PICKED : UNPICKED)}>
+        <input id="home-free" type="radio" name="home" value="free" checked={home === "free"} onChange={() => setHome("free")} className="sr-only" />
+        <Monitor size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-15 font-medium text-ink">this computer</span>
+          <span className="block text-13 leading-[1.4] text-ink-3">bots work while it's awake.</span>
+        </span>
+        <span className="num shrink-0 text-14 text-ink-2">free</span>
+      </label>
+    </fieldset>
   );
 }
 
@@ -103,6 +127,7 @@ export function Onboarding() {
   const at = STEPS.indexOf(step);
   const guess = account?.profile.name || me?.name || me?.email.split("@")[0] || "";
   const [name, setName] = useState<string | null>(null);
+  const [home, setHome] = useState<Home>("cloud");
   const [plan, setPlan] = useState<PaidPlan>(intent?.plan ?? "starter");
   const [interval, setInterval] = useState<BillingInterval>(intent?.interval ?? "month");
   const [busy, setBusy] = useState<"name" | "cloud" | "free" | "done" | null>(null);
@@ -218,13 +243,10 @@ export function Onboarding() {
         <div key="plan" className="step-in">
           <h1 className="t-title">where should your bots live?</h1>
           <p className="mb-6 mt-3 text-16 text-ink-2">on dusk cloud they keep working, even when your computer is off.</p>
-          {catalog ? <CloudOffer catalog={catalog} plan={plan} setPlan={(p) => { setPlan(p); setError(null); }} /> : <div aria-busy="true"><Skeleton className="h-[290px] !rounded-[22px]" /></div>}
+          {catalog ? <PlanStep catalog={catalog} home={home} setHome={(h) => { setHome(h); setError(null); }} plan={plan} setPlan={(p) => { setPlan(p); setError(null); }} /> : <div className="flex flex-col gap-2" aria-busy="true"><Skeleton className="h-[300px] !rounded-[22px]" /><Skeleton className="h-[72px] !rounded-[18px]" /></div>}
           {error && <p role="alert" className="mt-3 text-14 text-bad">{error}</p>}
-          <Button variant="primary" className={cx("mt-5", big)} onClick={() => void choose("cloud")} disabled={busy !== null || !catalog}>{busy === "cloud" ? <Busy>opening checkout</Busy> : price ? `continue to checkout, ${price.amount}${price.unit}` : "continue to checkout"}</Button>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3">
-            {back("name")}
-            <button type="button" onClick={() => void choose("free")} disabled={busy !== null} className="hover-link -me-2 h-11 rounded-full px-2 text-14 text-ink-3 disabled:opacity-50">{busy === "done" ? "opening" : "or keep them on this computer for free"}</button>
-          </div>
+          <Button variant="primary" className={cx("mt-5", big)} onClick={() => void choose(home)} disabled={busy !== null || !catalog}>{busy === "cloud" ? <Busy>opening checkout</Busy> : busy === "done" ? <Busy>opening</Busy> : home === "free" ? "continue with free" : price ? `continue to checkout, ${price.amount}${price.unit}` : "continue to checkout"}</Button>
+          <div className="mt-2">{back("name")}</div>
         </div>
       ) : inApp ? (
         <div key="app" className="min-h-[200px]" aria-busy="true" />
