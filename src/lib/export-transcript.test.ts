@@ -171,6 +171,17 @@ describe("export-transcript", () => {
     expect(markdown.indexOf("### **User**")).toBeGreaterThan(markdown.indexOf(text));
   });
 
+  it("leaves out a turn's digest receipt, which is for the bot, not the person", () => {
+    const messages: Message[] = [
+      { id: "b1", role: "bot", kind: "text", text: "Hey!", at: 1, from: { botId: "ada", name: "Ada", color: "blue" } },
+      { id: "d1", role: "bot", kind: "digest", text: "[digest] · no tool activity observed in this turn · reply: Hey!", at: 2, from: { botId: "ada", name: "Ada", color: "blue" } },
+    ];
+    const markdown = formatTranscriptMarkdown({ title: "Engineering Room", isGroup: true, messages, exportedAt: fixedDate });
+    expect(markdown).toContain("Hey!");
+    expect(markdown).not.toContain("[digest]");
+    expect(markdown.match(/### \*\*Ada\*\*/g)).toHaveLength(1);
+  });
+
   it("slugifies filenames accurately", () => {
     const date = new Date(2026, 8, 8);
     expect(slugifyTranscriptFilename("Coder Bot", date)).toBe(

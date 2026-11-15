@@ -71,6 +71,7 @@ export function formatTranscriptMarkdown(options: ExportTranscriptOptions): stri
   }
 
   for (const message of messages) {
+    if (message.kind === "digest") continue;
     const isUser = message.role === "user";
     const author = isUser ? "User" : message.from?.name || botName || "Assistant";
     const time = formatMessageTime(message.at);

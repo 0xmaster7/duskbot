@@ -177,3 +177,23 @@ it("shows each report's status on the message that sent it, and once the team fi
   expect((await rows()).filter((row) => row.tool?.name === line)).toHaveLength(2);
   expect(questions.length).toBe(after);
 }, hostTimeout(120_000));
+
+it("sends a room's @devs report with the answering bot's report_bug summary, and the room sees where it went", async () => {
+  const created = await api("POST", "/api/groups", { name: "Engineering Room", memberIds: [scout.id], setup: { bulletin: "", defaultResponder: { kind: "member", botId: scout.id } } });
+  expect(created.status, JSON.stringify(created.body)).toBe(201);
+  const room = created.body.group as { id: string; threadId: string };
+  const roomRows = async () => (await api("GET", `/api/threads/${room.threadId}/messages?limit=200`)).body.messages as Row[];
+  const before = received.length;
+  plan([{ name: "report_bug", server: "agents", input: { went_wrong: "Room edits are refused as busy", you_saw: "manage_room failed twice" } }], "Reported.");
+  const sent = await api("POST", `/api/groups/${room.id}/messages`, { text: "@devs seems like there's a bug here" });
+  expect(sent.status, JSON.stringify(sent.body)).toBe(202);
+  await until(() => received.length === before + 1, 30_000);
+  const report = received.at(-1)!;
+  expect(report.description.split("\n")[0]).toBe("seems like there's a bug here");
+  expect(report.description).toContain("Scout's summary: Room edits are refused as busy");
+  expect(report.description).toContain(`Where: the group chat "Engineering Room"`);
+  expect(report.diagnostics).toContain(`Group chat: ${room.id}`);
+  const id = `report-${before + 1}`;
+  await until(async () => (await roomRows()).some((row) => row.kind === "activity" && row.tool?.name === "report_bug" && (row.tool.output ?? "").includes(`report ${id}`)), 20_000);
+  await until(async () => (await roomRows()).some((row) => row.role === "user" && row.bugReport?.id === id), 20_000);
+}, hostTimeout(120_000));
