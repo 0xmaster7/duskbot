@@ -259,7 +259,7 @@ describe("what the page asks of the person", () => {
     await show(control("agent"));
     await act(async () => events().onPointer?.({ phase: "click", x: 800, y: 500, sequence: 3 }));
     const cursor = host.querySelector<HTMLElement>("[data-agent-cursor]")!;
-    expect(cursor.style.transform).toBe("translate3d(800px, 500px, 0)");
+    expect(cursor.style.transform).toMatch(/translateX\(800px\) translateY\(500px\)/);
     await show(control("you"));
     expect(host.querySelector("[data-agent-cursor]")).toBeNull();
   });
