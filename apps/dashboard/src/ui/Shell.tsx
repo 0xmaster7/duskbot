@@ -166,31 +166,27 @@ function CloudBadge() {
   return <span className={cx("live-dot ms-auto", TONE_TEXT[s.tone])} data-live={c.status === "running"} aria-label={s.label} role="img" />;
 }
 
-const HIDE_KEY = "dusk-dash-upsell-hidden-until";
-const WEEK = 7 * 86_400_000;
 // the invested copy holds the card for the rest of the visit it first showed in
 let visitInvested: InvestedFacts | null = null;
 
-/** the one nudge toward dusk cloud, for anyone without dusk cloud; hides for a week when closed */
+/** the one nudge toward dusk cloud, always there for anyone without dusk cloud */
 function SideUpsell() {
   const { clouds } = useCloud();
   const { path, query } = useLocation();
   // in the middle of the app's own step (approving its sign-in, buying from it) there is nothing to sell
   const midFlow = path === "/cloud/desktop" || (path === "/billing" && (query.get("from") === "app" || fromApp()));
-  const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
-  const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now() && !midFlow);
-  const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
+  const visible = Boolean(clouds && !clouds.length && !midFlow);
   return (
     <>
       <AnimatePresence initial={false}>
-        {visible && <SideUpsellCard key="upsell" onHide={hide} />}
+        {visible && <SideUpsellCard key="upsell" />}
       </AnimatePresence>
     </>
   );
 }
 
 /** the card itself, once the bots are counted: someone clearly invested gets it in their own numbers, once per account */
-function SideUpsellCard({ onHide }: { onHide: () => void }) {
+function SideUpsellCard() {
   const { account, detail } = useSession();
   const { bots, loading } = useAccountUsage();
   const turns = detail?.report?.activity?.totals.turns ?? 0;
@@ -216,9 +212,8 @@ function SideUpsellCard({ onHide }: { onHide: () => void }) {
   if (!ready) return null;
   return (
     <m.div className="pop relative rounded-[20px] bg-pop p-4" data-invested={invested ? "" : undefined} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
-      <button type="button" onClick={() => { trackUpsell("dismiss", source); onHide(); }} aria-label="hide for a week" className="hover-ghost absolute right-1.5 top-1.5 grid size-8 place-items-center rounded-full text-ink-4 max-lg:size-11"><X size={14} strokeWidth={1.75} /></button>
       {invested ? (
-        <div className="flex items-center gap-3 pe-6">
+        <div className="flex items-center gap-3">
           <span className="shrink-0" aria-hidden><Mascot body="kit" color="blue" size={34} state="celebrate" tappable /></span>
           <div className="min-w-0">
             <h2 className="text-14 font-semibold leading-[1.3] text-ink">{investedLine(invested)}</h2>
@@ -226,7 +221,7 @@ function SideUpsellCard({ onHide }: { onHide: () => void }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3 pe-6">
+        <div className="flex items-center gap-3">
           <Mascot color="purple" body="wisp" size={34} state="sleeping" tappable />
           <p className="min-w-0 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps your bots working, even when your mac is off.</p>
         </div>

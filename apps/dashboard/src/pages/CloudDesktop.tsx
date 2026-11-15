@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AppWindow, Check } from "@/icons";
 import { useCloud } from "../data/cloud";
 import type { CloudDesktop, DesktopTier, PlanCatalog, SlackWake } from "../data/contracts";
-import { desktopOf, gb, specLine } from "../data/pricing";
+import { desktopMonthly, desktopOf, dollars, gb, planTotal, specLine } from "../data/pricing";
 import { useSession } from "../data/session";
 import { api, ApiError } from "../lib/api";
 import { longDate, MONTH_NAMES } from "../lib/format";
@@ -24,9 +24,33 @@ import { useNow } from "../lib/now";
 import { useAccountUsage } from "../data/usage";
 import { MoveGuide } from "./cloud-card";
 
-/** no dusk cloud yet: the one pitch; plans and prices live in billing */
+/** no dusk cloud yet: the one pitch, then the sizes it comes in */
 function Empty() {
-  return <CloudPitch title="keep your bots working" body="dusk cloud keeps your bots available, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />;
+  const { catalog } = useCloud();
+  return (
+    <div className="flex flex-col gap-4">
+      <CloudPitch title="keep your bots working" body="dusk cloud keeps your bots available, even while your mac sleeps." link={{ to: "/workspaces#add", label: "use my own server instead" }} />
+      <Card className="enter" style={{ ["--i" as string]: 1 }} aria-labelledby="sizes-title">
+        <SectionTitle id="sizes-title" action={<Link to="/billing" className="text-link inline-flex h-8 items-center text-13">plans and billing</Link>}>plans</SectionTitle>
+        {catalog ? (
+          <ul className="">
+            {catalog.bundles.filter((b) => b.id !== "free").map((b) => {
+              const d = desktopOf(catalog, b.desktop);
+              return (
+                <li key={b.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3 md:grid-cols-[140px_minmax(0,1fr)_minmax(0,280px)_auto]">
+                  <span className="text-14 font-medium text-ink">{b.name}</span>
+                  <span className="num truncate text-13 text-ink-3 max-md:hidden">{d ? specLine(d) : ""}</span>
+                  <span className="truncate text-13 text-ink-3 max-md:hidden">{b.members > 1 ? `${b.members} seats, ` : ""}always available{d?.priority ? ", priority wake" : ""}</span>
+                  <span className="num text-end text-14 text-ink">{dollars(b.monthly)}<span className="text-ink-3">/mo</span></span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : <Skeleton className="h-32" />}
+        {catalog && <p className="mt-4 text-13 text-ink-3">{catalog.regions.length === 1 ? "region" : "regions"}: {catalog.regions.map((r) => r.city).join(", ")}. every size has its own sandbox, network and disk.</p>}
+      </Card>
+    </div>
+  );
 }
 
 const STEPS: string[] = SETUP_STEPS.map((step) => SETUP_LABELS[step]);
@@ -69,6 +93,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   const sub = billing?.subscription;
   const current = desktopOf(catalog, cloud.tier);
   const next = catalog.desktops[catalog.desktops.findIndex((d) => d.id === cloud.tier) + 1] ?? null;
+  const total = sub ? planTotal(catalog, sub.selection) : null;
   const includes = [
     specLine(cloud),
     cloud.placement === "shared" ? "its own sandbox on our machines" : "a whole machine of its own",
@@ -77,7 +102,7 @@ function Size({ cloud, catalog }: { cloud: CloudDesktop; catalog: PlanCatalog })
   return (
     <Card aria-labelledby="size-title" className="flex flex-col">
       <SectionTitle id="size-title" action={<Button size="sm" onClick={() => { setFocus(null); setOpen(true); }} disabled={!sub}>resize</Button>}>size</SectionTitle>
-      <p className="text-24 font-medium tracking-[-0.035em] text-ink">{current?.name ?? tierName(catalog, cloud)}</p>
+      <p className="flex flex-wrap items-baseline gap-x-2"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{current?.name ?? tierName(catalog, cloud)}</span>{total ? <span className="num text-14 text-ink-3">{total.amount}{total.unit} {total.note === "cloud size only" ? "" : total.note}</span> : current && <span className="num text-14 text-ink-3">{dollars(desktopMonthly(current, null, catalog.custom))}/mo</span>}</p>
       <ul className="mt-4 flex flex-col gap-2">
         {includes.map((line) => <li key={line} className="flex gap-2.5 text-14 text-ink-2"><Check size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-4" aria-hidden />{line}</li>)}
       </ul>
@@ -146,6 +171,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
   const asleep = cloud.status === "sleeping" || cloud.status === "stopped";
   // opening its page is using it: a cloud we put to sleep wakes now, its numbers follow in seconds
   useEffect(() => { prewarm(cloud); }, [cloud]);
+  const sub = billing?.subscription;
   const deleting = cloud.provider === "managed" && (canDeleteData(cloud, billing) || deletion(cloud) !== null);
   const { bots } = useAccountUsage();
   return (
@@ -188,6 +214,7 @@ function Live({ cloud }: { cloud: CloudDesktop }) {
             <KV k="runs on" v={cloud.placement === "shared" ? "its own sandbox" : "its own machine"} />
             {(cloud.status === "running" || cloud.status === "sleeping") && <SlackWakeSetting key={cloud.id} cloud={cloud} />}
             <KV k="created" v={longDate(cloud.createdAt)} />
+            {sub && <KV k={sub.cancelAt ? "ends" : "renews"} v={longDate(sub.cancelAt ?? sub.currentPeriodEnd)} />}
           </dl>
           {deleting ? <DeleteDataAction cloud={cloud} /> : <p className="mt-4 text-13 text-ink-3">to remove it, cancel it in <Link to="/billing" className="text-link">plans and billing</Link>.</p>}
         </Card>
