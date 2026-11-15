@@ -15,7 +15,7 @@ import { BotMascot, Mascot } from "../ui/Mascot";
 import { cheerOnce } from "../lib/cheer";
 import { CloudCard, MoveGuide } from "./cloud-card";
 import { Activity } from "./activity";
-import { CloudHero } from "./cloud-offer";
+import { CloudPitch } from "./cloud-bits";
 import { LoadError } from "./common";
 
 const ORDER: Record<BotMood, number> = { working: 0, waking: 1, idle: 2, drowsy: 3, sleeping: 4 };
@@ -123,13 +123,13 @@ export function HomePage() {
   const crew = cloud ? null : bots.length ? <Crew rows={bots} /> : loading ? <Skeleton className="h-[200px] !rounded-card" /> : <CrewEmpty />;
   return (
     <div>
-      {/* the greeting is for someone who bought dusk cloud; everyone else starts on the offer */}
+      {/* the greeting is for someone who bought dusk cloud; everyone else starts on the get dusk cloud entry */}
       {cloud ? <div className="enter mb-8 max-sm:mb-6">
         <h1 className="t-title">hi {name}.</h1>
         <p className="mt-2 text-15 text-ink-3">{dailyLine(now)}</p>
       </div> : <h1 className="sr-only">home</h1>}
       <div className="flex flex-col gap-4">
-        {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudCard cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
+        {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[170px] !rounded-card" /> : cloud ? <CloudCard cloud={cloud} detail={cloudDetail} /> : <CloudPitch source="dash_home" id="home-pitch-title" />}
         {clouds !== null && <>
           {cloud && <MoveGuide cloud={cloud} rows={bots} cloudBots={cloudDetail?.report?.bots ?? null} />}
           {crew}

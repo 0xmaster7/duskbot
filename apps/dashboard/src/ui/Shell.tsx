@@ -8,7 +8,7 @@ import { api } from "../lib/api";
 import { trackUpsell, watchUpsell } from "../lib/analytics";
 import { Link, navigate, useLocation } from "../lib/router";
 import { RoutineUpsell } from "../pages/routine-upsell";
-import { PlanSheet } from "../pages/plan-sheet";
+import { useQuickCheckout } from "../pages/cloud-offer";
 import { Button, cx, FreshnessTag } from "./kit";
 import { placeState, TONE_TEXT } from "../data/place";
 import { Mascot } from "./Mascot";
@@ -178,21 +178,19 @@ function SideUpsell() {
   // in the middle of the app's own step (approving its sign-in, buying from it) there is nothing to sell
   const midFlow = path === "/cloud/desktop" || (path === "/billing" && (query.get("from") === "app" || fromApp()));
   const [hiddenUntil, setHiddenUntil] = useState(() => Number(localStorage.getItem(HIDE_KEY) ?? 0));
-  const [open, setOpen] = useState<"dash_sidebar" | "dash_invested" | null>(null);
   const visible = Boolean(clouds && !clouds.length && hiddenUntil <= Date.now() && !midFlow);
   const hide = () => { const until = Date.now() + WEEK; localStorage.setItem(HIDE_KEY, String(until)); setHiddenUntil(until); };
   return (
     <>
       <AnimatePresence initial={false}>
-        {visible && <SideUpsellCard key="upsell" onHide={hide} onOpen={setOpen} />}
+        {visible && <SideUpsellCard key="upsell" onHide={hide} />}
       </AnimatePresence>
-      <AnimatePresence>{open && <PlanSheet key="plan" source={open} start="starter" onClose={() => setOpen(null)} />}</AnimatePresence>
     </>
   );
 }
 
 /** the card itself, once the bots are counted: someone clearly invested gets it in their own numbers, once per account */
-function SideUpsellCard({ onHide, onOpen }: { onHide: () => void; onOpen: (source: "dash_sidebar" | "dash_invested") => void }) {
+function SideUpsellCard({ onHide }: { onHide: () => void }) {
   const { account, detail } = useSession();
   const { bots, loading } = useAccountUsage();
   const turns = detail?.report?.activity?.totals.turns ?? 0;
@@ -203,6 +201,8 @@ function SideUpsellCard({ onHide, onOpen }: { onHide: () => void; onOpen: (sourc
   const due = !shown.current && !held && ready && account ? investedNoteDue(account.id, facts, false) : false;
   const invested = held ?? (due ? facts : null);
   const source = invested ? "dash_invested" : "dash_sidebar";
+  const { catalog } = useCloud();
+  const { busy, error, buy } = useQuickCheckout(source);
   useEffect(() => {
     if (!ready || shown.current) return;
     shown.current = true;
@@ -231,7 +231,8 @@ function SideUpsellCard({ onHide, onOpen }: { onHide: () => void; onOpen: (sourc
           <p className="min-w-0 text-13 font-medium leading-[1.4] text-ink-2">dusk cloud keeps your bots working, even when your mac is off.</p>
         </div>
       )}
-      <Button size="sm" variant="primary" className="mt-3.5 w-full" onClick={() => { trackUpsell("click", source); onOpen(source); }}>{invested ? "get dusk cloud" : "keep them working"}</Button>
+      <Button size="sm" variant="primary" className="mt-3.5 w-full" disabled={busy || !catalog} aria-busy={busy} onClick={() => { trackUpsell("click", source); void buy("starter"); }}>{busy ? "opening checkout" : invested ? "get dusk cloud" : "keep them working"}</Button>
+      {error && <p role="alert" className="mt-2 text-12 font-medium leading-[1.4] text-bad">{error}</p>}
     </m.div>
   );
 }
