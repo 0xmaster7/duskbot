@@ -14,7 +14,7 @@ vi.mock("@/lib/cloud-guest", () => ({ useCanWriteIn: () => true, useReactor: () 
 vi.mock("./ModelPicker", () => ({ ModelPicker: () => null }));
 
 const { ChatView } = await import("./ChatView");
-const { LAST_ROW_AFTER_EXIT_MS, TYPING_MIN_MS } = await import("@/hooks/use-typing-hold");
+const { TYPING_MIN_MS } = await import("@/hooks/use-typing-hold");
 const { GroupView } = await import("./GroupView");
 const { BotEditorStore, initialState } = await import("../state/store");
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -44,7 +44,7 @@ it.each(["bot", "group"])("renders completed live replies for a %s in order, a b
     // a bot's chat says Typing… first, then its finished turn's bubbles land together
     expect(rows()).toEqual(["person"]);
     // each wait is its own act: an update a timer queues inside one only renders when that act ends
-    for (const ms of [TYPING_MIN_MS + 20, LAST_ROW_AFTER_EXIT_MS + 20]) await act(async () => new Promise((resolve) => setTimeout(resolve, ms)));
+    for (const ms of [TYPING_MIN_MS + 20]) await act(async () => new Promise((resolve) => setTimeout(resolve, ms)));
   }
   expect(rows()).toEqual(["person", "first", "second", "third"]);
   for (const reply of replies) expect(host.textContent).toContain(reply.text);

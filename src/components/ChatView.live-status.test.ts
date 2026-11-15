@@ -10,7 +10,7 @@ import type { ModelPicker } from "./ModelPicker";
 import { STATUS_HOLD_MS, STATUS_QUIET_MS } from "./TurnPresence";
 import { LIFE_DOTS_MS, LIFE_MASCOT_MS, LIFE_MASCOT_STATE } from "@/lib/reply-life";
 import { STATUS_MOUNT_MS } from "@/hooks/use-reached";
-import { LAST_ROW_AFTER_EXIT_MS, TYPING_MIN_MS } from "@/hooks/use-typing-hold";
+import { TYPING_MIN_MS } from "@/hooks/use-typing-hold";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -247,17 +247,16 @@ describe("each bubble's typing beat", () => {
     expect(rows()).toEqual(["ask", "one", "two"]);
   });
 
-  it("ends a turn with the line leaving first and the last bubble landing 80ms later", () => {
+  it("ends a turn with the last bubble landing in the frame the line starts leaving", () => {
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     const last = fresh("last", "It's 441, so yes.");
     engine({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
     render(busyBot([ask, last], false));
     expect(statusLine()).toBe("Typing…");
+    expect(rows()).toEqual(["ask"]);
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS));
     expect(host.querySelector(".turn-status-out"), "the line starts leaving").not.toBeNull();
-    expect(rows()).toEqual(["ask"]);
-    act(() => void vi.advanceTimersByTime(LAST_ROW_AFTER_EXIT_MS));
     expect(rows()).toEqual(["ask", "last"]);
     act(() => void vi.advanceTimersByTime(140));
     expect(mascot()).toBeNull();

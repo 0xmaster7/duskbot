@@ -48,3 +48,67 @@ it("keeps the person's bubble as the same element when the server's copy replace
   expect(sentRow?.querySelector("[data-message-row]")).toBe(sentBubble);
   expect(host.textContent?.match(/plan my week/g)).toHaveLength(1);
 });
+
+it("carries a send out of the composer, grows the reply out of the mascot, and shows its copy row once it has landed", async () => {
+  vi.stubGlobal("fetch", () => new Promise(() => {}));
+  const { noteSendLaunch } = await import("./bubble-entrance");
+  type Played = { el: Element; keyframes: Keyframe[]; done: () => void };
+  const played: Played[] = [];
+  vi.spyOn(HTMLElement.prototype, "animate").mockImplementation(function (this: HTMLElement, keyframes) {
+    const listeners: (() => void)[] = [];
+    played.push({ el: this, keyframes: keyframes as Keyframe[], done: () => listeners.forEach((listener) => listener()) });
+    return { cancel: vi.fn(), addEventListener: (_type: string, listener: () => void) => listeners.push(listener) } as unknown as Animation;
+  });
+  const hello: Message = { id: "hello", kind: "text", role: "bot", text: "Hi there", at: 1 };
+  const bot: Bot = { id: "bot", threadId: "thread", name: "Fixture", title: "", description: "", color: "green",
+    modelSelection: { instanceId: "fake", model: "fake" }, notifications: true, unread: false, messages: [hello], activeLeafId: hello.id };
+  let state: AppState = { ...initialState, connected: true, selectedId: bot.id, bots: [bot] };
+  const host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  const draw = () => root!.render(createElement(BotEditorStore, { value: { state, dispatch: vi.fn(),
+    flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} },
+    children: createElement(ChatView, { bot: state.bots[0]! }) }));
+  await act(async () => draw());
+  expect(played.filter((one) => one.el.closest('[data-mid="hello"]')), "a row already there never animates").toHaveLength(0);
+
+  const field = document.createElement("textarea");
+  field.getBoundingClientRect = () => ({ left: 40, top: 500, width: 300, height: 20, right: 340, bottom: 520, x: 40, y: 500, toJSON: () => ({}) });
+  Object.defineProperty(field, "offsetWidth", { get: () => 300 });
+  noteSendLaunch("s1", field);
+  const optimistic: Message = { id: "optimistic-s1", kind: "text", role: "user", text: "plan my week", at: Date.now() + 5, sendId: "s1", parentId: "hello" };
+  state = { ...state, bots: [{ ...bot, messages: [hello, optimistic], activeLeafId: optimistic.id }] };
+  await act(async () => draw());
+  const sent = host.querySelector('[data-mid="optimistic-s1"] [data-chat-bubble]')!;
+  expect(sent.closest("[data-arrival-own]"), "the send plays its own entrance instead of the row's rise").not.toBeNull();
+  expect(played.find((one) => one.el === sent)?.keyframes[0]?.transform).toMatch(/^translate\(/);
+  const fill = sent.querySelector(".bubble-morph-fill")!;
+  expect(played.find((one) => one.el === fill)?.keyframes).toEqual([{ opacity: 0 }, { opacity: 1 }]);
+  await act(async () => played.find((one) => one.el === fill)!.done());
+  expect(sent.querySelector(".bubble-morph-fill"), "the fill hands back to the bubble's own background").toBeNull();
+  expect(sent.classList.contains("bubble-morph")).toBe(false);
+
+  const before = played.length;
+  const confirmed: Message = { ...optimistic, id: "server-1" };
+  const reply: Message = { id: "reply", kind: "text", role: "bot", text: "Mornings stay clear.", at: Date.now() + 10, parentId: "server-1" };
+  state = { ...state, bots: [{ ...bot, messages: [hello, confirmed], activeLeafId: confirmed.id }] };
+  await act(async () => draw());
+  expect(played.length, "the server's copy does not play the send again").toBe(before);
+
+  state = { ...state, bots: [{ ...bot, messages: [hello, confirmed, reply], activeLeafId: reply.id }] };
+  await act(async () => draw());
+  // the reply waits on its typing beat, then lands whole
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 520)));
+  const replyBubble = host.querySelector('[data-mid="reply"] [data-chat-bubble]')!;
+  expect(played.find((one) => one.el === replyBubble)?.keyframes).toEqual([{ opacity: 0, transform: "scale(0.94)" }, { opacity: 1, transform: "scale(1)" }]);
+  expect((replyBubble as HTMLElement).style.transformOrigin).toBe("0% 100%");
+  expect(played.some((one) => one.el.parentElement === replyBubble && one.keyframes[0]?.opacity === 0), "its words fade in whole").toBe(true);
+  expect(played.filter((one) => one.el === sent).length, "the send never plays again").toBe(1);
+
+  const actions = () => host.querySelector('[data-mid="reply"] [data-testid="message-actions"]');
+  expect(actions()?.getAttribute("data-shown")).toBeNull();
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 160)));
+  expect(actions()?.getAttribute("data-shown"), "the copy row comes in after the reply lands").toBe("true");
+  host.remove();
+  vi.restoreAllMocks();
+});

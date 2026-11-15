@@ -113,6 +113,19 @@
 :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-chat-bubble="simple"] {
   --grok-bubble: var(--grok-bubble-fill);
 }
+/* a send's words settle into their bubble as its fill comes in: the fill is its own layer under the words */
+[data-chat-bubble].bubble-morph {
+  position: relative;
+  isolation: isolate;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+.bubble-morph-fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
 /* grok's New line is always in the bot's colour, its text tone for that hue */
 :root:is([data-skin="grok"], [data-skin="grok-dark"]) [data-unread-divider] {
   --grok-new: var(--grok-new-fill);

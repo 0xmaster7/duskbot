@@ -4,20 +4,50 @@ import { usePrefersReducedMotion } from "@/components/mascot-clock";
 
 const ARRIVAL = "[data-arrival]";
 
-/** Every new row, the person's or the bot's, card or bubble: inserted whole at full opacity, rising this far into place
- * (px) over ROW_ENTER_MS on ROW_ENTER_EASE, as Grok Bot's transcript does. A transcript resting at its end glides up by
- * what the rows added over the same time and curve, so nothing already on screen jumps. */
+/** A new row with no entrance of its own (a card, a chip): inserted whole at full opacity, rising this far into place (px)
+ * over ROW_ENTER_MS on ROW_ENTER_EASE. */
 export const ROW_RISE_PX = 12;
 export const ROW_ENTER_MS = 240;
 export const ROW_ENTER_CURVE = [0.23, 1, 0.32, 1] as const;
 export const ROW_ENTER_EASE = `cubic-bezier(${ROW_ENTER_CURVE.join(", ")})`;
+
+/** A row that plays its own entrance (a bubble carried out of the composer, a reply growing out of the mascot): the
+ * column still follows it, but it does not rise as well. */
+export const OWN_ENTRANCE = "data-arrival-own";
+
+export interface SpringTiming { duration: number; easing: string }
+
+/** A spring from rest at 0 to rest at 1 (mass 1) as a WAAPI duration and linear() easing, so it runs off the main thread
+ * and a glide cut short can be read back from the computed transform. */
+export function springTiming(stiffness: number, damping: number): SpringTiming {
+  const w = Math.sqrt(stiffness);
+  const z = Math.min(1, damping / (2 * w));
+  const wd = w * Math.sqrt(1 - z * z);
+  const at = (t: number) => z >= 1 ? 1 - (1 + w * t) * Math.exp(-w * t)
+    : 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t));
+  const envelope = (t: number) => z >= 1 ? (1 + w * t) * Math.exp(-w * t) : Math.exp(-z * w * t) / Math.sqrt(1 - z * z);
+  let end = 0.05;
+  while (envelope(end) > 0.001 && end < 2) end += 0.005;
+  const steps = 48;
+  const points = Array.from({ length: steps + 1 }, (_, i) => i === steps ? "1" : String(Math.round(at((end * i) / steps) * 10000) / 10000));
+  return { duration: Math.round(end * 1000), easing: `linear(${points.join(", ")})` };
+}
+
+/** motion's { type: "spring", bounce, visualDuration } in stiffness and damping */
+export function visualSpring(visualDuration: number, bounce = 0): SpringTiming {
+  const root = (2 * Math.PI) / (visualDuration * 1.2);
+  return springTiming(root * root, 2 * Math.min(1, Math.max(0.05, 1 - bounce)) * root);
+}
+
+/** How a transcript resting at its end follows a new row: a 0.3s spring with no bounce. */
+export const FOLLOW = visualSpring(0.3);
 
 /** The column's glide from where the rows were drawn to where they now rest: `from` px below its place, back to 0. */
 export function columnGlide(column: HTMLElement, from: number): Animation | null {
   if (!canAnimate(column) || Math.abs(from) < 0.5) return null;
   return column.animate(
     [{ transform: `translateY(${from}px)` }, { transform: "translateY(0px)" }],
-    { duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE },
+    { duration: FOLLOW.duration, easing: FOLLOW.easing },
   );
 }
 
@@ -41,7 +71,7 @@ interface Snapshot {
 
 const canAnimate = (el: Element) => typeof (el as HTMLElement).animate === "function";
 
-/** One row's entrance: the same rise for every row type, no fade, no scale, no stagger. */
+/** One row's entrance: a rise with no fade, no scale and no stagger. */
 export function rowEnter(row: HTMLElement): Animation | null {
   if (!canAnimate(row)) return null;
   return row.animate(
@@ -52,7 +82,7 @@ export function rowEnter(row: HTMLElement): Animation | null {
 
 /** Rows that arrive while the conversation is open. A transcript resting at its end scrolls to the new end in the frame
  * the row is inserted and the column glides up from where it was drawn (columnGlide), so the rows already on screen
- * move smoothly; a row that lands with no glide rises into place (rowEnter). The end stays pinned, with no glide, while
+ * move smoothly; a row that lands with no glide rises into place (rowEnter) unless it plays its own entrance. The end stays pinned, with no glide, while
  * the composer changes height. A wrapper clips the column vertically while a row rises, so its transform never stretches the scroll range.
  * Scrolled up, nothing moves the view. Under reduced motion rows simply appear. */
 export function useArrivalFlow({
@@ -144,7 +174,7 @@ export function useArrivalFlow({
         track(glided);
       }
       // a row the column carries up needs no rise of its own; one landing with no glide (room already there) rises
-      for (const row of glided ? [] : arrivals) {
+      for (const row of glided ? [] : arrivals.filter((one) => !one.hasAttribute(OWN_ENTRANCE))) {
         const anim = rowEnter(row);
         if (anim) track(anim);
       }

@@ -5,16 +5,12 @@ import type { Message } from "@/state/store";
 
 /** Grok Bot shows "Typing…" at least this long before each bot bubble lands (ms). */
 export const TYPING_MIN_MS = 500;
-/** At a turn's end the status line starts leaving first and the last bubble lands this much later (ms). */
-export const LAST_ROW_AFTER_EXIT_MS = 80;
 
 export interface TypingHoldState {
   /** rows already shown, or there before this chat was opened */
   known: Set<string>;
   /** when this client first saw each held bubble */
   heldAt: Map<string, number>;
-  /** when the status line started leaving over a held last bubble */
-  leaveAt: number | null;
   openedAt: number;
 }
 
@@ -23,26 +19,23 @@ export interface TypingHold {
   rows: Message[];
   /** a bubble is held: the status line says "Typing…" */
   typing: boolean;
-  /** the turn is over and the line is leaving; the held bubble lands LAST_ROW_AFTER_EXIT_MS after it started */
-  leaving: boolean;
   /** when the hold next changes, or Infinity */
   wakeAt: number;
 }
 
 export function newTypingHold(messages: readonly Message[], now: number): TypingHoldState {
-  return { known: new Set(messages.map((message) => message.id)), heldAt: new Map(), leaveAt: null, openedAt: now };
+  return { known: new Set(messages.map((message) => message.id)), heldAt: new Map(), openedAt: now };
 }
 
 /** Which rows show now. A bot bubble that arrives while the chat is open waits until the status line has said "Typing…"
  * for TYPING_MIN_MS, as each of Grok Bot's bubbles does; the rows after it wait with it so the order holds. Once the turn
- * is over (`busy` false), the line leaves first and the held rows land LAST_ROW_AFTER_EXIT_MS later. The person's own
+ * is over (`busy` false), the held rows land in the frame the line starts leaving, growing out of where it was. The person's own
  * words are never held back: a send while a bubble waits lets everything through at once. */
 export function holdRows(messages: readonly Message[], state: TypingHoldState, { botId, busy, now }: { botId: string; busy: boolean; now: number }): TypingHold {
   const release = (): TypingHold => {
     for (const message of messages) state.known.add(message.id);
     state.heldAt.clear();
-    state.leaveAt = null;
-    return { rows: messages as Message[], typing: false, leaving: false, wakeAt: Infinity };
+    return { rows: messages as Message[], typing: false, wakeAt: Infinity };
   };
   for (;;) {
     const at = messages.findIndex((message) => !state.known.has(message.id) && message.at > state.openedAt - 2_000 && isBotTextRow(message, botId) && Boolean(message.text?.trim()));
@@ -54,13 +47,8 @@ export function holdRows(messages: readonly Message[], state: TypingHoldState, {
     state.heldAt.set(held.id, since);
     const typed = since + TYPING_MIN_MS;
     const rows = messages.slice(0, at);
-    if (now < typed) return { rows, typing: true, leaving: false, wakeAt: typed };
-    if (!busy) {
-      state.leaveAt ??= now;
-      const lands = state.leaveAt + LAST_ROW_AFTER_EXIT_MS;
-      if (now < lands) return { rows, typing: true, leaving: true, wakeAt: lands };
-      return release();
-    }
+    if (now < typed) return { rows, typing: true, wakeAt: typed };
+    if (!busy) return release();
     // the bubble lands; the next one, if it came with it, gets its own typing beat from now
     state.heldAt.delete(held.id);
     const next = messages.findIndex((message, index) => index > at && isBotTextRow(message, botId));

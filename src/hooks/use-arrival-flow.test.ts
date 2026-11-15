@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 
-import { ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, rowEnter, useArrivalFlow } from "./use-arrival-flow";
+import { FOLLOW, OWN_ENTRANCE, ROW_ENTER_EASE, ROW_ENTER_MS, ROW_RISE_PX, rowEnter, springTiming, useArrivalFlow } from "./use-arrival-flow";
 
 // happy-dom has no layout: each element reports the offsets the test gives it, and animations are recorded
 type Recorded = { el: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions };
@@ -84,9 +84,7 @@ describe("useArrivalFlow", () => {
     // the rows already on screen start where they were drawn, 60px lower, and glide into place: no one-frame jump
     const [glide] = moved(column);
     expect(glide?.keyframes).toEqual([{ transform: `translateY(${scroller.scrollTop - before}px)` }, { transform: "translateY(0px)" }]);
-    expect(glide?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
-    expect(ROW_ENTER_MS).toBe(240);
-    expect(ROW_ENTER_EASE).toBe("cubic-bezier(0.23, 1, 0.32, 1)");
+    expect(glide?.options).toEqual({ duration: FOLLOW.duration, easing: FOLLOW.easing });
     // the reply rides the column: no rise, fade or clip reveal of its own, and the status line is left alone
     expect(rises(reply)).toHaveLength(0);
     expect(glide?.keyframes.every((frame) => frame.opacity === undefined && frame.clipPath === undefined)).toBe(true);
@@ -131,6 +129,16 @@ describe("useArrivalFlow", () => {
     expect(entrance?.keyframes).toEqual([{ transform: `translateY(${ROW_RISE_PX}px)` }, { transform: "translateY(0px)" }]);
     expect(entrance?.options).toEqual({ duration: ROW_ENTER_MS, easing: ROW_ENTER_EASE });
     expect(rowEnter).toBeTypeOf("function");
+  });
+
+  it("lets a row that plays its own entrance land with no rise, when there was room for it", () => {
+    scrollHeight = CLIENT;
+    scroller.scrollTop = 0;
+    draw(true, 0);
+    const reply = addRow(300, "start");
+    reply.setAttribute(OWN_ENTRANCE, "");
+    draw(true, 1);
+    expect(recorded).toHaveLength(0);
   });
 
   it("never re-animates the rows that were already there when the next one lands", () => {
@@ -207,5 +215,25 @@ describe("useArrivalFlow", () => {
     draw(true, 2);
     draw(true, 3);
     expect(recorded.filter((r) => r.el === reply)).toHaveLength(count);
+  });
+});
+
+describe("the follow spring", () => {
+  const curve = (timing: { easing: string }) => /linear\(([^)]+)\)/.exec(timing.easing)![1]!.split(",").map(Number);
+
+  it("runs from rest to rest with no bounce, most of the way there by 0.3s", () => {
+    const points = curve(FOLLOW);
+    expect(points[0]).toBe(0);
+    expect(points.at(-1)).toBe(1);
+    expect(points.every((value, i) => i === 0 || value >= points[i - 1]!)).toBe(true);
+    const at300 = points[Math.round((300 / FOLLOW.duration) * (points.length - 1))]!;
+    expect(at300).toBeGreaterThan(0.94);
+    expect(FOLLOW.duration).toBeLessThan(700);
+  });
+
+  it("lets an underdamped spring settle past its end and back", () => {
+    const points = curve(springTiming(420, 32));
+    expect(Math.max(...points)).toBeGreaterThan(1);
+    expect(points.at(-1)).toBe(1);
   });
 });

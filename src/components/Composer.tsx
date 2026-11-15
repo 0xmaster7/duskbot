@@ -104,6 +104,7 @@ import {
 } from "@/lib/composer-commands";
 import { useSlashSkills } from "@/lib/use-slash-skills";
 import { randomUuid } from "@/lib/random-uuid";
+import { noteSendLaunch } from "./bubble-entrance";
 import { friendlyError } from "@/lib/plain-error";
 
 const supportsAgents = (instances: InstanceInfo[], candidate?: Bot) =>
@@ -702,6 +703,7 @@ export function Composer({
       roomMessageSent(effectiveChannelMode, busy);
     } else if (bot) {
       const points = effectiveChannelMode === "goal" ? null : takePointedChips(threadId);
+      noteSendLaunch(sendId, inputRef.current);
       dispatch({
         type: "send", botId: bot.id, text: body, sendId: sentDraft.sendId, replyToId: replyTo?.id, threadId, mode: effectiveChannelMode, mentions: sentDraft.mentions,
         ...(points ? { pointed: points.pointed } : {}), ...(followUp ? { followUp } : {}),

@@ -59,6 +59,9 @@ import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
 import { showWorkingDots } from "@/lib/turn-tail";
 import { useNotesWork } from "@/lib/notes-arrival";
 import { useTypingHold } from "@/hooks/use-typing-hold";
+import { OWN_ENTRANCE } from "@/hooks/use-arrival-flow";
+import { usePrefersReducedMotion } from "@/components/mascot-clock";
+import { ACTIONS_AFTER_MS, growFromMascot, hasSendLaunch, morphFromComposer } from "./bubble-entrance";
 import { STATUS_MOUNT_MS, useReached } from "@/hooks/use-reached";
 import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
 import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState, lifeSpan } from "@/lib/reply-life";
@@ -315,8 +318,11 @@ const Bubble = memo(function Bubble({
   replyTarget,
   onReply,
   underExchangeLine = false,
+  landed = false,
 }: {
   message: Message;
+  /** The turn's last reply, landed while the chat was open: its copy row shows once it is there. */
+  landed?: boolean;
   /** An exchange line above already names the bot that sent it. */
   underExchangeLine?: boolean;
   emerging?: boolean;
@@ -396,6 +402,24 @@ const Bubble = memo(function Bubble({
   useEffect(() => {
     if (focusedSearch && collapsible) setExpanded(true);
   }, [focusedSearch, collapsible, focus?.nonce]);
+  const reduced = usePrefersReducedMotion();
+  const own = useRef<{ bubble: HTMLDivElement | null; fill: HTMLSpanElement | null; entered: boolean }>({ bubble: null, fill: null, entered: false });
+  // a send carries its words out of the composer; a reply grows out of the mascot; anything else rises with its row
+  const [entrance] = useState<"morph" | "grow" | null>(() => {
+    if (!fresh) return null;
+    if (!user) return message.kind === "text" ? "grow" : null;
+    const plain = !webhookView && !hasAttachments && Boolean(visibleText.trim()) && !emojiOnly(visibleText);
+    return plain && !reduced && hasSendLaunch(message.sendId) ? "morph" : null;
+  });
+  const [filling, setFilling] = useState(entrance === "morph");
+  useLayoutEffect(() => {
+    const parts = own.current;
+    if (parts.entered || !entrance || !parts.bubble) return;
+    parts.entered = true;
+    if (entrance === "grow") growFromMascot(parts.bubble, reduced);
+    else void morphFromComposer(parts.bubble, parts.fill, message.sendId).then(() => setFilling(false));
+  }, [entrance, reduced, message.sendId]);
+  const actionsAfter = useShownAfter(fresh && !user && landed, ACTIONS_AFTER_MS);
 
   if (user && editing && !webhookView && !hasAttachments) {
     return (
@@ -422,7 +446,7 @@ const Bubble = memo(function Bubble({
   const togglePin = () =>
     dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } });
   const botActions = !user && (
-    <MessageActions side="bot" forceOpen={speaking} menu={[...copyItem(text), ...botMenu]}>
+    <MessageActions side="bot" forceOpen={speaking || actionsAfter} menu={[...copyItem(text), ...botMenu]}>
       {canReact && !peer && <ReactAction threadId={threadId} message={message} />}
       <ReplyAction onReply={() => onReply(message)} />
       {text && speaking && <SpeakButton text={text} botId={botId} messageId={message.id} voiceId={voiceId} tts={tts} localVoice={localVoice} className={cn(messageActionClass, "text-accent")} />}
@@ -430,7 +454,7 @@ const Bubble = memo(function Bubble({
   );
 
   return (
-    <div {...{ [MESSAGE_ROW]: "" }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", join?.above && SIMPLE_STACKED)}>
+    <div {...{ [MESSAGE_ROW]: "", ...(entrance ? { [OWN_ENTRANCE]: "" } : {}) }} data-arrival={fresh ? (user ? "end" : "start") : undefined} className={cn("group relative flex w-full flex-col", (reactionsOnBubble || (mediaReactions && !group)) && "pt-[26px]", user ? "items-end" : "items-start", join?.above && SIMPLE_STACKED)}>
       {message.relay ? <RelayLabel message={message} /> : peer && !underExchangeLine && <PeerLabel peer={peer} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       {imagesAbove && <AttachmentGallery media={message.media} images={imagesAbove.images} files={imagesAbove.files} message={{ threadId, messageId: message.id }} eager={eagerAttachments} align="end" className="mb-1" />}
@@ -451,8 +475,10 @@ const Bubble = memo(function Bubble({
           </MessageActions>
         )}
         <div
+          ref={(el) => { own.current.bubble = el; }}
           data-chat-bubble="simple"
           className={cn(
+            filling && "bubble-morph",
             tabled ? "w-full" : "w-fit",
             !tabled && SIMPLE_BUBBLE_MAX,
             emerging && "turn-answer",
@@ -472,6 +498,10 @@ const Bubble = memo(function Bubble({
           style={user && !webhookView && !attachmentsOnly && !bigEmoji ? ownBubbleStyle : undefined}
           data-reacted={reactionsOnBubble ? "" : undefined}
         >
+          {filling && (
+            <span ref={(el) => { own.current.fill = el; }} aria-hidden="true" data-chat-bubble="simple" style={{ ...ownBubbleStyle, borderRadius: "inherit" }}
+              className={cn(SIMPLE_USER_BUBBLE, ownBubbleStyle && "user-bubble-colored", "bubble-morph-fill")} />
+          )}
           {replyTarget && (
             <div className="mb-2">
               <ReplyQuote
@@ -685,6 +715,17 @@ export function personStoppedLast(messages: readonly Message[]): boolean {
   return false;
 }
 
+/** True once `on` has held for `ms`. */
+function useShownAfter(on: boolean, ms: number): boolean {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!on) { setShown(false); return; }
+    const timer = setTimeout(() => setShown(true), ms);
+    return () => clearTimeout(timer);
+  }, [on, ms]);
+  return on && shown;
+}
+
 export function useLingering(on: boolean, ms: number): boolean {
   const [lingering, setLingering] = useState(on);
   if (on && !lingering) setLingering(true);
@@ -766,6 +807,7 @@ const MessagesList = memo(function MessagesList({
   onRegenerate,
   onReply,
   seamId = null,
+  landedReplyId = null,
 }: {
   messages: Message[];
   transcript: Message[];
@@ -787,6 +829,8 @@ const MessagesList = memo(function MessagesList({
   onReply: (message: Message) => void;
   /** The bubble the working line hangs under: its bottom corner pinches as if another bubble followed, as grok's does. */
   seamId?: string | null;
+  /** The reply that ended the turn, once it has landed. */
+  landedReplyId?: string | null;
 }) {
   const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, bubbleStyle } = useChatRows(), busy = use(ChatBusyContext);
   // A finished turn keeps the bot's progress lines and folds only its tool steps under "Worked for", in both modes.
@@ -924,6 +968,7 @@ const MessagesList = memo(function MessagesList({
                   replyTarget={lookups.replyTarget(m)}
                   onReply={onReply}
                   underExchangeLine={run !== undefined}
+                  landed={m.id === landedReplyId}
                 />
               );
             }
@@ -1105,7 +1150,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const mountDue = useReached(!turnBusy ? null : turnStartedAt && messages.length > 0 ? turnStartedAt + mountDelay : 0);
   // notes from another AI being brought in: the import's own steps are this bot's working row until its summary lands
   const importing = useNotesWork(bot.id);
-  const presenceVisible = !stopCut && (hold.typing ? !hold.leaving : (waiting && mountDue) || teammatesWorking || Boolean(importing));
+  const presenceVisible = !stopCut && (hold.typing || (waiting && mountDue) || teammatesWorking || Boolean(importing));
   // the bubble the line hangs under keeps its pinched corner until the line has finished leaving, as grok's does
   const presenceShown = useLingering(presenceVisible, 140);
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
@@ -1355,6 +1400,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onRegenerate={regenerate}
               onReply={selectReply}
               seamId={lastRowIsBubble && presenceShown ? lastShownRow?.id ?? null : null}
+              landedReplyId={!turnBusy && !stopCut && !personStoppedLast(messages) ? lastBotTextId : null}
             />
           </FoldedNoticesContext></ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {laterCount > 0 && (
