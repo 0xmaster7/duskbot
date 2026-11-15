@@ -539,6 +539,7 @@
   "cloudBuy.big.noLicense": "No work license",
   "cloudBuy.big.workLicense": "Work license for one person",
   "cloudBuy.big.teamSeats": "2 seats, more at $20/month each, up to 50",
+  "cloudBuy.big.seats": "{included} seats, more at {price}/month each, up to {seats}",
   "cloudBuy.termsChanged": "You're signed in. These are the plans for your account, so check the price before you continue.",
   "cloudBuy.back": "Plans",
   "cloudBuy.signIn.title": "Create your dusk bot account",

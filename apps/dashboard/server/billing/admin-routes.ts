@@ -28,9 +28,11 @@ export function createAdminRoutes(ctx: BillingContext) {
       const kind = bundle.cart.desktop.kind;
       if (kind === "none") throw new Error("Bundle desktop missing.");
       const desktop = config.desktops[kind], spec = bundle.cart.desktop.spec ?? desktop.machine;
+      const license = bundle.cart.license.kind === "team" ? config.licenses.team : null;
       return { tier: bundle.id, label: bundle.label, price: { currency: "USD", interval: "month", amount: bundle.monthlyCents },
         allowances: { cpus: spec.vcpu, memoryMb: spec.ramGb * 1024, diskGb: spec.diskGb, maxDiskGb: kind === "dedicated" ? config.dedicated.diskGb.max : spec.diskGb,
-          computers: desktop.botComputers ?? 0, ...config.appAllowances[kind] } };
+          computers: desktop.botComputers ?? 0, ...config.appAllowances[kind], ...(desktop.priority ? {} : { sleeps: true as const }),
+          ...(license ? { seats: license.maxMembers, includedSeats: license.includedMembers, ...(license.extraMemberCents ? { extraSeatCents: license.extraMemberCents } : {}) } : {}) } };
     }) };
   }
   function openCheckout(account: AccountRef) { return ctx.store.state.checkouts.find(c => c.accountId === account.id && c.kind === "cart" && c.status === "open" && c.openUntil > now()); }

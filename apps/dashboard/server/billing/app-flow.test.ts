@@ -111,6 +111,9 @@ it("runs the real desktop client through checkout, setup, pairing, upgrade, anot
   expect(f.client.state()).toMatchObject({ status: "connected", entitlement: { plan: "free", status: "inactive" }, offer: { plans: [{ tier: "starter" }, { tier: "pro" }, { tier: "team" }] } });
   const publicConfig = await f.request("/api/public/config");
   expect(parsePublicOffer(publicConfig.data)?.plans.map(p => p.tier)).toEqual(["starter", "pro", "team"]);
+  expect(parsePublicOffer(publicConfig.data)?.plans.map(p => [p.tier, p.allowances?.sleeps, p.allowances?.seats, p.allowances?.includedSeats, p.allowances?.extraSeatCents]),
+    "Plus wakes in seconds, Pro and Team wake first; Team's seats are its license's").toEqual([["starter", true, undefined, undefined, undefined], ["pro", undefined, undefined, undefined, undefined],
+    ["team", undefined, BILLING_CONFIG.licenses.team.maxMembers, BILLING_CONFIG.licenses.team.includedMembers, BILLING_CONFIG.licenses.team.extraMemberCents]]);
   expect(parseCloudOffer((await f.session()).offer)?.recommended).toBe("pro");
   expect((await f.session()).license).toMatchObject({ v: 1, license: null, checkedAt: f.now() });
   const authorize = await f.request("authorize", { deviceName: "Another Mac", platform: "darwin" }, "");

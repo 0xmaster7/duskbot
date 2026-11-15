@@ -350,6 +350,12 @@ test("a plan's swap, backup days and CPU kind come along when the Admin lists th
     swapMb: 4096, snapshotDays: 14 });
   assert.equal(parseCloudOffer({ plans: [{ ...catalog()[1], allowances: { ...allowances(4, 10, 100), seats: 5 } }] }).plans[0].allowances.seats, 5, "a team plan's most people comes through");
   for (const seats of [0, -1, "5", 2.5, 5000]) assert.equal(parseCloudOffer({ plans: [{ ...catalog()[1], allowances: { ...allowances(4, 10, 100), seats } }] }).plans[0].allowances.seats, undefined, String(seats));
+  const team = extra => parseCloudOffer({ plans: [{ ...catalog()[1], allowances: { ...allowances(4, 10, 100), ...extra } }] }).plans[0].allowances;
+  assert.deepEqual([team({ seats: 50, includedSeats: 2, extraSeatCents: 2000 })].map(a => [a.seats, a.includedSeats, a.extraSeatCents]), [[50, 2, 2000]], "a team plan's included seats and extra seat price come through");
+  for (const bad of [{ seats: 50, includedSeats: 0, extraSeatCents: 0 }, { seats: 50, includedSeats: 60, extraSeatCents: -5 }, { includedSeats: 2, extraSeatCents: 2000 }, { seats: 50, includedSeats: "2", extraSeatCents: 2.5 }]) {
+    const a = team(bad);
+    assert.equal(a.includedSeats, undefined, JSON.stringify(bad)); assert.equal(a.extraSeatCents, undefined, JSON.stringify(bad));
+  }
   for (const extra of [{ swapMb: 0 }, { swapMb: -1 }, { swapMb: "4096" }, { snapshotDays: 0 }, { snapshotDays: 400 }, { snapshotDays: 7.5 }, { cpuKind: "gpu" }, { cpuKind: null }]) {
     const plan = parseCloudOffer({ plans: [{ ...catalog()[1], allowances: { ...allowances(4, 10, 100), ...extra } }] }).plans[0];
     assert.deepEqual(Object.keys(plan.allowances).filter(key => ["swapMb", "snapshotDays"].includes(key) || (key === "cpuKind" && "cpuKind" in extra)), [], JSON.stringify(extra));

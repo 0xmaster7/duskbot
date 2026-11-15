@@ -7,8 +7,6 @@ import { t } from "@/lib/i18n";
 
 export const SHEET = "rounded-2xl border-[0.5px] border-transparent bg-app text-ink";
 export const SCREEN = "flex flex-col gap-5 px-6 pb-6 pt-5";
-/** The close button over a night card: light ink on the sky. */
-export const ON_NIGHT = "group-has-[[data-night-card]]/sheet:[color-scheme:var(--code-color-scheme)] group-has-[[data-night-card]]/sheet:text-(--cloud-night-ink-quiet) group-has-[[data-night-card]]/sheet:hover:bg-white/15 group-has-[[data-night-card]]/sheet:hover:text-(--cloud-night-ink)";
 export const CLOSE = "flex size-8 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink motion-reduce:transition-none";
 /** A neutral ink pill in Midnight and Daylight, the skin's accent elsewhere. */
 export const PRIMARY = "ui-button ui-button-primary ui-button-pill";

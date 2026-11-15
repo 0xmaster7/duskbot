@@ -94,6 +94,8 @@ export interface CloudPlanAllowances {
   snapshotDays?: number;
   /** A team plan's most people, its owner included. */
   seats?: number;
+  /** A team plan's people its price includes, and what each one more costs a month in US cents, when the Admin says. */
+  includedSeats?: number; extraSeatCents?: number;
 }
 /** One plan dusk bot Cloud sells: its monthly price before tax in US cents,
  * and its free trial's days when it comes with one. */

@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from "react";
 import type { CloudOffer, CloudOfferPlan } from "../../../electron/cloud-home.mjs";
 import { cn } from "@/lib/cn";
-import { moneyBackShort, planCards, type CloudPlanCard } from "@/lib/cloud-plan";
+import { moneyBackShort, planCards, usd, type CloudPlanCard } from "@/lib/cloud-plan";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { buyLabel } from "./buy-label";
@@ -21,17 +21,21 @@ function firstPick(cards: readonly CloudPlanCard[]): string | null {
 }
 
 const gb = (mb: number) => new Intl.NumberFormat(activeLocale(), { maximumFractionDigits: 1 }).format(Math.round(mb / 102.4) / 10);
-/** The picked plan's four lines, every number from the Admin's allowances: machine, disk, how it wakes, who may use it. */
-function specs(plan: CloudOfferPlan | undefined): Array<{ key: string; text: string; quiet?: true }> {
+/** The picked plan's four lines, every number from the Admin's allowances: machine, disk, how it wakes, who may use it.
+ * `oldAdmin`: an Admin that says nothing of sleeping or seats, so Plus wakes in seconds and Team's seats are its catalog's. */
+function specs(plan: CloudOfferPlan | undefined, oldAdmin: boolean): Array<{ key: string; text: string; quiet?: true }> {
   const a = plan?.allowances;
   if (!plan || !a) return [];
   const team = plan.tier === "team" || Boolean(a.seats);
   const cpus = t("cloudBuy.plan.cpus", { count: a.cpus });
+  const sleeps = a.sleeps === true || (oldAdmin && plan.tier === "starter");
   return [
     { key: "machine", text: t(team ? "cloudBuy.big.machineDedicated" : "cloudBuy.big.machine", { cpus, memory: gb(a.memoryMb) }) },
     { key: "disk", text: a.maxDiskGb > a.diskGb ? t("cloudBuy.row.storageGrows", { gb: a.diskGb, max: a.maxDiskGb }) : t("cloudBuy.row.storage", { gb: a.diskGb }) },
-    { key: "wake", text: t(a.sleeps ? "cloudBuy.big.wakes" : "cloudBuy.big.priority") },
-    a.seats ? { key: "license", text: t("cloudBuy.point.team", { seats: a.seats }) }
+    { key: "wake", text: t(sleeps ? "cloudBuy.big.wakes" : "cloudBuy.big.priority") },
+    a.seats && a.includedSeats && a.extraSeatCents
+      ? { key: "license", text: t("cloudBuy.big.seats", { included: a.includedSeats, price: usd(a.extraSeatCents / 100), seats: a.seats }) }
+      : a.seats ? { key: "license", text: t("cloudBuy.point.team", { seats: a.seats }) }
       : team ? { key: "license", text: t("cloudBuy.big.teamSeats") }
       : WORK.has(plan.tier) ? { key: "license", text: t("cloudBuy.big.workLicense") }
       : { key: "license", text: t("cloudBuy.big.noLicense"), quiet: true },
@@ -66,7 +70,7 @@ export function ChooseScreen({ offer, current = null, own = null, busy, signedOu
   const trial = offer.plans.some(plan => plan.trialDays);
   const moneyBack = moneyBackShort(offer);
   const plan = pick ? [...offer.plans, ...(own ? [own] : [])].find(entry => entry.tier === pick.tier) : undefined;
-  const lines = specs(plan);
+  const lines = specs(plan, !offer.plans.some(entry => entry.allowances?.sleeps || entry.allowances?.seats));
   const pixel = cards.every(card => pixelPriceFits(card.price));
   const unit = Math.max(6, Math.min(10, Math.floor(PRICE_WIDTH / Math.max(...cards.map(card => pixelPriceUnits(card.price))))));
   const buy = pick && (pick.trialDays

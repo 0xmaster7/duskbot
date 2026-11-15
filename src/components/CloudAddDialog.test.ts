@@ -16,7 +16,6 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
 }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch }) }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
-vi.mock("./cloud-buy/NightCard", () => ({ NightCard: ({ children }: { children: ReactNode }) => createElement("div", { "data-night-card": "" }, children) }));
 vi.mock("./cloud-buy/AddCloudFlow", () => ({ AddCloudFlow: ({ source }: { source?: string }) => createElement("div", { "data-add-cloud-flow": source ?? "" }) }));
 import { CloudAddDialog, CloudAddPanel, CloudAddSheet, type CloudAddActions, type CloudAddUi } from "./CloudAddDialog";
 import { ChooseScreen } from "./cloud-buy/ChooseScreen";
@@ -162,16 +161,27 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     }
   });
 
-  it("Choose: the live Team plan reads true to its allowances, and a price the pixels can't draw is set in type", () => {
-    const team = parseCloudOffer({ plans: [
-      { tier: "starter", label: "Plus", price: { currency: "USD", interval: "month", amount: 2000 }, allowances: { cpus: 2, memoryMb: 4096, diskGb: 20, maxDiskGb: 20, computers: 2, computerHours: 720, voiceCharacters: 0 } },
-      { tier: "team", label: "Team", price: { currency: "USD", interval: "month", amount: 11900 }, allowances: { cpus: 8, memoryMb: 16384, diskGb: 160, maxDiskGb: 200, computers: 0, computerHours: 720, voiceCharacters: 0 } },
-    ], recommended: "team" })!;
-    const html = renderToStaticMarkup(createElement(ChooseScreen, { offer: team, now: NOW, busy: false, signedOut: false, notice: null, onStart: vi.fn(), onSignIn: vi.fn() }));
-    inOrder(text(html), ["Plus", "Team", "Per month, for Team", "A dedicated machine for your team", "Dedicated 8 vCPU, 16 GB RAM", "160 GB disk, grows to 200 GB", "Priority wake",
+  it("Choose: Plus and Team read true to the Admin's allowances, and an older Admin that says nothing of sleeping or seats still gets them right", () => {
+    const wire = (tier: string, label: string, amount: number, allowances: Record<string, unknown>) => ({ tier, label, price: { currency: "USD", interval: "month", amount },
+      allowances: { computers: 0, computerHours: 720, voiceCharacters: 0, ...allowances } });
+    const plus = { cpus: 2, memoryMb: 4096, diskGb: 20, maxDiskGb: 20 }, team = { cpus: 8, memoryMb: 16384, diskGb: 160, maxDiskGb: 200 };
+    const shown = (plans: unknown[], recommended: string) => text(renderToStaticMarkup(createElement(ChooseScreen, { offer: parseCloudOffer({ plans, recommended })!, now: NOW, busy: false,
+      signedOut: false, notice: null, onStart: vi.fn(), onSignIn: vi.fn() })));
+    const now = [wire("starter", "Plus", 2000, { ...plus, sleeps: true }), wire("team", "Team", 11900, { ...team, seats: 50, includedSeats: 2, extraSeatCents: 2000 })];
+    inOrder(shown(now, "team"), ["Plus", "Team", "Per month, for Team", "A dedicated machine for your team", "Dedicated 8 vCPU, 16 GB RAM", "160 GB disk, grows to 200 GB", "Priority wake",
       "2 seats, more at $20/month each, up to 50", "Get Team for $119/month"]);
+    inOrder(shown(now, "starter"), ["Your bots keep working with the laptop shut", "2 vCPU, 4 GB RAM", "20 GB disk", "Wakes in seconds", "No work license"]);
+    expect(shown(now, "starter")).not.toContain("Priority wake");
+    expect(shown([wire("starter", "Plus", 2000, plus), wire("team", "Team", 11900, { ...team, seats: 50, includedSeats: 3, extraSeatCents: 2500 })], "team"),
+      "the seats are the Admin's").toContain("3 seats, more at $25/month each, up to 50");
+    const old = [wire("starter", "Plus", 2000, plus), wire("pro", "Pro", 5000, { cpus: 4, memoryMb: 8192, diskGb: 60, maxDiskGb: 60 }), wire("team", "Team", 11900, team)];
+    expect(shown(old, "starter"), "an older Admin: Plus still wakes in seconds").toContain("Wakes in seconds");
+    expect(shown(old, "starter")).not.toContain("Priority wake");
+    expect(shown(old, "pro")).toContain("Priority wake");
+    inOrder(shown(old, "team"), ["Dedicated 8 vCPU, 16 GB RAM", "Priority wake", "2 seats, more at $20/month each, up to 50"]);
+    const html = renderToStaticMarkup(createElement(ChooseScreen, { offer: parseCloudOffer({ plans: now, recommended: "team" })!, now: NOW, busy: false, signedOut: false, notice: null,
+      onStart: vi.fn(), onSignIn: vi.fn() }));
     expect(html).toContain('data-pixel-price="$119"');
-    expect(text(html)).not.toContain("For work");
     const odd = renderToStaticMarkup(createElement(ChooseScreen, { offer: { plans: [{ tier: "starter", label: "Plus", amount: 2000 }], recommended: "starter" }, now: NOW, busy: false, signedOut: false,
       notice: null, onStart: vi.fn(), onSignIn: vi.fn() }));
     expect(odd, "no allowances, no lines").not.toContain("data-plan-line");
@@ -350,7 +360,6 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     const sheet = (kind: CloudAddView["kind"], staging = false) => renderToStaticMarkup(createElement(CloudAddSheet, { kind, staging, onClose: vi.fn(), children: "x" }));
     expect(sheet("offer")).toContain("max-w-[580px]"); expect(sheet("starting")).toContain("max-w-[720px]"); expect(sheet("waiting")).toContain("max-w-[540px]");
     expect(sheet("offer")).toContain('aria-label="Close"');
-    expect(sheet("offer"), "over a night card the close button takes the card's light ink").toContain("group-has-[[data-night-card]]/sheet:text-(--cloud-night-ink-quiet)");
     expect(sheet("offer"), "above Settings, the welcome flow (z-50) and the full-screen places picker (z-60), which it opens over").toContain("fixed inset-0 z-[61]");
     expect(sheet("offer")).not.toContain("data-cloud-staging");
     expect(text(sheet("offer", true))).toMatch(/Staging ?: This app uses the staging dusk cloud: test payments and test clouds, not real ones\./);
