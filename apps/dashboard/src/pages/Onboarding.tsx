@@ -49,9 +49,14 @@ function Rail({ at, total }: { at: number; total: number }) {
   );
 }
 
-/** the chosen card sits a soft step above the page, the other a step lighter still; never the dark grey */
-const PICKED = "bg-[color-mix(in_oklab,var(--card-2)_50%,var(--card))]";
-const UNPICKED = "hover-card bg-[color-mix(in_oklab,var(--card)_60%,var(--bg))]";
+/** both homes keep the same light card; the chosen one shows a filled dot, never a darker card */
+function Dot({ on }: { on: boolean }) {
+  return (
+    <span aria-hidden className={cx("grid size-5 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-[ease]", on ? "bg-ink" : "bg-track")}>
+      <span className={cx("size-2 rounded-full bg-bg transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none", on ? "scale-100 opacity-100" : "scale-75 opacity-0")} />
+    </span>
+  );
+}
 
 /** dusk cloud first and chosen, its plans on a white track with one grey thumb that stretches between them; this
  * computer below it as the free way */
@@ -61,7 +66,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
   return (
     <fieldset className="min-w-0">
       <legend className="sr-only">where your bots live</legend>
-      <div className={cx("rounded-[22px] p-2", cloud ? PICKED : UNPICKED)}>
+      <div className={cx("rounded-[22px] bg-card p-2", !cloud && "hover-card")}>
         <label htmlFor="home-cloud" className="focus-tint block cursor-pointer rounded-[16px]">
           <input id="home-cloud" type="radio" name="home" value="cloud" checked={cloud} onChange={() => setHome("cloud")} className="sr-only" />
           <span className="relative block overflow-hidden rounded-[16px]">
@@ -70,9 +75,9 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
             <img src={layers} alt="" width={800} height={354} className={cx("absolute inset-0 h-[84px] w-full object-cover object-bottom transition-opacity duration-300 ease-out motion-reduce:transition-none", plan === "pro" ? "opacity-100" : "opacity-0")} draggable={false} />
             <span className="absolute bottom-1 right-4" aria-hidden><Mascot body="kit" color="blue" size={44} state="working" still /></span>
           </span>
-          <span className="flex items-baseline justify-between gap-3 px-3 pt-4">
+          <span className="flex items-center justify-between gap-3 px-3 pt-4">
             <span className="text-17 font-medium tracking-[-0.02em] text-ink">dusk cloud</span>
-            <span className="t-meta">cancel any time</span>
+            <span className="flex items-center gap-3"><span className="t-meta">cancel any time</span><Dot on={cloud} /></span>
           </span>
           <ul key={plan} className="plan-points-in flex flex-col gap-2 px-3 pb-2 pt-3">
             {points(plan, catalog).map((p) => (
@@ -97,7 +102,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
           </div>
         )}
       </div>
-      <label htmlFor="home-free" className={cx("focus-tint mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] px-4 py-3.5", home === "free" ? PICKED : UNPICKED)}>
+      <label htmlFor="home-free" className={cx("focus-tint mt-2 flex cursor-pointer items-center gap-3.5 rounded-[18px] bg-card py-3.5 pe-5 ps-4", home !== "free" && "hover-card")}>
         <input id="home-free" type="radio" name="home" value="free" checked={home === "free"} onChange={() => setHome("free")} className="sr-only" />
         <Monitor size={20} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -105,6 +110,7 @@ function PlanStep({ catalog, home, setHome, plan, setPlan }: { catalog: PlanCata
           <span className="block text-13 leading-[1.4] text-ink-3">bots work while it's awake.</span>
         </span>
         <span className="num shrink-0 text-14 text-ink-2">free</span>
+        <Dot on={home === "free"} />
       </label>
     </fieldset>
   );
@@ -222,7 +228,7 @@ export function Onboarding() {
       <Rail at={Math.min(at, total - 1)} total={total} />
       {step === "name" ? (
         <form key="name" className="step-in" onSubmit={(e) => { e.preventDefault(); void saveName(); }} noValidate>
-          <h1 className="t-title">what should your bots call you?</h1>
+          <h1 className="t-title">what's your name?</h1>
           <p className="mt-3 text-16 text-ink-2">{direct ? "then checkout, and your dusk cloud starts setting up." : "two quick things and you're in."}</p>
           <label htmlFor="onb-name" className="mb-2 mt-7 block text-14 text-ink-2">your name</label>
           <input id="onb-name" autoComplete="given-name" maxLength={60} value={shownName} onChange={(e) => { setName(e.target.value); setError(null); }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} className="field !h-12" aria-invalid={Boolean(error)} aria-describedby={error ? "onb-error" : undefined} />
