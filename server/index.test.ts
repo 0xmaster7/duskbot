@@ -2443,7 +2443,7 @@ describe("harness HTTP API", () => {
       for (const mutation of [{ action: "set_members", memberIds: [chief.id] }, { action: "set_bulletin", bulletin: "Changed mid-turn" }]) {
         const blocked = await chiefRoomRequest(BASE, busyToken, "manage-room", { roomId, ...mutation });
         expect(blocked.status).toBe(409);
-        expect(blocked.body.error).toMatch(/working or waiting/);
+        expect(blocked.body.error).toMatch(/^this room is busy: .+ (is answering|lined up)/);
       }
       expect(await readRoom()).toMatchObject({ bulletin: "Updated brief ✓", memberIds: [chief.id, peer.id] });
     } finally {

@@ -117,6 +117,32 @@ it("creates and manages an own-section room through the mounted Chief MCP proxy"
     await control(["interrupt", "--bot", chief.id]);
     await tool("manage_room", { room_id: room.id, action: "rename", name: "Expired turn" }, true);
     expect((await rooms()).find((candidate) => candidate.id === room.id)?.name).toBe("Verified room");
+
+    // From inside its own room turn, the Chief changes that room; another bot's turn in a room still blocks it, by name.
+    rmSync(fixture.fixtureDumpPath, { force: true });
+    await control(["send-channel", "--channel", room.id, "--text", "Make it a rule: all designs go through review."]);
+    await expect.poll(async () => (await rooms()).find((candidate) => candidate.id === room.id)?.working, { timeout: 15_000 }).toBe(true);
+    await expect.poll(() => existsSync(fixture.fixtureDumpPath), { timeout: 15_000 }).toBe(true);
+    const inRoom = z.object({ mcpConfig: z.object({ mcpServers: z.object({ agents: z.object({ command: z.string(), args: z.array(z.string()), env: z.record(z.string(), z.string()) }) }) }) })
+      .parse(JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8"))).mcpConfig.mcpServers.agents;
+    expect(inRoom.env.DUSK_BOT_ID).toBe(chief.id);
+    const roomRpc = connect(inRoom);
+    const roomTool = async (args: Record<string, unknown>) => {
+      const result = await roomRpc("tools/call", { name: "manage_room", arguments: args });
+      evidence.push({ tool: "manage_room", from: "room turn", args, result });
+      return result;
+    };
+    const own = await roomTool({ room_id: room.id, action: "set_bulletin", bulletin: "All designs go through review." });
+    expect(own.isError, JSON.stringify(own)).toBeFalsy();
+    expect((await rooms()).find((candidate) => candidate.id === room.id)?.bulletin).toBe("All designs go through review.");
+    const other = (await api<{ group: Room }>("POST", "/api/groups", { name: "Second's room", memberIds: [second.id, chief.id], setup: { bulletin: "", defaultResponder: { kind: "member", botId: second.id } } })).group;
+    await control(["send-channel", "--channel", other.id, "--text", "Start something long."]);
+    await expect.poll(async () => (await rooms()).find((candidate) => candidate.id === other.id)?.working, { timeout: 15_000 }).toBe(true);
+    const refused = await roomTool({ room_id: other.id, action: "set_bulletin", bulletin: "Changed under Second." });
+    expect(refused.isError).toBe(true);
+    expect(refused.content[0]?.text).toMatch(/this room is busy: Fixture Second is answering in this room right now/);
+    expect((await rooms()).find((candidate) => candidate.id === other.id)?.bulletin ?? "").not.toBe("Changed under Second.");
+    for (const id of [room.id, other.id]) await control(["interrupt", "--channel", id]);
   } finally {
     for (const proxy of proxies) await waitForExit(proxy, { signal: "SIGTERM" });
     await fixture.close();
@@ -125,4 +151,4 @@ it("creates and manages an own-section room through the mounted Chief MCP proxy"
     expect(existsSync(fixture.info.dataDir)).toBe(false);
     console.info(JSON.stringify({ ...fixture.info, evidencePath, fixtureRemoved: true, exitCode: fixture.child.exitCode }));
   }
-}, 60_000);
+}, 90_000);

@@ -663,7 +663,7 @@ import { createPersonReplies } from "./person-replies.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
-import { createDevsReports } from "./host/devs-reports.ts"; import { bugReportEndpoint, devsReportSender, devsStatusAsker } from "./devs-report-send.ts"; import { captureRecentLog } from "./recent-log.ts"; import { createShareAnswer } from "./host/share-answer.ts";
+import { roomBusyError, roomBusyReason } from "./room-busy.ts"; import { createDevsReports } from "./host/devs-reports.ts"; import { bugReportEndpoint, devsReportSender, devsStatusAsker } from "./devs-report-send.ts"; import { captureRecentLog } from "./recent-log.ts"; import { createShareAnswer } from "./host/share-answer.ts";
 import { createCardRequester, linePersonKey } from "./host/thread-person.ts"; import { selfThreadRefusal } from "./host/self-threads.ts"; import { lookedAfterBy } from "./host/looked-after.ts"; import { createActingPeople, HANDED_PEOPLE_FILE, HandedPeople, type HandedRun, keptPrivate, privateHandBack, withPerson } from "./host/acting-person.ts";
 import { createThreadRoutes } from "./routes/threads.ts";
 import { createWebhookRoutes } from "./routes/webhooks.ts";
@@ -3805,7 +3805,7 @@ function createChannel(value: unknown): GroupRecord {
     : deciderReady(cfg, "roomRouting") ? { defaultResponder: { kind: "auto" } } : undefined));
 }
 
-function updateChannel(groupId: string, value: unknown): GroupRecord {
+function updateChannel(groupId: string, value: unknown, caller?: { botId: string; threadId: string }): GroupRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw Object.assign(new Error("body must be a JSON object"), { status: 400 });
   }
@@ -3816,11 +3816,9 @@ function updateChannel(groupId: string, value: unknown): GroupRecord {
   if (body.memberIds !== undefined && phoneSecretSubmissions.hasGroup(existing.id)) {
     throw Object.assign(new Error("this channel is securely saving a credential: try again when it finishes"), { status: 409 });
   }
-  if (
-    channelTaskBlocked(existing) &&
-    (body.memberIds !== undefined || body.defaultResponder !== undefined || body.bulletin !== undefined)
-  ) {
-    throw Object.assign(new Error("this channel is working or waiting on you: finish that turn first"), { status: 409 });
+  if (body.memberIds !== undefined || body.defaultResponder !== undefined || body.bulletin !== undefined) {
+    const busy = roomBusyFor(existing, caller);
+    if (busy) throw Object.assign(new Error(roomBusyError(busy)), { status: 409 });
   }
   const patch: Record<string, unknown> = {};
   if (body.name !== undefined) {
@@ -3925,18 +3923,26 @@ function updateChannel(groupId: string, value: unknown): GroupRecord {
   return group;
 }
 
-const channelTaskBlocked = (group: GroupRecord) =>
-  groupIsWorking(group) ||
-  store.groupTasks(group.id).some((task) =>
-    store.messagesFor(task.threadId).some(
-      (message) =>
+function roomBusyFor(group: GroupRecord, caller?: { botId: string; threadId: string }): string | null {
+  const tasks = store.groupTasks(group.id);
+  const threads = [{ threadId: group.threadId }, ...tasks.filter((task) => task.threadId !== group.threadId).map(({ threadId, title }) => ({ threadId, title }))];
+  const inRoom = new Set(threads.map((thread) => thread.threadId));
+  return roomBusyReason({
+    threads,
+    speakers: [...groupSpeakers].flatMap(([threadId, speaker]) => inRoom.has(conversationOfRun(threadId)) ? [{ threadId: conversationOfRun(threadId), botId: speaker.botId, name: speaker.name }] : []),
+    operations: [...(groupTurnOperations.get(group.id) ?? [])].filter((operation) => !operation.cancelled).map((operation) => ({ threadId: conversationOfRun(operation.threadId), botIds: [...operation.botIds] })),
+    busyBotId: group.busyBotId,
+    openCards: tasks.filter((task) => store.messagesFor(task.threadId).some((message) =>
         message.kind === "options" &&
         message.card?.requestId &&
         (!isPersistentQuestionCard(message.card) || runningTurnEngines.has(task.threadId)) &&
         !message.card.answered &&
         !message.card.dismissed && !message.card.expired,
-    ),
-  );
+    )).map((task) => task.threadId),
+    name: (botId) => store.bot(botId)?.name ?? "another bot",
+    ...(caller ? { caller: { botId: caller.botId, threadId: conversationOfRun(caller.threadId) } } : {}),
+  });
+}
 
 // Load coordination state before registering store listeners or recovering routines: recovery can emit room changes synchronously.
 const groupQueues = new Map<string, Promise<void>>();
@@ -15374,7 +15380,7 @@ const handleRequestInner = async (req: IncomingMessage, res: ServerResponse) => 
           if (!allowedRoster(next)) return json(res, 403, { error: "keep yourself in the room; only the user can remove its managing Chief" });
           patch.memberIds = next;
         }
-        const updated = updateChannel(room.id, patch);
+        const updated = updateChannel(room.id, patch, { botId: chief.id, threadId: internalCapability.threadId });
         return json(res, 200, { ok: true, memberIds: updated.memberIds, memberCount: updated.memberIds.length, message: `Updated room “${updated.name}”.` });
       }
       if (await dispatchRoutes([createInternalMcpRoutes({
