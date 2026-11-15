@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { moneyBackShort, planCards, sharedPerks, type CloudPlanCard } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
 import { NightCard } from "./NightCard";
+import { buyLabel } from "./PriceRoll";
 import { LINK, PRIMARY_WIDE, SCREEN, Tag } from "./parts";
 
 const PERK_ICON = { routines: CalendarClock, anywhere: MonitorSmartphone, backups: Archive } as const;
@@ -60,7 +61,7 @@ export function ChooseScreen({ offer, current = null, own = null, busy, signedOu
   const perks = sharedPerks(offer);
   const buy = pick && (pick.trialDays
     ? t(pick.trialDays === 1 ? "cloudBuy.buyTrial.one" : "cloudBuy.buyTrial.many", { plan: pick.name, days: pick.trialDays })
-    : t("cloudBuy.buy", { plan: pick.name, price: pick.price }));
+    : buyLabel(pick.name, pick.price));
   return <div data-cloud-add={trial ? "offer-trial" : "offer"} className={SCREEN}>
     <div className="-mx-4 -mt-3">
       <NightCard className="[@media(max-height:600px)]:h-[100px]">
@@ -86,7 +87,7 @@ export function ChooseScreen({ offer, current = null, own = null, busy, signedOu
       {pick?.spec && <p data-plan-spec={pick.tier} aria-live="polite" className="px-2.5 text-[12px] leading-4 tabular-nums text-ink-tertiary">{pick.spec}</p>}
     </section>
     <div className="flex flex-col gap-3">
-      {pick && buy && <button type="button" data-plan-buy={pick.tier} className={PRIMARY_WIDE} disabled={busy} onClick={() => onStart(pick.tier)}>{buy}</button>}
+      {pick && buy && <button type="button" data-plan-buy={pick.tier} className={cn(PRIMARY_WIDE, "relative")} disabled={busy} onClick={() => onStart(pick.tier)}>{buy}</button>}
       <div aria-live="polite" className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 text-[12px] leading-4 text-ink-tertiary">
         <p data-plan-terms="">{t(trial ? "cloudBuy.termsTrial" : "cloudBuy.terms")}{moneyBack && <> {t("cloudBuy.moneyBackLine", { days: offer.refundDays! })}</>}</p>
         {signedOut && <button type="button" className={LINK} onClick={onSignIn}>{t("cloudBuy.haveAccount")}</button>}
