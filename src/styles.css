@@ -2187,20 +2187,21 @@ html[data-cloud-intent-morph] [data-tour="composer"] { view-transition-name: clo
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 /* Cloud setup progress: each segment fills left to right on clip-path, so
-   its rounded ends stay round. A segment that fills (on arrival, or when a
-   step finishes) waits for the step's check to land, and on arrival each
-   waits for the one before it. Emptying is the transition, and is quick. */
+   its rounded ends stay round, on a 160/22 spring. A segment that fills (on
+   arrival, or when a step finishes) waits for the step's check to land, and
+   the ones after it run on one by one (--fill-delay), so the bar reads as one
+   fill passing its notches. Transitions, so a change mid-fill retargets.
+   Emptying is quick. */
 .progress-fill {
   clip-path: inset(0 100% 0 0 round 999px);
   transition: clip-path 0.2s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.3s ease;
 }
 .progress-fill[data-filled] {
   clip-path: inset(0 0 0 0 round 999px);
-  animation: progress-fill 0.55s cubic-bezier(0.23, 1, 0.32, 1) backwards;
-  animation-delay: calc(0.2s + var(--i, 0) * 0.09s);
+  transition: clip-path 630ms linear(0, 0.0188, 0.0642, 0.1291, 0.2023, 0.2829, 0.3617, 0.4408, 0.5135, 0.5809, 0.6443, 0.6994, 0.7498, 0.7925, 0.8308, 0.8625, 0.8903, 0.9136, 0.9324, 0.9484, 0.961, 0.9716, 0.9797, 0.9864, 0.9913, 0.9953, 0.9981, 1.0002, 1.0017, 1.0027, 1.0033, 1.0036, 1.0037, 1.0037, 1.0035, 1.0033, 1.003, 1.0027, 1.0024, 1.0021, 1) var(--fill-delay, 0.2s), background-color 0.3s ease;
 }
-@keyframes progress-fill {
-  from { clip-path: inset(0 100% 0 0 round 999px); }
+@starting-style {
+  .progress-fill[data-filled] { clip-path: inset(0 100% 0 0 round 999px); }
 }
 /* "Thinking…" label sheen while the model reasons. The band crosses the phrase while the brighter copy inside it
    crosses back, so the letters hold still and only the light moves. It moves by transform, in a dozen steps, and
