@@ -19,6 +19,8 @@ import { BILLING_CONFIG } from "../billing/plans.ts";
 import { quote } from "../billing/pricing.ts";
 import type { Step } from "../analytics/profile.ts";
 import { moneyIn, opsEventOf, withoutOps, type MoneyMode } from "./money-mode.ts";
+/** the most events one person's page reads (newest kept) */
+const PERSON_EVENTS = 20_000;
 /** an account's face for the people views: its photo and avatar choice, when it has them */
 const face = (account: { avatarUrl?: string; avatar?: string }) => ({ ...(account.avatarUrl ? { avatarUrl: account.avatarUrl } : {}), ...(account.avatar ? { avatar: account.avatar } : {}) });
 
@@ -231,12 +233,15 @@ export function createAnalyticsRoutes(options: AnalyticsRoutesOptions) {
   async function profile(id: string) {
     const idents = await sink.scan(0, now() + 60_000, ["identify"]);
     const identity = identityOf(idents);
+    // an app install that never signed in is `install:<id>`, like the people list names it
+    const install = id.startsWith("install:") ? id.slice("install:".length) : null;
     const account = id.startsWith("acct_") ? id : identity.accountOf.get(id) ?? null;
-    const visitors = new Set(account ? identity.visitorsOf.get(account) ?? [] : [id]);
-    if (!account) visitors.add(id);
-    const installs = account ? identity.installsOf.get(account) ?? new Set<string>() : new Set<string>();
-    const all = await sink.scan(now() - 400 * DAY, now() + 60_000);
-    const mine = all.filter(event => (account && event.accountId === account) || (event.ctx?.visitor && visitors.has(event.ctx.visitor)) || (event.ctx?.install && installs.has(event.ctx.install)));
+    const visitors = new Set(account ? identity.visitorsOf.get(account) ?? [] : install ? [] : [id]);
+    if (!account && !install) visitors.add(id);
+    const installs = new Set(account ? identity.installsOf.get(account) ?? [] : install ? [install] : []);
+    // one person's events from the indexes, not a scan of everyone's 400 days
+    const ops = opsEventOf(billing.store.state);
+    const mine = (await sink.person({ accountId: account, visitors: [...visitors], installs: [...installs], since: now() - 400 * DAY, limit: PERSON_EVENTS })).filter(event => !ops(event));
     if (!mine.length && !account) throw new AnalyticsRouteError(404, "not_found", "Not found.");
     const owner = account ? auth.directory().accounts.find(item => item.id === account) ?? null : null;
     const p = people();

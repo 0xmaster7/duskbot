@@ -58,7 +58,7 @@ claim a success). Tests and local fixtures keep JSON files in the data folder.
 | `pages`, `slack_edge_regs`, `slack_edge_events` | published pages, Slack wake edge | `id` / `cloudId` | |
 | `stores` | each module's small fields (queues, counters, provider start ledger, sweep) | module name | |
 | `managed_audit` | append-only lifecycle audit, ids and codes only | | `(cloudId, at)`, `at` |
-| `analytics_events` | raw product events (allowlisted props, no content); written directly by `server/analytics/sink.ts`, outside the writer lease | `id` | `at` TTL 400 days, `(accountId, at)`, `(name, at)`, `(ctx.session, at)` |
+| `analytics_events` | raw product events (allowlisted props, no content); written directly by `server/analytics/sink.ts`, outside the writer lease | `id` | `at` TTL 400 days, `(accountId, at)`, `(name, at)`, `(ctx.session, at)`, `(ctx.visitor, at)`, `(ctx.install, at)` |
 | `analytics_daily`, `analytics_marks` | daily counts (kept); once-only marks | `day\|name` / key | `(day, name)`; marks: `expiresAt` TTL |
 | `admin_audit` | the admin panel's actions and record views, kept | `id` | `at` |
 | `analytics_notes` | chart notes the admin adds (a day and a line of text), kept | `id` | `at` |

@@ -13,6 +13,17 @@ export interface Note { id: string; at: number; text: string; by: string; create
 /** the most raw events one dashboard read scans; beyond it the read uses the newest ones and says so */
 export const SCAN_LIMIT = 400_000;
 export interface EventQuery { accountId?: string; name?: string; since?: number; before?: number; limit: number }
+/** the longest one admin read may keep the database busy; past it the read fails with a clear error instead of hanging */
+export const READ_TIMEOUT_MS = 20_000;
+/** everything one person did: an account's events plus those of the site visitors and app installs that became it */
+export interface PersonQuery { accountId: string | null; visitors: readonly string[]; installs: readonly string[]; since: number; limit: number }
+/** one site visitor or app install that never signed in (or not yet), summed over a window */
+export interface AnonymousRow {
+  key: string; kind: "visitor" | "install"; firstAt: number; lastAt: number; events: number;
+  country: string | null; city: string | null; device: string | null; os: string | null; browser: string | null; platform: string | null; appVersion: string | null;
+}
+/** the events that show an anonymous person: a site page, an account page, an app open */
+export const ANONYMOUS_EVENTS = ["site_view", "page_view", "app_open"] as const;
 
 /** where analytics live: MongoDB in production, memory in tests and fixtures */
 export interface AnalyticsSink {
@@ -40,6 +51,31 @@ export interface AnalyticsSink {
   deleteNote(id: string): Promise<boolean>;
   crawl(entry: Crawl): Promise<void>;
   crawls(since: number, until: number): Promise<Crawl[]>;
+  /** one person's events, oldest first, from indexes (accountId, ctx.visitor, ctx.install), never a scan of everyone */
+  person(query: PersonQuery): Promise<StoredEvent[]>;
+  /** distinct site visitors (ctx.visitor) with any of these events in [since, until), counted by the database */
+  visitorCount(since: number, until: number, names: readonly string[]): Promise<number>;
+  /** each account's newest event at or after `since` */
+  lastSeen(since: number): Promise<Map<string, number>>;
+  /** visitors and installs with no account on their events in [since, until), newest first; `before` pages on lastAt */
+  anonymous(since: number, until: number, options: { before?: number; limit: number }): Promise<{ total: number; rows: AnonymousRow[] }>;
+}
+
+/** the anonymous people among these events, newest first: shared by the memory sink and the tests */
+export function anonymousOf(events: readonly StoredEvent[], since: number, until: number): AnonymousRow[] {
+  const rows = new Map<string, AnonymousRow>();
+  for (const event of [...events].sort((a, b) => a.at - b.at)) {
+    if (event.accountId || event.at < since || event.at >= until || !(ANONYMOUS_EVENTS as readonly string[]).includes(event.name)) continue;
+    const ctx = event.ctx ?? {};
+    const key = ctx.visitor ?? (ctx.install ? `install:${ctx.install}` : null);
+    if (!key) continue;
+    const row = rows.get(key) ?? rows.set(key, { key, kind: ctx.visitor ? "visitor" : "install", firstAt: event.at, lastAt: event.at, events: 0, country: null, city: null, device: null,
+      os: null, browser: null, platform: null, appVersion: null }).get(key)!;
+    row.lastAt = event.at; row.events++;
+    row.country = ctx.country ?? row.country; row.city = ctx.city ?? row.city; row.device = ctx.device ?? row.device; row.os = ctx.os ?? row.os; row.browser = ctx.browser ?? row.browser;
+    row.platform = ctx.app?.platform ?? row.platform; row.appVersion = ctx.app?.version ?? row.appVersion;
+  }
+  return [...rows.values()].sort((a, b) => b.lastAt - a.lastAt || a.key.localeCompare(b.key));
 }
 
 export function memorySink(now: () => number = Date.now): AnalyticsSink & { all: StoredEvent[]; daySums: Map<string, number> } {
@@ -84,20 +120,39 @@ export function memorySink(now: () => number = Date.now): AnalyticsSink & { all:
     async deleteNote(id) { return notes.delete(id); },
     async crawl(entry) { crawlLog.push(entry); if (crawlLog.length > CRAWL_CAP) crawlLog.splice(0, crawlLog.length - CRAWL_CAP); },
     async crawls(since, until) { return crawlLog.filter(entry => entry.at >= since && entry.at < until); },
+    async person(q) {
+      const visitors = new Set(q.visitors), installs = new Set(q.installs);
+      return all.filter(event => event.at >= q.since && ((q.accountId !== null && event.accountId === q.accountId) || (!!event.ctx?.visitor && visitors.has(event.ctx.visitor))
+        || (!!event.ctx?.install && installs.has(event.ctx.install)))).sort((a, b) => a.at - b.at).slice(-q.limit);
+    },
+    async visitorCount(since, until, names) {
+      return new Set(all.filter(event => event.at >= since && event.at < until && names.includes(event.name) && event.ctx?.visitor).map(event => event.ctx!.visitor)).size;
+    },
+    async lastSeen(since) {
+      const out = new Map<string, number>();
+      for (const event of all) if (event.accountId && event.at >= since && (out.get(event.accountId) ?? -1) < event.at) out.set(event.accountId, event.at);
+      return out;
+    },
+    async anonymous(since, until, options) {
+      const rows = anonymousOf(all, since, until);
+      return { total: rows.length, rows: rows.filter(row => options.before === undefined || row.lastAt < options.before).slice(0, options.limit) };
+    },
   };
 }
 
 type EventDoc = { _id: string; name: string; at: Date; accountId: string | null; props: Props; ctx?: EventContext };
 type AuditDoc = Omit<AuditEntry, "id" | "at"> & { _id: string; at: Date };
 
-/** analytics_events (TTL on `at`), analytics_daily (kept), analytics_marks (TTL on `expiresAt`), admin_audit (kept) */
+/** analytics_events (TTL on `at`, 400 days; nothing else deletes raw events but an account's own deletion or opt-out), analytics_daily (kept), analytics_marks (TTL on `expiresAt`), admin_audit (kept) */
 export async function mongoSink(db: Db): Promise<AnalyticsSink> {
   const { events, daily, marks, audits, notes } = collectionsOf(db);
   if (!(await db.listCollections({ name: "analytics_crawls" }, { nameOnly: true }).toArray()).length) {
     await db.createCollection("analytics_crawls", { capped: true, size: 64 * 1024 * 1024, max: CRAWL_CAP }).catch((error: { code?: number }) => { if (error.code !== 48) throw error; });
   }
   await Promise.all([
-    events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: RAW_RETENTION_DAYS * 86_400 }, { key: { accountId: 1, at: -1 } }, { key: { name: 1, at: -1 } }, { key: { "ctx.session": 1, at: 1 }, sparse: true }]),
+    events.createIndexes([{ key: { at: 1 }, expireAfterSeconds: RAW_RETENTION_DAYS * 86_400 }, { key: { accountId: 1, at: -1 } }, { key: { name: 1, at: -1 } }, { key: { "ctx.session": 1, at: 1 }, sparse: true },
+      // one person's page (the admin's profile) reads by visitor and install instead of scanning every event
+      { key: { "ctx.visitor": 1, at: 1 }, sparse: true }, { key: { "ctx.install": 1, at: 1 }, sparse: true }]),
     daily.createIndexes([{ key: { day: 1, name: 1 } }]),
     marks.createIndexes([{ key: { expiresAt: 1 }, expireAfterSeconds: 0, partialFilterExpression: { expiresAt: { $type: "date" } } }]),
     audits.createIndexes([{ key: { at: -1 } }, { key: { target: 1, at: -1 } }]),
@@ -160,7 +215,7 @@ function sinkOf(db: Db): AnalyticsSink {
     },
     async scan(since, until, names) {
       const filter = { at: { $gte: new Date(since), $lt: new Date(until) }, ...(names ? { name: { $in: [...names] } } : {}) };
-      const docs = await events.find(filter).sort({ at: -1 }).limit(SCAN_LIMIT).toArray();
+      const docs = await events.find(filter).sort({ at: -1 }).limit(SCAN_LIMIT).maxTimeMS(READ_TIMEOUT_MS).toArray();
       return docs.reverse().map(toEvent);
     },
     async notes(since, until) {
@@ -172,6 +227,39 @@ function sinkOf(db: Db): AnalyticsSink {
     async crawl(entry) { await crawlCollection.insertOne({ ...entry, at: new Date(entry.at) }); },
     async crawls(since, until) {
       return (await crawlCollection.find({ at: { $gte: new Date(since), $lt: new Date(until) } }).toArray()).map(({ at, bot, kind, path, host }) => ({ at: at.getTime(), bot, kind, path, host }));
+    },
+    async person(q) {
+      const or: Array<Record<string, unknown>> = [];
+      if (q.accountId !== null) or.push({ accountId: q.accountId });
+      if (q.visitors.length) or.push({ "ctx.visitor": { $in: [...q.visitors] } });
+      if (q.installs.length) or.push({ "ctx.install": { $in: [...q.installs] } });
+      if (!or.length) return [];
+      const docs = await events.find({ $or: or, at: { $gte: new Date(q.since) } }).sort({ at: -1 }).limit(q.limit).maxTimeMS(READ_TIMEOUT_MS).toArray();
+      return docs.reverse().map(toEvent);
+    },
+    async visitorCount(since, until, names) {
+      const [row] = await events.aggregate<{ n: number }>([{ $match: { name: { $in: [...names] }, at: { $gte: new Date(since), $lt: new Date(until) }, "ctx.visitor": { $type: "string" } } },
+        { $group: { _id: "$ctx.visitor" } }, { $count: "n" }], { maxTimeMS: READ_TIMEOUT_MS }).toArray();
+      return row?.n ?? 0;
+    },
+    async lastSeen(since) {
+      const rows = await events.aggregate<{ _id: string; at: Date }>([{ $match: { accountId: { $type: "string" }, at: { $gte: new Date(since) } } }, { $group: { _id: "$accountId", at: { $max: "$at" } } }],
+        { maxTimeMS: READ_TIMEOUT_MS }).toArray();
+      return new Map(rows.map(row => [row._id, row.at.getTime()]));
+    },
+    async anonymous(since, until, options) {
+      const key = { $ifNull: ["$ctx.visitor", { $cond: [{ $eq: [{ $type: "$ctx.install" }, "string"] }, { $concat: ["install:", "$ctx.install"] }, null] }] };
+      const [out] = await events.aggregate<{ total: Array<{ n: number }>; rows: Array<Omit<AnonymousRow, "firstAt" | "lastAt"> & { _id: string; firstAt: Date; lastAt: Date }> }>([
+        { $match: { name: { $in: [...ANONYMOUS_EVENTS] }, at: { $gte: new Date(since), $lt: new Date(until) }, accountId: null } },
+        { $sort: { at: 1 } },
+        { $group: { _id: key, visitor: { $first: "$ctx.visitor" }, firstAt: { $min: "$at" }, lastAt: { $max: "$at" }, events: { $sum: 1 }, country: { $last: "$ctx.country" }, city: { $last: "$ctx.city" },
+          device: { $last: "$ctx.device" }, os: { $last: "$ctx.os" }, browser: { $last: "$ctx.browser" }, platform: { $last: "$ctx.app.platform" }, appVersion: { $last: "$ctx.app.version" } } },
+        { $match: { _id: { $type: "string" } } },
+        { $facet: { total: [{ $count: "n" }], rows: [...(options.before === undefined ? [] : [{ $match: { lastAt: { $lt: new Date(options.before) } } }]), { $sort: { lastAt: -1, _id: 1 } }, { $limit: options.limit }] } },
+      ], { maxTimeMS: READ_TIMEOUT_MS, allowDiskUse: true }).toArray();
+      return { total: out?.total[0]?.n ?? 0, rows: (out?.rows ?? []).map(row => ({ key: row._id, kind: (row as { visitor?: string | null }).visitor ? "visitor" as const : "install" as const,
+        firstAt: row.firstAt.getTime(), lastAt: row.lastAt.getTime(), events: row.events, country: row.country ?? null, city: row.city ?? null, device: row.device ?? null, os: row.os ?? null,
+        browser: row.browser ?? null, platform: row.platform ?? null, appVersion: row.appVersion ?? null })) };
     },
     async health() {
       const started = performance.now();
