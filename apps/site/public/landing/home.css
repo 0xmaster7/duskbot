@@ -617,7 +617,7 @@ button.toggle::before { content: ""; position: absolute; inset: -11px -3px; }
 .px-mk.px-shapes { display: grid; grid-template-columns: repeat(3, 40px); gap: 18px 24px; }
 .px-shapes .bot { width: 40px; height: 40px; }
 .px-chip { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px 4px 10px; background: #fff; clip-path: var(--step); box-shadow: inset 0 -5px 0 var(--u, var(--u-lilac)); font-size: 13.5px; font-weight: 550; letter-spacing: -0.01em; white-space: nowrap; }
-.px-u-lime.px-chip { height: auto; min-height: 34px; padding-top: 6px; white-space: normal; }
+.px-task.px-chip { height: auto; min-height: 34px; padding: 6px 12px 6px 10px; box-shadow: none; white-space: normal; }
 .px-chip .logo { width: 18px; height: 18px; }
 .px-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 0 16px 4px; background: var(--ink9); color: #fff; clip-path: var(--step); box-shadow: inset 0 -5px 0 rgb(0 0 0 / 0.35); font: 550 14.5px/1 var(--sans); letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; transition: background-color 0.2s ease, scale 0.16s cubic-bezier(0.23, 1, 0.32, 1); }
 .px-btn .os { width: 16px; height: 16px; }
