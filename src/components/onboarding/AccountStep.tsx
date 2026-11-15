@@ -171,7 +171,8 @@ export function AccountStep({ account, known, onDone, onSkip }: {
   }
 
   return (
-    <div ref={host} className="w-full">
+    // my-auto: centred in the step's pane like the steps that are a StepFrame alone
+    <div ref={host} className="my-auto w-full">
       {/* top right, across from Back, and quiet: the account is the way on */}
       {onSkip && !sent && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-14 items-center justify-end px-4">

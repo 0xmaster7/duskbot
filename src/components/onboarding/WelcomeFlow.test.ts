@@ -507,7 +507,8 @@ describe("on the desktop app", () => {
     await press("Get started");
     expect(step()).toBe("account");
     expect(title()).toBe("Create your dusk bot account");
-    expect(text(), "no phone in the pitch while its app is hidden").toContain("Free. Already have one? Sign in the same way.");
+    expect(text(), "no phone in the pitch while its app is hidden").toContain("Already have one? Sign in the same way.");
+    expect(text(), "no price claim in the pitch").not.toContain("Free.");
     expect(button("Continue with Google")).toBeDefined();
     expect(button("Skip for now"), "required here").toBeUndefined();
     await type(document.body.querySelector<HTMLInputElement>("input[type=email]")!, "person@example.com");
