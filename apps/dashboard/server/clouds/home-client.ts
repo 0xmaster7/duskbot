@@ -71,6 +71,10 @@ export function createHomeClient(options: { fetch?: typeof fetch; now?: () => nu
       if (!value || typeof value.code !== "string" || !/^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/.test(value.code) || !Number.isSafeInteger(value.expiresAt) || (value.expiresAt as number) <= now() || (value.expiresAt as number) > now() + 600_000) throw new Error("Invalid cloud pairing answer.");
       return { code: value.code, expiresAt: value.expiresAt as number };
     },
+    async memberLeft(origin, secret, email) {
+      const value = await request(origin, secret, "POST", "/api/cloud/team/member-left", JSON.stringify({ v: 1, email })) as { ok?: unknown } | null;
+      if (value?.ok !== true) throw new Error("Invalid cloud member-left answer.");
+    },
     async healthy(origin, secret) {
       try {
         const answer = await request(origin, secret, "GET", "/api/cloud/health?after=0") as { v?: unknown } | null;

@@ -77,23 +77,24 @@ export function createAdminRoutes(ctx: BillingContext) {
       ...(isPrimary && runs ? { renewal: { trial: false, endsAt: sub.cancelAtPeriodEnd ? sub.currentPeriodEnd : null, keptDays: config.graceDays } } : {}),
       cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false, renewsAt: sub?.currentPeriodEnd ?? null };
   }
+  /** `moves`: the app may move this computer's (or a server's) bots into this ready Cloud by itself; only its owner's */
+  function machineSummary(c: StoredCloud, own: boolean) {
+    const view = clouds.view(c), power = managedPower(c);
+    const state = power ? "ready" : view.status === "provisioning" ? "setting_up" : view.status === "running" ? "ready" : view.status === "payment_problem" ? "payment_problem" : view.status === "error" ? "failed" : "stopped";
+    return { state, ...(state === "ready" ? { origin: c.origin, ...(own ? { moves: true } : {}) } : {}), ...(power ? { power } : {}), ...(state === "setting_up" ? { setup: { step: c.setupStep ?? "reserving" } } : {}),
+      disk: { gb: c.spec.diskGb, maxGb: c.placement === "dedicated" ? config.dedicated.diskGb.max : c.spec.diskGb } };
+  }
   function sessionFields(account: AccountRef): Record<string, unknown> {
     available();
     const state = service.appState(account), c = primary(account), list = listed(account);
     const active = state.entitlement.status === "active";
     // an unpaid checkout never blocks: a new one replaces it (and frees the cloud it held)
     const open = openCheckout(account), blocked = open && !open.url ? "checkout_open" : clouds.list(account.id, true).filter(c => c.status !== "destroyed" && c.id !== open?.cloudId).length >= config.maxCloudsPerAccount ? "cap" : null;
-    let summary: Record<string, unknown> | undefined;
-    if (c && c.status !== "checkout") {
-      const view = clouds.view(c), power = managedPower(c);
-      const state = power ? "ready" : view.status === "provisioning" ? "setting_up" : view.status === "running" ? "ready" : view.status === "payment_problem" ? "payment_problem" : view.status === "error" ? "failed" : "stopped";
-      // `moves`: the app may move this computer's (or a server's) bots into this ready Cloud by itself (electron/one-home.mjs)
-      summary = { state, ...(state === "ready" ? { origin: c.origin, moves: true } : {}), ...(power ? { power } : {}), ...(state === "setting_up" ? { setup: { step: c.setupStep ?? "reserving" } } : {}),
-        disk: { gb: c.spec.diskGb, maxGb: c.placement === "dedicated" ? config.dedicated.diskGb.max : c.spec.diskGb } };
-    }
+    const summary = c && c.status !== "checkout" ? machineSummary(c, true) : undefined;
+    const team = ctx.teams.membership(account), teams = team && team.role === "member" ? [{ id: team.cloud.id, name: team.team, role: "member", machine: machineSummary(team.cloud, false) }] : [];
     const openPlan = open?.cart ? service.quote(open.cart).bundle : null;
     return { entitlement: active ? state.entitlement : { plan: "free", status: "inactive", expiresAt: null, version: state.entitlement.version },
-      ...(summary ? { cloud: summary } : {}), clouds: list.map(c => cloudEntry(account, c)).sort((a, b) => Number(b.primary) - Number(a.primary)), canAdd: !blocked, ...(blocked ? { addBlocked: blocked } : {}),
+      ...(summary ? { cloud: summary } : {}), teams, clouds: list.map(c => cloudEntry(account, c)).sort((a, b) => Number(b.primary) - Number(a.primary)), canAdd: !blocked, ...(blocked ? { addBlocked: blocked } : {}),
       ...(!active ? { offer: { plans: publicConfig().plans, recommended: "pro", ...(open && openPlan ? { checkout: { plan: openPlan, openUntil: open.openUntil } } : {}) } } : {}), license: service.licenseCheck(account) };
   }
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
@@ -102,7 +103,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (!path.startsWith("/api/cloud/desktop/")) return false;
     const route = path.slice("/api/cloud/desktop/".length);
     // identity, devices and the session belong to the accounts service
-    if (!/^(?:license|checkout|clouds|clouds\/[^/]+(?:\/(?:hide|cancel|keep|ai-signins))?|feedback|upgrade|upgrade\/preview|pairing|wake|resize-now|moved-to|backup)$/.test(route)) return false;
+    if (!/^(?:license|checkout|clouds|clouds\/[^/]+(?:\/(?:hide|cancel|keep|ai-signins))?|feedback|upgrade|upgrade\/preview|pairing|teams\/[^/]+\/pairing|wake|resize-now|moved-to|backup)$/.test(route)) return false;
     try {
       const match = /^Bearer (omc_[A-Za-z0-9_-]{43})$/.exec(req.headers.authorization ?? "");
       const account = match ? await ctx.accounts.fromBearer(req) : null;
@@ -178,7 +179,15 @@ export function createAdminRoutes(ctx: BillingContext) {
       if (route === "pairing") {
         const cloud = requireCloud(account, optionalText(data.cloudId));
         if (cloud.status !== "running" || !cloud.origin || cloud.suspended !== null) throw new CloudError(409, "not_running");
-        return send(await clouds.pair(account.id, cloud.id));
+        return send(await clouds.pair(account.id, cloud.id, account.email));
+      }
+      const teamPairing = /^teams\/([^/]+)\/pairing$/.exec(route);
+      if (teamPairing) {
+        // security: signed only for a current member; the app reads 404 as "no longer in this team"
+        const team = ctx.teams.membership(account);
+        if (!team || team.cloud.id !== teamPairing[1]) throw new BillingError(404, "not_found");
+        if (team.cloud.status !== "running" || !team.cloud.origin || team.cloud.suspended !== null) throw new CloudError(409, "not_running");
+        return send(await clouds.pairMember(team.cloud.id, { email: account.email.trim().toLowerCase(), role: team.role }));
       }
       if (route === "wake" || route === "resize-now") {
         const cloud = requireCloud(account);

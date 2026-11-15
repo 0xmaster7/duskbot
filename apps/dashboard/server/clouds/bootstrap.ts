@@ -12,7 +12,7 @@ export interface DashboardLink {
   enrolledAt: number;
   claimed: boolean;
 }
-interface HomeInput { cloudId: string; adminOrigin: string; secret: string; origin: string; dashboardUrl: string }
+interface HomeInput { cloudId: string; adminOrigin: string; secret: string; origin: string; dashboardUrl: string; team?: { id: string; name: string } }
 interface BootstrapInput extends Omit<HomeInput, "origin"> { link: DashboardLink }
 
 export function linkKeys(): { publicKey: string; privateKey: string } {
@@ -22,7 +22,8 @@ export function linkKeys(): { publicKey: string; privateKey: string } {
 
 export function homeEnv(input: HomeInput): Record<string, string> {
   // this service pushes a signed entitlement to every home it makes, so each one refuses clients without it
-  const env = { DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: input.cloudId, DUSK_CLOUD_ADMIN_URL: input.adminOrigin, DUSK_CLOUD_BOOTSTRAP_SECRET: input.secret, DUSK_PUBLIC_URL: input.origin, DUSK_DASHBOARD_URL: input.dashboardUrl, DUSK_CLOUD_ENTITLEMENT: "required" };
+  const env: Record<string, string> = { DUSK_CLOUD_ROLE: "home", DUSK_CLOUD_MACHINE_ID: input.cloudId, DUSK_CLOUD_ADMIN_URL: input.adminOrigin, DUSK_CLOUD_BOOTSTRAP_SECRET: input.secret, DUSK_PUBLIC_URL: input.origin, DUSK_DASHBOARD_URL: input.dashboardUrl, DUSK_CLOUD_ENTITLEMENT: "required" };
+  if (input.team) Object.assign(env, { DUSK_CLOUD_ROLE: "team", DUSK_CLOUD_TEAM_ID: input.team.id, DUSK_CLOUD_TEAM_NAME: input.team.name });
   if (Object.values(env).some(value => /[\r\n\0]/.test(value))) throw new Error("Invalid cloud environment value.");
   return env;
 }

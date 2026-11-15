@@ -166,6 +166,8 @@ export interface Invoice {
 export interface Retention { offer: { percent: number; cycles: number } | null; applied: { percent: number; cycles: number; at: number } | null }
 
 export interface BillingOverview {
+  /** the account's part in a live team plan, if any */
+  team?: "owner" | "member" | null;
   subscription: Subscription | null;
   paymentMethod: PaymentMethod | null;
   invoices: Invoice[];

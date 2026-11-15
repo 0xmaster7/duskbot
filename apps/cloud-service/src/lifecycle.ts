@@ -389,7 +389,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       if (!c.workspaceId || !c.linkPublicKey || !c.sealedLinkPrivateKey) throw new Error("Missing cloud bootstrap.");
       const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
       // the machine gets a one-time claim, never its secrets: the provider's API and its logs never carry them
-      let boot = image.bootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
+      let boot = image.bootFile({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link, ...(c.team ? { team: c.team } : {}) });
       if (settings.claims) {
         // the same claim for the same attempt: a retried create gets the first machine back, with the first boot file
         const claim = createHmac("sha256", deps.backupSecret).update(`omb-managed-claim:${c.id}:${b.attempt}`).digest("base64url");
@@ -954,7 +954,7 @@ export function createLifecycle(deps: LifecycleDeps) {
       console.warn(`managed: ALERT cloud ${c.id}: its machine claim was redeemed a second time`);
     }
     const link = { v: 1 as const, url: deps.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: deps.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
-    return image.bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link });
+    return image.bootContent({ cloudId: c.id, adminOrigin: deps.adminOrigin, secret: secret(c), dashboardUrl: deps.dashboardUrl, link, ...(c.team ? { team: c.team } : {}) });
   }
   function edgeCloud(value: string): StoredCloud | null {
     if (!/^d[0-9a-f]{20}$/.test(value)) return null;

@@ -66,8 +66,14 @@ export interface PoolHostDriver {
 }
 
 /** the admin's signed requests to a cloud desktop's own dusk bot (server/cloud-home.ts) */
+/** a Team Cloud's team: DUSK_CLOUD_TEAM_ID and DUSK_CLOUD_TEAM_NAME on its machine */
+export interface CloudTeam { id: string; name: string }
+export interface TeamMemberClaim { email: string; role: "owner" | "admin" | "member" }
 export interface HomeClient {
-  pair(origin: string, secret: string, input: { label: string; ttlSeconds?: number }): Promise<{ code: string; expiresAt: number }>;
+  /** `team` and `member`: the pairing claim a Team Cloud requires */
+  pair(origin: string, secret: string, input: { label: string; ttlSeconds?: number; team?: CloudTeam; member?: TeamMemberClaim }): Promise<{ code: string; expiresAt: number }>;
+  /** a Team Cloud deletes what was that person's alone and ends their sessions */
+  memberLeft?(origin: string, secret: string, email: string): Promise<void>;
   /** true once the install answers its signed health read */
   healthy(origin: string, secret: string): Promise<boolean>;
   /** the home's idle read (server/cloud-power.ts); only managed homes are asked */
@@ -99,6 +105,8 @@ export interface StoredCloud {
   id: string;
   accountId: string;
   name: string;
+  /** set at order for a team plan's cloud: its machine boots as a Team Cloud (DUSK_CLOUD_ROLE=team), so members pair to it */
+  team?: CloudTeam;
   color: CloudSwatch | null;
   kind: Exclude<DesktopKind, "none">;
   placement: Placement;
@@ -170,6 +178,8 @@ export interface ManagedCloudState {}
 export interface DesktopPlan { kind: Exclude<DesktopKind, "none">; placement: Placement; spec: MachineSpec; botComputers: number | null }
 export interface OrderInput extends DesktopPlan {
   id?: string;
+  /** the team's name: the cloud boots as a Team Cloud */
+  team?: string;
   accountId: string;
   name: string;
   color: CloudSwatch | null;
@@ -218,7 +228,12 @@ export interface CloudsService {
   resume(cloudId: string): Promise<void>;
   hide(accountId: string, cloudId: string): StoredCloud;
   power(accountId: string, cloudId: string, action: PowerAction): Promise<StoredCloud>;
-  pair(accountId: string, cloudId: string): Promise<{ origin: string; code: string; expiresAt: number }>;
+  /** `ownerEmail`: on a Team Cloud the owner pairs with the team owner's claim */
+  pair(accountId: string, cloudId: string, ownerEmail?: string): Promise<{ origin: string; code: string; expiresAt: number }>;
+  /** a member's signed pairing to a Team Cloud; the caller checked their membership */
+  pairMember(cloudId: string, member: TeamMemberClaim): Promise<{ origin: string; code: string; expiresAt: number }>;
+  /** tells a Team Cloud a member left; "gone" when there is no team machine to tell (ended, or never a team cloud) */
+  memberLeft(cloudId: string, email: string): Promise<"done" | "gone">;
   /** holds AI sign-ins for the account's Cloud until it runs (ai-stash.ts); refused for a Cloud that ended */
   holdSignIns?(accountId: string, cloudId: string, items: import("./ai-stash.ts").AiSignIn[]): Promise<void>;
   /** deletes what is held for the account's Cloud */

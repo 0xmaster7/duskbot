@@ -166,6 +166,44 @@ export interface LicenseView {
   validUntil: number | null;
   subscriptionId: string | null;
 }
+/** a team plan as its people see it (GET /v1/team). `invites` and `subscriptionId` only reach the owner */
+export interface TeamMemberView { email: string; name: string | null; role: "owner" | "member"; joinedAt: number; you: boolean }
+export interface TeamInviteView {
+  id: string; email: string; createdAt: number; expiresAt: number;
+  /** when the person opened the link and every paid seat was taken; they can use the same link once a seat is added */
+  refusedAt: number | null;
+}
+export interface TeamView {
+  v: typeof BILLING_API_VERSION;
+  id: string;
+  name: string;
+  role: "owner" | "member";
+  owner: { email: string; name: string | null };
+  seats: {
+    /** members, the owner included */
+    used: number;
+    /** pending invites, which hold a seat each */
+    pending: number;
+    /** what the plan pays for now */
+    paid: number;
+    /** what the plan includes before extra seats */
+    included: number;
+    max: number;
+    /** a seat change waiting for the payment provider to confirm it */
+    changing: number | null;
+    /** one extra seat a month, in cents */
+    extraSeatCents: number;
+    interval: Interval;
+  };
+  members: TeamMemberView[];
+  invites: TeamInviteView[];
+  /** the team's dusk cloud; `joinable`: it runs as a team cloud, so members open it from their app */
+  cloud: { id: string; name: string; joinable: boolean } | null;
+  subscriptionId: string | null;
+}
+/** POST /v1/team/join: the invite's email must be the signed-in account's */
+export interface TeamJoinAnswer { team: TeamView }
+
 /**
  * what an app or the dashboard asks before work use: may this account use dusk bot for work now, and why.
  * personal use is always allowed and is not asked about.
@@ -281,6 +319,11 @@ export interface BillingOverview {
  *   GET  /v1/billing/license                         -> LicenseCheck
  *   POST /v1/billing/licenses/:id/members  { email } -> { license: LicenseView }
  *   DELETE /v1/billing/licenses/:id/members/:email   -> { license: LicenseView }
+ *   GET  /v1/team                                    -> { team: TeamView | null }
+ *   POST /v1/team/invites  { email }                 -> { team: TeamView }   owner; 409 seats_full when every paid seat is used or held
+ *   DELETE /v1/team/invites/:id                      -> { team: TeamView }   owner
+ *   DELETE /v1/team/members/:email                   -> { team: TeamView }   owner; ends their access to the team's cloud
+ *   POST /v1/team/join     { token }                 -> TeamJoinAnswer       410 invite_invalid, 403 invite_other_email, 409 seats_full
  *   POST /v1/billing/subscriptions/:id/preview  { cart: Cart }            -> ChangePreview
  *   POST /v1/billing/subscriptions/:id/change   { confirmation }          -> { subscription: SubscriptionView }
  *   POST /v1/billing/subscriptions/:id/cancel   { survey?: CancelSurvey } -> { subscription: SubscriptionView }
@@ -297,7 +340,7 @@ export interface BillingOverview {
  * errors: { error, code } with codes below.
  */
 export const BILLING_ERROR_CODES = ["billing_active", "signed_out", "invalid_request", "not_found", "forbidden", "rate_limited", "already_subscribed", "checkout_open", "cap",
-  "confirmation_required", "price_changed", "not_subscribed", "already_on_plan", "plan_change_unavailable", "seats_full", "discount_used", "discount_unavailable", "unavailable", "checkout_soon", "bad_signature", "failed"] as const;
+  "confirmation_required", "price_changed", "not_subscribed", "already_on_plan", "plan_change_unavailable", "seats_full", "invite_invalid", "invite_other_email", "already_in_team", "discount_used", "discount_unavailable", "unavailable", "checkout_soon", "bad_signature", "failed"] as const;
 export interface DeletionBlocker { kind: "subscription" | "cloud_desktop"; id: string; label: string; status: string }
 export interface DeleteAccountOptions { cancelBilling?: boolean; destroyDesktopsNow?: boolean }
 export type BillingErrorCode = (typeof BILLING_ERROR_CODES)[number];

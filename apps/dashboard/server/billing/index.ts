@@ -27,6 +27,8 @@ import { BillingProviderError } from "./types.ts";
 import type { AccountRef, AccountResolver, BillingProvider } from "./types.ts";
 import { createBillingRoutes } from "./routes.ts";
 import { createAdminRoutes } from "./admin-routes.ts";
+import { createTeams } from "./team.ts";
+import type { TeamMail } from "./team.ts";
 import type { LedgerEntry } from "./ledger.ts";
 
 export interface BillingOptions {
@@ -50,6 +52,9 @@ export interface BillingOptions {
   cloudStatus?: (cloud: StoredCloud, from: StoredCloud["status"] | null) => void;
   /** where AI sign-ins for a Cloud still being made are held (clouds/ai-stash.ts); in memory when absent */
   aiStash?: AiStashStore;
+  teamMail?: (message: TeamMail) => void;
+  accountName?: (accountId: string) => string | null;
+  accountEmail?: (accountId: string) => string | null;
   /** every deletion action of a managed cloud and fleet alerts, for the record; never an email */
   alert?: (entry: { at: number; cloudId: string; action: string; actor: string; reason: string }) => void;
 }
@@ -119,6 +124,7 @@ export function createBilling(options: BillingOptions) {
     healthy: (origin, secret) => (fakeOrigin(origin) ? fakeHome : realHome).healthy(origin, secret),
     pair: (origin, secret, input) => (fakeOrigin(origin) ? fakeHome : realHome).pair(origin, secret, input),
     signIns: (origin, secret, items) => (fakeOrigin(origin) ? Promise.resolve() : realHome.signIns!(origin, secret, items)),
+    memberLeft: (origin, secret, email) => (fakeOrigin(origin) ? Promise.resolve() : realHome.memberLeft!(origin, secret, email)),
   };
   // every hosted home refuses clients without a signed entitlement, so a service that runs homes must be able to sign one
   const entitlements = entitlementSignerFromEnv(env, { dataDir: options.dataDir, loopback, now, required: !loopback && (cloudProvider !== "off" || poolDriver !== "off" || managed !== null) });
@@ -145,6 +151,7 @@ export function createBilling(options: BillingOptions) {
   if (options.accountExists) service.scrubDeleted(options.accountExists);
   // a deleted account's clouds left over from before (or by a failed step) are destroyed at start, then every 10 minutes
   service.destroyDeleted();
+  const teams = createTeams({ store, clouds, config, now, mail: options.teamMail, accountName: options.accountName, accountEmail: options.accountEmail });
   const opsToken = env.DUSK_OPS_TOKEN || null;
   if (opsToken !== null && opsToken.length < 32) throw new Error("DUSK_OPS_TOKEN must be at least 32 characters.");
   if (billingProvider === "preview" && !opsToken) throw new Error("DUSK_BILLING_PROVIDER=preview needs DUSK_OPS_TOKEN for plan grants.");
@@ -174,7 +181,7 @@ export function createBilling(options: BillingOptions) {
   const reviewEmail = env.DUSK_REVIEW_EMAIL?.trim().toLowerCase() || null;
   // nothing is sold while billing is off or the site is the pre-launch waitlist; an operator's grant still works
   const checkoutOpen = billingProvider !== "preview" && billingProvider !== "off" && env.DUSK_PRELAUNCH_WAITLIST_ONLY !== "1";
-  const context = { service, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
+  const context = { service, teams, clouds, store, config, accounts: options.accounts, now, enabled: billingProvider !== "off", fake: loopback ? fake : null, wakeStats: options.wakeStats ?? (() => ({})), opsToken,
     appRoutes: billingProvider !== "off" || reviewEmail !== null,
     checkoutOpen, endTrials: billingProvider === "preview" || env.DUSK_OPS_END_TRIAL === "1", grants: billingProvider === "preview" ? fake : null, grant,
     testPurchases: billingProvider === "dodo" && dodoMode === "test", findAccount: options.findAccount ?? (() => null), reviewEmail };
@@ -202,11 +209,12 @@ export function createBilling(options: BillingOptions) {
     /** the owner's plan edits: grants only where the fake provider completes them */
     operator: { provider: billingProvider as "preview" | "fake" | "dodo" | "off", grants: completer !== null, grant, setEnd, mode },
     enabled: context.enabled, appRoutes: context.appRoutes, sessionFields: admin.sessionFields, licenseCheck: service.licenseCheck, service, clouds, store, fake, fakePool,
-    close() { clouds.close(); service.close(); },
+    teams,
+    close() { teams.close(); clouds.close(); service.close(); },
   };
 }
 export type BillingContext = {
-  service: ReturnType<typeof createBillingService>; clouds: ReturnType<typeof createCloudsService>; store: ReturnType<typeof createBillingStore>;
+  service: ReturnType<typeof createBillingService>; teams: ReturnType<typeof createTeams>; clouds: ReturnType<typeof createCloudsService>; store: ReturnType<typeof createBillingStore>;
   config: typeof BILLING_CONFIG; accounts: AccountResolver; now(): number; enabled: boolean; fake: ReturnType<typeof createFakeBillingProvider> | null;
   wakeStats(): NonNullable<Catalog["wake"]>;
   /** DUSK_OPS_TOKEN: unset hides the operator's funnel read */

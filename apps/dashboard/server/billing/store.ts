@@ -56,7 +56,18 @@ export interface Attribution { source: string; channel: string; campaign: string
 export interface AccountClosure {
   id: string; accountId: string; anonId: string; startedAt: number; completedAt: number | null; destroyDesktopsNow: boolean; steps: string[];
 }
+/** an emailed team invite: single use, expiring, only the sha256 of its token is kept */
+export interface TeamInvite {
+  id: string; licenseId: string; email: string; tokenHash: string; invitedBy: string; createdAt: number; expiresAt: number;
+  status: "pending" | "accepted" | "cancelled"; closedAt: number | null;
+  /** the person opened it while every paid seat was taken; the owner was told once */
+  refusedAt: number | null;
+}
+/** a member who left a team cloud: the cloud is told (POST /api/cloud/team/member-left) until it confirms */
+export interface TeamLeave { id: string; cloudId: string; email: string; at: number; doneAt: number | null; tries: number; nextAt: number }
 export interface BillingState {
+  teamInvites?: TeamInvite[];
+  teamLeaves?: TeamLeave[];
   closures?: AccountClosure[];
   providerCancels?: Array<{ id: string; completedAt: number | null }>;
   /** a second subscription for a plan the account already has (a stale checkout page paid late, say): ended at the
@@ -92,6 +103,8 @@ const cart: Check = shape({ interval: one("month", "year"), license: shape({ kin
 const line = shape({ kind: one("license", "members", "desktop", "discount"), label: str, amountCents: int });
 const plan = shape({ kind: one("shared_s", "shared_m", "dedicated"), placement: one("pool", "dedicated"), spec: shape({ vcpu: int, ramGb: int, diskGb: int }), botComputers: nullable(int) });
 const valid = shape({
+  teamInvites: optional(array(shape({ id: str, licenseId: str, email: str, tokenHash: str, invitedBy: str, createdAt: int, expiresAt: int, status: one("pending", "accepted", "cancelled"), closedAt: nullable(int), refusedAt: nullable(int) }))),
+  teamLeaves: optional(array(shape({ id: str, cloudId: str, email: str, at: int, doneAt: nullable(int), tries: int, nextAt: int }))),
   closures: optional(array(shape({ id: str, accountId: str, anonId: str, startedAt: int, completedAt: nullable(int), destroyDesktopsNow: bool, steps: array(str) }))),
   providerCancels: optional(array(shape({ id: str, completedAt: nullable(int) }))),
   duplicates: optional(array(shape({ id: str, accountId: str, checkoutId: str, cancelledAt: nullable(int), payments: array(shape({ id: str, refundedAt: nullable(int) })) }))),
@@ -125,6 +138,6 @@ function validState(value: unknown): value is BillingState {
     && unique(state.subscriptions.flatMap(row => row.providerSubscriptionId ? [row.providerSubscriptionId] : []));
 }
 export function createBillingStore(dataDir: string) {
-  return createJsonStore<BillingState>(join(dataDir, "billing.json"), () => ({ closures: [], providerCancels: [], customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], webhookEvents: [], feedback: [] }), validState);
+  return createJsonStore<BillingState>(join(dataDir, "billing.json"), () => ({ teamInvites: [], teamLeaves: [], closures: [], providerCancels: [], customers: [], checkouts: [], subscriptions: [], licenses: [], invoices: [], webhookEvents: [], feedback: [] }), validState);
 }
 export type BillingStore = ReturnType<typeof createBillingStore>;

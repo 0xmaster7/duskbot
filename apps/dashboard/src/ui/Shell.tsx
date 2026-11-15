@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, Bot, Shield, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, LayoutGrid, LogOut, Menu, Monitor, Plus, X } from "@/icons";
+import { ArrowUpRight, Bot, Shield, Users, ChartNoAxesColumn, Check, ChevronsUpDown, CircleUser, Cloud, CreditCard, House, LayoutGrid, LogOut, Menu, Monitor, Plus, X } from "@/icons";
 import type { WorkspaceSummary } from "../../../../shared/dashboard-protocol";
 import { cloudForWorkspace, useCloud } from "../data/cloud";
 import type { CloudDesktop } from "../data/contracts";
@@ -42,6 +42,7 @@ const NAV: Array<{ label?: string; items: NavItem[] }> = [
   ] },
   { label: "you", items: [
     { to: "/billing", label: "plans and billing", icon: <CreditCard {...ICON} /> },
+    { to: "/team", label: "team", icon: <Users {...ICON} /> },
     { to: "/usage", label: "usage", icon: <ChartNoAxesColumn {...ICON} /> },
     { to: "/account", label: "account", icon: <CircleUser {...ICON} /> },
   ] },
@@ -240,10 +241,12 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
   // the pressed item is active from pointer-down on, before the next page has rendered
   const [pressed, setPressed] = useState<string | null>(null);
   useEffect(() => setPressed(null), [path]);
-  const current = pressed ?? NAV.flatMap((g) => g.items).find((item) => active(path, item.to))?.to ?? null;
+  const team = Boolean(useCloud().billing?.team);
+  const nav = NAV.map((group) => ({ ...group, items: group.items.filter((item) => item.to !== "/team" || team) }));
+  const current = pressed ?? nav.flatMap((g) => g.items).find((item) => active(path, item.to))?.to ?? null;
   return (
     <nav aria-label="dashboard" className="flex flex-col gap-5">
-      {NAV.map((group, i) => (
+      {nav.map((group, i) => (
         <div key={i} className="flex flex-col gap-0.5">
           {group.label && <div className="t-meta px-3.5 pb-1.5">{group.label}</div>}
           {group.items.map((item) => {

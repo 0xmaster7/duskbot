@@ -241,4 +241,6 @@ export const api = {
   rename: (id: string, name: string) => send(workspacePath(id), "PATCH", { name }),
   forget: (id: string) => send(workspacePath(id), "DELETE"),
   claim: (token: string) => send<{ workspace: WorkspaceSummary }>("/v1/claim", "POST", { token }),
+  /** a json route with the session and csrf header, for a page's own calls */
+  raw: <T>(path: string, method = "GET", body?: unknown) => method === "GET" ? call<T>(path) : send<T>(path, method, body),
 };

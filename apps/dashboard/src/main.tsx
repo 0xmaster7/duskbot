@@ -22,6 +22,7 @@ import { AuthScreen } from "./pages/Auth";
 import { HANDOFF_PATH, handoffArrived, stashHandoff } from "./data/handoff";
 import { appReturn, stashAppReturn } from "./data/app-return";
 import { APP_LANDING_PATH } from "../../../shared/account-api.ts";
+import { stashTeamInvite, TEAM_JOIN_PATH, teamInvite } from "./data/team";
 import { PRELAUNCH, prelaunchAllowed } from "./lib/prelaunch";
 import "./app.css";
 
@@ -49,6 +50,8 @@ const ConnectorsPage = page(() => import("./pages/Connectors"), (m) => m.Connect
 const UsagePage = page(() => import("./pages/Usage"), (m) => m.UsagePage);
 const BillingPage = page(() => import("./pages/Billing"), (m) => m.BillingPage);
 const AccountPage = page(() => import("./pages/Account"), (m) => m.AccountPage);
+const TeamPage = page(() => import("./pages/Team"), (m) => m.TeamPage);
+const TeamJoinPage = page(() => import("./pages/Team"), (m) => m.TeamJoinPage);
 const DeviceApprovalPage = page(() => import("./pages/DeviceApproval"), (m) => m.DeviceApprovalPage);
 const DeleteDataPage = page(() => import("./pages/DeleteData"), (m) => m.DeleteDataPage);
 const Onboarding = page(() => import("./pages/Onboarding"), (m) => m.Onboarding);
@@ -74,10 +77,11 @@ initTheme();
 reportPageErrors();
 stashClaim();
 stashDeleteToken();
+stashTeamInvite();
 
 const TITLES: Record<string, string> = {
   "/": "home", "/cloud": "dusk cloud", "/workspaces": "workspaces", "/bots": "bots", "/connectors": "apps",
-  "/billing": "plans and billing", "/usage": "usage", "/account": "account", "/claim": "connect a workspace", "/welcome": "welcome",
+  "/billing": "plans and billing", "/usage": "usage", "/account": "account", "/team": "team", [TEAM_JOIN_PATH]: "join a team", "/claim": "connect a workspace", "/welcome": "welcome",
   "/signin": "sign in", "/sign-in": "sign in", "/signup": "make your account", "/cloud/desktop": "approve sign-in",
 };
 
@@ -99,6 +103,8 @@ function route(path: string): ReactNode {
   if (path === "/billing") return <BillingPage />;
   if (path === "/usage") return <UsagePage />;
   if (path === "/account") return <AccountPage />;
+  if (path === "/team") return <TeamPage />;
+  if (path === TEAM_JOIN_PATH) return <TeamJoinPage />;
   if (path === "/claim") return <ClaimPage />;
   if (path === "/cloud/desktop") return <DeviceApprovalPage />;
   const deleting = deletePageId(path);
@@ -114,7 +120,7 @@ function SignedIn() {
   const intent = planIntent(query);
   const welcome = path === "/welcome";
   const admin = path === "/admin" || path.startsWith("/admin/");
-  const exempt = path === "/claim" || path === "/cloud/desktop" || deletePageId(path) !== null;
+  const exempt = path === "/claim" || path === "/cloud/desktop" || path === TEAM_JOIN_PATH || deletePageId(path) !== null;
   // until onboarding is done every dashboard page leads back into it; the account page (sign out, delete) stays open
   const unfinished = account !== null && !account.profile.onboarded && !welcome && !exempt && !admin && path !== "/account";
   const search = query.toString();
@@ -149,7 +155,7 @@ function App() {
     document.title = `${page} / dusk bot`;
   }, [path, account]);
   // before launch only a real flow's pages show; any other move (a link, the sidebar, after signing in) goes to the waitlist
-  const away = PRELAUNCH && !prelaunchAllowed(path, query, { handoff: handoffArrived(), appReturn: appReturn() !== null, claim: hasClaim(), deleting: (id) => deleteToken(id) !== null });
+  const away = PRELAUNCH && !prelaunchAllowed(path, query, { handoff: handoffArrived(), appReturn: appReturn() !== null, claim: hasClaim(), deleting: (id) => deleteToken(id) !== null, teamInvite: teamInvite() !== null });
   useEffect(() => { if (away) location.replace("/"); }, [away]);
   const blank = <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
   if (away) return blank;
@@ -157,7 +163,7 @@ function App() {
   if (path === APP_LANDING_PATH) return <Suspense fallback={blank}><AppSignedInPage /></Suspense>;
   if (accountError) return <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6"><SkyEmpty art="cat" title="can't reach your account right now." action={<Button variant="primary" onClick={retryAccount}>try again</Button>} className="w-full max-w-[520px]">check your connection. your bots are fine, they live on your own computers.</SkyEmpty></main>;
   if (account === undefined) return <div className="min-h-[100dvh] bg-bg" aria-busy="true" />;
-  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} forApp={path === "/cloud/desktop"} note={path === "/claim" ? "this link connects a dusk bot workspace to your account, so its machine stats, bots and usage show here. chats and files stay on it. sign in to go on." : path === "/cloud/desktop" ? "sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
+  if (account === null) return <AuthScreen mode={path === "/signup" ? "signup" : "signin"} forApp={path === "/cloud/desktop"} note={path === TEAM_JOIN_PATH ? "sign in with the email your invite was sent to, and you join the team." : path === "/claim" ? "this link connects a dusk bot workspace to your account, so its machine stats, bots and usage show here. chats and files stay on it. sign in to go on." : path === "/cloud/desktop" ? "sign in to finish signing in the desktop app." : deleteSignInNote(path)} />;
   return <SignedIn />;
 }
 

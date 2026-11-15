@@ -40,6 +40,8 @@ export const STORE_LAYOUTS: Record<string, StoreLayout> = {
     refunds: { collection: "billing_refunds", key: byId },
     providerCancels: { collection: "billing_provider_cancels", key: byId },
     duplicates: { collection: "billing_duplicates", key: byId, indexes: byAccount },
+    teamInvites: { collection: "billing_team_invites", key: byId, indexes: [{ keys: { licenseId: 1 } }, { keys: { tokenHash: 1 }, unique: true }] },
+    teamLeaves: { collection: "billing_team_leaves", key: byId, indexes: [{ keys: { doneAt: 1 } }] },
     ledger: { collection: "billing_ledger", key: byId, indexes: [{ keys: { accountId: 1, at: -1 } }, { keys: { at: -1 } }, { keys: { key: 1 }, unique: true }] },
   },
   clouds: {

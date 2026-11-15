@@ -13,6 +13,9 @@ describe("before launch", () => {
     const flows: PrelaunchFlows = { handoff: true, claim: true, deleting: (id) => id === "c1", appReturn: true };
     for (const to of ["/cloud/desktop?code=ABCDE-FGHJK", "/sign-in?next=%2Fcloud%2Fdesktop%3Fcode%3DABCDE-FGHJK", "/sign-in?attempt=a"]) expect([to, allowed(to)]).toEqual([to, true]);
     for (const to of ["/handoff", "/app-signed-in", "/claim", "/clouds/c1/delete", "/sign-in?next=/claim", "/sign-in?error=oauth_denied&next=/clouds/c1/delete"]) expect([to, allowed(to, flows)]).toEqual([to, true]);
+    expect(allowed("/team/join", flows)).toBe(false);
+    expect(allowed("/team/join", { ...flows, teamInvite: true })).toBe(true);
+    expect(allowed("/team", { ...flows, teamInvite: true })).toBe(false);
     expect(allowed("/clouds/c2/delete", flows)).toBe(false);
     expect(allowed("/billing", flows)).toBe(false);
   });

@@ -7,8 +7,11 @@ import { createJsonStore } from "../billing/json-store.ts";
 import { dedicatedUserData, linkKeys, originFor, poolBootstrap } from "./bootstrap.ts";
 import { PoolFullError } from "./pool.ts";
 import { RetryableCloudError } from "./http.ts";
+
+/** what a Team Cloud is called on its machine (DUSK_CLOUD_TEAM_NAME: 1 to 80 characters, no control characters) */
+export function teamName(value: string) { return value.replace(/[\p{Cc}]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "team"; }
 import type { createSealer } from "./seal.ts";
-import type { CloudProvider, CloudsService, DesktopPlan, HomeClient, SlotQuota, StoredCloud } from "./types.ts";
+import type { CloudProvider, CloudsService, DesktopPlan, HomeClient, SlotQuota, StoredCloud, TeamMemberClaim } from "./types.ts";
 import type { ManagedCloud, ManagedCloudFactory } from "./managed.ts";
 import { lockDataDir } from "../data-dir-lock.ts";
 import { stateBackend } from "../persistence/backend.ts";
@@ -125,6 +128,12 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
   }
   function get(id: string) { return store.state.clouds.find(c => c.id === id) ?? null; }
   function requireCloud(id: string) { const cloud = get(id); if (!cloud) throw new CloudError(404, "not_found"); return cloud; }
+  async function pairCloud(c: StoredCloud, member?: TeamMemberClaim) {
+    if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable");
+    const claims = c.team && member ? { label: "dusk bot app (Team Cloud)", team: c.team, member } : { label: "dusk bot app (Cloud)" };
+    const result = await (c.backend ? options.managedHome ?? home : home).pair(c.origin, sealer.unseal(c.bootstrapSecret), { ...claims, ttlSeconds: 300 });
+    return { origin: c.origin, code: result.code, expiresAt: result.expiresAt };
+  }
   function requireOwned(accountId: string, id: string) { const cloud = get(id); if (!cloud || cloud.accountId !== accountId) throw new CloudError(404, "not_found"); return cloud; }
   /** a managed cloud is one backend machine of any kind, so it can move between placements; the others cannot */
   function movable(c: StoredCloud, plan: DesktopPlan) { return c.placement === plan.placement || c.backend === "managed" && !!managed?.kinds.includes(plan.kind); }
@@ -248,7 +257,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
           if (!c.sealedLinkPrivateKey || !c.linkPublicKey || !c.workspaceId) throw new Error("Missing cloud bootstrap.");
           const secret = sealer.unseal(c.bootstrapSecret);
           const link = { v: 1 as const, url: config.dashboardUrl, workspaceId: c.workspaceId, publicKey: c.linkPublicKey, privateKey: sealer.unseal(c.sealedLinkPrivateKey), enrolledAt: c.provisionedAt ?? now(), claimed: true };
-          const common = { cloudId: c.id, adminOrigin: config.adminOrigin, secret, dashboardUrl: config.dashboardUrl, link };
+          const common = { cloudId: c.id, adminOrigin: config.adminOrigin, secret, dashboardUrl: config.dashboardUrl, link, ...(c.team ? { team: c.team } : {}) };
           const userData = c.placement === "pool" ? poolBootstrap({ ...common, origin: "" }) : dedicatedUserData({ ...common, image: config.image, originTemplate: config.originTemplate });
           server = await provider.create({ cloudId: c.id, spec: c.spec, region: c.region, userData, ...(c.placement === "pool" ? { quota: config.poolQuota(c.kind, c.spec, c.botComputers) } : {}) });
         }
@@ -316,7 +325,7 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       const existing = get(id);
       if (input.id && existing?.accountId === input.accountId) return existing;
       if (!/^c[0-9a-f]{24}$/.test(id) || get(id)) throw new Error("Unable to allocate cloud id.");
-      const cloud: StoredCloud = { id, accountId: input.accountId, name: input.name, color: input.color, kind: input.kind, placement: input.placement, subscriptionId: null, spec: { ...input.spec }, desiredSpec: { ...input.spec }, region: input.region, botComputers: input.botComputers, status: "checkout", setupStep: null, wantPower: "on", serverId: null, ipv4: null, origin: null, bootstrapSecret: "", workspaceId: null, primary: !store.state.clouds.some(c => c.accountId === input.accountId && c.status !== "destroyed"), hidden: false, paymentProblem: false, suspended: null, destroyAt: null, error: null, attempts: 0, nextAttemptAt: 0, createdAt: now(), updatedAt: now(), powerSince: now() };
+      const cloud: StoredCloud = { id, accountId: input.accountId, name: input.name, color: input.color, kind: input.kind, placement: input.placement, subscriptionId: null, spec: { ...input.spec }, desiredSpec: { ...input.spec }, region: input.region, botComputers: input.botComputers, status: "checkout", setupStep: null, wantPower: "on", serverId: null, ipv4: null, origin: null, bootstrapSecret: "", workspaceId: null, primary: !store.state.clouds.some(c => c.accountId === input.accountId && c.status !== "destroyed"), hidden: false, paymentProblem: false, suspended: null, destroyAt: null, error: null, attempts: 0, nextAttemptAt: 0, createdAt: now(), updatedAt: now(), powerSince: now(), ...(input.team ? { team: { id, name: teamName(input.team) } } : {}) };
       store.state.clouds.push(cloud); save(cloud); return cloud;
     },
     activate(id, subscriptionId, plan) {
@@ -416,7 +425,19 @@ export function createCloudsService(options: CloudsServiceOptions): CloudsServic
       if (action === "off") c.pauseRequestedAt = now(); else delete c.pauseRequestedAt;
       c.wantPower = action; c.nextAttemptAt = 0; save(c); await service.reconcile(); if (c.wantPower === action && c.status !== (action === "on" ? "running" : "stopped") && c.status !== "error") await service.reconcile();
       if (c.backend && action === "on" && c.status !== "running") hurry(c.id); return c; },
-    async pair(accountId, id) { const c = requireOwned(accountId, id); if (c.status !== "running" || !c.origin || c.suspended !== null || c.ended || c.destroyAt !== null && c.destroyAt <= now()) throw new CloudError(409, "unavailable"); const result = await (c.backend ? options.managedHome ?? home : home).pair(c.origin, sealer.unseal(c.bootstrapSecret), { label: "dusk bot app (Cloud)", ttlSeconds: 300 }); return { origin: c.origin, code: result.code, expiresAt: result.expiresAt }; },
+    async pair(accountId, id, ownerEmail) {
+      const c = requireOwned(accountId, id);
+      return pairCloud(c, c.team && ownerEmail ? { email: ownerEmail, role: "owner" } : undefined);
+    },
+    async pairMember(id, member) { const c = requireCloud(id); if (!c.team) throw new CloudError(409, "unavailable"); return pairCloud(c, member); },
+    async memberLeft(id, email) {
+      const c = get(id);
+      if (!c?.team || !c.origin || c.status === "destroyed" || c.status === "destroying") return "gone";
+      const client = c.backend ? options.managedHome ?? home : home;
+      if (!client.memberLeft) return "gone";
+      await client.memberLeft(c.origin, sealer.unseal(c.bootstrapSecret), email);
+      return "done";
+    },
     async holdSignIns(accountId, id, items) {
       const c = requireOwned(accountId, id);
       if (!options.aiStash) throw new CloudError(503, "unavailable");

@@ -16,10 +16,12 @@ function fakeClouds() {
   const rows: StoredCloud[] = [];
   function get(id: string) { return rows.find(cloud => cloud.id === id) ?? null; }
   const clouds: CloudsService = {
-    order: vi.fn((input: OrderInput) => {
-      const cloud: StoredCloud = { ...input, id: input.id ?? `cloud_${rows.length}`, desiredSpec: { ...input.spec }, subscriptionId: null, status: "checkout", setupStep: null, wantPower: "on", serverId: null, ipv4: null, origin: null, bootstrapSecret: "fixture", workspaceId: null, primary: false, hidden: false, paymentProblem: false, suspended: null, destroyAt: null, error: null, attempts: 0, nextAttemptAt: 0, createdAt: 0, updatedAt: 0, powerSince: 0 };
+    order: vi.fn(({ team, ...input }: OrderInput) => {
+      const cloud: StoredCloud = { ...input, ...(team ? { team: { id: input.id ?? `cloud_${rows.length}`, name: team } } : {}), id: input.id ?? `cloud_${rows.length}`, desiredSpec: { ...input.spec }, subscriptionId: null, status: "checkout", setupStep: null, wantPower: "on", serverId: null, ipv4: null, origin: null, bootstrapSecret: "fixture", workspaceId: null, primary: false, hidden: false, paymentProblem: false, suspended: null, destroyAt: null, error: null, attempts: 0, nextAttemptAt: 0, createdAt: 0, updatedAt: 0, powerSince: 0 };
       rows.push(cloud); return cloud;
     }),
+    pairMember: vi.fn(async () => ({ origin: "https://team.example.test", code: "AAAA-BBBB-CCCC", expiresAt: time + 300_000 })),
+    memberLeft: vi.fn(async () => "done" as const),
     activate: vi.fn((id: string, subscriptionId: string, plan: DesktopPlan) => { Object.assign(get(id)!, plan, { subscriptionId, status: "provisioning" }); }),
     changePlan: vi.fn((id: string, plan: DesktopPlan) => { Object.assign(get(id)!, plan); }),
     setPaymentProblem: vi.fn((id: string, problem: boolean) => { get(id)!.paymentProblem = problem; }),

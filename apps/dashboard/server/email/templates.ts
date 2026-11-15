@@ -45,6 +45,7 @@ const SAY = {
   cloudGone: { say: "bye, little cloud!", accent: "lav" },
   bye: { say: "bye for now!", accent: "lav" },
   promo: { say: "something new!", accent: "lime" },
+  invite: { say: "you're invited!", accent: "sky" },
 } as const;
 /** the plain way to the billing page: no plan buttons in email, and nothing that opens the payment provider */
 const billingLink = (cfg: EmailConfig, before: string): Block => ({ t: "link", before, label: "billing page", href: `${cfg.app}/billing` });
@@ -321,4 +322,32 @@ export function cloudDeletionEmail(cfg: EmailConfig, { kind, name, at, link, day
       { t: "note", tone: daysLeft === 1 ? "alert" : "warn", text: `${date ? `on **${date}**` : "soon"}, ${name} and everything on it will be deleted for good.` },
       { t: "p", text: "start a plan for it again and it wakes up right where it stopped." },
       { t: "button", label: "keep my cloud", href: cloud }] });
+}
+
+/** an owner's invite to their team; the link carries the token in its fragment, so it never reaches a server log */
+export function teamInviteEmail(cfg: EmailConfig, { team, from, link, expiresAt }: { team: string; from: string; link: string; expiresAt: number }): Rendered {
+  return render(cfg, {
+    subject: `${from} invited you to ${team} on dusk bot`, preheader: `join ${team} and use its bots and its dusk cloud. the link works until ${formatDate(expiresAt)}.`, tag: "team", ...SAY.invite, transactional: true,
+    blocks: [
+      { t: "h1", text: `join ${team}` },
+      { t: "p", text: `**${from}** invited you to their team on dusk bot. once you're in, you open the team's dusk cloud from the dusk bot app and use the bots they share with you.` },
+      { t: "button", label: "join the team", href: link },
+      { t: "p", small: true, text: `sign in with this email address to join. the link works once, until ${formatDate(expiresAt)}. weren't expecting this? ignore it and nothing happens.` },
+    ],
+    reason: "you got this because someone with a dusk bot team plan invited this address.",
+  });
+}
+
+/** someone opened their invite while every paid seat was taken: once per invite */
+export function teamSeatFullEmail(cfg: EmailConfig, { team, email, seats }: { team: string; email: string; seats: number }): Rendered {
+  return render(cfg, {
+    subject: `${email} couldn't join ${team}: no free seat`, preheader: `all ${seats} seats are taken. add a seat and their link works again.`, tag: "team", ...SAY.headsUp, transactional: true,
+    blocks: [
+      { t: "h1", text: "a seat is missing" },
+      { t: "p", text: `**${email}** opened your invite to ${team}, but all ${seats} paid seats are taken, so they couldn't join yet.` },
+      { t: "p", text: "add a seat, or remove someone, and the same link works for them again." },
+      { t: "button", label: "open your team", href: `${cfg.app}/team` },
+    ],
+    reason: ACCOUNT_REASON,
+  });
 }

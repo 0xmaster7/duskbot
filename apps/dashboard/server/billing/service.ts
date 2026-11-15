@@ -63,7 +63,7 @@ export function createBillingService(options: BillingServiceOptions) {
   const { store, provider, clouds } = options, state = store.state, config = options.config ?? BILLING_CONFIG;
   const now = options.now ?? Date.now, random = options.random ?? (bytes => randomBytes(bytes).toString("base64url"));
   const publicUrl = guarded(() => new URL(options.publicUrl).origin)();
-  state.cloudActions ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= []; state.ledger ??= []; state.retention ??= []; state.retentionDiscounts ??= [];
+  state.cloudActions ??= []; state.teamInvites ??= []; state.teamLeaves ??= []; state.refunds ??= []; state.closures ??= []; state.providerCancels ??= []; state.duplicates ??= []; state.ledger ??= []; state.retention ??= []; state.retentionDiscounts ??= [];
   const confirmations = new Map<string, { accountId: string; subscriptionId: string; cart: Cart; total: number; expiresAt: number; version: number; interval: boolean }>();
   const mode: BillingMode = options.mode ?? "test";
   const queues = new Map<string, Promise<unknown>>();
@@ -225,6 +225,13 @@ export function createBillingService(options: BillingServiceOptions) {
     return sub;
   }
   function parsed(input: unknown) { const cart = parseCart(input, config); if (!cart) fail(400, "invalid_request"); return cart; }
+  /** a team plan's cloud boots as a Team Cloud, named for its owner ("sid's team"); its team id is the cloud's id */
+  function teamOf(cart: Cart, accountId: string, email?: string): { team?: string } {
+    if (cart.license.kind !== "team") return {};
+    const address = email ?? state.customers.find(row => row.accountId === accountId)?.email ?? "";
+    const local = address.split("@")[0]!.replace(/[^\p{L}\p{N}._-]/gu, "").slice(0, 40);
+    return { team: local ? `${local}'s team` : "team" };
+  }
   function purchasable(cart: Cart) { if (cart.license.kind === "none" && cart.desktop.kind === "none") fail(400, "invalid_request"); }
   function returnUrl(path = "/billing") {
     if (typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) fail(400, "invalid_request");
@@ -357,7 +364,7 @@ export function createBillingService(options: BillingServiceOptions) {
     if (clouds.revive(action.cloudId, action.subscriptionId, action.plan)) return;
     const sub = state.subscriptions.find(row => row.id === action.subscriptionId), previous = clouds.get(action.cloudId);
     if (!sub || sub.cloudId !== action.cloudId || sub.status === "ended" || sub.cart.desktop.kind === "none") return;
-    const fresh = clouds.order({ ...action.plan, accountId: sub.accountId, name: previous?.name ?? "My Cloud", color: previous?.color ?? null, region: sub.cart.desktop.region! });
+    const fresh = clouds.order({ ...action.plan, ...teamOf(sub.cart, sub.accountId), accountId: sub.accountId, name: previous?.name ?? "My Cloud", color: previous?.color ?? null, region: sub.cart.desktop.region! });
     sub.cloudId = fresh.id;
     clouds.activate(fresh.id, sub.id, action.plan);
   }
@@ -372,7 +379,7 @@ export function createBillingService(options: BillingServiceOptions) {
       const plan = desktopPlan(cart);
       if (previous.desktop.kind === "none") {
         sub.cloudId = change.cloudId;
-        cloudAction({ kind: "order", cloudId: sub.cloudId!, input: { ...plan, accountId: sub.accountId, name: "My Cloud", color: null, region: cart.desktop.region! } });
+        cloudAction({ kind: "order", cloudId: sub.cloudId!, input: { ...plan, ...teamOf(cart, sub.accountId, email), accountId: sub.accountId, name: "My Cloud", color: null, region: cart.desktop.region! } });
         cloudAction({ kind: "activate", cloudId: sub.cloudId!, subscriptionId: sub.id, plan });
       } else if (!sameCart({ ...cart, license: previous.license }, previous) && sub.cloudId) cloudAction({ kind: "change", cloudId: sub.cloudId, plan });
     } else if (previous.desktop.kind !== "none" && sub.cloudId) {
@@ -419,7 +426,7 @@ export function createBillingService(options: BillingServiceOptions) {
       if (event.type === "active" && lost && previousCloud && checkout.cart.desktop.kind !== "none") {
         delete checkout.revive;
         checkout.cloudId = `c${randomBytes(12).toString("hex")}`;
-        cloudAction({ kind: "order", cloudId: checkout.cloudId, input: { ...desktopPlan(checkout.cart), accountId: checkout.accountId, name: previousCloud.name, color: previousCloud.color, region: checkout.cart.desktop.region! } });
+        cloudAction({ kind: "order", cloudId: checkout.cloudId, input: { ...desktopPlan(checkout.cart), ...teamOf(checkout.cart, checkout.accountId, checkout.email), accountId: checkout.accountId, name: previousCloud.name, color: previousCloud.color, region: checkout.cart.desktop.region! } });
       }
       sub = { id: id("sub"), accountId: checkout.accountId, providerSubscriptionId: event.subscriptionId, checkoutId: checkout.id, cart: copy(checkout.cart), totalCents: checkout.amountCents, lines: copy(checkout.lines),
         status: "pending", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, createdAt: now(), updatedAt: now(), version: 0, mode };
@@ -634,7 +641,7 @@ export function createBillingService(options: BillingServiceOptions) {
     if (open) expireCheckouts(account.id, true);
     const revive = revivableCloud(account.id, cart);
     if (cart.desktop.kind !== "none" && !revive) cap(account.id);
-    const cloud = revive ?? (cart.desktop.kind !== "none" ? clouds.order({ ...desktopPlan(cart), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null);
+    const cloud = revive ?? (cart.desktop.kind !== "none" ? clouds.order({ ...desktopPlan(cart), ...teamOf(cart, account.id, account.email), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null);
     const entry: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: "cart", cart,
       cloudId: cloud?.id ?? null, ...(revive ? { revive: true } : {}), providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
       subscriptionId: null, amountCents: amount(quote(cart, config).totalCents), lines: quote(cart, config).lines };
@@ -988,7 +995,7 @@ export function createBillingService(options: BillingServiceOptions) {
     cart.desktop.region ??= config.defaultRegion;
     cap(account.id);
     const priced = quote(cart, config), plan = desktopPlan(cart);
-    const cloud = clouds.order({ ...plan, accountId: account.id, name: input.name, color: null, region: cart.desktop.region! });
+    const cloud = clouds.order({ ...plan, ...teamOf(cart, account.id, account.email), accountId: account.id, name: input.name, color: null, region: cart.desktop.region! });
     clouds.setReview(cloud.id, true);
     const checkout: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: "cart", cart: copy(cart), cloudId: cloud.id, providerSessionId: null, url: null,
       status: "completed", source: "ops_grant", createdAt: now(), openUntil: now(), subscriptionId: null, amountCents: 0, lines: priced.lines };

@@ -68,7 +68,7 @@ export class ProviderLimitError extends RetryableCloudError {
   }
 }
 
-export interface HomeBootInput { cloudId: string; adminOrigin: string; secret: string; dashboardUrl: string; link: DashboardLink }
+export interface HomeBootInput { cloudId: string; adminOrigin: string; secret: string; dashboardUrl: string; link: DashboardLink; team?: { id: string; name: string } }
 export interface HomeClaimInput { cloudId: string; claim: string; redeem: string }
 export interface HomeSetupOptions { releaseKeys: readonly ReleaseKey[]; requireSigned: boolean }
 export type HomeBootContent = { v: 1; env: Record<string, string>; link: DashboardLink; machine: string }

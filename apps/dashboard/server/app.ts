@@ -22,7 +22,7 @@ import type { BillingNotice } from "./billing/service.ts";
 import { BILLING_CONFIG, MANAGED_REGION, regionLabel } from "./billing/plans.ts";
 import type { StoredCloud } from "./clouds/types.ts";
 import { DEFAULT_RETENTION_DAYS } from "../../cloud-service/src/retention.ts";
-import { CODE_SUBJECT, accountDeletedEmail, cancelledEmail, cloudDeletedEmail, cloudNoticeEmail, cloudReadyEmail, emailConfig, paymentFailedEmail, receiptEmail, welcomeEmail } from "./email/templates.ts";
+import { CODE_SUBJECT, accountDeletedEmail, cancelledEmail, cloudDeletedEmail, cloudNoticeEmail, cloudReadyEmail, emailConfig, paymentFailedEmail, receiptEmail, teamInviteEmail, teamSeatFullEmail, welcomeEmail } from "./email/templates.ts";
 import type { Rendered } from "./email/templates.ts";
 import { render } from "./email/layout.ts";
 import { BillingError } from "./billing/service.ts";
@@ -140,7 +140,7 @@ const NO_FLOW: PrelaunchLive = { device: () => false, attempt: () => false };
 export function prelaunchOpen(path: string, query: URLSearchParams = new URLSearchParams(), live: PrelaunchLive = NO_FLOW, depth = 0): boolean {
   const is = (page: string) => path === page || path === `${page}/`;
   if (is("/cloud/desktop")) return live.device(query.get("code") ?? "");
-  if (is("/handoff") || is("/app-signed-in") || is("/claim") || /^\/clouds\/[^/]+\/delete\/?$/.test(path)) return true;
+  if (is("/handoff") || is("/app-signed-in") || is("/claim") || is("/team/join") || /^\/clouds\/[^/]+\/delete\/?$/.test(path)) return true;
   if (is("/sign-in") || is("/signin")) {
     if (live.attempt(query.get("attempt") ?? "")) return true;
     const next = query.get("next");
@@ -336,6 +336,11 @@ export function createDashboardApp(options: DashboardAppOptions) {
       if (email) sendTo(cloud.accountId, letter.notice.kind === "recovered" ? "cloudStatus" : "required", email);
     },
     notify: notice => billingNotice(notice),
+    accountName: id => auth.account(id)?.name ?? null, accountEmail: id => auth.account(id)?.email ?? null,
+    // the invite link keeps its token in the fragment: no server, proxy or referer sees it
+    teamMail: message => send(message.to, message.kind === "invite"
+      ? teamInviteEmail(emailCfg, { team: message.team, from: message.from, expiresAt: message.expiresAt, link: `${emailCfg.app}/team/join#t=${message.token}` })
+      : teamSeatFullEmail(emailCfg, { team: message.team, email: message.email, seats: message.seats })),
     onLedger: entry => ledgerRow(entry),
     onRetention: entry => analytics.track("cancel_flow", { accountId: entry.accountId, props: { reason: entry.reason, step: entry.step, outcome: entry.outcome } }),
     cloudStatus: (cloud, from) => analytics.track("cloud_state", { accountId: cloud.accountId, props: { cloudId: cloud.id, kind: cloud.kind, region: cloud.region, from: from ?? "new", to: cloud.status } }),

@@ -13,12 +13,15 @@ function opsAllowed(header: string | undefined, token: string) {
   const wanted = Buffer.from(token);
   return given.length === wanted.length && timingSafeEqual(given, wanted);
 }
-const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later.", checkout_soon: "Paid plans open soon. Checkout is not live yet.", discount_used: "This account already used its discount.", discount_unavailable: "The discount is only for a monthly plan that renews.", plan_change_unavailable: "This plan can't switch to that size here. Write to hello@dusk.bot and we move it for you.", already_on_plan: "You're already on this plan.", price_changed: "The price changed. Check it and confirm again.", not_subscribed: "There is no active plan to change." };
+const messages: Record<string, string> = { signed_out: "Sign in to continue.", invalid_request: "Invalid request.", not_found: "Not found.", unavailable: "Billing is unavailable.", bad_signature: "Invalid webhook signature.", checkout_open: "A checkout is already open.", csrf: "Refresh the page and try again.", cap: "Cloud limit reached.", rate_limited: "Try again later.", checkout_soon: "Paid plans open soon. Checkout is not live yet.", discount_used: "This account already used its discount.", discount_unavailable: "The discount is only for a monthly plan that renews.", plan_change_unavailable: "This plan can't switch to that size here. Write to hello@dusk.bot and we move it for you.", already_on_plan: "You're already on this plan.", price_changed: "The price changed. Check it and confirm again.", not_subscribed: "There is no active plan to change.",
+  seats_full: "Every seat on this team is taken. Add a seat first.", forbidden: "You can't do that.",
+  invite_invalid: "This invite link is used up, cancelled or expired. Ask for a new one.", invite_other_email: "This invite was sent to another email address. Sign in with that one to join.",
+  already_in_team: "That person is already in a team." };
 export function createBillingRoutes(ctx: BillingContext) {
   const { service, clouds } = ctx;
   return async (req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> => {
     const path = url.pathname, method = req.method ?? "GET";
-    if (!path.startsWith("/v1/billing/") && path !== "/v1/clouds" && !path.startsWith("/v1/clouds/")) return false;
+    if (!path.startsWith("/v1/billing/") && path !== "/v1/clouds" && !path.startsWith("/v1/clouds/") && path !== "/v1/team" && !path.startsWith("/v1/team/")) return false;
     if (path === "/v1/billing/fake/complete" && (!ctx.fake || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress ?? ""))) return false;
     const webhook = path === "/v1/billing/webhooks/dodo" && method === "POST";
     try {
@@ -138,6 +141,15 @@ export function createBillingRoutes(ctx: BillingContext) {
         if (subscription[2] === "discount") return send(await service.retentionDiscount(account, id, data.reason));
         if (subscription[2] === "card") { if (!ctx.checkoutOpen) throw new BillingError(503, "checkout_soon"); return send(await service.updateCard(account, id)); }
         return send({ subscription: await service.keep(account, id) });
+      }
+      if (path === "/v1/team" && method === "GET") return send({ team: ctx.teams.get(account) });
+      if (path === "/v1/team/invites" && method === "POST") return send({ team: ctx.teams.invite(account, (await body(req)).email) });
+      if (path === "/v1/team/join" && method === "POST") return send({ team: ctx.teams.join(account, (await body(req)).token) });
+      const team = /^\/v1\/team\/(invites|members)\/([^/]+)$/.exec(path);
+      if (team && method === "DELETE") {
+        await body(req);
+        let key: string; try { key = decodeURIComponent(team[2]!); } catch { return invalid(); }
+        return send({ team: team[1] === "invites" ? ctx.teams.cancel(account, key) : ctx.teams.remove(account, key) });
       }
       const member = /^\/v1\/billing\/licenses\/([^/]+)\/members(?:\/([^/]+))?$/.exec(path);
       if (member && ((method === "POST" && !member[2]) || (method === "DELETE" && member[2]))) {

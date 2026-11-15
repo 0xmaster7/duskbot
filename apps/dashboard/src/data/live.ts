@@ -92,6 +92,7 @@ export function subscriptionFromWire(subscription: SubscriptionView, catalog: Pl
 export function billingFromWire(overview: WireBillingOverview, catalog: PlanCatalog): BillingOverview {
   const subscription = overview.subscriptions.filter((item) => item.status !== "ended").reduce<SubscriptionView | null>((newest, item) => !newest || item.createdAt > newest.createdAt ? item : newest, null);
   return {
+    team: overview.license?.license?.kind === "team" ? overview.license.license.role : null,
     subscription: subscription ? subscriptionFromWire(subscription, catalog) : null,
     paymentMethod: null,
     invoices: overview.invoices.invoices.map((invoice) => ({ id: invoice.id, number: invoice.id, date: invoice.at, description: invoice.description, amountUsd: invoice.amountCents / 100, status: invoice.status === "failed" ? "open" : invoice.status, url: invoice.downloadUrl })),

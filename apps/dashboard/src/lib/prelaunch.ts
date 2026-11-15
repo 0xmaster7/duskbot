@@ -6,7 +6,7 @@
 export const PRELAUNCH = typeof document !== "undefined" && document.querySelector('meta[name="dusk-prelaunch"]')?.getAttribute("content") === "1";
 
 /** the flow this tab arrived with: tokens that only ever come from a link and never sit in the address bar */
-export interface PrelaunchFlows { handoff: boolean; claim: boolean; deleting(id: string): boolean; appReturn?: boolean }
+export interface PrelaunchFlows { handoff: boolean; claim: boolean; deleting(id: string): boolean; appReturn?: boolean; teamInvite?: boolean }
 
 const DELETE = /^\/clouds\/([^/]+)\/delete$/;
 
@@ -16,6 +16,7 @@ export function prelaunchAllowed(path: string, query: URLSearchParams, flows: Pr
   if (path === "/handoff") return flows.handoff;
   if (path === "/app-signed-in") return Boolean(flows.appReturn);
   if (path === "/claim") return flows.claim;
+  if (path === "/team/join") return Boolean(flows.teamInvite);
   const deleting = DELETE.exec(path);
   if (deleting) { try { return flows.deleting(decodeURIComponent(deleting[1]!)); } catch { return false; } }
   if ((path === "/sign-in" || path === "/signin") && depth === 0) {
