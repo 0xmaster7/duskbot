@@ -119,7 +119,8 @@ export function UsagePage() {
       <p className="mt-3 px-1 text-14 text-ink-4">included usage comes with the plans your bots sign in to.</p>
 
       <div className="mt-8 flex flex-col gap-4">
-        <Resets plans={plans} now={now} />
+        {/* one plan is already the card above; the list only adds something with more than one */}
+        {plans.length > 1 && <Resets plans={plans} now={now} />}
         <div className="grid gap-4 md:grid-cols-2">
           <Tokens month={!loading ? month : null} />
           <Stat label="bot turns" value={!loading && month ? month.totals.turns.toLocaleString("en-US") : <Skeleton className="h-8 w-24" />} />
