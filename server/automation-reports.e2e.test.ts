@@ -1,4 +1,4 @@
-// Automations report into the bot's chat, end to end: the real server and Claude driver, the scripted fake engine
+// Automations in the bot's chat, end to end: the real server and Claude driver, the scripted fake engine
 // answering each turn by what it was sent, and the permission broker reached the way the CLI's proxy reaches it.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { connect, type Socket } from "node:net";
@@ -94,68 +94,24 @@ async function brokerOf(s: Awaited<ReturnType<typeof server>>, threadId: string)
   return answers;
 }
 
-it("reports each run into the main chat as the bot's own line, writes nothing for a quiet run, and keeps every run one click away", async () => {
+it("answers each run in the main chat as the bot's own reply, with no conversation, line or card of its own", async () => {
   const s = await server();
-  s.script([
-    { key: "first", match: [s.header("Inbox watch")], reply: "Checked 14 emails.\nNOTHING NEW" },
-    { key: "second", match: [s.header("Inbox watch")], reply: "Acme replied: they need the invoice by Friday." },
-    { key: "third", match: [s.header("Inbox watch")], reply: "NOTHING NEW" },
-  ]);
-  const routineId = await s.routine("Inbox watch");
-  const ids: string[] = [];
-  for (let index = 0; index < 3; index++) {
-    const id = await s.runNow(routineId);
-    await s.settled(id);
-    await s.reported(id, index === 1 ? "posted" : "quiet");
-    ids.push(id);
-  }
-  const all = await Promise.all(ids.map(s.run));
-  const lines = await s.lines();
-  expect(lines).toEqual([expect.objectContaining({
-    role: "bot", kind: "text", text: "Acme replied: they need the invoice by Friday.",
-    automation: expect.objectContaining({ name: "Inbox watch", runId: ids[1], executionThreadId: all[1].threadId, trigger: "manual" }),
-  })]);
-  expect(all[1].report).toEqual({ state: "posted", threadId: s.main, messageId: lines[0].id });
-  expect((await s.messages(s.main)).some((message) => message.kind === "routine.run")).toBe(false);
+  s.script([{ key: "run", match: [s.header("Inbox watch")], reply: "Acme replied: they need the invoice by Friday." }]);
+  const id = await s.runNow(await s.routine("Inbox watch"));
+  await s.settled(id);
+  expect(await s.run(id)).toMatchObject({ threadId: s.main, resultsThreadId: s.main });
+  expect((await s.run(id)).report).toBeUndefined();
+  const transcript = await s.messages(s.main);
+  expect(transcript.findLast((message) => message.role === "bot" && message.kind === "text")).toMatchObject({ text: "Acme replied: they need the invoice by Friday." });
+  expect(transcript.find((message) => message.routineStart)).toMatchObject({ role: "user", routineStart: { name: "Inbox watch" } });
+  expect(transcript.some((message) => message.automation || message.kind === "routine.run")).toBe(false);
+  expect(s.toldOnlyReplyLeaves("run")).toBe(false);
   const saved = await s.savedBot();
-  for (const each of all) {
-    expect(each.resultsThreadId).toBe(s.main);
-    expect(saved.tasks.find((task: any) => task.threadId === each.threadId)).toMatchObject({ routineRunId: each.id, unread: false });
-  }
-  expect(saved.tasks.find((task: any) => task.threadId === s.main).unread).toBe(true);
-  const done = s.notified().filter((notification) => notification.kind === "done");
-  expect(done).toEqual([expect.objectContaining({ threadId: s.main, body: "Inbox watch: Acme replied: they need the invoice by Friday." })]);
-  for (const key of ["first", "second", "third"]) expect(s.toldOnlyReplyLeaves(key)).toBe(true);
-  const transcript = await s.messages(all[1].threadId);
-  expect(transcript.find((message) => message.role === "user")?.text).toContain(s.header("Inbox watch"));
-  expect(transcript.findLast((message) => message.role === "bot" && message.kind === "text")?.text).toBe("Acme replied: they need the invoice by Friday.");
+  expect(saved.tasks.map((task: any) => task.threadId)).toEqual([s.main]);
+  expect(saved.tasks[0].routineRunId).toBeUndefined();
 }, 120_000);
 
-it("opens a file a run linked in its report from the chat it reported to", async () => {
-  const s = await server();
-  s.script([
-    { key: "run", match: [s.header("Weekly report")], reply: "Wrote [the summary](summary.md)." },
-    { key: "person", match: ["Where is the summary?"], reply: "It is [here](summary.md)." },
-  ]);
-  const id = await s.runNow(await s.routine("Weekly report"));
-  await s.reported(id, "posted");
-  const { threadId } = await s.run(id);
-  writeFileSync(join(s.dataDir, "task-workspaces", s.bot.id, threadId, "summary.md"), "Three new orders.");
-  const [report] = await s.lines();
-  const open = (thread: string, messageId: string) => fetch(`${s.url}/api/threads/${thread}/messages/${messageId}/file`, {
-    method: "POST", headers: { "content-type": "application/json", origin: s.url }, body: JSON.stringify({ path: "summary.md" }),
-  });
-  const opened = await open(s.main, report.id);
-  expect(opened.status).toBe(200);
-  expect(await opened.text()).toBe("Three new orders.");
-  await s.cli("send", "--bot", s.bot.id, "--task", s.main, "--text", "Where is the summary?");
-  await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
-  const own = (await s.messages(s.main)).findLast((message) => message.role === "bot" && message.kind === "text" && !message.automation);
-  expect(own.text).toBe("It is [here](summary.md).");
-  expect((await open(s.main, own.id)).status).toBeGreaterThanOrEqual(400);
-}, 120_000);
-
-it("holds a report while the person's own turn runs in the main chat, never delays that turn, and writes it once right after", async () => {
+it("waits for the person's own turn in the main chat, never interrupts it, and answers right after", async () => {
   const s = await server();
   const gate = join(s.dataDir, "finish-person-turn");
   s.script([
@@ -166,126 +122,35 @@ it("holds a report while the person's own turn runs in the main chat, never dela
   await s.cli("send", "--bot", s.bot.id, "--task", s.main, "--text", "Draft the weekly update.");
   await expect.poll(async () => (await s.savedBot()).tasks.find((task: any) => task.threadId === s.main)?.busy, { timeout: 20_000 }).toBe(true);
   const id = await s.runNow(routineId);
-  await s.settled(id);
-  await s.reported(id, "pending");
-  expect(await s.lines()).toEqual([]);
+  await expect.poll(async () => (await s.run(id))?.attention, { timeout: 20_000 }).toMatch(/^Waiting to start/);
+  expect(await s.run(id)).toMatchObject({ status: "queued", threadId: s.main });
   expect((await s.savedBot()).tasks.find((task: any) => task.threadId === s.main)?.busy).toBe(true);
   writeFileSync(gate, "done");
-  await s.reported(id, "posted");
-  const transcript = (await s.messages(s.main)).filter((message) => message.role === "user" || message.kind === "text");
-  expect(transcript.slice(-3).map((message) => [message.role, message.text, Boolean(message.automation)])).toEqual([
-    ["user", "Draft the weekly update.", false],
-    ["bot", "Here is the weekly update draft.", false],
-    ["bot", "Acme replied.", true],
-  ]);
+  await s.settled(id);
   await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
-  expect(await s.lines()).toHaveLength(1);
-  expect(s.notified().filter((notification) => notification.kind === "done" && notification.body.startsWith("Inbox watch:"))).toHaveLength(1);
+  expect((await s.messages(s.main)).filter((message) => message.role === "bot" && message.kind === "text").map((message) => message.text).slice(-2)).toEqual(["Here is the weekly update draft.", "Acme replied."]);
+  expect((await s.savedBot()).tasks).toHaveLength(1);
 }, 120_000);
 
-it("copies a question a run waits on into the main chat, and the answer given there carries the run on", async () => {
+it("asks a run's question in the main chat, and the answer given there carries the run on", async () => {
   const s = await server();
   const gate = join(s.dataDir, "finish-run");
   s.script([{ key: "run", match: [s.header("Inbox watch")], reply: "Used the Work account: two new orders.", gateFile: gate }]);
-  const routineId = await s.routine("Inbox watch");
-  const id = await s.runNow(routineId);
+  const id = await s.runNow(await s.routine("Inbox watch"));
   await s.settled(id, "running");
-  const { threadId } = await s.run(id);
-  const answers = await brokerOf(s, threadId);
+  const answers = await brokerOf(s, s.main);
   broker!.write(JSON.stringify({ t: "ask", kind: "question", id: "which-account", tool: "ask_user", input: { question: "Which account should I check?" } }) + "\n");
   await s.settled(id, "waiting");
   await expect.poll(async () => (await s.messages(s.main)).find((message) => message.kind === "options")?.card?.requestId, { timeout: 20_000 }).toBeTruthy();
-  const copy = (await s.messages(s.main)).find((message) => message.kind === "options");
-  expect(copy.automation).toMatchObject({ runId: id, needsYou: true, executionThreadId: threadId, name: "Inbox watch" });
-  const original = (await s.messages(threadId)).find((message) => message.card?.requestId === copy.card.requestId);
-  expect(original).toBeTruthy();
-  expect(s.notified().some((notification) => notification.kind === "question" && notification.threadId === s.main)).toBe(true);
-
-  await s.api("POST", `/api/threads/${s.main}/respond`, { requestId: copy.card.requestId, behavior: "answer", message: "Work" });
+  const cards = (await s.messages(s.main)).filter((message) => message.kind === "options");
+  expect(cards).toHaveLength(1);
+  expect(cards[0].automation).toBeUndefined();
+  await s.api("POST", `/api/threads/${s.main}/respond`, { requestId: cards[0].card.requestId, behavior: "answer", message: "Work" });
   await expect.poll(() => answers.find((answer) => answer.id === "which-account"), { timeout: 20_000 }).toMatchObject({ t: "answer", behavior: "answer", message: "Work", source: "user" });
-  await s.settled(id, "running");
-  await expect.poll(async () => (await s.messages(s.main)).find((message) => message.id === copy.id)?.card?.answered, { timeout: 20_000 }).toBeTruthy();
-  expect((await s.messages(threadId)).find((message) => message.id === original.id)?.card?.answered).toBeTruthy();
   writeFileSync(gate, "done");
-  await s.reported(id, "posted");
-  expect((await s.lines()).map((line) => [line.kind, line.text ?? line.card?.subtitle])).toEqual([
-    ["options", copy.card.subtitle],
-    ["text", "Used the Work account: two new orders."],
-  ]);
-}, 120_000);
-
-it("asks the person in the main chat when a run needs them, and their answer there reaches the bot with that report in hand", async () => {
-  const s = await server();
-  s.script([
-    { key: "run", match: [s.header("Acme replies")], reply: "I drafted a reply to Acme's invoice question.\nNEEDS INPUT: Should I send it?" },
-    { key: "answer", match: ["Yes, send it."], reply: "Sent.", expectContextIncludes: ["[From routine ", "Acme replies", "Should I send it?"] },
-  ]);
-  const id = await s.runNow(await s.routine("Acme replies"));
   await s.settled(id);
-  await s.reported(id, "posted");
-  expect(await s.lines()).toEqual([expect.objectContaining({
-    kind: "text", text: "I drafted a reply to Acme's invoice question.\nShould I send it?",
-    automation: expect.objectContaining({ needsYou: true, name: "Acme replies" }),
-  })]);
-  expect(s.notified().filter((notification) => notification.threadId === s.main).map((notification) => [notification.kind, notification.body]))
-    .toContainEqual(["question", "Acme replies: Should I send it?"]);
-  await s.cli("send", "--bot", s.bot.id, "--task", s.main, "--text", "Yes, send it.");
-  await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
-  expect((await s.messages(s.main)).findLast((message) => message.role === "bot" && message.kind === "text")?.text).toBe("Sent.");
-}, 120_000);
-
-it("takes a 👍 on a run's question in the chat as the answer, with that report in hand", async () => {
-  const s = await server();
-  s.script([
-    { key: "run", match: [s.header("Acme replies")], reply: "I drafted a reply to Acme's invoice question.\nNEEDS INPUT: Should I send it?" },
-    { key: "answer", match: ["reacted 👍"], reply: "Sent.", expectContextIncludes: ["[From routine ", "Acme replies", "Should I send it?"] },
-  ]);
-  const id = await s.runNow(await s.routine("Acme replies"));
-  await s.reported(id, "posted");
-  const [question] = await s.lines();
-  expect(await s.api("POST", `/api/threads/${s.main}/messages/${question.id}/reactions`, { emoji: "👍", on: true })).toMatchObject({ delivery: "started" });
-  await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
-  expect((await s.messages(s.main)).findLast((message) => message.role === "bot" && message.kind === "text")?.text).toBe("Sent.");
-}, 120_000);
-
-it("answers the run itself when the person gives a 👍 to the copy of the question it waits on", async () => {
-  const s = await server();
-  const gate = join(s.dataDir, "finish-run");
-  s.script([{ key: "run", match: [s.header("Inbox watch")], reply: "Checked the Work account: two new orders.", gateFile: gate }]);
-  const id = await s.runNow(await s.routine("Inbox watch"));
-  await s.settled(id, "running");
-  const answers = await brokerOf(s, (await s.run(id)).threadId);
-  broker!.write(JSON.stringify({ t: "ask", kind: "question", id: "work-account", tool: "ask_user", input: { question: "Should I check the Work account?" } }) + "\n");
-  await expect.poll(async () => (await s.lines()).find((message) => message.kind === "options")?.card?.requestId, { timeout: 20_000 }).toBeTruthy();
-  const copy = (await s.lines()).find((message) => message.kind === "options");
-  expect(await s.api("POST", `/api/threads/${s.main}/messages/${copy.id}/reactions`, { emoji: "👍", on: true })).toMatchObject({ delivery: "answered" });
-  await expect.poll(() => answers.find((answer) => answer.id === "work-account"), { timeout: 20_000 }).toMatchObject({ t: "answer", behavior: "answer", source: "user" });
-  await s.settled(id, "running");
-  writeFileSync(gate, "done");
-  await s.reported(id, "posted");
-  expect((await s.lines()).map((line) => line.text ?? line.card?.subtitle).at(-1)).toBe("Checked the Work account: two new orders.");
-}, 120_000);
-
-it("hands the chat's own session the newest report of each automation, however much else came in since its last turn", async () => {
-  // A CLI that resumes exactly, so the turn gets only what its session has not seen, within a budget.
-  const s = await server({ FAKE_CLAUDE_VERSION: "2.1.284" });
-  // Without memory, nothing but the chat itself can bring the question back.
-  await s.api("PATCH", `/api/bots/${s.bot.id}`, { memoryEnabled: false });
-  s.script([
-    { key: "hello", match: ["Morning!"], reply: "Morning! What's first?" },
-    { key: "acme", match: [s.header("Acme replies")], reply: "NEEDS INPUT: Should I send the reply to Acme?" },
-    { key: "orders", match: [s.header("Orders")], reply: `New orders: ${"a long list of order lines ".repeat(100)}`, repeat: true },
-    { key: "answer", match: ["Yes, send it."], reply: "Sent.", expectContextIncludes: ["Should I send the reply to Acme?"] },
-  ]);
-  await s.cli("send", "--bot", s.bot.id, "--task", s.main, "--text", "Morning!");
-  await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
-  const acme = await s.runNow(await s.routine("Acme replies"));
-  await s.reported(acme, "posted");
-  const orders = await s.routine("Orders");
-  for (let index = 0; index < 2; index++) await s.reported(await s.runNow(orders), "posted");
-  await s.cli("send", "--bot", s.bot.id, "--task", s.main, "--text", "Yes, send it.");
-  await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
-  expect((await s.messages(s.main)).findLast((message) => message.role === "bot" && message.kind === "text")?.text).toBe("Sent.");
+  expect((await s.messages(s.main)).filter((message) => message.role === "bot" && message.kind === "text").map((message) => message.text).at(-1)).toBe("Used the Work account: two new orders.");
+  expect((await s.messages(s.main)).some((message) => message.automation)).toBe(false);
 }, 120_000);
 
 it("reports an outside event's run into the main chat too, from a conversation of its own that stays out of the way", async () => {
@@ -328,7 +193,7 @@ it("still reports the person's own failed turn in a chat a run once continued", 
   await expect.poll(filed, { timeout: 20_000 }).toBe(true);
 }, 120_000);
 
-it("does not take a person's failed turn in a run's conversation for the run's own while the run waits on a teammate", async () => {
+it("does not take a person's failed turn in the main chat for the run's own while the run waits on a teammate", async () => {
   const s = await server();
   const { bot: sam } = await s.cli("new-bot", "--name", "Sam");
   const samGate = join(s.dataDir, "sam-counts");
@@ -339,33 +204,26 @@ it("does not take a person's failed turn in a run's conversation for the run's o
   ], { [sam.id]: [{ key: "count", match: ["Count the boxes in stock."], reply: "Counted 42 boxes.", gateFile: samGate }] });
   const id = await s.runNow(await s.routine("Stock check"));
   await s.settled(id, "waiting");
-  const { threadId } = await s.run(id);
-  await s.cli("send", "--bot", s.bot.id, "--task", threadId, "--text", "Any news?");
-  await s.cli("wait", "--bot", s.bot.id, "--task", threadId, "--timeout", "20");
-  await expect.poll(async () => (await s.messages(threadId)).some((message) => message.kind === "activity" && message.tool?.ok === false), { timeout: 20_000 }).toBe(true);
+  expect((await s.run(id)).threadId).toBe(s.main);
+  await s.cli("send", "--bot", s.bot.id, "--task", s.main, "--text", "Any news?");
+  await s.cli("wait", "--bot", s.bot.id, "--task", s.main, "--timeout", "20");
+  await expect.poll(async () => (await s.messages(s.main)).some((message) => message.kind === "activity" && message.tool?.ok === false), { timeout: 20_000 }).toBe(true);
   expect(await s.run(id)).toMatchObject({ status: "waiting" });
   expect((await s.run(id)).error).toBeUndefined();
-  expect(await s.lines()).toEqual([]);
   writeFileSync(samGate, "done");
   await s.settled(id);
-  await s.reported(id, "posted");
-  expect((await s.lines()).map((line) => line.text)).toEqual(["We have 42 boxes in stock."]);
+  await expect.poll(async () => (await s.messages(s.main)).filter((message) => message.role === "bot" && message.kind === "text").map((message) => message.text).at(-1), { timeout: 20_000 }).toBe("We have 42 boxes in stock.");
+  expect(await s.lines()).toEqual([]);
 }, 120_000);
 
-it("says in the main chat, once per run of failures, that an automation could not finish", async () => {
+it("fails a run in the main chat as any failed turn there, with no line of its own", async () => {
   const s = await server();
   s.script([{ key: "run", match: [s.header("Inbox watch")], reply: "never", fail: true, repeat: true }]);
-  const routineId = await s.routine("Inbox watch");
-  const first = await s.runNow(routineId);
-  await s.settled(first, "failed");
-  await s.reported(first, "posted");
-  expect(await s.lines()).toEqual([expect.objectContaining({
-    text: expect.stringMatching(/^This run didn't finish: /), automation: expect.objectContaining({ failed: true, runId: first }),
-  })]);
-  const second = await s.runNow(routineId);
-  await s.settled(second, "failed");
-  expect((await s.run(second)).error).toBe((await s.run(first)).error);
-  expect(await s.lines()).toHaveLength(1);
+  const id = await s.runNow(await s.routine("Inbox watch"));
+  await s.settled(id, "failed");
+  expect(await s.run(id)).toMatchObject({ threadId: s.main });
+  expect(await s.lines()).toEqual([]);
+  expect((await s.savedBot()).tasks).toHaveLength(1);
 }, 120_000);
 
 it("tells the main chat about a run missed while the computer was off, which has no conversation of its own", async () => {

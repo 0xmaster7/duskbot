@@ -33,7 +33,7 @@ import { loadInstalledPackage, loadRequestReceipts, loadRoutine, loadRun } from 
 import { applyHolds, holdCauses, type AppliedHolds } from "./routine-holds.ts";
 import { sanitizeInput } from "./routine-input.ts";
 import { checkHold, CHECK_BOOT_HOLD_MS, type CheckHold } from "./routine-check-pacing.ts";
-import { cloneRun, resolveRoutineResultsThread, routineRunDefinition, type ResultsThreadAllocation } from "./routine-run-definition.ts";
+import { cloneRun, ranApart, resolveRoutineResultsThread, routineRunDefinition, type ResultsThreadAllocation } from "./routine-run-definition.ts";
 
 export type { RoutineContextAttachment, RoutineIntervalWindow, RoutineRunStatus, RoutineRunTrigger };
 export { intervalHasRestrictions } from "./routine-intervals.ts";
@@ -494,7 +494,7 @@ export class RoutineManager {
 
   runForThread(threadId: string): RoutineRun | null {
     const run = this.runs.findLast((candidate) => candidate.threadId === threadId && ["running", "waiting"].includes(candidate.status)) ??
-      this.runs.findLast((candidate) => candidate.threadId === threadId);
+      this.runs.findLast((candidate) => candidate.threadId === threadId && ranApart(candidate));
     return run ? cloneRun(run) : null;
   }
 

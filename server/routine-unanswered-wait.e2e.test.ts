@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { closeSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, expect, it } from "vitest";
@@ -77,6 +77,8 @@ it("starts the next scheduled run of a routine whose sign-in nobody answered, an
   disk.routines[0].nextRunAt = dueAt;
   disk.runs.find((run: any) => run.id === first.id).waitingSince = dueAt - 24 * 60 * 60_000;
   writeFileSync(file, JSON.stringify(disk));
+  // The next run answers in the same chat: its turn holds until the gate below.
+  rmSync(join(dataDir, `${threadId}.gate`), { force: true });
   const log = openSync(logPath, "a", 0o600);
   restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
     cwd: fileURLToPath(new URL("..", import.meta.url)), env: verificationServerEnvironment({}, dataDir, Number(new URL(url).port)), stdio: ["ignore", log, log],
@@ -91,7 +93,7 @@ it("starts the next scheduled run of a routine whose sign-in nobody answered, an
   await expect.poll(async () => (await runs()).find((run) => run.id !== first.id)?.status, { timeout: 15_000 }).toBe("running");
   const next = (await runs()).find((run) => run.id !== first.id);
   expect(next).toMatchObject({ routineId: routine.id, triggerSource: "schedule", scheduledFor: dueAt });
-  expect(next.threadId).not.toBe(threadId);
+  expect(next.threadId).toBe(threadId);
   const saved = (await api("GET", "/api/routines")).routines[0];
   expect(saved.skippedRuns).toBeUndefined();
   expect(saved.nextRunAt).toBeGreaterThan(Date.now());
@@ -101,11 +103,7 @@ it("starts the next scheduled run of a routine whose sign-in nobody answered, an
   expect((await messages(threadId)).find((message) => message.kind === "signin")?.signIn).toMatchObject({ stopped: true });
   const late = await raw("POST", `/api/bots/${bot.id}/sign-in-cards/${asked.body.messageId}/done`, { threadId });
   expect(late.body).toMatchObject({ resumed: false });
-  // Where the routine reports, the line that named the sign-in no longer says it needs the person.
-  const named = (await messages(old.resultsThreadId)).find((message) => message.automation?.runId === first.id);
-  expect(named).toMatchObject({ kind: "text", text: "I need you to sign in to example.com.", automation: { copyOf: asked.body.messageId } });
-  await expect.poll(async () => (await messages(old.resultsThreadId)).find((message) => message.id === named.id)?.automation?.needsYou, { timeout: 15_000 })
-    .toBeUndefined();
+  expect((await messages(threadId)).some((message) => message.automation)).toBe(false);
 
   writeFileSync(join(dataDir, `${next.threadId}.gate`), "finish");
   await expect.poll(async () => (await runs()).find((run) => run.id === next.id)?.status, { timeout: 15_000 }).toBe("completed");

@@ -112,7 +112,7 @@ posixOnly("a routine run's task on the event stream", () => {
     if (home) await removeTempDir(home);
   });
 
-  it("announces the run's task without the bot's transcript", async () => {
+  it("announces a run in a chat of the bot's without a conversation of its own or the bot's transcript", async () => {
     const created = await api("POST", "/api/bots", { name: "Report Otter" });
     expect(created.status, JSON.stringify(created.body)).toBe(201);
     const bot = created.body.bot as { id: string; threadId: string };
@@ -125,9 +125,13 @@ posixOnly("a routine run's task on the event stream", () => {
     });
     expect(replied, log.slice(-2_000)).toBe(true);
 
+    const reports = await api("POST", `/api/bots/${bot.id}/tasks`, { title: "Reports" });
+    expect(reports.status, JSON.stringify(reports.body)).toBe(201);
+    const active = (await api("GET", "/api/bots")).body.bots.find((b: any) => b.id === bot.id).threadId as string;
     const routine = await api("POST", "/api/routines", {
       name: "Hourly report", botId: bot.id, prompt: "Write the report.", enabled: false,
       schedule: { type: "interval", everyMinutes: 60, anchorAt: Date.now() + 86_400_000 },
+      resultsThreadId: reports.body.task.threadId,
     });
     expect(routine.status, JSON.stringify(routine.body)).toBe(201);
 
@@ -140,9 +144,10 @@ posixOnly("a routine run's task on the event stream", () => {
         frame.kind === "routine.run" && ["completed", "failed"].includes(frame.run?.status)));
       expect(finished, log.slice(-2_000)).not.toBeNull();
       const botFrames = stream.frames.filter((frame) => frame.kind === "bot" && frame.bot?.id === bot.id);
-      expect(Math.max(...botFrames.map((frame) => (frame.bot.tasks ?? []).length))).toBeGreaterThan(1);
+      expect(finished.run.threadId).toBe(reports.body.task.threadId);
+      expect(Math.max(...botFrames.map((frame) => (frame.bot.tasks ?? []).length))).toBe(2);
       expect(botFrames.filter((frame) => "messages" in frame.bot)).toEqual([]);
-      expect(botFrames.every((frame) => frame.bot.threadId === bot.threadId)).toBe(true);
+      expect(botFrames.every((frame) => frame.bot.threadId === active)).toBe(true);
     } finally {
       stream.close();
     }

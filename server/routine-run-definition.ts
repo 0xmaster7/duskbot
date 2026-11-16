@@ -47,3 +47,16 @@ export function routineRunDefinition(routine: Routine): Pick<RoutineRun,
     deliver: routine.deliver,
   };
 }
+
+/** A bot routine's run works in the chat it reports to, as any message there would. A webhook's payload, a room goal, a
+ * run whose answer goes to the brief and a read-and-draft run keep a conversation of their own.
+ * Security invariant: a read-and-draft run is confined by its conversation (server/read-and-draft.ts), so it never
+ * joins one a person works in. */
+export function runAnswersInItsChat(run: Pick<RoutineRun, "target" | "triggerSource" | "resultsThreadId" | "deliver" | "access">): boolean {
+  return run.target === "bot" && run.triggerSource !== "webhook" && run.deliver !== "brief" && run.access !== "read-and-draft" && Boolean(run.resultsThreadId);
+}
+
+/** The run worked in a conversation of its own, not one it joined, so that conversation stays the run's once it ends. */
+export function ranApart(run: Pick<RoutineRun, "threadId" | "resultsThreadId" | "sourceThreadId">): boolean {
+  return Boolean(run.threadId) && run.threadId !== run.resultsThreadId && run.threadId !== run.sourceThreadId;
+}

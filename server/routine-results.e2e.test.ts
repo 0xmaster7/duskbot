@@ -7,9 +7,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 import { launchVerificationServer, runControlDusk, verificationServerEnvironment } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
-import { splitLaunchNote } from "./testing/launch-note.ts";
 
-it("reports every run into the bot's main thread while fresh executions, approvals, deletion and unread stay reachable", async () => {
+it("runs every routine in the bot's main chat as an ordinary turn, with no run conversation, line or card, and its approvals there", async () => {
   const fixture = await launchVerificationServer();
   const evidence: unknown[] = [{ fixture: fixture.info }];
   let broker: Socket | undefined;
@@ -26,74 +25,36 @@ it("reports every run into the bot's main thread while fresh executions, approva
   const control = (args: string[]) => runControlDusk([...args, "--url", fixture.info.url]);
   const runState = async (id: string) => (await api("GET", "/api/routines")).runs.find((run: any) => run.id === id);
   const messages = async (id: string) => (await api("GET", `/api/threads/${id}/messages?limit=100`)).messages as any[];
+  const currentBot = async (id: string) => (await api("GET", "/api/bots")).bots.find((candidate: any) => candidate.id === id);
   try {
     expect((await control(["doctor"]) as any).ok).toBe(true);
     const { bot } = await control(["new-bot", "--name", "Results fixture"]) as any;
     // On Ask, so a run's permission request waits on its card.
     await api("PATCH", `/api/bots/${bot.id}`, { approvalMode: "ask" });
-    const originalThread = (await api("GET", "/api/bots")).bots.find((candidate: any) => candidate.id === bot.id).threadId;
+    const main = (await currentBot(bot.id)).threadId as string;
     const { routine } = await api("POST", "/api/routines", {
       name: "Persistent report", prompt: "Report this run's state.", botId: bot.id, enabled: false,
       schedule: { type: "interval", everyMinutes: 60, anchorAt: Date.now() + 3_600_000 },
     }, 201);
-    const completed: any[] = [];
     for (let index = 0; index < 2; index++) {
       const { run } = await api("POST", `/api/routines/${routine.id}/run`, undefined, 201);
       await expect.poll(async () => (await runState(run.id))?.status, { timeout: 15_000 }).toBe("completed");
-      const finished = await runState(run.id);
-      completed.push(finished);
-      const dump = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8"));
-      expect(dump.argv).not.toContain("--resume");
-      // Its recent-work instructions may name the last run; the message itself carries no earlier transcript.
-      expect(JSON.stringify(splitLaunchNote(dump.prompt).prompt)).not.toContain("hello from fake claude");
-      evidence.push(await control(["wait", "--bot", bot.id, "--task", finished.threadId]));
-      evidence.push(await control(["messages", "--bot", bot.id, "--task", finished.threadId, "--limit", "10"]));
+      expect(await runState(run.id)).toMatchObject({ resultsThreadId: main, threadId: main });
+      evidence.push(await control(["wait", "--bot", bot.id, "--task", main]));
     }
-    const destination = completed[0].resultsThreadId;
-    expect(destination).toBe(originalThread);
-    expect(completed[1].resultsThreadId).toBe(destination);
-    expect(completed[0].threadId).not.toBe(completed[1].threadId);
-    const reports = (await messages(destination)).filter((message) => message.automation);
-    expect(reports).toHaveLength(2);
-    for (const run of completed) expect(reports.find((message) => message.automation.runId === run.id)).toMatchObject({
-      role: "bot", kind: "text", text: "hello from fake claude",
-      automation: { name: "Persistent report", scheduledFor: run.scheduledFor, executionThreadId: run.threadId },
-    });
-    expect((await messages(destination)).some((message) => message.kind === "routine.run")).toBe(false);
-    const currentBot = async () => (await api("GET", "/api/bots")).bots.find((candidate: any) => candidate.id === bot.id);
-    const savedBot = await currentBot();
-    expect(savedBot.threadId).toBe(originalThread);
-    expect(savedBot.tasks.filter((task: any) => !task.routineRunId)).toHaveLength(1);
-    expect(savedBot.tasks.some((task: any) => task.title.endsWith("· Results"))).toBe(false);
-    expect(savedBot.tasks.find((task: any) => task.threadId === destination).unread).toBe(true);
-    for (const run of completed) expect(savedBot.tasks.find((task: any) => task.threadId === run.threadId))
-      .toMatchObject({ routineRunId: run.id, unread: false, autoApprove: false, approvalMode: "ask" });
+    const lines = await messages(main);
+    expect(lines.filter((message) => message.routineStart?.name === "Persistent report")).toHaveLength(2);
+    expect(lines.filter((message) => message.role === "bot" && message.kind === "text" && message.text === "hello from fake claude")).toHaveLength(2);
+    expect(lines.some((message) => message.automation || message.kind === "routine.run")).toBe(false);
+    const saved = await currentBot(bot.id);
+    expect(saved.tasks).toHaveLength(1);
+    expect(saved.tasks[0]).toMatchObject({ threadId: main });
+    expect(saved.tasks[0].routineRunId).toBeUndefined();
+    expect(saved.tasks[0].title.startsWith("[")).toBe(false);
 
-    await api("PATCH", `/api/routines/${routine.id}`, { resultsThreadId: completed[0].threadId }, 400);
-    await api("POST", `/api/bots/${bot.id}/messages`, { threadId: completed[0].threadId, text: "Explain that completed report." }, 202);
-    evidence.push(await control(["wait", "--bot", bot.id, "--task", completed[0].threadId]));
-    await api("POST", `/api/routine-runs/${completed[0].id}/seen`);
-    const promoted = (await currentBot()).tasks.find((task: any) => task.threadId === completed[0].threadId);
-    expect(promoted.routineRunId).toBeUndefined();
-    expect(promoted.unread).toBe(true);
-    const live = completed[0].threadId as string;
-    expect((await currentBot()).mainThreadId).toBe(live);
     const { task: chosenTask } = await api("POST", `/api/bots/${bot.id}/tasks`, { title: "Chosen reports" }, 201);
-    const dedicated = chosenTask.threadId as string;
-    await api("PATCH", `/api/routines/${routine.id}`, { resultsThreadId: dedicated });
-    expect((await api("PATCH", `/api/routines/${routine.id}`, { name: "Retained destination" })).routine.resultsThreadId).toBe(dedicated);
-    expect((await api("PATCH", `/api/routines/${routine.id}`, { resultsThreadId: null })).routine.resultsThreadId).toBeUndefined();
-    const { task: legacy } = await api("POST", `/api/bots/${bot.id}/tasks`, { title: "Retained destination · Results" }, 201);
-    await api("PATCH", `/api/routines/${routine.id}`, { resultsThreadId: legacy.threadId });
-    const { run: moved } = await api("POST", `/api/routines/${routine.id}/run`, undefined, 201);
-    expect(moved.resultsThreadId).toBe(live);
-    await expect.poll(async () => (await runState(moved.id))?.status, { timeout: 15_000 }).toBe("completed");
-    expect((await api("GET", "/api/routines")).routines.find((candidate: any) => candidate.id === routine.id).resultsThreadId).toBeUndefined();
-    expect((await currentBot()).tasks.some((task: any) => task.threadId === legacy.threadId)).toBe(true);
-    expect((await messages(live)).filter((message) => message.automation)).toHaveLength(1);
-    expect((await messages(originalThread)).filter((message) => message.automation)).toHaveLength(2);
-    await api("PATCH", `/api/routines/${routine.id}`, { resultsThreadId: dedicated });
-
+    const chosen = chosenTask.threadId as string;
+    await api("PATCH", `/api/routines/${routine.id}`, { resultsThreadId: chosen });
     const gate = join(fixture.info.dataDir, "results-finish");
     const wrapper = join(fixture.info.dataDir, "results-slow.mjs");
     writeFileSync(wrapper, [
@@ -105,40 +66,27 @@ it("reports every run into the bot's main thread while fresh executions, approva
     await api("PATCH", "/api/instances/claude", { cli: wrapper });
     const { run: pending } = await api("POST", `/api/routines/${routine.id}/run`, undefined, 201);
     await expect.poll(async () => (await runState(pending.id))?.status, { timeout: 15_000 }).toBe("running");
-    const active = await runState(pending.id);
+    expect((await runState(pending.id)).threadId).toBe(chosen);
     await expect.poll(() => {
       if (!existsSync(fixture.fixtureDumpPath)) return false;
-      return JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig?.mcpServers?.agents?.env?.DUSK_THREAD_ID === active.threadId;
+      return JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")).mcpConfig?.mcpServers?.agents?.env?.DUSK_THREAD_ID === chosen;
     }, { timeout: 15_000 }).toBe(true);
     const launched = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8"));
-    const socketPath = launched.mcpConfig.mcpServers.dusk.args.at(-1);
-    broker = connect(socketPath);
+    broker = connect(launched.mcpConfig.mcpServers.dusk.args.at(-1));
     broker.on("error", () => {});
     await new Promise<void>((resolve, reject) => { broker!.once("connect", resolve); broker!.once("error", reject); });
     broker.write(JSON.stringify({ t: "ask", id: "results-approval", kind: "permission", tool: "Bash", input: { command: "echo fixture-approval" } }) + "\n");
     await expect.poll(async () => (await runState(pending.id))?.status, { timeout: 15_000 }).toBe("waiting");
-    const approval = (await messages(active.threadId)).find((message) => message.card && !message.card.answered);
-    expect(approval?.card.tool).toBe("Bash");
-    await expect.poll(async () => (await messages(dedicated)).find((message) => message.automation?.runId === pending.id), { timeout: 15_000 })
-      .toMatchObject({ kind: "options", card: { tool: "Bash", requestId: approval.card.requestId }, automation: { needsYou: true, executionThreadId: active.threadId } });
-    expect((await currentBot()).tasks.find((task: any) => task.threadId === active.threadId)).toMatchObject({ routineRunId: pending.id, unread: false });
-
-    await api("DELETE", `/api/bots/${bot.id}/tasks/${dedicated}`);
-    const fallback = (await currentBot()).tasks.find((task: any) => task.threadId === active.threadId);
-    expect(fallback.routineRunId).toBeUndefined();
-    expect(fallback.unread).toBe(true);
-    expect((await runState(pending.id)).resultsThreadId).toBe(dedicated);
-    await api("POST", `/api/bots/${bot.id}/respond`, { threadId: active.threadId, requestId: approval.card.requestId, behavior: "deny" });
-    writeFileSync(gate, "complete the isolated turn");
+    const cards = (await messages(chosen)).filter((message) => message.card?.tool === "Bash");
+    expect(cards).toHaveLength(1);
+    expect(cards[0].automation).toBeUndefined();
+    await api("POST", `/api/bots/${bot.id}/respond`, { threadId: chosen, requestId: cards[0].card.requestId, behavior: "deny" });
+    writeFileSync(gate, "complete the turn");
     await expect.poll(async () => (await runState(pending.id))?.status, { timeout: 15_000 }).toBe("completed");
-    const { run: replacement } = await api("POST", `/api/routines/${routine.id}/run`, undefined, 201);
-    expect(replacement.resultsThreadId).toBe(live);
-    await expect.poll(async () => (await runState(replacement.id))?.status, { timeout: 15_000 }).toBe("completed");
-    expect((await currentBot()).tasks.some((task: any) => task.threadId === dedicated)).toBe(false);
-    await expect.poll(async () => (await messages(live)).find((message) => message.automation?.runId === replacement.id)?.automation, { timeout: 15_000 })
-      .toMatchObject({ executionThreadId: (await runState(replacement.id)).threadId });
-    expect((await currentBot()).tasks.some((task: any) => task.title.endsWith("· Results") && task.threadId !== legacy.threadId)).toBe(false);
-    evidence.push({ reports, final: await api("GET", "/api/routines"), bot: await currentBot(), fallback });
+    const after = await currentBot(bot.id);
+    expect(after.tasks.map((task: any) => task.threadId).sort()).toEqual([main, chosen].sort());
+    expect(after.tasks.some((task: any) => task.routineRunId)).toBe(false);
+    evidence.push({ final: await api("GET", "/api/routines"), bot: after });
   } finally {
     broker?.destroy();
     const evidencePath = `${fixture.info.logPath}.results.json`;
@@ -148,7 +96,7 @@ it("reports every run into the bot's main thread while fresh executions, approva
   }
 }, 90_000);
 
-it("reports a routine made in a chat into that chat once the person writes there, not the bot's first thread or a new results thread", async () => {
+it("runs a routine made in a chat in that chat, not the bot's first thread or a conversation of its own", async () => {
   const fixture = await launchVerificationServer(process.env, undefined, undefined, undefined, { scripted: true });
   const evidence: unknown[] = [{ fixture: fixture.info }];
   const planPath = join(fixture.info.dataDir, "room-plan.json");
@@ -188,17 +136,17 @@ it("reports a routine made in a chat into that chat once the person writes there
     expect(run.resultsThreadId).toBe(chat);
     await expect.poll(async () => (await api("GET", "/api/routines")).runs.find((candidate: any) => candidate.id === run.id)?.status, { timeout: 20_000 }).toBe("completed");
     const finished = (await api("GET", "/api/routines")).runs.find((candidate: any) => candidate.id === run.id);
-    // The chat that made it keeps its one trigger card, and the run's reply lands there as the bot's own line.
-    expect((await messages(chat)).some((message) => message.routineRun?.runId === run.id)).toBe(false);
-    await expect.poll(async () => (await messages(chat)).filter((message) => message.automation?.runId === run.id).map((message) => message.text), { timeout: 15_000 })
-      .toEqual(["Fresh chat report"]);
+    expect(finished.threadId).toBe(chat);
+    // The chat that made it keeps its one trigger card, and the run answers there as any reply would.
+    expect((await messages(chat)).some((message) => message.routineRun?.runId === run.id || message.automation)).toBe(false);
+    await expect.poll(async () => (await messages(chat)).findLast((message) => message.role === "bot" && message.kind === "text")?.text, { timeout: 15_000 })
+      .toBe("Fresh chat report");
     expect((await messages(chat)).filter((message) => message.card?.routineRequest?.resultId === routineId)).toHaveLength(1);
     expect((await messages(first)).some((message) => message.kind === "routine.run" || message.automation)).toBe(false);
     const saved = (await api("GET", "/api/bots")).bots.find((candidate: any) => candidate.id === bot.id);
     expect(saved.tasks.filter((candidate: any) => !candidate.routineRunId).map((candidate: any) => candidate.threadId).sort())
       .toEqual([first, chat].sort());
-    expect(saved.tasks.find((candidate: any) => candidate.threadId === chat).unread).toBe(true);
-    expect(saved.tasks.find((candidate: any) => candidate.threadId === finished.threadId)).toMatchObject({ routineRunId: run.id });
+    expect(saved.tasks.some((candidate: any) => candidate.routineRunId)).toBe(false);
     evidence.push({ run: finished, bot: saved, main: await messages(chat) });
   } finally {
     const evidencePath = `${fixture.info.logPath}.chat-results.json`;
@@ -261,7 +209,7 @@ async function resultsFixture() {
   return { api, control, messages, savedBot, destination, routine, report, restart, close };
 }
 
-it("reports into the conversation the person is in, the one a bot with hidden threads opens, after they used threads", async () => {
+it("runs in the conversation the person is in, the one a bot with hidden threads opens, after they used threads", async () => {
   const f = await resultsFixture();
   try {
     const { bot } = await f.control("new-bot", "--name", "Hidden threads");
@@ -274,11 +222,10 @@ it("reports into the conversation the person is in, the one a bot with hidden th
     expect((await f.control("wait", "--bot", bot.id, "--task", live, "--timeout", "20")).status).toBe("settled");
     await f.api("POST", `/api/bots/${bot.id}/tasks/${oldest}?messages=0`);
     expect(await f.report(routine)).toBe(live);
-    expect((await f.messages(live)).filter((message) => message.automation)).toHaveLength(2);
-    expect((await f.messages(oldest)).some((message) => message.automation)).toBe(false);
+    expect((await f.messages(live)).filter((message) => message.routineStart)).toHaveLength(2);
+    expect((await f.messages(oldest)).some((message) => message.routineStart)).toBe(false);
     const saved = await f.savedBot(bot.id);
     expect(saved.threadId).toBe(oldest);
-    expect(saved.tasks.find((candidate: any) => candidate.threadId === live).unread).toBe(true);
     expect(saved.mainThreadId).toBe(live);
     expect(await f.destination(routine)).toBeUndefined();
   } finally {

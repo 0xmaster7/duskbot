@@ -67,7 +67,7 @@ import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
 import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState, lifeSpan } from "@/lib/reply-life";
 import { presenceKind, TYPING_MARK, turnWorked, useHeldPresence, workingMark } from "@/lib/presence-mark";
 import { lastNonReceipt } from "@/lib/receipts";
-import { RoutineStartLine, routineStartName } from "./RoutineStartLine"; import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
+import { routineStartName } from "./RoutineStartLine"; import { useTurnLive } from "@/state/turn-status"; import { useLiveReplyActive } from "@/state/live-reply"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
 import { followSentTurn, sentTurn, useSentTurn } from "@/state/sent-turn";
 import { forgetLateRow, isLateRow, isSettledRow, noteLateRow, noteSettledRow, useStopPress, type StopPress } from "@/lib/stop-turn";
 import { shownReplyText } from "@/state/live-reply";
@@ -930,8 +930,7 @@ const MessagesList = memo(function MessagesList({
               if (m.publishedPage) return <PublishedPageCard message={m} />;
               const peer = peerLine(m) ?? peerRequest(m, botId);
               const user = m.role === "user" && !peer;
-              const routine = user ? routineStartName(m) : null;
-              if (routine !== null) return <RoutineStartLine name={routine} at={m.at} />;
+              if (user && routineStartName(m) !== null) return null;
               if (!user && isPureLeakedSystemHarnessMessage(m.text) && !m.attachments?.length) return null;
               return (
                 <Bubble

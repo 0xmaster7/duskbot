@@ -63,17 +63,18 @@ it("waits for the person, tells them at once, and stops saying nobody answered t
   }));
   const waiting = await run();
   const chat = async () => (await api("GET", `/api/threads/${waiting.resultsThreadId ?? bot.threadId}/messages?limit=100`)).messages as any[];
-  const copy = (await chat()).find((message: any) => message.automation?.runId === waiting.id && message.kind === "options");
-  expect(copy).toMatchObject({ card: { tool: "mcp__composio__COMPOSIO_SEARCH_TOOLS", requestType: "permission" }, automation: { needsYou: true } });
+  expect(waiting.threadId).toBe(waiting.resultsThreadId);
+  const card = (await chat()).find((message: any) => message.card?.tool === "mcp__composio__COMPOSIO_SEARCH_TOOLS");
+  expect(card).toMatchObject({ card: { requestType: "permission" } });
+  expect(card.automation).toBeUndefined();
 
   // Nobody answers: the broker's own deadline passes.
   writeFileSync(join(dataDir, "expire-approvals"), "");
   const stopped = "Stopped: nobody answered the approval to use COMPOSIO_SEARCH_TOOLS";
   await expect.poll(run, { timeout: hostTimeout(15_000) }).toMatchObject({ status: "failed", error: stopped });
   await expect.poll(notified, { timeout: hostTimeout(15_000) }).toContainEqual(expect.objectContaining({ kind: "routine-failed", body: `Inbox brief: ${stopped}` }));
-  await expect.poll(async () => (await chat()).find((message) => message.id === copy.id)?.card?.answered, { timeout: hostTimeout(15_000) }).toBeTruthy();
-  await expect.poll(async () => (await chat()).find((message) => message.automation?.runId === waiting.id && message.kind === "text")?.text, { timeout: hostTimeout(15_000) })
-    .toBe(`This run didn't finish: ${stopped}`);
+  await expect.poll(async () => (await chat()).find((message) => message.id === card.id)?.card?.answered, { timeout: hostTimeout(15_000) }).toBeTruthy();
+  expect((await chat()).some((message) => message.automation)).toBe(false);
   await expect.poll(async () => (await api("GET", "/api/bots")).bots.find((candidate: any) => candidate.id === bot.id)?.busy, { timeout: hostTimeout(15_000) }).toBe(false);
   expect(answers.some((answer) => answer.behavior === "deny")).toBe(true);
 }, hostTimeout(90_000));

@@ -206,6 +206,8 @@ it("a confined run has no device integration", async () => {
     const threadId = (await api("GET", "/api/routines")).body.runs.find((one: { id: string }) => one.id === runId).threadId as string;
     return { launch, threadId };
   };
+  // A run answers in the main chat, so it waits for the turn still working there.
+  await settle();
   // The same routine at the bot's own level reaches the phone, so the read-and-draft run below loses it to the fence alone.
   const look = (await run(await routine("Calendar look"), "Calendar look")).launch;
   expect(Object.keys(look.mcpConfig.mcpServers)).toContain(PHONE_MCP_SERVER);

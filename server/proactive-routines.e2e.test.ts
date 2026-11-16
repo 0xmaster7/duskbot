@@ -189,7 +189,7 @@ describe("Dusk keeps an eye on the day, hidden from the sidebar", () => {
     delete apps.gmailError;
   });
 
-  it("a routine of the person's own runs as before: its own level, its own line in the chat", async () => {
+  it("a routine of the person's own runs at its own level, in the chat like any message", async () => {
     const { routine } = await api("POST", "/api/routines", { name: "Plain report", prompt: "Say hello.", botId: chief.id, enabled: false,
       schedule: { type: "interval", everyMinutes: 60, anchorAt: Date.now() + 3_600_000 } }, 201);
     expect(routine.access).toBeUndefined();
@@ -198,7 +198,9 @@ describe("Dusk keeps an eye on the day, hidden from the sidebar", () => {
     const dump = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8"));
     expect(dump.argv[dump.argv.indexOf("--permission-mode") + 1]).not.toBe("default");
     expect(String(dump.systemPrompt)).toContain("MEMORY.md");
-    await expect.poll(async () => (await messages()).some((message) => message.automation?.runId === run.id && message.text === "hello from fake claude"), { timeout: 10_000 }).toBe(true);
+    expect(await settled(run.id)).toMatchObject({ threadId: chief.threadId });
+    expect((await messages()).findLast((message) => message.role === "bot" && message.kind === "text")?.text).toBe("hello from fake claude");
+    expect((await messages()).some((message) => message.automation?.runId === run.id)).toBe(false);
   });
 
   it("the brief follows the language set in Settings", async () => {

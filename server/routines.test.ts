@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GroupGoalRunStatus } from "../shared/group-goal-run.ts";
 import { isRoutineProblemRun } from "../shared/routines.ts";
 import { ROUTINE_SKIPPED_WHILE_WAITING, ROUTINE_SUPERSEDED } from "./routine-execution.ts";
+import { ranApart, runAnswersInItsChat } from "./routine-run-definition.ts";
 import {
   nextOccurrence,
   RoutineManager,
@@ -1077,6 +1078,30 @@ describe("persistent routine results destinations", () => {
     expect(h.taskTitles).toEqual([]);
     expect(h.started).toEqual([expect.objectContaining({ botId: "maus-1", threadId: "chosen" })]);
     expect(h.manager.listRuns()[0]).toMatchObject({ status: "running", threadId: "chosen" });
+  });
+
+  it("gives the chat it joined back to the person once the run ends, where a run's own conversation stays the run's", async () => {
+    const h = resultsHarness();
+    h.options.joinConversation = (run) => runAnswersInItsChat(run) ? run.resultsThreadId! : null;
+    const routine = h.manager.create({ ...input(), resultsThreadId: "chosen" });
+    h.manager.runNow(routine.id);
+    await h.manager.tick();
+    expect(h.manager.runForThread("chosen")?.status).toBe("running");
+    h.manager.handleRuntimeEvent({ eventId: "done", provider: "fake", threadId: "chosen", createdAt: new Date().toISOString(), type: "turn.completed", ok: true });
+    expect(h.manager.listRuns()[0]).toMatchObject({ status: "completed", threadId: "chosen" });
+    expect(h.manager.runForThread("chosen")).toBeNull();
+    expect(ranApart({ threadId: "own", resultsThreadId: "chosen" })).toBe(true);
+  });
+
+  it("answers in its chat only for a bot routine that reports to one", () => {
+    const run = { target: "bot", triggerSource: "schedule", resultsThreadId: "main" } as const;
+    expect(runAnswersInItsChat(run)).toBe(true);
+    expect(runAnswersInItsChat({ ...run, triggerSource: "manual" })).toBe(true);
+    expect(runAnswersInItsChat({ ...run, triggerSource: "webhook" })).toBe(false);
+    expect(runAnswersInItsChat({ ...run, target: "room-goal" })).toBe(false);
+    expect(runAnswersInItsChat({ ...run, deliver: "brief" })).toBe(false);
+    expect(runAnswersInItsChat({ ...run, access: "read-and-draft" })).toBe(false);
+    expect(runAnswersInItsChat({ ...run, resultsThreadId: undefined })).toBe(false);
   });
 
   it("does not route webhook or room-goal executions through bot results tasks", async () => {

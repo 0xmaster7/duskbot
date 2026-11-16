@@ -2,6 +2,7 @@
 // A room member turn acts for the person's line that started its run, for that turn generation alone, while the run lasts.
 import { ownerTurnRefusal, type CloudOwnerTurn } from "../cloud-owner-turns.ts";
 import type { Routine, RoutineManager, RoutineRun } from "../routines.ts";
+import { ranApart } from "../routine-run-definition.ts";
 import type { Message, Store } from "../store.ts";
 import type { RoomRun } from "./acting-person.ts";
 
@@ -45,7 +46,7 @@ export function createCloudOwnerTurns(deps: CloudOwnerTurnsDeps) {
       cardAnswerer: deps.cardAnswerer,
       routineRun: () => {
         const run = deps.activeRoutineRun(capability.threadId);
-        if (!run || run.threadId !== capability.threadId || store.taskByThread(capability.botId, capability.threadId)?.routineRunId !== run.id) return null;
+        if (!run || run.threadId !== capability.threadId || (ranApart(run) && store.taskByThread(capability.botId, capability.threadId)?.routineRunId !== run.id)) return null;
         return {
           triggerSource: run.triggerSource ?? (run.manual ? "manual" : "schedule"),
           ownerStarted: deps.ownerStartedRun(run.id),
