@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createCloudComposioConnect, removeActionOf, type CloudComposioConnectDeps } from "./cloud-composio-connect.ts";
-import { COMPOSIO_CONNECT_URL, type AppConnection } from "./composio-connect.ts";
+import { COMPOSIO_CONNECT_URL, createComposioConnectRoutes, type AppConnection } from "./composio-connect.ts";
 import { dashboardApps } from "./dashboard-apps.ts";
 
 const dirs: string[] = [];
@@ -62,6 +62,21 @@ describe("connecting an app on a dusk cloud with no Composio key", () => {
     const source = { connectorAvailability: () => "unconfigured" as const, connectedServicesInventory: async () => { throw new Error("unused"); } };
     expect(await dashboardApps({} as never, source, () => c.connect.apps())).toEqual({ available: true, complete: true, services: [{ slug: "gmail", connected: true, pending: false }] });
     expect(await dashboardApps({} as never, source)).toEqual({ available: false, complete: true, services: [] });
+  });
+
+  it("reports apps connected from a desktop's own apps page, where there is no key or broker", async () => {
+    const c = cloud({ "list:gmail": { status: "connected" }, "list:github": { status: "waiting" } });
+    c.state.signedIn = true;
+    c.servers["composio-connect"] = { type: "http", url: COMPOSIO_CONNECT_URL, enabled: true };
+    const answers: Record<string, AppConnection> = { "list:gmail": { status: "connected" }, "add:github": { status: "started", url: "https://connect.composio.dev/link/lk_5" }, "list:figma": { status: "none" } };
+    const routes = createComposioConnectRoutes({ servers: () => c.servers, signedIn: () => true, withToken: async (_name, server) => ({ type: "http", url: server.url } as never), refusal: () => null,
+      manage: async (_spec, slug, _signal, action) => answers[`${action}:${slug}`] ?? { status: "none" }, noted: (slug, status) => c.connect.noted(slug, status) });
+    for (const [method, slug] of [["GET", "gmail"], ["POST", "github"], ["GET", "figma"]] as const) {
+      await routes({ method, path: `/api/connectors/composio-connect/apps/${slug}`, res: {}, json: () => {} } as never);
+    }
+    const source = { connectorAvailability: () => "unconfigured", connectedServicesInventory: async () => { throw new Error("no broker"); } } as never;
+    expect(await dashboardApps({} as never, source, () => c.connect.apps())).toEqual({ available: true, complete: true,
+      services: [{ slug: "gmail", connected: true, pending: false }, { slug: "github", connected: false, pending: true }] });
   });
 
   it("disconnects through the same Composio Connect, or says where to remove it when its tool cannot", async () => {

@@ -5,8 +5,8 @@ import type { AppConfig } from "./config.ts";
 
 export type AppsSource = Pick<typeof composio, "connectorAvailability" | "connectedServicesInventory">;
 
-/** `connect`: apps connected through Composio Connect on a dusk cloud with no key (cloud-composio-connect.ts), null when
- *  it is not signed in */
+/** `connect`: apps connected through Composio Connect where there is no key or broker, a desktop by default or a dusk
+ *  cloud (cloud-composio-connect.ts), null when it is not signed in */
 export async function dashboardApps(cfg: AppConfig, source: AppsSource = composio,
   connect?: () => Promise<Array<{ slug: string; connected: boolean; pending: boolean }> | null>): Promise<AppsReport> {
   if (source.connectorAvailability(cfg) !== "configured") {

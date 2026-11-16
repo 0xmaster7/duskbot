@@ -141,6 +141,8 @@ export function createComposioConnectRoutes(deps: {
   manage?: typeof manageAppConnection;
   /** reads where Composio Connect signs in ahead of the press, so its page opens sooner */
   warm?: (url: string) => void;
+  /** each app's answer, so the workspace report can list the apps connected here */
+  noted?: (slug: string, status: AppConnection["status"]) => void;
 }): RouteHandler {
   return async ({ res, path, method, json }) => {
     if (path === "/api/connectors/composio-connect" && method === "GET") {
@@ -159,7 +161,9 @@ export function createComposioConnectRoutes(deps: {
     const spec = deps.signedIn(found.name, found.server) ? await deps.withToken(found.name, found.server) : null;
     if (!spec) return json(res, 409, { error: "Composio sign-in expired. Authorize Composio again.", code: "composio_connect_signed_out" });
     try {
-      return json(res, 200, await (deps.manage ?? manageAppConnection)(spec, m[1]!, undefined, method === "GET" ? "list" : "add"));
+      const answer = await (deps.manage ?? manageAppConnection)(spec, m[1]!, undefined, method === "GET" ? "list" : "add");
+      try { deps.noted?.(m[1]!, answer.status); } catch {}
+      return json(res, 200, answer);
     } catch (error) {
       const failure = composioCallFailure(error);
       return json(res, failure.status, failure.body);

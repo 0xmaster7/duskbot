@@ -106,6 +106,14 @@ export function createCloudComposioConnect(deps: CloudComposioConnectDeps) {
   }
 
   return {
+    /** an app's state as Composio Connect told it elsewhere (the desktop's apps page): kept in the list `apps` reads, so
+     * apps connected there reach the account dashboard too */
+    noted(input: string, status: AppConnection["status"]): void {
+      const slug = appSlug(input);
+      if (!slug) return;
+      if (status === "connected" || status === "waiting" || status === "started") track(slug);
+      else if (status === "none") untrack(slug);
+    },
     /** the page the person's browser opens next: the app's sign-in, or Composio's own the first time */
     async connect(input: string): Promise<{ url: string }> {
       const slug = appSlug(input);
