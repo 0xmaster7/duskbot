@@ -3,6 +3,17 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.13
+
+- Chat is just chat: no tool steps or run receipts under replies.
+- Routines answer in the bot's own chat, like any message.
+- Give feedback from the sidebar, with pictures; the same spot turns into the update button when a new version is ready.
+- A short, skippable step asks for the Mac permissions bots need, and nothing is asked at launch any more.
+- Voice typing shows your words as you speak.
+- A clearer dusk cloud plans sheet, more AI providers, and a simpler way to bring what your AI knows about you.
+- Opening dusk bot outside Applications offers to move it there.
+- Warmer replies, and many fixes.
+
 ## 0.2.12
 
 - Bots remember better: facts keep their dates, the right ones come back when they matter, and duplicates merge without losing anything.
