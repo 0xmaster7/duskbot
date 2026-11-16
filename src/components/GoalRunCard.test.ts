@@ -35,7 +35,7 @@ describe("GoalRunCard", () => {
     expect(markup).toContain("Write and polish the launch announcement");
     expect(markup).toContain("Working");
     expect(markup).toContain("Luna is reviewing the second draft.");
-    expect(markup).toContain("Sprout coordinating · Turn 3 of 12");
+    expect(markup).toContain("Sprout coordinating · Step 3 of 12");
     expect(markup).toContain('aria-label="Goal: Working"');
     expect(markup).not.toMatch(/accent|shadow|border-/);
   });
@@ -55,7 +55,7 @@ describe("GoalRunCard", () => {
 
   it("shows a one-on-one run as the bot's own work, with Stop only while it works", () => {
     const working = renderToStaticMarkup(createElement(GoalRunCard, { message: message("working"), solo: true, onStop: () => {} }));
-    expect(working).toContain("Sprout · Turn 3 of 12");
+    expect(working).toContain("Sprout · Step 3 of 12");
     expect(working).not.toContain("coordinating");
     expect(working).toContain(">Stop</button>");
     const done = renderToStaticMarkup(createElement(GoalRunCard, { message: message("completed"), solo: true, onStop: () => {} }));
