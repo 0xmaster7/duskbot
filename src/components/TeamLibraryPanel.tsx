@@ -7,10 +7,9 @@ import { orgCardAction, orgPackagePreview, type OrgLibraryListing, type OrgLibra
 import type { PackageDocument } from "../../shared/package-format";
 import type { Routine } from "@/lib/routines";
 import { api, useStore, type Bot, type Group } from "@/state/store";
-import { ArrowLeft, Check, Compass, ExternalLink, FolderOpen, Github, Loader2, Search, UploadCloud, Users, X } from "../icons";
+import { ArrowLeft, Check, Compass, ExternalLink, FolderOpen, Github, Loader2, Search, UploadCloud, X } from "../icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { catalogCopy, catalogMatches, type TeamCatalog, type TeamCatalogEntry } from "@/lib/team-catalog";
 
 import { TEAM_GLYPHS, TeamImportDetails } from "./TeamImportDetails";
 import { ReadyBotGallery } from "./ReadyBotGallery";
@@ -19,7 +18,6 @@ import { MAX_TEAM_BACKUP_BYTES } from "../../shared/team-backup";
 import { takeImportName } from "../../shared/import-name";
 import { friendlyError } from "@/lib/plain-error";
 import { glassPopupTopInset } from "@/lib/glass-popup";
-import { readTeamCatalog, shownTeamCatalog } from "@/lib/team-catalog-cache";
 import { takeTemplatesHandoff } from "./SidebarTemplates";
 
 export { TeamImportDetails };
@@ -68,14 +66,6 @@ async function openExternal(url: string): Promise<void> {
   if (opened) opened.opener = null;
 }
 
-function TeamGlyph({ index }: { index: number }) {
-  return (
-    <div className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", TEAM_GLYPHS[index % TEAM_GLYPHS.length])}>
-      <Users size={20} />
-    </div>
-  );
-}
-
 export function TeamLibraryPanel({
   onClose,
   onImported,
@@ -91,13 +81,7 @@ export function TeamLibraryPanel({
   const dialogRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<TeamTab>("explore");
-  const [catalog, setCatalog] = useState<TeamCatalog | null>(shownTeamCatalog);
-  // a list that was there at the first frame is drawn with the sheet; only one that arrives later fades in
-  const [catalogArrived, setCatalogArrived] = useState(false);
-  const [catalogLoading, setCatalogLoading] = useState(() => shownTeamCatalog() === null);
   const [handoff] = useState(takeTemplatesHandoff);
-  const [catalogError, setCatalogError] = useState("");
-  const [busySlug, setBusySlug] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingTeamImport | null>(null);
   const [source, setSource] = useState<ImportSource>("file");
   const [githubUrl, setGithubUrl] = useState("");
@@ -139,25 +123,6 @@ export function TeamLibraryPanel({
   const currentBotCount = state.bots.filter((bot) => !bot.hidden).length;
   const takenNames = new Set(state.bots.map((bot) => bot.name.trim().toLowerCase()));
   const importedNames = pending?.members.map((member) => takeImportName(member.name, takenNames)) ?? [];
-
-  const loadCatalog = useCallback(async () => {
-    const quiet = shownTeamCatalog() !== null;
-    if (!quiet) setCatalogLoading(true);
-    setCatalogError("");
-    try {
-      const read = await readTeamCatalog();
-      if (!quiet) setCatalogArrived(true);
-      setCatalog(read);
-    } catch (cause) {
-      if (!quiet) setCatalogError(friendlyError(cause));
-    } finally {
-      setCatalogLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadCatalog();
-  }, [loadCatalog]);
 
   const loadOrgLibrary = useCallback(async () => {
     try {
@@ -232,18 +197,6 @@ export function TeamLibraryPanel({
       }
     }
     previewManifest(teamImportPreview(manifest), "file");
-  };
-
-  const loadLibraryTeam = async (entry: TeamCatalogEntry) => {
-    setBusySlug(entry.slug);
-    setError("");
-    try {
-      previewManifest(teamImportPreview(await api(`/api/team-library/teams/${entry.slug}`)), "library");
-    } catch (cause) {
-      setError(friendlyError(cause));
-    } finally {
-      setBusySlug(null);
-    }
   };
 
   const loadGithubTeam = async () => {
@@ -440,8 +393,6 @@ export function TeamLibraryPanel({
     }
   };
 
-  const normalizedSearch = search.trim().toLowerCase();
-  const visibleTeams = (catalog?.teams ?? []).filter((entry) => !normalizedSearch || catalogMatches(entry, normalizedSearch));
 
   return createPortal(
     // Dim only: a full-window backdrop blur is redrawn every frame without a GPU and keeps the page laggy while it is open.
@@ -647,55 +598,6 @@ export function TeamLibraryPanel({
               {tab === "explore" && (
                 <div>
                   <ReadyBotGallery search={search} onDialog={setNestedDialog} onAdded={onClose} />
-                  <div className="mb-1 pl-3 text-[12px] leading-4 text-ink/56">
-                    {search ? t("templates.searchResults") : t("templates.communityTemplates")}
-                  </div>
-                  {catalogLoading && (
-                    <div className="templates-wait flex items-center justify-center gap-2 py-24 text-[13px] text-ink-secondary">
-                      <Loader2 size={16} className="animate-spin" /> {t("templates.loading")}
-                    </div>
-                  )}
-                  {!catalogLoading && catalogError && (
-                    <div role="alert" className="py-2 text-[13px] text-danger">
-                      <p>{catalogError}</p>
-                      <button onClick={() => void loadCatalog()} className="mt-3 rounded-full bg-raised px-3.5 py-2 text-ink hover:bg-raised-hover">{t("common.tryAgain")}</button>
-                    </div>
-                  )}
-                  {!catalogLoading && catalog && (
-                    <div className={cn("grid grid-cols-1 gap-x-10 md:grid-cols-2", catalogArrived && "templates-fade")}>
-                      {visibleTeams.map((entry, index) => {
-                        const copy = catalogCopy(entry);
-                        return (
-                        <article key={entry.slug} className="flex min-h-[104px] items-center gap-3 border-b border-transparent px-1 py-4">
-                          <TeamGlyph index={index} />
-                          <div className="min-w-0 flex-1">
-                            <h3 className="truncate text-[14px] font-medium text-ink">{copy.name}</h3>
-                            <p className="mt-0.5 truncate text-[13px] text-ink-secondary">{copy.outcome ?? copy.summary}</p>
-                            <p className="mt-1 truncate text-[12px] text-ink-tertiary">
-                              {t("templates.botCount", { count: entry.members })} · {t("templates.playbookCount", { count: entry.skills.length })}
-                              {entry.requires.apps.length > 0 && ` · ${entry.requires.apps.join(", ")}`}
-                              {entry.setupMinutes && ` · ${t("templates.minutes", { count: entry.setupMinutes })}`}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => void loadLibraryTeam(entry)}
-                            disabled={busySlug !== null}
-                            className="flex min-w-[72px] items-center justify-center gap-1.5 rounded-full bg-raised px-3.5 py-2 text-[13px] text-ink hover:bg-raised-hover disabled:opacity-40"
-                          >
-                            {busySlug === entry.slug && <Loader2 size={13} className="animate-spin" />}
-                            {busySlug === entry.slug ? t("templates.loadingShort") : t("templates.load")}
-                          </button>
-                        </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {!catalogLoading && catalog && visibleTeams.length === 0 && (
-                    <div className="flex min-h-56 flex-col items-center justify-center text-center">
-                      <div className="text-[14px] font-medium text-ink">{t("templates.noneFound")}</div>
-                      <div className="mt-1 text-[13px] text-ink-secondary">{t("templates.tryDifferentSearch")}</div>
-                    </div>
-                  )}
                 </div>
               )}
 
