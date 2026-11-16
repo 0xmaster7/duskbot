@@ -842,7 +842,8 @@ describe("the prompt of a bridged turn", () => {
 
   it("sits in the stable half, so a warm engine is not relaunched by it turn after turn", () => {
     const first = buildSystemPrompt("You are Kiwi.", "Be brief.", parts, bridged);
-    const later = buildSystemPrompt("You are Kiwi.", "Be brief.", parts.map((part) => part.id === "memory" ? { ...part, text: "\nMEMORY: the deploy script moved to tools/." } : part), bridged);
+    // memory is held for the conversation in the stable half (25a49f3ca); a turn's recent activity is volatile
+    const later = buildSystemPrompt("You are Kiwi.", "Be brief.", [...parts, { id: "recent", label: "Recent", text: "\nRECENT: the deploy ran at 9." }], bridged);
     expect(first.stable).toContain(AGENTS_TOOL_BRIDGE_PROMPT);
     expect(first.volatile).not.toContain(FIND_TOOL);
     expect(later.stable).toBe(first.stable);
