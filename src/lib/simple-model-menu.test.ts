@@ -271,9 +271,9 @@ describe("dusk bot's free model", () => {
     [{ id: "opencode/big-pickle", label: "Zen · Big Pickle" }, { id: "opencode/other", label: "Zen · Other" }],
     { snapshot: { state: "available", version: "1.0.0", authenticated: true, freeFallback: true } });
 
-  it("goes by Free model, never by the service and model behind it, on the current row and with a short tooltip", () => {
+  it("goes by Free model on the current row, its tooltip names OpenCode (67e390e93), never the model behind it", () => {
     const onFree = menu([free, claude()], { selection: { instanceId: "opencode", model: "opencode/big-pickle" } });
-    expect(onFree.current).toMatchObject({ label: "Free model", title: "A free model from dusk bot, so you can start right away. Connect your own AI any time." });
+    expect(onFree.current).toMatchObject({ label: "Free model", title: "A free model from OpenCode, so you can start right away. Connect your own AI any time." });
     expect(onFree.groups.map((group) => group.label)).toEqual(["Claude"]);
     expect(modelName(free, "opencode/big-pickle")).toBe("Free model");
   });
