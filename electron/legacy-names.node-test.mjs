@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
-  aliasLegacyCookies, aliasLegacyEnv, aliasLegacyHeaders, carryLegacySafeStorageKey, hasTokenPrefix, readHeader, withCurrentFormat, dataDirFor, defaultCompanionDir, defaultDataDir, fromLegacyLink,
+  aliasLegacyCookies, aliasLegacyEnv, aliasLegacyHeaders, carryLegacySafeStorageKey, devAppName, hasTokenPrefix, readHeader, withCurrentFormat, dataDirFor, defaultCompanionDir, defaultDataDir, fromLegacyLink,
   fromLegacyPath, isOwnAppId, isOwnHeader, LEGACY, migrateLegacyDir, migrateLegacyStorage, migrateLegacyUserData, safeStorageItem,
   toLegacyPath, withLegacyHeaders,
 } from "./legacy-names.mjs";
@@ -126,6 +126,30 @@ test("the keychain key is copied under the new app name through stdin, only when
   assert.ok(calls.every((call) => !call.args.some((arg) => arg.includes("s3cret"))), "never in a process list");
   assert.equal(carryLegacySafeStorageKey({ name: "Dusk Bot", run }), "present");
   assert.equal(carryLegacySafeStorageKey({ name: "duskbot", packaged: false, run: () => ({ status: 44 }) }), "none");
+});
+
+test("the mac dev app's own keychain key starts as a copy of the shared one, readable by the dev electron without a prompt", () => {
+  const items = new Map([["duskbot Safe Storage|duskbot Key", "shared"]]);
+  const inputs = [];
+  const run = (args, input) => {
+    if (args[0] === "-i") {
+      inputs.push(input);
+      const [, service, account, secret] = /-s "(.*)" -a "(.*)" -T ".*" -w "(.*)"\n$/.exec(input);
+      items.set(`${service}|${account}`, secret);
+      return { status: 0 };
+    }
+    const key = `${args[2]}|${args[4]}`;
+    return items.has(key) ? { status: 0, stdout: args.includes("-w") ? `${items.get(key)}\n` : "" } : { status: 44 };
+  };
+  const name = devAppName("duskbot");
+  assert.equal(name, "duskbot dev");
+  const carry = () => carryLegacySafeStorageKey({ name, packaged: false, from: ["duskbot", OLD], trust: "/x/Electron.app/Contents/MacOS/Electron", run });
+  assert.equal(carry(), "copied");
+  assert.equal(items.get("duskbot dev Safe Storage|duskbot dev Key"), "shared");
+  assert.match(inputs[0], / -T "\/x\/Electron.app\/Contents\/MacOS\/Electron" /);
+  assert.equal(carry(), "present");
+  items.clear();
+  assert.equal(carry(), "none", "a fresh mac: electron makes the dev key itself");
 });
 
 test("links with the old scheme open like new ones", () => {

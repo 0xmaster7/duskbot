@@ -1,4 +1,4 @@
-import { carryLegacySafeStorageKey, DATA_DIR_NAMES, dataDirFor, fromLegacyLink, LEGACY, migrateLegacyUserData } from "./legacy-names.mjs";
+import { carryLegacySafeStorageKey, DATA_DIR_NAMES, dataDirFor, devAppName, fromLegacyLink, LEGACY, migrateLegacyUserData } from "./legacy-names.mjs";
 import { app, autoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess, nativeTheme } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -212,6 +212,23 @@ if (process.platform === "linux") {
 }
 
 unlimitTunnelConnections(app);
+
+// macOS dev app: its own keychain key. electron names the key "<app.name> Safe Storage" once this file has run
+// (electron_browser_main_parts.cc PostCreateMainMessageLoop), and the packaged app is "duskbot" too, so a key the dev
+// build made had the packaged app ask for the login password. its folders stay where they are; on the first run the
+// key it used so far is copied (macOS may ask once to let `security` read it), so what it sealed still opens
+if (!app.isPackaged && process.platform === "darwin") {
+  const userData = app.getPath("userData"), logs = app.getPath("logs");
+  const shared = app.getName();
+  app.setName(devAppName(shared));
+  app.setPath("userData", userData);
+  app.setPath("logs", logs);
+  // a test run with its own folder or a mock keychain never reads the real one
+  if (!app.commandLine.hasSwitch("user-data-dir") && !app.commandLine.hasSwitch("use-mock-keychain")) {
+    const carried = carryLegacySafeStorageKey({ name: app.getName(), packaged: false, from: [shared, LEGACY.devName, LEGACY.product], trust: process.execPath });
+    if (carried !== "present") console.log(`[desktop] dev keychain key: ${carried}`);
+  }
+}
 
 // before electron opens its folder or its keychain key: an install from before the rename brings both along
 if (!app.commandLine.hasSwitch("user-data-dir") && migrateLegacyUserData(app.getPath("userData"), app.getPath("appData"), { packaged: app.isPackaged, log: line => console.log(`[desktop] ${line}`) })

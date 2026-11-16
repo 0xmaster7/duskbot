@@ -282,9 +282,10 @@ export const safeStorageItem = (name) => ({ service: `${name} Safe Storage`, acc
  * key is copied under the new name so files sealed before the rename still open. `run` is `security` with args and
  * stdin. returns what happened.
  */
-export function carryLegacySafeStorageKey({ name, packaged = true, run = securityCli, replace = false }) {
+export function carryLegacySafeStorageKey({ name, packaged = true, run = securityCli, replace = false, from = null, trust = null }) {
   const next = safeStorageItem(name);
-  const olds = (packaged ? [LEGACY.product, LEGACY.devName] : [LEGACY.devName, LEGACY.product]).map(safeStorageItem);
+  // `from`: the names to copy from, first found wins; `trust`: the app allowed to read the copy without a keychain prompt
+  const olds = (from ?? (packaged ? [LEGACY.product, LEGACY.devName] : [LEGACY.devName, LEGACY.product])).map(safeStorageItem);
   const find = (item, reveal) => run(["find-generic-password", "-s", item.service, "-a", item.account, ...(reveal ? ["-w"] : [])]);
   try {
     // `replace`: userData was copied just now, so a key under the new name only sealed the folder that was set aside
@@ -296,7 +297,8 @@ export function carryLegacySafeStorageKey({ name, packaged = true, run = securit
       if (!secret) continue;
       // through stdin, so the key never shows in a process list
       const quote = (value) => `"${String(value).replace(/["\\]/g, "\\$&")}"`;
-      const add = run(["-i"], `add-generic-password -U -s ${quote(next.service)} -a ${quote(next.account)} -w ${quote(secret)}\n`);
+      const trusted = trust ? ` -T ${quote(trust)}` : "";
+      const add = run(["-i"], `add-generic-password -U -s ${quote(next.service)} -a ${quote(next.account)}${trusted} -w ${quote(secret)}\n`);
       return add.status === 0 ? "copied" : "failed";
     }
     return "none";
@@ -304,6 +306,10 @@ export function carryLegacySafeStorageKey({ name, packaged = true, run = securit
     return "failed";
   }
 }
+
+/** the name `pnpm dev:app` runs under on macOS, so its keychain key ("duskbot dev Safe Storage") is never the packaged
+ * app's ("duskbot Safe Storage"): a key one build made makes the other ask for the login password */
+export const devAppName = (name) => `${name} dev`;
 
 /** a file format id from before the rename (openmaus.backup, openmaus.team, ...) read as the current one; the document is copied, never changed.
  * openmaus.package keeps its name: a package's release sha256 is over its canonical bytes, format id included. */
