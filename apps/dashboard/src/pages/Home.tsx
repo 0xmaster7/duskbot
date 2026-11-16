@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { ArrowUpRight, ChevronRight, Download, LayoutGrid, Smartphone } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { useWorkspaceDetail } from "../data/detail";
@@ -8,8 +8,7 @@ import { useAccountUsage, type BotRow } from "../data/usage";
 import { ago, plural } from "../lib/format";
 import { useNow } from "../lib/now";
 import { Link } from "../lib/router";
-import { APP_LINK, DOWNLOAD_URL } from "../lib/usage";
-import { fromApp } from "../lib/from-app";
+import { DOWNLOAD_URL } from "../lib/usage";
 import { Card, cx, Skeleton } from "../ui/kit";
 import { dailyLine } from "../lib/fun";
 import { BotMascot, Mascot } from "../ui/Mascot";
@@ -111,25 +110,11 @@ function Recent({ rows: all }: { rows: BotRow[] }) {
   );
 }
 
-/** someone the desktop app sent here: the way back to it, never an automatic jump */
-function OpenApp() {
-  return (
-    <div role="status" data-open-app="" className="surface enter flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">
-      <div className="min-w-0">
-        <p className="text-14 text-ink">you're signed in to dusk bot</p>
-        <p className="mt-0.5 text-13 text-ink-3">the app is signed in already, so open it whenever you like.</p>
-      </div>
-      <a href={APP_LINK} data-open-app-link="" className="press hover-btn inline-flex h-10 shrink-0 items-center rounded-full bg-btn px-4.5 text-14 font-medium text-ink">open dusk bot</a>
-    </div>
-  );
-}
-
 export function HomePage() {
   const { account, detail } = useSession();
   const { account: profile, clouds, error, refresh } = useCloud();
   const { bots, loading } = useAccountUsage();
   const now = useNow(60_000);
-  const [inApp] = useState(fromApp);
   const name = profile?.profile.name || account?.name || account?.email.split("@")[0] || "";
   const cloud = clouds?.[0] ?? null;
   const cloudDetail = useWorkspaceDetail(cloud?.workspaceId ?? null);
@@ -144,7 +129,6 @@ export function HomePage() {
         <p className="mt-2 text-15 text-ink-3">{dailyLine(now)}</p>
       </div> : <h1 className="sr-only">home</h1>}
       <div className="flex flex-col gap-4">
-        {inApp && !cloud && <OpenApp />}
         {error && clouds === null ? <LoadError error={error} retry={refresh} /> : clouds === null ? <Skeleton className="h-[360px] !rounded-card" /> : cloud ? <CloudCard cloud={cloud} detail={cloudDetail} /> : <CloudHero />}
         {clouds !== null && <>
           {cloud && <MoveGuide cloud={cloud} rows={bots} cloudBots={cloudDetail?.report?.bots ?? null} />}
