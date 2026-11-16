@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { homedir, tmpdir, userInfo } from "node:os";
 import { delimiter, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,6 +13,7 @@ import {
   resetPathCache,
   resetPathCacheForTests,
   splitCliString,
+  throwawayWorkspace,
   userHome,
 } from "./env-path.ts";
 import { resolveCli } from "./procs.ts";
@@ -705,6 +706,21 @@ describe("registerFallbackPathDir", () => {
       rmSync(join(homedir(), ".opencode"), { recursive: true, force: true });
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("a throwaway workspace", () => {
+  it("is one inside the system temp folder, even with no TMPDIR, never one in the account's own home", () => {
+    const temp = mkdtempSync(join(tmpdir(), "dusk-throwaway-"));
+    try {
+      expect(throwawayWorkspace(join(temp, "home", ".duskbot"), temp)).toBe(true);
+      expect(throwawayWorkspace(join("/tmp", "dusk-fixture", ".duskbot"), temp)).toBe(process.platform !== "win32");
+      // setup.ts points HOME at a temp dir; the account's own home is the real one
+      expect(throwawayWorkspace(join(userInfo().homedir, ".duskbot"), temp)).toBe(false);
+      expect(throwawayWorkspace(join(userInfo().homedir, "Library", "Application Support", "dusk bot"), temp)).toBe(false);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
     }
   });
 });

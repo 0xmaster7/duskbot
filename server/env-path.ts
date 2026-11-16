@@ -1,9 +1,9 @@
 // A macOS app launched from Finder inherits a bare PATH (no ~/.local/bin, /opt/homebrew/bin or nvm/volta/asdf shims),
 // so every agent CLI spawn goes through augmentedPath().
 import { execFile } from "node:child_process";
-import { closeSync, existsSync, openSync, readFileSync, readSync, statSync, readdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, delimiter, dirname, extname, join } from "node:path";
+import { closeSync, existsSync, openSync, readFileSync, readSync, realpathSync, statSync, readdirSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { basename, delimiter, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 
 function nvmBinDirs(): string[] {
   try {
@@ -20,6 +20,18 @@ function nvmBinDirs(): string[] {
 /** A sealed test fixture sees only its own PATH, DUSK_EXTRA_PATH, app-managed dirs and its temporary home, never this machine's CLIs or keychain. */
 export function sealedFixture(): boolean {
   return process.env.DUSK_TEST_SEALED_PATH === "1";
+}
+
+/** A workspace in the system temp folder is a throwaway (a test or fixture server with its own fresh home): it never
+ * fetches the built-in browser's ~150 MB by itself, which would hold every first turn for up to a minute and a half.
+ * A server spawned with a bare environment has no TMPDIR, so the usual temp roots count as well. */
+export function throwawayWorkspace(dataDir: string, temp = tmpdir()): boolean {
+  const real = (path: string): string => {
+    try { return realpathSync(path); } catch { const parent = dirname(path); return parent === path ? path : join(real(parent), basename(path)); }
+  };
+  const roots = [temp, ...(process.platform === "win32" ? [] : ["/tmp", "/var/tmp"]), ...(process.platform === "darwin" ? ["/var/folders"] : [])];
+  const target = real(resolve(dataDir));
+  return roots.some((root) => { const rel = relative(real(resolve(root)), target); return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel); });
 }
 
 function knownDirs(): string[] {
