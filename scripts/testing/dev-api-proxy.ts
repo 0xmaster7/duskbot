@@ -11,6 +11,13 @@ export function devApiProxy(port: number | string): ProxyOptions {
       proxy.on("proxyRes", (upstream, _req, res) => {
         upstream.once("close", () => { if (!res.writableEnded) res.destroy(); });
       });
+      // a harness that is not listening (starting, or restarting on a server change) never saw the request: Vite would
+      // answer 500, which reads as a server error in the trail, so the window gets the same dropped connection it would
+      // get from a packaged app whose server is down
+      proxy.on("error", (error, _req, res) => {
+        const code = (error as NodeJS.ErrnoException).code;
+        if ("req" in res && !res.headersSent && (code === "ECONNREFUSED" || code === "ECONNRESET")) res.destroy();
+      });
     },
   };
 }
