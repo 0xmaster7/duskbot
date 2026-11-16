@@ -57,7 +57,7 @@ export function AppUpdatePill({ className, bridge = ownBridge() }: { className?:
       aria-busy={restarting || downloading || undefined}
       disabled={restarting}
       onClick={onClick}
-      className={cn("relative isolate flex items-center gap-1.5 overflow-hidden rounded-full bg-[light-dark(color-mix(in_srgb,var(--color-raised),white_25%),color-mix(in_srgb,var(--color-raised),white_3%))] px-3 py-[5px] text-[12.5px] leading-4 text-ink transition-colors duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--color-raised),var(--color-ink)_6%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-progress", className)}
+      className={cn("relative isolate flex items-center gap-1.5 overflow-hidden rounded-full bg-[light-dark(color-mix(in_srgb,var(--color-raised),white_25%),color-mix(in_srgb,var(--color-raised),white_3%))] px-3 py-[5px] text-[13px] leading-4 text-ink transition-colors duration-150 ease-out hover:bg-[color-mix(in_srgb,var(--color-raised),var(--color-ink)_6%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-progress", className)}
     >
       {percent !== null && (
         <span
@@ -91,7 +91,7 @@ function UpdatedNote({ version, bridge, className }: { version: string; bridge: 
       type="button"
       data-app-updated={version}
       onClick={() => void bridge.seen?.()}
-      className={cn("flex items-center gap-1.5 rounded-full px-3 py-[5px] text-[12.5px] leading-4 text-ink-secondary transition-colors duration-150 ease-out hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", className)}
+      className={cn("flex items-center gap-1.5 rounded-full px-3 py-[5px] text-[13px] leading-4 text-ink-secondary transition-colors duration-150 ease-out hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", className)}
     >
       <Check size={13} aria-hidden="true" />
       {t("updates.updated", { version })}

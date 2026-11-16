@@ -119,7 +119,7 @@ function PlanCard({ card, on, land, lines, onPick }: {
           <span data-plan-trial={card.trialDays ? "" : undefined} className="text-[13px] text-ink-tertiary">
             {card.trialDays ? t("cloudBuy.big.perMonthTrial", { days: card.trialDays }) : t("cloudBuy.big.perMonth")}</span>
         </span>
-        {lines.length > 0 && <span role="list" data-plan-spec={card.tier} className="mt-4 flex flex-col gap-1.5 text-[12.5px] leading-[17px] text-ink-secondary">
+        {lines.length > 0 && <span role="list" data-plan-spec={card.tier} className="mt-4 flex flex-col gap-1.5 text-[13px] leading-[17px] text-ink-secondary">
           {lines.map(line => <span role="listitem" key={line.key} data-plan-line={line.key} className={cn("flex gap-2 [text-wrap:pretty]", line.quiet && "text-ink-tertiary")}>
             {line.quiet ? <Minus size={14} strokeWidth={2} aria-hidden="true" className="mt-px shrink-0" />
               : <Check size={14} strokeWidth={2} aria-hidden="true" className="mt-px shrink-0 text-ink" />}
