@@ -61,7 +61,7 @@ import { useNotesWork } from "@/lib/notes-arrival";
 import { useTypingHold } from "@/hooks/use-typing-hold";
 import { OWN_ENTRANCE } from "@/hooks/use-arrival-flow";
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
-import { ACTIONS_AFTER_MS, growFromMascot, hasSendLaunch, morphFromComposer } from "./bubble-entrance";
+import { growFromMascot, hasSendLaunch, morphFromComposer } from "./bubble-entrance";
 import { STATUS_MOUNT_MS, useReached } from "@/hooks/use-reached";
 import { useReplyLife, type LifeTurn } from "@/hooks/use-reply-life";
 import { LIFE_MASCOT_STATE, lifeDraw, lifeMarkState, lifeSpan } from "@/lib/reply-life";
@@ -318,11 +318,8 @@ const Bubble = memo(function Bubble({
   replyTarget,
   onReply,
   underExchangeLine = false,
-  landed = false,
 }: {
   message: Message;
-  /** The turn's last reply, landed while the chat was open: its copy row shows once it is there. */
-  landed?: boolean;
   /** An exchange line above already names the bot that sent it. */
   underExchangeLine?: boolean;
   emerging?: boolean;
@@ -419,7 +416,6 @@ const Bubble = memo(function Bubble({
     if (entrance === "grow") growFromMascot(parts.bubble, reduced);
     else void morphFromComposer(parts.bubble, parts.fill, message.sendId).then(() => setFilling(false));
   }, [entrance, reduced, message.sendId]);
-  const actionsAfter = useShownAfter(fresh && !user && landed, ACTIONS_AFTER_MS);
 
   if (user && editing && !webhookView && !hasAttachments) {
     return (
@@ -446,7 +442,7 @@ const Bubble = memo(function Bubble({
   const togglePin = () =>
     dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } });
   const botActions = !user && (
-    <MessageActions side="bot" forceOpen={speaking || actionsAfter} menu={[...copyItem(text), ...botMenu]}>
+    <MessageActions side="bot" forceOpen={speaking} menu={[...copyItem(text), ...botMenu]}>
       {canReact && !peer && <ReactAction threadId={threadId} message={message} />}
       <ReplyAction onReply={() => onReply(message)} />
       {text && speaking && <SpeakButton text={text} botId={botId} messageId={message.id} voiceId={voiceId} tts={tts} localVoice={localVoice} className={cn(messageActionClass, "text-accent")} />}
@@ -715,17 +711,6 @@ export function personStoppedLast(messages: readonly Message[]): boolean {
   return false;
 }
 
-/** True once `on` has held for `ms`. */
-function useShownAfter(on: boolean, ms: number): boolean {
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    if (!on) { setShown(false); return; }
-    const timer = setTimeout(() => setShown(true), ms);
-    return () => clearTimeout(timer);
-  }, [on, ms]);
-  return on && shown;
-}
-
 export function useLingering(on: boolean, ms: number): boolean {
   const [lingering, setLingering] = useState(on);
   if (on && !lingering) setLingering(true);
@@ -807,7 +792,6 @@ const MessagesList = memo(function MessagesList({
   onRegenerate,
   onReply,
   seamId = null,
-  landedReplyId = null,
 }: {
   messages: Message[];
   transcript: Message[];
@@ -829,8 +813,6 @@ const MessagesList = memo(function MessagesList({
   onReply: (message: Message) => void;
   /** The bubble the working line hangs under: its bottom corner pinches as if another bubble followed, as grok's does. */
   seamId?: string | null;
-  /** The reply that ended the turn, once it has landed. */
-  landedReplyId?: string | null;
 }) {
   const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, bubbleStyle } = useChatRows(), busy = use(ChatBusyContext);
   // A finished turn keeps the bot's progress lines and folds only its tool steps under "Worked for", in both modes.
@@ -968,7 +950,6 @@ const MessagesList = memo(function MessagesList({
                   replyTarget={lookups.replyTarget(m)}
                   onReply={onReply}
                   underExchangeLine={run !== undefined}
-                  landed={m.id === landedReplyId}
                 />
               );
             }
@@ -1400,7 +1381,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onRegenerate={regenerate}
               onReply={selectReply}
               seamId={lastRowIsBubble && presenceShown ? lastShownRow?.id ?? null : null}
-              landedReplyId={!turnBusy && !stopCut && !personStoppedLast(messages) ? lastBotTextId : null}
             />
           </FoldedNoticesContext></ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
           {laterCount > 0 && (

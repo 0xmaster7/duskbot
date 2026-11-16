@@ -49,7 +49,7 @@ it("keeps the person's bubble as the same element when the server's copy replace
   expect(host.textContent?.match(/plan my week/g)).toHaveLength(1);
 });
 
-it("carries a send out of the composer, grows the reply out of the mascot, and shows its copy row once it has landed", async () => {
+it("carries a send out of the composer, grows the reply out of the mascot, and keeps its copy row for a hover", async () => {
   vi.stubGlobal("fetch", () => new Promise(() => {}));
   const { noteSendLaunch } = await import("./bubble-entrance");
   type Played = { el: Element; keyframes: Keyframe[]; done: () => void };
@@ -108,7 +108,7 @@ it("carries a send out of the composer, grows the reply out of the mascot, and s
   const actions = () => host.querySelector('[data-mid="reply"] [data-testid="message-actions"]');
   expect(actions()?.getAttribute("data-shown")).toBeNull();
   await act(async () => new Promise((resolve) => setTimeout(resolve, 160)));
-  expect(actions()?.getAttribute("data-shown"), "the copy row comes in after the reply lands").toBe("true");
+  expect(actions()?.getAttribute("data-shown"), "the copy row waits for a hover").toBeNull();
   host.remove();
   vi.restoreAllMocks();
 });

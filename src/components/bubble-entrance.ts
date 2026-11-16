@@ -7,8 +7,6 @@ export const SEND_FILL = { duration: 220, delay: 40, easing: "cubic-bezier(0.22,
 export const REPLY_GROW = springTiming(420, 32);
 export const REPLY_GROW_FROM = 0.94;
 export const REPLY_WORDS = { duration: 200, delay: 90, easing: "cubic-bezier(0.22, 1, 0.36, 1)" } as const;
-/** The copy row of a reply that just landed shows this long after it. */
-export const ACTIONS_AFTER_MS = 140;
 
 interface Launch { sendId: string; x: number; y: number; scale: number; at: number }
 
