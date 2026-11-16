@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
+import { probeMotion } from "@/lib/motion-probe";
 
 import { usePrefersReducedMotion } from "@/components/mascot-clock";
 
@@ -142,6 +143,7 @@ export function useArrivalFlow({
     const before = snapshot.current;
     const arrivals = [...column.querySelectorAll<HTMLElement>(ARRIVAL)].filter((row) => !played.current.has(row));
     arrivals.forEach((row) => played.current.add(row));
+    if (import.meta.env.DEV && arrivals.some((row) => row.getAttribute("data-arrival") === "end")) probeMotion(scroller, column);
     if (!before || before.key !== transcriptKey) {
       take(transcriptKey);
       return;
