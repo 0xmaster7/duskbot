@@ -57,7 +57,7 @@ export interface Email {
 export interface Rendered { subject: string; html: string; text: string; transactional?: boolean }
 
 const C = {
-  page: "#fdfdfd", off: "#f6f6f4", ink: "#1b1b1f", body: "#4a4a54", muted: "#73737c", kit: "#894ef0", log: "#232328",
+  page: "#fdfdfd", off: "#f6f6f4", ink: "#1b1b1f", body: "#2c2c33", muted: "#73737c", kit: "#894ef0", log: "#232328",
   skyWash: "#e9f7fd", lemon: "#fff3a0", lime: "#c9f63f", pink: "#ffc4dd", lav: "#d0cefb", sky: "#c2ecfc", green: "#14864f", amber: "#a86a00", red: "#c8325f",
 };
 const SANS = "'General Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
@@ -195,7 +195,7 @@ const darkCss = `
   .box { background: #232328 !important; }
   .cloud-frame { background: #1a2a31 !important; }
   .ink, a.ink { color: #f1f1f3 !important; }
-  .soft { color: #c4c4cc !important; }
+  .soft { color: #dedee4 !important; }
   .muted, a.muted { color: #9a9aa4 !important; }
   .btn { background: #f1f1f3 !important; }
   .btn-a { color: #17171a !important; }
@@ -208,7 +208,7 @@ const darkCss = `
   .a-sky { background: #1f3a46 !important; }
 }
 [data-ogsc] .ink { color: #f1f1f3 !important; }
-[data-ogsc] .soft { color: #c4c4cc !important; }
+[data-ogsc] .soft { color: #dedee4 !important; }
 [data-ogsc] .muted { color: #9a9aa4 !important; }
 [data-ogsc] .btn { background: #f1f1f3 !important; }
 [data-ogsc] .btn-a { color: #17171a !important; }
