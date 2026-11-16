@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Laptop,
   LifeBuoy,
+  MessageSquareText,
   Loader2,
   RefreshCw,
   Settings as SettingsIcon,
@@ -30,7 +31,6 @@ import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./Accou
 import { InitialsAvatar } from "./Avatar";
 import { AvatarPicker } from "./AvatarPicker";
 import { UserFace } from "./UserAvatar";
-import { DiscordIcon } from "./DiscordIcon";
 import { AboutDialog } from "./AboutDialog";
 import { PhoneAppDialog } from "./lazy-screens";
 import { CloudTile } from "./cloud-buy/parts";
@@ -50,7 +50,8 @@ import { cn } from "@/lib/cn";
 import { meterPercent, resetLine } from "@/lib/usage-meter";
 import type { CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import { activeLocale, t } from "@/lib/i18n";
-import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
+import { HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
+import { openFeedback } from "@/lib/feedback-sheet";
 import { openAccountDashboard } from "@/lib/account-dashboard";
 import { useOtherServerName } from "@/lib/other-server";
 import { profileForSession, readSessionState, type SessionState } from "@/lib/session";
@@ -444,7 +445,7 @@ export function profileMenuItems({
 }): SidebarMenuItem[] {
   const help: SidebarMenuItem[] = [
     { key: "help", label: t("sidebar.menu.help"), icon: <HelpCircle size={18} />, onSelect: onHelp },
-    { key: "feedback", label: t("sidebar.menu.feedback"), icon: <DiscordIcon size={17} />, onSelect: onFeedback },
+    { key: "feedback", label: t("sidebar.menu.feedback"), icon: <MessageSquareText size={18} />, onSelect: onFeedback },
     ...(trailAvailable() ? [{ key: "usage-log", label: t("sidebar.menu.exportUsageLog"), icon: <FileText size={18} />, onSelect: () => void exportUsageLog("support").catch(() => {}) } satisfies SidebarMenuItem] : []),
     {
       key: "shortcuts",
@@ -624,7 +625,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
       triggerRef.current?.closest("button")?.focus();
       dispatch({ type: "toggleShortcuts", open: true });
     },
-    onFeedback: () => void openExternalLink(FEEDBACK_URL),
+    onFeedback: openFeedback,
     onAbout: () => setAboutOpen(true),
     onSettings: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
     onAddAccount: () => dispatch({ type: "toggleAppSettings", open: true, section: "general" }),
@@ -663,7 +664,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     },
     onAbout: () => setAboutOpen(true),
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
-    onFeedback: () => void openExternalLink(FEEDBACK_URL),
+    onFeedback: openFeedback,
     // signed out, the row reads sign in: the same sheet as the simple menu, not settings
     onAccount: accounts.view && !accounts.view.active ? () => openSignIn() : openCloudAccount,
     onDashboard: () => void openAccountDashboard(),

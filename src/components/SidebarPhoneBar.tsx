@@ -1,4 +1,6 @@
-import { LayoutGrid, Puzzle, Search, X } from "../icons";
+import { LayoutGrid, MessageSquareText, Puzzle, Search, X } from "../icons";
+
+import { openFeedback } from "@/lib/feedback-sheet";
 
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
@@ -18,6 +20,7 @@ export function SidebarPhoneBar({ query, onQuery }: { query: string; onQuery: (q
       active: state.pluginsOpen,
       onSelect: () => dispatch({ type: "togglePlugins", open: true }),
     },
+    { key: "feedback", label: t("giveFeedback.card"), icon: <MessageSquareText size={18} />, onSelect: openFeedback },
   ];
   return (
     <div data-sidebar-phone-bar className="px-3 pb-3 pt-1">

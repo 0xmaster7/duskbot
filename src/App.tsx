@@ -88,6 +88,7 @@ import { loadingLine } from "@/lib/app-loading";
 import { useAiSwitchKeeper } from "@/lib/ai-switch";
 import { SESSION_ENDED_REASON, useSessionEnded } from "@/lib/session-ended";
 import { PairPage } from "./pair/PairPage";
+import { FeedbackHost } from "./components/FeedbackDialog";
 
 function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const { state, dispatch } = useStore();
@@ -374,6 +375,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       <AddVpsHost />
       <PlaceSetupHost />
       <SignInSheetHost />
+      <FeedbackHost />
       <CloudMoveHost />
       {state.shortcutsOpen && (
         <KeyboardShortcutsModal

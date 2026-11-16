@@ -5,7 +5,8 @@ import { ChevronRight } from "../icons";
 import { useStore, type AppSettingsSection } from "@/state/store";
 import { ADVANCED_PAGES, type AdvancedPage } from "@/lib/open-settings";
 import { t, tPreferred, tOptional } from "@/lib/i18n";
-import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
+import { HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
+import { openFeedback } from "@/lib/feedback-sheet";
 import { skillsLibraryEnabled } from "@/lib/feature-flags";
 import { setColorUserBubbles, useColorUserBubbles } from "@/lib/user-bubble-preference";
 import { resolveSkin } from "@/lib/skins";
@@ -358,7 +359,7 @@ function HelpGroup() {
       <NavRow data-settings-open="about" title={t("settings.advanced.about.about")} onClick={() => setAbout(true)} />
       <NavRow data-settings-open="shortcuts" title={t("settings.advanced.about.shortcuts")} onClick={() => setShortcuts(true)} />
       <NavRow data-settings-open="help" title={t("settings.advanced.about.help")} external onClick={() => void openExternalLink(HELP_CENTER_URL)} />
-      <NavRow data-settings-open="feedback" title={t("settings.advanced.about.feedback")} external onClick={() => void openExternalLink(FEEDBACK_URL)} />
+      <NavRow data-settings-open="feedback" title={t("settings.advanced.about.feedback")} onClick={openFeedback} />
       <PageRow data-settings-open="diagnostics" page="diagnostics" title={t("settings.diagnostics.title")} hint={t("settings.hint.diagnostics")} />
       <AboutDialog open={about} onClose={() => setAbout(false)} />
       <KeyboardShortcutsModal open={shortcuts} onClose={() => setShortcuts(false)} />

@@ -4,8 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import type { AppUpdateState } from "../../electron/app-update.mjs";
-import { AppUpdatePill } from "./AppUpdatePill";
 import { AppVersionRow } from "./AppVersionRow";
+import { SidebarSpot } from "./SidebarSpot";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -77,9 +77,9 @@ it("Windows and Linux keep the server's row", async () => {
   expect(host.querySelector("[data-fallback]")).not.toBeNull();
 });
 
-it("the pill says once that the app updated, and a click puts it away", async () => {
+it("the sidebar says once that the app updated, and a click puts it away", async () => {
   now = { ready: null, mode: "self", updated: "0.2.13" };
-  await act(async () => { root.render(createElement(AppUpdatePill, { bridge })); });
+  await act(async () => { root.render(createElement(SidebarSpot, { bridge })); });
   const note = host.querySelector<HTMLButtonElement>("[data-app-updated]");
   expect(note?.textContent).toBe("Updated to 0.2.13");
   await act(async () => { note?.click(); });

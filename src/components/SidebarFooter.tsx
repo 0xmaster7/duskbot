@@ -5,13 +5,13 @@ import { setSidebarFooterSlot } from "@/lib/sidebar-footer-slot";
 import { useStore } from "@/state/store";
 
 import { AccountMoveStatus, useAccountMoveLine } from "./AccountMove";
-import { AppUpdatePill } from "./AppUpdatePill";
 import { CloudRoomCard } from "./CloudRoomCard";
 import { SidebarCloudCard } from "./CloudUpsell";
 import { CloudUsageCard } from "./CloudUsageMeter";
 import { endCloudHowTo, useWorkspacePlace, type WorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { ConnectAppsButton, useSidebarApps } from "./SidebarConnectApps";
 import { SidebarProfileMenu, useSimpleAccount, type ArchivedBots } from "./SidebarProfileMenu";
+import { SidebarSpot } from "./SidebarSpot";
 
 export function useSimplePlace(): WorkspacePlace {
   const { state, dispatch } = useStore();
@@ -41,9 +41,9 @@ export function SidebarFooter({ owner = null, archived }: { owner?: string | nul
       <CloudUsageCard />
       <SidebarPlaceStatus place={place} className="mb-2 px-1" />
       <AccountMoveStatus kind={move.kind} place={move.place} retry={move.retry} onOpen={openAccount} className="ps-1" />
-      <AppUpdatePill className="mb-1" />
       <div ref={setSidebarFooterSlot} data-sidebar-footer-slot="" className="empty:hidden" />
-      <div className="flex items-center gap-1.5 not-first:mt-2" onPointerLeave={() => setAppsEngaged(false)}>
+      <SidebarSpot className="mb-2.5" />
+      <div className="flex items-center gap-1.5" onPointerLeave={() => setAppsEngaged(false)}>
         {apps.connected ? <>
           <div className="me-auto min-w-0"><SidebarProfileMenu simple={account} named nameHidden={appsEngaged} /></div>
           <ConnectAppsButton circle apps={apps} engaged={appsEngaged} onEngage={setAppsEngaged} />
