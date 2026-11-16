@@ -301,8 +301,8 @@ export function ComputerTab({ bot, derived, cloudFor }: {
   const [screenBox, setScreenBox] = useState<HTMLElement | null>(null);
   const onScreen = useOnScreen(screenBox);
   const [report, setReport] = useState<InlineReport | null>(null);
-  const screenOf = t("computer.screenOf", { name: bot.name });
   const host = runsOnHost({ cloudHome: state.config?.cloudHome === true, otherServer, platform: capabilities.host?.platform ?? "other" });
+  const screenOf = t(host.kind === "cloud" ? "computer.screenOfCloud" : "computer.screenOf", { name: bot.name });
   const stage = cloudDesktop ? cloudMoveStage(cloudDesktop.view, cloudDesktop.keep) : desktopShowsOtherServer() ? "elsewhere" : null;
   const cloudBots = (cloudFor ?? [bot]).filter((one) => one.yourAccess !== "view");
   const local = isLocalHost(host);
