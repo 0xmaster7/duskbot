@@ -19,7 +19,8 @@ export type Making =
   | { kind: "waiting" }
   | { kind: "setting-up"; step: CloudSetupStep; progress: number; slow: boolean }
   | { kind: "ready"; origin?: string }
-  | { kind: "failed" };
+  | { kind: "failed" }
+  | { kind: "payment" };
 
 const PROGRESS: Record<CloudSetupStep, number> = { reserving: 0.15, storage: 0.4, starting: 0.65, checking: 0.9 };
 
@@ -32,7 +33,7 @@ export function makingFrom(account: CloudAccountState | null): Making {
       const step = own.setup?.step ?? "reserving";
       return { kind: "setting-up", step, progress: own.setup?.progress ?? PROGRESS[step], slow: account?.machine?.setup?.slow === true };
     }
-    if (own.status === "ended" || own.status === "payment_problem") return { kind: "failed" };
+    if (own.status === "ended" || own.status === "payment_problem") return { kind: "payment" };
     return { kind: "waiting" };
   }
   const machine = account?.machine;
@@ -41,11 +42,12 @@ export function makingFrom(account: CloudAccountState | null): Making {
     const step = machine.setup?.step ?? "reserving";
     return { kind: "setting-up", step, progress: PROGRESS[step], slow: machine.setup?.slow === true };
   }
-  if (machine?.status === "failed" || machine?.status === "payment-problem") return { kind: "failed" };
+  if (machine?.status === "payment-problem") return { kind: "payment" };
+  if (machine?.status === "failed") return { kind: "failed" };
   return { kind: "waiting" };
 }
 
-export function MakingView({ making, opening, openFailed, onOpen }: { making: Making; opening: boolean; openFailed: boolean; onOpen: () => void }) {
+export function MakingView({ making, opening, openFailed, onOpen, onPlan }: { making: Making; opening: boolean; openFailed: boolean; onOpen: () => void; onPlan?: () => void }) {
   const ready = making.kind === "ready";
   const at = ready ? STEPS.length : making.kind === "setting-up" ? STEPS.findIndex(([key]) => key === making.step) : 0;
   const progress = ready ? 1 : making.kind === "setting-up" ? making.progress : 0.04;
@@ -53,17 +55,19 @@ export function MakingView({ making, opening, openFailed, onOpen }: { making: Ma
     <StepFrame
       art={<PlaceArt name="cloud" size={60} className="place-mark" />}
       title={ready ? t("funnel.making.readyTitle") : t("funnel.making.title")}
-      sub={ready ? t("funnel.making.readySub") : making.kind === "failed" ? t("funnel.making.failed") : t("funnel.making.sub")}
+      sub={ready ? t("funnel.making.readySub") : making.kind === "failed" ? t("funnel.making.failed") : making.kind === "payment" ? t("funnel.making.payment") : t("funnel.making.sub")}
       footer={ready ? (
         // ready is ready: the button stays live while the chat opens by itself (a second press waits on the same open)
         <button type="button" data-primary="" data-funnel-open-cloud="" aria-busy={opening || undefined} onClick={onOpen} className={PRIMARY}>{t("funnel.making.open")}</button>
+      ) : making.kind === "payment" && onPlan ? (
+        <button type="button" data-primary="" data-funnel-plan-page="" onClick={onPlan} className={PRIMARY}>{t("funnel.making.planPage")}</button>
       ) : undefined}
     >
       <div data-funnel-making={making.kind} className="flex w-full max-w-[360px] flex-col gap-3 text-start">
         <ProgressBar value={progress} label={t("funnel.making.progress")} />
         <Checklist label={t("funnel.making.progress")} items={STEPS.map(([key, label], index) => ({
           key, title: t(label, { name: t("funnel.place.cloud") }),
-          state: index < at ? "done" as const : index === at && !ready ? "now" as const : "next" as const,
+          state: index < at ? "done" as const : index === at && !ready && making.kind !== "payment" ? "now" as const : "next" as const,
         }))} />
         {making.kind === "setting-up" && making.slow && <p role="status" className="px-3 text-[13px] leading-[18px] text-ink-secondary">{t("cloudHome.slow")}</p>}
         {openFailed && <p role="alert" className="px-3 text-[13px] leading-[18px] text-danger">{t("funnel.making.openFailed")}</p>}
@@ -141,5 +145,6 @@ export function MakingStep({ onOpened }: { onOpened: () => void }) {
     autoOpened.current = true;
     open();
   });
-  return <MakingView making={making} opening={opening} openFailed={openFailed} onOpen={open} />;
+  return <MakingView making={making} opening={opening} openFailed={openFailed} onOpen={open}
+    onPlan={bridge ? () => void bridge.openDashboard().catch(() => {}) : undefined} />;
 }

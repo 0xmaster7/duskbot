@@ -22,6 +22,8 @@ it("names a team's Cloud on every screen that waits on it, and keeps My Cloud's 
   expect(homeScreenText({ screen: "plan", machine: "stopped", name: "Acme" }).body, "whoever pays is told how").toContain("Subscribe again on your plan page");
   expect(homeScreenText({ screen: "plan", machine: "payment-problem", name: "Acme" }).action).toBe("manage");
   expect(homeScreenText({ screen: "plan", machine: "failed", name: "Acme", member: true }).body, "a failed machine isn't anyone's plan").not.toContain("owner");
+  expect(homeScreenText({ screen: "plan", machine: "failed", name: "Acme", member: true }).action, "a member has no plan page").toBeNull();
+  expect(homeScreenText({ screen: "plan", machine: "failed" }), "the plan page it names is one press away").toMatchObject({ body: expect.stringContaining("plan page"), action: "manage" });
   expect(homeScreenText({ screen: "waking", name: "Acme" }).title, "only My Cloud is woken").toBe("Waking my cloud…");
   expect(homeScreenText(null).title).toBe("Opening my cloud…");
   expect(homeScreenText({ screen: "moving" }).title).toBe("Moving to my cloud… almost done");
@@ -30,7 +32,7 @@ it("names a team's Cloud on every screen that waits on it, and keeps My Cloud's 
 
 it("while the Admin sets My Cloud up, the screen says so plainly, with its step, and never asks the person to do anything", () => {
   const setup = homeScreenText({ screen: "setup", step: "storage" });
-  expect(setup).toEqual({ title: "Setting up my cloud…", body: "This takes about a minute. It opens by itself when it's ready.", reason: null, action: null, busy: true });
+  expect(setup).toEqual({ title: "Setting up my cloud…", body: "This takes about 2 minutes. It opens by itself when it's ready.", reason: null, action: null, busy: true });
   expect(homeScreenText({ screen: "setup", name: "Acme" }).title).toBe("Setting up Acme…");
   expect(homeScreenText({ screen: "setup", step: "starting", slow: true }).body).toMatch(/taking longer than usual/);
   const steps = renderToStaticMarkup(createElement(CloudSetupSteps, { step: "checking" }));
@@ -45,7 +47,7 @@ it("a Cloud that isn't running says what it is in plain words with its one actio
     .toEqual({ title: "My Cloud has ended.", body: "Its files are deleted on November 1.", reason: null, action: "buy", busy: false });
   expect(homeScreenText({ screen: "ended" }).title).toBe("This cloud has ended.");
   expect(homeScreenText({ screen: "ended", name: "Old" }).body, "its files' day only when the Admin names it").toBeNull();
-  expect(homeScreenText({ screen: "checkout", name: "Client B" })).toEqual({ title: "The checkout for Client B wasn't finished.", body: null, reason: null, action: "continue", busy: false });
+  expect(homeScreenText({ screen: "checkout", name: "Client B" })).toEqual({ title: "The checkout for Client B wasn't finished.", body: "Nothing was charged. Continue to finish it in your browser.", reason: null, action: "continue", busy: false });
   expect(homeScreenText({ screen: "checkout" }).title).toBe("This checkout wasn't finished.");
   expect(homeScreenText({ screen: "payment", name: "Client B" }))
     .toEqual({ title: "The payment for Client B didn't go through.", body: "Update your card to keep using it.", reason: null, action: "card", busy: false });

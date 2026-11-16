@@ -315,7 +315,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     button(tree, "Not now")!.props.onClick(); expect(handlers.notNow).toHaveBeenCalledOnce();
     button(tree, "Open Studio")!.props.onClick(); expect(handlers.openCloud).toHaveBeenCalledOnce();
     const still = text(panel(view).html);
-    expect(still).toContain("Switch between this computer and Studio from the menu at the top of the sidebar."); expect(still).not.toContain("Opening in");
+    expect(still).toContain("Switch between this computer and Studio from the left edge of the window."); expect(still).not.toContain("Opening in");
     expect(text(panel(view, { openFailed: true }).html)).toContain("Studio didn't open. Try again in a minute.");
   });
 
@@ -339,7 +339,7 @@ describe("each screen of the sheet says one thing and offers one next step", () 
     inOrder(unnamed, ["Reserving your machine", "Starting your team's cloud", "This is taking longer than usual."]);
     const { html, tree, handlers } = panel({ kind: "team-ready", team: { id: "team-acme", name: "Acme" } });
     inOrder(text(html), ["Your team's cloud is ready", "Acme keeps your team's bots running, even when this computer is off.",
-      "Switch between this computer and Acme from the menu at the top of the sidebar.", "Open Acme"]);
+      "Switch between this computer and Acme from the left edge of the window.", "Open Acme"]);
     button(tree, "Open Acme")!.props.onClick();
     expect(handlers.openTeam).toHaveBeenCalledExactlyOnceWith("team-acme"); expect(handlers.openCloud).not.toHaveBeenCalled();
     expect(text(panel({ kind: "team-ready", team: { id: "team-acme", name: "Acme" } }, { openFailed: true }).html)).toContain("Acme didn't open. Try again in a minute.");
