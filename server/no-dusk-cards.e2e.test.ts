@@ -5,7 +5,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-dusk.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
@@ -84,6 +84,11 @@ it("creates new bots at Full access by default, and keeps the narrower level a p
 });
 
 describe.each([["Full", "full"], ["Auto", "auto"]] as const)("a bot at %s", (prefix, level) => {
+  // one Chief of Staff per workspace since 5199eb9df: this level's Chief takes the role for its own tests
+  beforeEach(async () => {
+    expect((await api("PATCH", `/api/bots/${(await bot(`${prefix} Chief`)).id}`, { chiefOfStaff: true })).status).toBe(200);
+  });
+
   it("changes its own profile and working folder, and a teammate's profile, with Undo on each", async () => {
     const chief = await bot(`${prefix} Chief`);
     const mate = await bot(`${prefix} Mate`);
