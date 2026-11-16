@@ -21,14 +21,15 @@ const render = () => renderToStaticMarkup(createElement(ApprovalCard, { bot: { n
 
 beforeEach(() => { fixture.admin = false; });
 
-it("offers no Undo on a section memory notice to a session that may not review team memory", () => {
+// applied changes read as one plain line with no inline Undo, for anyone (4a3109d6c)
+it("shows a memory notice as a plain saved line without Undo", () => {
   const html = render();
-  expect(html).toContain(">Saved to section memory<");
+  expect(html).toContain(">Saved to shared memory<");
   expect(html).toContain(">person: Ada Lovelace<");
   expect(html).not.toContain(">Undo<");
 });
 
-it("keeps Undo for an admin", () => {
+it("offers no inline Undo to an admin either", () => {
   fixture.admin = true;
-  expect(render()).toContain(">Undo<");
+  expect(render()).not.toContain(">Undo<");
 });
