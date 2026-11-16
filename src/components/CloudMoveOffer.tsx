@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
 import { CloudMoveScene } from "./CloudMoveScene";
+import { WhatMovesLine } from "./WhatMoves";
 import { useCloudSendNotice } from "./CloudSendStrip";
 import { mdPrimaryCls, useDialogKeys } from "./ui/GrokDialog";
 import { ScrimMotion, SheetMotion } from "./ui/SheetMotion";
@@ -114,6 +115,7 @@ function MoveSheet({ state, progress, busy, onClose, onMove, onLater, onHide, on
         {state === "done" && <h2 className="m-0 mt-2 text-[17px] font-semibold leading-6">{t("cloudMoveOffer.done")}</h2>}
         <p id={lineId} role={state === "ask" ? undefined : "status"}
           className={cn("m-0 text-pretty", state === "done" ? "mt-1 text-[14px] font-medium leading-5 text-ink-secondary" : "mt-2 text-[15px] font-medium leading-6")}>{line}</p>
+        {state === "ask" && <div className="mt-3 w-full"><WhatMovesLine /></div>}
         {(state === "moving" || state === "failed") && <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-ink/8">
           <div data-cloud-move-progress={Math.round(progress * 100)} className={cn("h-full origin-left rounded-full transition-transform duration-700 ease-out motion-reduce:transition-none", state === "failed" ? "bg-warning" : "bg-accent")}
             style={{ transform: `scaleX(${Math.max(0.04, progress)})` }} />

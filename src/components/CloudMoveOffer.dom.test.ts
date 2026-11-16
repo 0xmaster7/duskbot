@@ -72,7 +72,8 @@ afterEach(() => {
 it("asks in one line with Move and Later, then the same sheet follows the bots hopping across, and ends with All moved and Open dusk cloud", async () => {
   await render(createElement(CloudMoveOffer));
   expect(sheet()?.getAttribute("data-cloud-move")).toBe("ask");
-  expect(sheet()?.textContent).toBe("Move your bots to dusk cloud? They'll keep working when this computer is off.LaterMove");
+  expect(sheet()?.querySelector("#" + CSS.escape(sheet()!.getAttribute("aria-labelledby")!))?.textContent).toBe("Move your bots to dusk cloud? They'll keep working when this computer is off.");
+  expect([...sheet()!.querySelectorAll("button")].map((found) => found.textContent)).toEqual(["What moves", "Later", "Move"]);
   expect(across()).toBe(0);
   expect(fixture.tracked).toEqual([["cloud_move_prompt", { action: "shown" }]]);
   await press("Move");
@@ -91,6 +92,24 @@ it("asks in one line with Move and Later, then the same sheet follows the bots h
   expect(across()).toBe(3);
   await press("Open dusk cloud");
   expect(calls).toEqual(["accept:prompt", "open"]);
+});
+
+it("says in one line what moves and that this computer keeps a copy, and What moves opens the whole list", async () => {
+  (window as unknown as { duskDesktop: { platform?: string } }).duskDesktop.platform = "darwin";
+  await render(createElement(CloudMoveOffer));
+  const list = document.querySelector<HTMLElement>("[data-what-moves]")!;
+  expect(list.firstElementChild?.textContent).toBe("Your bots move with their chats, memory, routines and logins. This Mac keeps a copy. What moves");
+  const toggle = button("What moves")!;
+  const panel = document.getElementById(toggle.getAttribute("aria-controls")!)!;
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(panel.hidden).toBe(true);
+  await press("What moves");
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(panel.hidden).toBe(false);
+  expect([...panel.querySelectorAll("li")].map((item) => item.textContent)).toEqual(
+    ["Bots and their chats", "Memory and files", "Routines", "Saved logins and passwords", "Connected apps and AI keys"]);
+  expect(panel.textContent).toContain("This Mac keeps working until the move is done, then keeps a copy.");
+  expect(panel.textContent).not.toMatch(/sign in|minutes/iu);
 });
 
 it("Later closes the sheet for good, then a slim line with Move asks; its close leaves only Settings", async () => {

@@ -189,6 +189,14 @@ describe("each screen of the sheet says one thing and offers one next step", () 
       "busy, the button starts nothing").toBe(true);
   });
 
+  it("Choose to move bots: what moves after paying, between the plans and the button; any other way in shows the plans alone", () => {
+    const moving = text(panel({ kind: "offer", offer: PLAIN, signedOut: false, notice: null }, { offerShown: PLAIN, moving: true }).html);
+    inOrder(moving, ["Max", "After you pay, this moves to dusk cloud", "Bots and their chats", "Memory and files", "Routines", "Saved logins and passwords",
+      "Connected apps and AI keys", "This computer keeps working until the move is done, then keeps a copy.", "Get Pro for $49/month"]);
+    expect(moving).not.toMatch(/Claude or ChatGPT|minutes/u);
+    expect(text(panel({ kind: "offer", offer: PLAIN, signedOut: false, notice: null }, { offerShown: PLAIN }).html)).not.toContain("this moves");
+  });
+
   it("checking, Cloud out of reach and a checkout that did not open each say so, with Try again", () => {
     expect(text(panel({ kind: "checking" }).html)).toContain("Checking with dusk cloud…");
     const unreachable = panel({ kind: "unreachable" });

@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { moneyBackShort, planCards, usd, type CloudPlanCard } from "@/lib/cloud-plan";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
+import { WhatMovesPanel } from "../WhatMoves";
 import { buyLabel } from "./buy-label";
 import { LINK, PRIMARY_WIDE, Tag } from "./parts";
 
@@ -45,13 +46,15 @@ function specs(plan: CloudOfferPlan | undefined, oldAdmin: boolean): Array<{ key
   ];
 }
 
-export function ChooseScreen({ offer, current = null, own = null, busy, signedOut, notice, pending = null, onStart, onSignIn, onResume }: {
+export function ChooseScreen({ offer, current = null, own = null, busy, signedOut, notice, pending = null, moving = false, onStart, onSignIn, onResume }: {
   offer: CloudOffer;
   /** The person's own plan tier, and that plan when it is no longer on sale: its card says Your plan and cannot be picked. */
   current?: string | null; own?: CloudOfferPlan | null;
   now?: number; busy: boolean; signedOut: boolean; notice: string | null;
   /** A checkout left open: its plan's name, for a quiet Finish your checkout beside the terms. */
   pending?: string | null;
+  /** Opened to move this computer's bots: paying moves them, so the sheet says what moves. */
+  moving?: boolean;
   onStart: (tier: string) => void; onSignIn: () => void; onResume?: () => void;
 }) {
   const cards = planCards(offer, { current, own });
@@ -75,6 +78,7 @@ export function ChooseScreen({ offer, current = null, own = null, busy, signedOu
       {cards.map((card, index) => <PlanCard key={card.tier} card={card} on={card.tier === pick?.tier} land={LANDSCAPES[index % LANDSCAPES.length]!}
         lines={specs(all.find(entry => entry.tier === card.tier), oldAdmin)} onPick={setChosen} />)}
     </div>
+    {moving && <WhatMovesPanel />}
     <div className="flex flex-col gap-3">
       {pick && buy && <button type="button" data-plan-buy={pick.tier} className={PRIMARY_WIDE} disabled={busy} onClick={() => onStart(pick.tier)}>{buy}</button>}
       <div aria-live="polite" className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5 text-[12px] leading-4 text-ink-tertiary">

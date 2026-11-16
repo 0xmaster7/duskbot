@@ -59,6 +59,8 @@ export interface CloudAddUi {
   email: string; code: string; profileEmail: string | null;
   look: { typed: string; name: string; color: CloudColor };
   counting: number | null; copied: boolean; payFailed: boolean; interest: "sent" | "failed" | null;
+  /** Opened to move this computer's bots there (source app_computer_move). */
+  moving?: boolean;
 }
 
 export function CloudAddPanel({ view, ui, actions }: { view: CloudAddView; ui: CloudAddUi; actions: CloudAddActions }) {
@@ -70,7 +72,7 @@ export function CloudAddPanel({ view, ui, actions }: { view: CloudAddView; ui: C
     case "offer": return <ChooseScreen offer={view.offer} current={ui.current} now={ui.now} busy={ui.busy} signedOut={view.signedOut}
       notice={view.notice ? t(view.notice === "code-expired" ? "cloudAdd.codeExpired" : view.notice === "signin-ended" ? "cloudAdd.signInEnded"
         : view.notice === "terms" ? "cloudBuy.termsChanged" : "cloudAdd.preparing") : null}
-      pending={view.pending ? offerPlanLabel(offerPlan(view.offer, view.pending)) : null} onResume={actions.resume}
+      pending={view.pending ? offerPlanLabel(offerPlan(view.offer, view.pending)) : null} moving={ui.moving} onResume={actions.resume}
       onStart={actions.start} onSignIn={actions.signIn} />;
     case "sign-in": return <SignInScreen phase={view.phase} email={ui.email} code={ui.code} profileEmail={ui.profileEmail} busy={ui.busy} now={ui.now}
       onBack={actions.back} onEmail={actions.email} onSend={actions.sendCode} onChangeEmail={actions.changeEmail} onCode={actions.code}
@@ -402,6 +404,6 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
   };
   const ui: CloudAddUi = { chosen, current: currentTier(account), offerShown, now: now(), busy, openFailed, email: form.email, code: form.code, profileEmail, look: shownLook,
     counting: typeof auto === "number" ? auto : null, copied: note === "copied", payFailed: note === "pay-failed",
-    interest: note === "interest-sent" ? "sent" : note === "interest-failed" ? "failed" : null };
+    interest: note === "interest-sent" ? "sent" : note === "interest-failed" ? "failed" : null, moving: request.source === "app_computer_move" };
   return <CloudAddSheet kind={view.kind} staging={account?.staging === true} onClose={close}><CloudAddPanel view={view} ui={ui} actions={actions} /></CloudAddSheet>;
 }
