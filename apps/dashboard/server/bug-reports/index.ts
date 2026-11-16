@@ -4,12 +4,15 @@ import type { Mailer } from "../auth/mail.ts";
 import { render } from "../email/layout.ts";
 import type { EmailConfig } from "../email/layout.ts";
 import type { StoredCloud } from "../clouds/types.ts";
-import { BUG_REPORT_STATUSES, type BugReportRow, type BugReportStatus, type BugReportStore } from "./store.ts";
+import { BANNER_MAX_BYTES, checkBanner } from "../../../../server/workspace-banner.ts";
+import { BUG_REPORT_STATUSES, type BugReportRow, type BugReportStatus, type BugReportStore, type ReportImage } from "./store.ts";
 
 export const BUG_REPORT_PATH = "/api/bug-reports";
 export const BUG_REPORT_STATUS_PATH = "/api/bug-reports/status";
 /** the desktop keeps its own limits inside these (server/devs-report.ts DEVS_REPORT_LIMITS) */
-export const BUG_REPORT_LIMITS = { body: 600 * 1024, description: 10_000, field: 40, diagnostics: 262_144, statusIds: 50 } as const;
+export const BUG_REPORT_LIMITS = { body: 600 * 1024, description: 10_000, field: 40, diagnostics: 262_144, statusIds: 50,
+  /** feedback's pictures: each a PNG, JPEG or WebP of at most BANNER_MAX_BYTES, its metadata taken out before it is kept */
+  images: 3, imageBytes: BANNER_MAX_BYTES, bodyWithImages: 2_500 * 1024 } as const;
 export const RATES = {
   reportsPerInstallHour: 10, reportsPerAddressHour: 30, statusPerAddressHour: 240,
   /** a retry of the same bytes within this long gets the first answer back and no second email */
@@ -73,8 +76,22 @@ export function parseBugReport(input: Record<string, unknown>) {
   const given = [input.contactEmail, input.contact].filter(value => value !== undefined && value !== null && value !== "");
   const addresses = given.map(value => text(value).trim().toLowerCase());
   if (addresses.some(address => address.length > 254 || !EMAIL.test(address))) throw new BugReportError(400, "invalid_contact", "Invalid contact email.");
-  return { installId, source, description: input.description, appVersion: field("appVersion"), platform: field("platform"), diagnostics, contact: addresses[0] ?? null };
+  return { installId, source, description: input.description, appVersion: field("appVersion"), platform: field("platform"), diagnostics, contact: addresses[0] ?? null, images: parseImages(input.images) };
 }
+
+function parseImages(input: unknown): ReportImage[] {
+  if (input === undefined || input === null) return [];
+  if (!Array.isArray(input) || input.length > BUG_REPORT_LIMITS.images) throw new BugReportError(400, "invalid_images", `Send at most ${BUG_REPORT_LIMITS.images} images.`);
+  return input.map((item: unknown) => {
+    const data = item && typeof item === "object" ? text((item as { data?: unknown }).data) : "";
+    if (!data || data.length > Math.ceil(BUG_REPORT_LIMITS.imageBytes / 3) * 4 + 4) throw new BugReportError(400, "invalid_image", "Each image must be a PNG, JPEG or WebP of 400 KB or less.");
+    const checked = checkBanner(Buffer.from(data, "base64"));
+    if (!checked.ok) throw new BugReportError(400, "invalid_image", "Each image must be a still PNG, JPEG or WebP of 400 KB or less, at most 1600 pixels across.");
+    return { mime: checked.mime, bytes: checked.bytes, width: checked.width, height: checked.height };
+  });
+}
+
+const hasImages = (input: Record<string, unknown>) => Array.isArray(input.images) && input.images.length > 0;
 
 /** the desktop's word for an admin status: it only shows received and fixed */
 export const desktopStatus = (status: BugReportStatus) => (status === "fixed" ? "fixed" as const : "received" as const);
@@ -124,10 +141,13 @@ export function createBugReports(options: BugReportsOptions) {
     if (!await store.claimNotify(report.id, now())) return;
     mailed.count++;
     const first = oneLine(report.description.split("\n").find(line => line.trim()) ?? "").slice(0, 90);
-    const subject = `bug report ${report.id}: ${first}`;
-    const { html, text: body } = render(mail.email, { subject, preheader: first, tag: "admin", say: "someone hit a bug", accent: "pink", status: ["new report", "bad"],
-      blocks: [{ t: "h1", text: "a new @devs report" },
-        { t: "facts", rows: [["report", report.id], ["app", `${report.appVersion} on ${report.platform}`], ["reply to", report.contact ?? "no address"]] },
+    const feedback = report.source === "feedback";
+    const subject = `${feedback ? "feedback" : "bug report"} ${report.id}: ${first}`;
+    const { html, text: body } = render(mail.email, { subject, preheader: first, tag: "admin", say: feedback ? "someone sent feedback" : "someone hit a bug", accent: "pink",
+      status: feedback ? ["new feedback", "ok"] : ["new report", "bad"],
+      blocks: [{ t: "h1", text: feedback ? "new feedback from the app" : "a new @devs report" },
+        { t: "facts", rows: [["report", report.id], ["app", `${report.appVersion} on ${report.platform}`], ["reply to", report.contact ?? "no address"],
+          ...(report.images ? [["images", String(report.images)] as [string, string]] : [])] },
         { t: "log", text: report.description.slice(0, 2_000) },
         { t: "button", label: "open bug reports", href: mail.panelUrl }],
       reason: "you got this because your address gets the dusk bot alert emails. one email per report, never a repeat." });
@@ -139,9 +159,13 @@ export function createBugReports(options: BugReportsOptions) {
 
   async function receive(req: IncomingMessage, res: ServerResponse) {
     limit(`ip:${options.ip(req)}`, RATES.reportsPerAddressHour);
-    const report = parseBugReport(options.bodyObject(await readCapped(req, BUG_REPORT_LIMITS.body)));
+    const raw = await readCapped(req, BUG_REPORT_LIMITS.bodyWithImages);
+    const input = options.bodyObject(raw);
+    if (raw.length > BUG_REPORT_LIMITS.body && !hasImages(input)) throw new BugReportError(413, "too_large", `The report is larger than ${Math.round(BUG_REPORT_LIMITS.body / 1024)} KB.`);
+    const report = parseBugReport(input);
     limit(`install:${report.installId}`, RATES.reportsPerInstallHour);
-    const hash = createHash("sha256").update(JSON.stringify([report.source, report.description, report.appVersion, report.platform, report.diagnostics, report.contact])).digest("base64url");
+    const hash = createHash("sha256").update(JSON.stringify([report.source, report.description, report.appVersion, report.platform, report.diagnostics, report.contact,
+      ...report.images.map(image => createHash("sha256").update(image.bytes).digest("base64url"))])).digest("base64url");
     let kept: { report: BugReportRow; fresh: boolean } | null = null;
     for (let attempt = 0; !kept; attempt++) {
       try { kept = await store.add({ ...report, id: newReportId(), hash, receivedAt: now() }, now() - RATES.dedupeMs); }
@@ -224,6 +248,17 @@ export function createBugReports(options: BugReportsOptions) {
       if (status !== undefined && !isStatus(status)) throw new BugReportError(400, "invalid_request", "Invalid status.");
       const [reports, counts] = await Promise.all([store.list({ limit: limitRows, before, status }), store.counts()]);
       json(res, 200, { reports, counts, next: reports.length === limitRows ? reports.at(-1)!.receivedAt : null });
+      return true;
+    }
+    const picture = /^\/v1\/admin\/bug-reports\/([A-Za-z0-9_-]{1,64})\/images\/(\d{1,2})$/.exec(path);
+    if (picture && method === "GET") {
+      options.admin(req, false);
+      const image = await store.image(picture[1]!, Number(picture[2]));
+      if (!image) throw new BugReportError(404, "not_found", "No such image.");
+      // security: a picture someone sent is served as itself and nothing else, never as a page
+      res.writeHead(200, { "content-type": image.mime, "content-length": image.bytes.length, "cache-control": "private, max-age=3600", "x-content-type-options": "nosniff",
+        "content-security-policy": "default-src 'none'; sandbox", "content-disposition": "inline" });
+      res.end(image.bytes);
       return true;
     }
     const one = /^\/v1\/admin\/bug-reports\/([A-Za-z0-9_-]{1,64})$/.exec(path);

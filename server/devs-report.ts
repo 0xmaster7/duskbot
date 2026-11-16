@@ -26,6 +26,15 @@ export interface DevsReportPayload {
   contact?: string;
 }
 
+/** A picture sent with feedback: PNG, JPEG or WebP, base64, its metadata already taken out (server/workspace-banner.ts). */
+export interface ReportImage { type: "image/png" | "image/jpeg" | "image/webp"; data: string }
+
+/** What the person wrote in Give feedback, to the same endpoint as a @devs report: no diagnostics, maybe pictures. */
+export interface FeedbackPayload extends Omit<DevsReportPayload, "source"> {
+  source: "feedback";
+  images?: ReportImage[];
+}
+
 export interface BotSummary { wentWrong: string; seen?: string; steps?: string }
 
 export interface ReportedBot {
@@ -169,7 +178,7 @@ export function buildDevsReport(input: DevsReportInput, secrets: readonly string
   };
 }
 
-export function withoutContact(payload: DevsReportPayload): DevsReportPayload {
+export function withoutContact<T extends DevsReportPayload | FeedbackPayload>(payload: T): T {
   const { contactEmail: _email, contact: _contact, ...rest } = payload;
-  return rest;
+  return rest as T;
 }

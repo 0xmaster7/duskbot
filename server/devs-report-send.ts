@@ -5,7 +5,7 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { z } from "zod";
 
-import { DEVS_REPORT_LIMITS, withoutContact, type DevsReportPayload } from "./devs-report.ts";
+import { DEVS_REPORT_LIMITS, withoutContact, type DevsReportPayload, type FeedbackPayload } from "./devs-report.ts";
 import { withLegacyHeaders } from "../electron/legacy-names.mjs";
 
 export const BUG_REPORT_PATH = "/api/bug-reports";
@@ -58,9 +58,14 @@ async function boundedJson(response: Response): Promise<Record<string, unknown>>
 
 const sentence = (value: unknown) => (typeof value === "string" ? value.replace(/\p{Cc}+/gu, " ").trim().slice(0, 200) : "");
 
-async function post(endpoint: string, payload: DevsReportPayload, fetcher: typeof fetch): Promise<{ status: number; body: Record<string, unknown>; headers: Headers } | null> {
+type ReportPayload = DevsReportPayload | FeedbackPayload;
+/** The endpoint's body limit: 600 KB for a report, more for feedback that carries pictures. */
+export const FEEDBACK_MAX_BYTES = 2_500 * 1024;
+const maxBytes = (payload: ReportPayload) => (payload.source === "feedback" ? FEEDBACK_MAX_BYTES : DEVS_REPORT_LIMITS.body);
+
+async function post(endpoint: string, payload: ReportPayload, fetcher: typeof fetch): Promise<{ status: number; body: Record<string, unknown>; headers: Headers } | null> {
   const body = JSON.stringify(payload);
-  if (Buffer.byteLength(body, "utf8") > DEVS_REPORT_LIMITS.body) return { status: 413, body: { error: "The report is larger than 600 KB." }, headers: new Headers() };
+  if (Buffer.byteLength(body, "utf8") > maxBytes(payload)) return { status: 413, body: { error: `The report is larger than ${Math.round(maxBytes(payload) / 1024)} KB.` }, headers: new Headers() };
   try {
     const response = await fetcher(endpoint, {
       method: "POST", redirect: "error", cache: "no-store",
@@ -73,9 +78,9 @@ async function post(endpoint: string, payload: DevsReportPayload, fetcher: typeo
   }
 }
 
-export const devsReportSender = (endpoint: string, fetcher: typeof fetch = fetch) => (payload: DevsReportPayload) => sendDevsReport(endpoint, payload, fetcher);
+export const devsReportSender = (endpoint: string, fetcher: typeof fetch = fetch) => (payload: ReportPayload) => sendDevsReport(endpoint, payload, fetcher);
 
-export async function sendDevsReport(endpoint: string, payload: DevsReportPayload, fetcher: typeof fetch = fetch): Promise<SendOutcome> {
+export async function sendDevsReport(endpoint: string, payload: ReportPayload, fetcher: typeof fetch = fetch): Promise<SendOutcome> {
   let answer = await post(endpoint, payload, fetcher);
   // An address the endpoint will not take must not cost the person their report.
   if (answer?.status === 400 && /contact/i.test(sentence(answer.body.error)) && (payload.contactEmail || payload.contact)) {

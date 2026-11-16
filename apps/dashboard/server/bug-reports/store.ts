@@ -1,5 +1,5 @@
 import type { Db } from "mongodb";
-import { MongoServerError } from "mongodb";
+import { Binary, MongoServerError } from "mongodb";
 
 /** what the owner sets in admin; the desktop hears "fixed" for fixed and "received" for the rest */
 export const BUG_REPORT_STATUSES = ["new", "looking", "fixed", "wont-fix"] as const;
@@ -19,9 +19,12 @@ export interface BugReportRow {
   receivedAt: number;
   updatedAt: number;
   notifiedAt: number | null;
+  /** how many pictures came with it (feedback); each at GET /v1/admin/bug-reports/:id/images/:n, n from 0 */
+  images: number;
 }
 export interface BugReport extends BugReportRow { diagnostics: string }
-export type NewBugReport = Omit<BugReport, "status" | "fixedIn" | "updatedAt" | "notifiedAt"> & { hash: string };
+export interface ReportImage { mime: "image/png" | "image/jpeg" | "image/webp"; bytes: Buffer; width: number; height: number }
+export type NewBugReport = Omit<BugReport, "status" | "fixedIn" | "updatedAt" | "notifiedAt" | "images"> & { hash: string; images: ReportImage[] };
 
 export interface BugReportStore {
   /** the report kept; when the same install already sent these exact bytes, that one instead (a retry whose answer was lost) */
@@ -34,21 +37,24 @@ export interface BugReportStore {
   statuses(installId: string, ids: string[]): Promise<Array<{ id: string; status: BugReportStatus; fixedIn: string | null }>>;
   /** true once per report: whoever claims it sends its one email */
   claimNotify(id: string, at: number): Promise<boolean>;
+  image(id: string, n: number): Promise<{ mime: ReportImage["mime"]; bytes: Buffer } | null>;
 }
 
 interface BugReportDoc {
   _id: string; installId: string; source: string; description: string; appVersion: string; platform: string; diagnostics: string;
-  contact: string | null; hash: string; status: BugReportStatus; fixedIn: string | null; receivedAt: Date; updatedAt: Date; notifiedAt: Date | null;
+  contact: string | null; hash: string; status: BugReportStatus; fixedIn: string | null; receivedAt: Date; updatedAt: Date; notifiedAt: Date | null; images?: number;
 }
+interface BugReportImageDoc { _id: string; reportId: string; n: number; mime: ReportImage["mime"]; width: number; height: number; data: Binary }
 const LIST_FIELDS = { diagnostics: 0, hash: 0 } as const;
 const row = (doc: Omit<BugReportDoc, "diagnostics" | "hash">): BugReportRow => ({ id: doc._id, installId: doc.installId, source: doc.source, description: doc.description,
   appVersion: doc.appVersion, platform: doc.platform, contact: doc.contact ?? null, status: doc.status, fixedIn: doc.fixedIn ?? null,
-  receivedAt: doc.receivedAt.getTime(), updatedAt: doc.updatedAt.getTime(), notifiedAt: doc.notifiedAt?.getTime() ?? null });
+  receivedAt: doc.receivedAt.getTime(), updatedAt: doc.updatedAt.getTime(), notifiedAt: doc.notifiedAt?.getTime() ?? null, images: doc.images ?? 0 });
 const zero = (): Record<BugReportStatus, number> => ({ new: 0, looking: 0, fixed: 0, "wont-fix": 0 });
 
 /** one document per report, kept until the owner removes it by hand; `_id` is the id the person sees */
 export async function mongoBugReportStore(db: Db): Promise<BugReportStore> {
   const reports = db.collection<BugReportDoc>("bug_reports");
+  const images = db.collection<BugReportImageDoc>("bug_report_images");
   await reports.createIndexes([{ key: { receivedAt: -1 } }, { key: { status: 1, receivedAt: -1 } }, { key: { installId: 1, hash: 1, receivedAt: -1 } }]);
   return {
     async add(report, dedupeSince) {
@@ -56,9 +62,11 @@ export async function mongoBugReportStore(db: Db): Promise<BugReportStore> {
       if (same) return { report: row(same), fresh: false };
       const at = new Date(report.receivedAt);
       const doc: BugReportDoc = { _id: report.id, installId: report.installId, source: report.source, description: report.description, appVersion: report.appVersion,
-        platform: report.platform, diagnostics: report.diagnostics, contact: report.contact, hash: report.hash, status: "new", fixedIn: null, receivedAt: at, updatedAt: at, notifiedAt: null };
+        platform: report.platform, diagnostics: report.diagnostics, contact: report.contact, hash: report.hash, status: "new", fixedIn: null, receivedAt: at, updatedAt: at, notifiedAt: null,
+        ...(report.images.length ? { images: report.images.length } : {}) };
       try { await reports.insertOne(doc); }
       catch (error) { if (error instanceof MongoServerError && error.code === 11000) throw new Error("bug report id taken"); throw error; }
+      if (report.images.length) await images.insertMany(report.images.map((image, n) => ({ _id: `${report.id}:${n}`, reportId: report.id, n, mime: image.mime, width: image.width, height: image.height, data: new Binary(image.bytes) })));
       return { report: row(doc), fresh: true };
     },
     async list({ limit, before, status }) {
@@ -85,20 +93,26 @@ export async function mongoBugReportStore(db: Db): Promise<BugReportStore> {
     async claimNotify(id, at) {
       return (await reports.updateOne({ _id: id, notifiedAt: null }, { $set: { notifiedAt: new Date(at) } })).modifiedCount === 1;
     },
+    async image(id, n) {
+      const doc = await images.findOne({ _id: `${id}:${n}` });
+      return doc ? { mime: doc.mime, bytes: Buffer.from(doc.data.buffer) } : null;
+    },
   };
 }
 
 /** development and tests: gone on restart */
-export function memoryBugReportStore(): BugReportStore & { all: Map<string, BugReport & { hash: string }> } {
-  const all = new Map<string, BugReport & { hash: string }>();
-  const view = ({ diagnostics: _d, hash: _h, ...rest }: BugReport & { hash: string }): BugReportRow => ({ ...rest });
+type MemoryReport = BugReport & { hash: string; pictures: ReportImage[] };
+export function memoryBugReportStore(): BugReportStore & { all: Map<string, MemoryReport> } {
+  const all = new Map<string, MemoryReport>();
+  const view = ({ diagnostics: _d, hash: _h, pictures: _p, ...rest }: MemoryReport): BugReportRow => ({ ...rest });
   return {
     all,
     async add(report, dedupeSince) {
       const same = [...all.values()].find(item => item.installId === report.installId && item.hash === report.hash && item.receivedAt >= dedupeSince);
       if (same) return { report: view(same), fresh: false };
       if (all.has(report.id)) throw new Error("bug report id taken");
-      const kept = { ...report, status: "new" as const, fixedIn: null, updatedAt: report.receivedAt, notifiedAt: null };
+      const { images: pictures, ...rest } = report;
+      const kept: MemoryReport = { ...rest, pictures, images: pictures.length, status: "new", fixedIn: null, updatedAt: report.receivedAt, notifiedAt: null };
       all.set(report.id, kept);
       return { report: view(kept), fresh: true };
     },
@@ -106,10 +120,11 @@ export function memoryBugReportStore(): BugReportStore & { all: Map<string, BugR
       return [...all.values()].filter(item => (!status || item.status === status) && (before === undefined || item.receivedAt < before))
         .sort((a, b) => b.receivedAt - a.receivedAt).slice(0, limit).map(view);
     },
-    async get(id) { const item = all.get(id); if (!item) return null; const { hash: _h, ...rest } = item; return { ...rest }; },
+    async get(id) { const item = all.get(id); if (!item) return null; const { hash: _h, pictures: _p, ...rest } = item; return { ...rest }; },
     async counts() { const out = zero(); for (const item of all.values()) out[item.status]++; return out; },
     async setStatus(id, status, fixedIn, at) { const item = all.get(id); if (!item) return null; Object.assign(item, { status, fixedIn, updatedAt: at }); return view(item); },
     async statuses(installId, ids) { return ids.flatMap(id => { const item = all.get(id); return item && item.installId === installId ? [{ id, status: item.status, fixedIn: item.fixedIn }] : []; }); },
     async claimNotify(id, at) { const item = all.get(id); if (!item || item.notifiedAt !== null) return false; item.notifiedAt = at; return true; },
+    async image(id, n) { const picture = all.get(id)?.pictures[n]; return picture ? { mime: picture.mime, bytes: picture.bytes } : null; },
   };
 }

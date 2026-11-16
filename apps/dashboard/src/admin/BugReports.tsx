@@ -8,7 +8,7 @@ import { AdminHeader, Failed, Loading, Section, n, stamp } from "./ui";
 type Status = "new" | "looking" | "fixed" | "wont-fix";
 export interface BugReportRow {
   id: string; installId: string; source: string; description: string; appVersion: string; platform: string; contact: string | null;
-  status: Status; fixedIn: string | null; receivedAt: number; updatedAt: number; notifiedAt: number | null;
+  status: Status; fixedIn: string | null; receivedAt: number; updatedAt: number; notifiedAt: number | null; images?: number;
 }
 interface ListAnswer { reports: BugReportRow[]; counts: Record<Status, number>; next: number | null }
 
@@ -52,11 +52,24 @@ function Report({ report, onChange }: { report: BugReportRow; onChange(next: Bug
         <span className={cx("inline-flex h-6 items-center rounded-full px-2.5 text-12 text-ink", STATUS[report.status].wash)}>
           {STATUS[report.status].label}{report.status === "fixed" && report.fixedIn ? ` in ${report.fixedIn}` : ""}
         </span>
+        {report.source === "feedback" && <span className={cx(CHIP, "text-ink")}>feedback</span>}
         <span className="font-mono text-ink-2">{report.id}</span>
         <time dateTime={new Date(report.receivedAt).toISOString()} title={stamp(report.receivedAt)}>{ago(report.receivedAt)}</time>
       </div>
       <p className={cx("mt-2 max-w-[80ch] whitespace-pre-wrap break-words text-14 leading-[22px] text-ink", long && !whole && "line-clamp-6")}>{report.description}</p>
       {long && <button type="button" onClick={() => setWhole(!whole)} className="mt-1 text-13 text-ink-2 hover:text-ink">{whole ? "show less" : "show all"}</button>}
+      {report.images ? (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {Array.from({ length: report.images }, (_, i) => {
+            const src = `/v1/admin/bug-reports/${encodeURIComponent(report.id)}/images/${i}`;
+            return (
+              <a key={i} href={src} target="_blank" rel="noreferrer" className="block size-20 overflow-hidden rounded-[12px] bg-card-2 hover:opacity-90">
+                <img src={src} alt={`image ${i + 1} of ${report.images} with ${report.id}`} loading="lazy" className="size-full object-cover" />
+              </a>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <span className={CHIP}>v{report.appVersion} · {report.platform}</span>
         <span className={CHIP} title={report.installId}>install {report.installId.slice(0, 10)}</span>
@@ -75,14 +88,14 @@ function Report({ report, onChange }: { report: BugReportRow; onChange(next: Bug
         <label htmlFor={versionId} className="ml-2 text-12 text-ink-3">fixed in</label>
         <input id={versionId} inputMode="decimal" autoComplete="off" value={version} placeholder="0.1.150" onChange={(e) => setVersion(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") void set("fixed"); }} className="field !h-8 !w-[96px] !px-3 font-mono !text-13" />
-        <Button size="sm" variant="ghost" className="ml-auto !h-8" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "hide diagnostics" : "diagnostics"}</Button>
+        {report.source !== "feedback" && <Button size="sm" variant="ghost" className="ml-auto !h-8" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "hide diagnostics" : "diagnostics"}</Button>}
       </div>
-      {open && <Diagnostics id={report.id} />}
+      {open && report.source !== "feedback" && <Diagnostics id={report.id} />}
     </li>
   );
 }
 
-/** every @devs report the apps sent: the person's words, the bot's summary, and the facts their app gathered, redacted on their computer */
+/** every @devs report and piece of feedback the apps sent: the person's words, the bot's summary, and the facts their app gathered, redacted on their computer */
 export function BugReportsPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const { data, error, loading, reload, setData } = useAdmin<ListAnswer>(`/bug-reports${status ? `?status=${status}` : ""}`, 60_000);
@@ -110,7 +123,7 @@ export function BugReportsPage() {
 
   return (
     <>
-      <AdminHeader title="bug reports" sub="what people sent with @devs. each one is mailed to the alert address once. a fixed version shows up on their message, and they hear about it once they run it." />
+      <AdminHeader title="bug reports" sub="what people sent with @devs or give feedback in the app. each one is mailed to the alert address once. a fixed version shows up on their message, and they hear about it once they run it." />
       <div role="group" aria-label="which reports" className="mb-8 flex flex-wrap gap-1.5 max-sm:mb-6">
         {options.map((option) => {
           const count = !data ? null : option.id ? data.counts[option.id] : total;
@@ -129,7 +142,7 @@ export function BugReportsPage() {
         <Section title="newest first">
           {reports.length ? (
             <ol className="flex flex-col gap-2">{reports.map((report) => <Report key={report.id} report={report} onChange={changed} />)}</ol>
-          ) : <p className="rounded-[18px] bg-card px-4 py-6 text-center text-13 text-ink-2">{status ? `no ${STATUS[status].label} reports.` : "no reports yet. they come in when someone types @devs in a chat."}</p>}
+          ) : <p className="rounded-[18px] bg-card px-4 py-6 text-center text-13 text-ink-2">{status ? `no ${STATUS[status].label} reports.` : "no reports yet. they come in when someone types @devs in a chat or sends feedback from the app."}</p>}
           {next !== null && <div className="mt-4 flex justify-center"><Button size="sm" disabled={busy} onClick={() => void loadMore()}>{busy ? "loading…" : "older reports"}</Button></div>}
         </Section>
       )}

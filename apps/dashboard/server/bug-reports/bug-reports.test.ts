@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDashboardApp } from "../app.ts";
@@ -9,7 +9,7 @@ import { createTestMailbox, memoryMailer } from "../auth/mail.ts";
 import { memorySink } from "../analytics/sink.ts";
 import { CSRF_HEADER } from "../../../../shared/account-api.ts";
 import { askReportStatus, bugReportsHomeSignature as desktopSignature, sendDevsReport } from "../../../../server/devs-report-send.ts";
-import type { DevsReportPayload } from "../../../../server/devs-report.ts";
+import type { DevsReportPayload, FeedbackPayload } from "../../../../server/devs-report.ts";
 import { bugReportsHomeSignature, RATES } from "./index.ts";
 import { memoryBugReportStore } from "./store.ts";
 
@@ -140,6 +140,49 @@ describe("bug reports", () => {
     expect(stranger?.reports).toEqual([{ id: a.id, status: "unknown", fixedIn: null }]);
     const filtered = await (await fetch(`${url}/v1/admin/bug-reports?status=fixed`, { headers: { cookie: owner } })).json() as { reports: Array<{ id: string }> };
     expect(filtered.reports.map(report => report.id)).toEqual([a.id]);
+  });
+
+  it("takes feedback with pictures, signed out or not, keeps them for an admin only, and mails it as feedback", async () => {
+    const jpeg = readFileSync(new URL("../../../../server/testing/fixtures/banner-metadata.jpg", import.meta.url));
+    const png = readFileSync(new URL("../../../../server/testing/fixtures/banner-metadata.png", import.meta.url));
+    const feedback = (over: Partial<FeedbackPayload> = {}): FeedbackPayload => ({ installId: INSTALL, source: "feedback", description: "the Connect apps window opened behind the chat",
+      appVersion: "0.2.14", platform: "darwin arm64, desktop app", diagnostics: "", ...over });
+    const sent = await sendDevsReport(endpoint(), feedback({ images: [{ type: "image/jpeg", data: jpeg.toString("base64") }, { type: "image/png", data: png.toString("base64") }] })) as { id: string };
+    expect(sent.id).toMatch(/^dr-/);
+    expect(store.all.get(sent.id)).toMatchObject({ source: "feedback", contact: null, images: 2 });
+    await settle();
+    expect(testMail.latest(ALERT)?.subject).toBe(`feedback ${sent.id}: the Connect apps window opened behind the chat`);
+
+    const owner = await signIn(ADMIN), other = await signIn(OTHER);
+    const list = await (await fetch(`${url}/v1/admin/bug-reports`, { headers: { cookie: owner } })).json() as { reports: Array<{ id: string; source: string; images: number }> };
+    expect(list.reports[0]).toMatchObject({ id: sent.id, source: "feedback", images: 2 });
+    const image = (n: number, cookie?: string) => fetch(`${url}/v1/admin/bug-reports/${sent.id}/images/${n}`, { headers: cookie ? { cookie } : {} });
+    expect((await image(0)).status).toBe(401);
+    expect((await image(0, other)).status).toBe(403);
+    const first = await image(0, owner);
+    expect(first.status).toBe(200);
+    expect(first.headers.get("content-type")).toBe("image/jpeg");
+    expect(first.headers.get("x-content-type-options")).toBe("nosniff");
+    const bytes = Buffer.from(await first.arrayBuffer());
+    expect(bytes.subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
+    expect(bytes.includes(Buffer.from("Secret"))).toBe(false);
+    expect((await image(1, owner)).headers.get("content-type")).toBe("image/png");
+    expect((await image(2, owner)).status).toBe(404);
+
+    const signedIn = await sendDevsReport(endpoint(), feedback({ description: "signed in", contactEmail: "ada@example.com", contact: "ada@example.com" })) as { id: string };
+    expect(store.all.get(signedIn.id)).toMatchObject({ contact: "ada@example.com", images: 0 });
+  });
+
+  it("refuses too many pictures, one that isn't a picture, and a big body without pictures", async () => {
+    const png = readFileSync(new URL("../../../../server/testing/fixtures/banner-metadata.png", import.meta.url)).toString("base64");
+    const body = (images: unknown, extra: Record<string, unknown> = {}) => ({ ...payload({ source: "feedback" as "bot", diagnostics: "" }), images, ...extra });
+    expect((await post("/api/bug-reports", body(Array.from({ length: 4 }, () => ({ type: "image/png", data: png }))))).status).toBe(400);
+    const notPicture = await post("/api/bug-reports", body([{ type: "image/png", data: Buffer.from("<html>").toString("base64") }]));
+    expect(notPicture.status).toBe(400);
+    expect((await notPicture.json() as { code: string }).code).toBe("invalid_image");
+    expect((await post("/api/bug-reports", body([], { description: "x".repeat(9_000), diagnostics: "d".repeat(250_000), filler: "f".repeat(400 * 1024) }))).status).toBe(413);
+    expect((await post("/api/bug-reports", body([{ type: "image/png", data: png }], { filler: "f".repeat(400 * 1024) }))).status).toBe(201);
+    expect((await post("/api/bug-reports", body([{ type: "image/png", data: "A".repeat(2_600 * 1024) }]))).status).toBe(413);
   });
 
   it("refuses a signed status question from an unknown machine, and signs the way the desktop does", async () => {

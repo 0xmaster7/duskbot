@@ -466,6 +466,8 @@ export const CLIENT_ALLOW: ReadonlyArray<{ methods: readonly string[]; path: Reg
   { methods: ["POST"], path: /^\/api\/bots\/[\w-]+\/bot-api\/new-key$/ },
   // asking to chat with a team bot one can view: the handler puts a card in the inbox of whoever can let them in
   { methods: ["POST"], path: /^\/api\/bots\/[\w-]+\/access-request$/ },
+  // Give feedback: anyone signed in here may write to the dusk bot team; the handler sends only their own address
+  { methods: ["POST"], path: /^\/api\/feedback$/ },
 ];
 
 export function requiredScope(method: string, path: string): Scope {
