@@ -304,12 +304,10 @@ export function ComputerTab({ bot, derived, cloudFor }: {
   const screenOf = t("computer.screenOf", { name: bot.name });
   const host = runsOnHost({ cloudHome: state.config?.cloudHome === true, otherServer, platform: capabilities.host?.platform ?? "other" });
   const stage = cloudDesktop ? cloudMoveStage(cloudDesktop.view, cloudDesktop.keep) : desktopShowsOtherServer() ? "elsewhere" : null;
-  const editable = bot.yourAccess !== "view";
   const cloudBots = (cloudFor ?? [bot]).filter((one) => one.yourAccess !== "view");
   const local = isLocalHost(host);
   // a bot on a server moves to cloud desktop; one on dusk cloud that came from this computer can go back
   const toCloud = cloudBots.length > 0 && !local && host.kind !== "cloud" && stage !== null;
-  const toHome = editable && host.kind === "cloud" && stage === "moved";
   const cloudLabel = stage === "preparing" || stage === "moving" ? t("runsOn.movingCloud")
     : stage === "moved" || stage === "open" ? t("runsOn.openCloud")
     : stage === "coming-back" ? t("runsOn.movingBack") : t("runsOn.moveDuskCloud");
@@ -333,11 +331,6 @@ export function ComputerTab({ bot, derived, cloudFor }: {
         {detail && <Card><NoteRow data-sheet-row="problem-detail">{detail}</NoteRow></Card>}
         {cloudOwned && <CloudSwitchLine cloudDesktop={cloudDesktop} />}
         {toCloud && <CloudDesktopCta bots={cloudBots} stage={stage} label={cloudLabel} />}
-        {toHome && (
-          <div className="mt-2 flex justify-center">
-            <button type="button" data-panel-action="move-home" className={quietCls} onClick={() => openCloudMove("home")}>{t("runsOn.moveHome", { device: deviceWord() })}</button>
-          </div>
-        )}
       </>}
       {cloudDesktop && stage === "manage" && <Card><CloudDesktopListRow cloudDesktop={cloudDesktop} /></Card>}
       {warning}
