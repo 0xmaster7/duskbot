@@ -25,6 +25,8 @@ export interface StoredCheckout {
   /** paying it brings back `cloudId`, an ended cloud of this account, instead of a new one */
   revive?: boolean;
   providerSessionId: string | null; url: string | null; status: "open" | "completed" | "expired"; source: string | null;
+  /** the free trial this checkout's page offered */
+  trialDays?: number;
   createdAt: number; openUntil: number; subscriptionId: string | null; amountCents: number; lines: CartLine[];
 }
 export interface StoredSubscription {
@@ -34,6 +36,8 @@ export interface StoredSubscription {
   /** where its checkout started (CHECKOUT_SOURCES), copied from the checkout */
   source?: string | null;
   lastEventAt?: number;
+  /** the end of its free trial, the first charge; set when a trial checkout became this subscription */
+  trialEndsAt?: number;
   /** App Review's demo plan (POST /v1/billing/ops/review): never counted as revenue */
   review?: true;
   /** the payment provider's mode when it was made (dodo test or live; the fake provider is test); absent on older rows */

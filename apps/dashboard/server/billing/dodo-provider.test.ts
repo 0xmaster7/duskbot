@@ -39,6 +39,8 @@ describe("dodo HTTP provider fixture", () => {
     expect(requests[0]).toEqual({ method: "POST", url: "/checkouts", auth: `Bearer ${apiKey}`, body: { product_cart: [{ product_id: "solo", quantity: 1, addons: [{ addon_id: "desktop", quantity: 1 }] }], customer: { email: "owner@example.com" }, return_url: input.returnUrl, metadata: { checkoutId: "chk_1", accountId: "a1" } } });
     await provider().createCheckout({ ...input, customerId: "cus_1" });
     expect(requests[1].body).toMatchObject({ customer: { customer_id: "cus_1" } });
+    await provider().createCheckout({ ...input, trialDays: 3 });
+    expect(requests[2].body).toMatchObject({ subscription_data: { trial_period_days: 3 } });
   });
   it("opens card-only payment method pages, cancels, changes plans and streams private invoices", async () => {
     const p = provider(); reply = { payment_id: "pay_1", client_secret: "secret", expires_on: "2026-11-14T00:00:00Z", payment_link: "https://test.checkout.dodopayments.com/abc" };

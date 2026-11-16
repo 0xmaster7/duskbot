@@ -63,7 +63,8 @@ export function createDodoProvider(options: DodoProviderOptions): BillingProvide
     async createCheckout(input) {
       const result = await json("/checkouts", { product_cart: input.cart.map(line => ({ product_id: line.productId, quantity: line.quantity,
         ...(line.addons.length ? { addons: line.addons.map(addon => ({ addon_id: addon.addonId, quantity: addon.quantity })) } : {}) })),
-        customer: input.customerId ? { customer_id: input.customerId } : { email: input.email }, return_url: input.returnUrl, metadata: { checkoutId: input.checkoutId, accountId: input.accountId } });
+        customer: input.customerId ? { customer_id: input.customerId } : { email: input.email }, return_url: input.returnUrl, metadata: { checkoutId: input.checkoutId, accountId: input.accountId },
+        ...(input.trialDays ? { subscription_data: { trial_period_days: input.trialDays } } : {}) });
       if (typeof result.session_id !== "string" || !result.session_id) throw new BillingProviderError("refused");
       return { sessionId: result.session_id, url: allowedUrl(result.checkout_url, `${prefix}checkout.dodopayments.com`) };
     },

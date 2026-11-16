@@ -37,6 +37,7 @@ export function catalogFromWire(catalog: Catalog): PlanCatalog {
     ...(catalog.poolRegions ? { poolRegions: catalog.poolRegions } : {}),
     yearlyDiscount: catalog.yearlyDiscountPercent / 100,
     workFreeUntil: catalog.freeWorkUntil,
+    ...(catalog.trialDays ? { trialDays: catalog.trialDays } : {}),
   };
 }
 

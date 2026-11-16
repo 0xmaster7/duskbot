@@ -23,7 +23,7 @@ import { AnimatePresence, EASE_OUT, m } from "../ui/motion";
 import { Digits } from "../ui/Digits";
 import { CancelFlow, CONTACT } from "./cancel-flow";
 import { BUSY, cartText, ChargeLine, CHECKOUT_PLAN_KEY, IntervalToggle, LicenseSheet, money, PlanSheet, planSelection, priceText, sharedRegions, useInterval, Working, type PaidPlan } from "./plan-sheet";
-import { CHECKOUT_SOON } from "./cloud-offer";
+import { CHECKOUT_SOON, checkoutDone, trialAction } from "./cloud-offer";
 
 export { IntervalToggle, useInterval };
 
@@ -247,7 +247,7 @@ function useDirectPlan(catalog: PlanCatalog | null, interval: BillingInterval) {
         track({ name: "plan_chosen", props: { plan: id, period: interval } });
         if (catalog.checkoutOpen === false) { setError({ id, text: CHECKOUT_SOON }); return; }
         try { sessionStorage.setItem(CHECKOUT_PLAN_KEY, id); } catch {}
-        if (await checkout({ source: "dash_billing", kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); navigate("/cloud"); }
+        if (await checkout({ source: "dash_billing", kind: "plan", selection: sel, bundle: null })) { toast(checkoutDone(catalog)); navigate("/cloud"); }
         else setError({ id, text: "checkout didn't open. try again." });
       }
     } catch (e) { setCharge(null); setError({ id, text: (e as Error).message }); } finally { setBusy(null); }
@@ -344,7 +344,7 @@ export function BillingPage() {
     // only a managed cloud can move to a dedicated machine on its own; any other moves by hand
     if (id === "team" && !current(id) && movable) return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={false} action={direct.label(id, `switch to ${name}`)} onChoose={() => void direct.choose("team")} disabled={direct.busy !== null} busy={direct.busy === id} note={direct.note(id)} />;
     if (id === "team" && !current(id)) return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={false} action="talk to us" href={`${CONTACT}?subject=${encodeURIComponent("move to team")}`} onChoose={null} disabled={false} />;
-    const label = current(id) ? "your plan" : `${onCloud ? "switch to" : "get"} ${name}`;
+    const label = current(id) ? "your plan" : !owned && trialAction(catalog) || `${onCloud ? "switch to" : "get"} ${name}`;
     return <PlanCard key={id} id={id} i={i} catalog={catalog} interval={interval} current={current(id)} action={current(id) ? label : direct.label(id, label)} onChoose={id === "team" ? null : () => void direct.choose(id)} disabled={current(id) || direct.busy !== null} busy={direct.busy === id} note={current(id) ? null : direct.note(id)} />;
   };
 

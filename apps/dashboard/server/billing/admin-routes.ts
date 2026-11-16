@@ -22,14 +22,15 @@ export function createAdminRoutes(ctx: BillingContext) {
     if (cart.desktop.kind !== "none") cart.desktop.region = config.defaultRegion;
     return cart;
   }
-  function publicConfig() {
+  /** the plans the app sells; `trialDays` on each while a first plan starts free (the app reads it per plan) */
+  function publicConfig(trialDays: number | null = service.trialDays(null)) {
     const catalog = service.catalog();
     return { cloudContractVersion: 1, plans: catalog.bundles.filter(b => b.id !== "free").map(bundle => {
       const kind = bundle.cart.desktop.kind;
       if (kind === "none") throw new Error("Bundle desktop missing.");
       const desktop = config.desktops[kind], spec = bundle.cart.desktop.spec ?? desktop.machine;
       const license = bundle.cart.license.kind === "team" ? config.licenses.team : null;
-      return { tier: bundle.id, label: bundle.label, price: { currency: "USD", interval: "month", amount: bundle.monthlyCents },
+      return { tier: bundle.id, label: bundle.label, price: { currency: "USD", interval: "month", amount: bundle.monthlyCents }, ...(trialDays ? { trialDays } : {}),
         allowances: { cpus: spec.vcpu, memoryMb: spec.ramGb * 1024, diskGb: spec.diskGb, maxDiskGb: kind === "dedicated" ? config.dedicated.diskGb.max : spec.diskGb,
           computers: desktop.botComputers ?? 0, ...config.appAllowances[kind], ...(desktop.priority ? {} : { sleeps: true as const }),
           ...(license ? { seats: license.maxMembers, includedSeats: license.includedMembers, ...(license.extraMemberCents ? { extraSeatCents: license.extraMemberCents } : {}) } : {}) } };
@@ -74,7 +75,7 @@ export function createAdminRoutes(ctx: BillingContext) {
       ...(view.lastReportAt === null ? {} : { lastSeenAt: view.lastReportAt }),
       ...(["stopped", "ended"].includes(status) && c.destroyAt !== null ? { deleteAfter: c.destroyAt } : {}),
       removable: status === "ended" || status === "checkout",
-      ...(isPrimary && runs ? { renewal: { trial: false, endsAt: sub.cancelAtPeriodEnd ? sub.currentPeriodEnd : null, keptDays: config.graceDays } } : {}),
+      ...(isPrimary && runs ? { renewal: { trial: sub.trialEndsAt !== undefined, endsAt: sub.cancelAtPeriodEnd ? sub.currentPeriodEnd : null, keptDays: config.graceDays } } : {}),
       cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false, renewsAt: sub?.currentPeriodEnd ?? null };
   }
   /** `moves`: the app may move this computer's (or a server's) bots into this ready Cloud by itself; only its owner's */
@@ -95,7 +96,7 @@ export function createAdminRoutes(ctx: BillingContext) {
     const openPlan = open?.cart ? service.quote(open.cart).bundle : null;
     return { entitlement: active ? state.entitlement : { plan: "free", status: "inactive", expiresAt: null, version: state.entitlement.version },
       ...(summary ? { cloud: summary } : {}), teams, clouds: list.map(c => cloudEntry(account, c)).sort((a, b) => Number(b.primary) - Number(a.primary)), canAdd: !blocked, ...(blocked ? { addBlocked: blocked } : {}),
-      ...(!active ? { offer: { plans: publicConfig().plans, recommended: "pro", ...(open && openPlan ? { checkout: { plan: openPlan, openUntil: open.openUntil } } : {}) } } : {}), license: service.licenseCheck(account) };
+      ...(!active ? { offer: { plans: publicConfig(service.trialDays(account)).plans, recommended: "pro", ...(open && openPlan ? { checkout: { plan: openPlan, openUntil: open.openUntil } } : {}) } } : {}), license: service.licenseCheck(account) };
   }
   async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     const path = url.pathname, method = req.method ?? "GET";

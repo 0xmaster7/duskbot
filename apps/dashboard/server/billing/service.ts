@@ -275,7 +275,17 @@ export function createBillingService(options: BillingServiceOptions) {
   }
   function view(sub: StoredSubscription): SubscriptionView {
     return copy({ id: sub.id, cart: sub.cart, bundle: quote(sub.cart, config).bundle, lines: sub.lines, totalCents: sub.totalCents, status: sub.status,
-      licenseId: sub.licenseId, cloudId: sub.cloudId, currentPeriodEnd: sub.currentPeriodEnd, cancelAtPeriodEnd: sub.cancelAtPeriodEnd, createdAt: sub.createdAt });
+      licenseId: sub.licenseId, cloudId: sub.cloudId, currentPeriodEnd: sub.currentPeriodEnd, cancelAtPeriodEnd: sub.cancelAtPeriodEnd, createdAt: sub.createdAt,
+      ...(sub.trialEndsAt !== undefined && now() < sub.trialEndsAt ? { trialEndsAt: sub.trialEndsAt } : {}) });
+  }
+  /** the free days a first cloud plan of this account starts with: one trial per account, and per email across accounts
+   *  (a closed account's address signing up again); null signed out means the plain offer */
+  function trialDays(account: AccountRef | null, cart?: Cart): number | null {
+    if (!config.trial || cart && cart.desktop.kind === "none") return null;
+    if (!account) return config.trial.days;
+    const email = emailOf(account.email);
+    const owners = new Set([account.id, ...state.customers.filter(entry => entry.email === email).map(entry => entry.accountId)]);
+    return state.subscriptions.some(sub => owners.has(sub.accountId)) ? null : config.trial.days;
   }
   function cap(accountId: string) { if (clouds.list(accountId, true).filter(cloud => cloud.status !== "destroyed").length >= config.maxCloudsPerAccount) fail(409, "cap"); }
   /** a live subscription this cart would duplicate: the same plan, or a second work license */
@@ -448,7 +458,10 @@ export function createBillingService(options: BillingServiceOptions) {
     if (sub.pendingChange && ["plan_changed", "active", "renewed"].includes(event.type) && event.status === "active" && matchesProduct(event, sub.pendingChange.products)) applyChange(sub, sub.pendingChange, checkout.email);
     const first = sub.status === "pending" || sub.cloudId !== null && clouds.get(sub.cloudId)?.status === "checkout";
     if (event.type === "active" || event.type === "renewed") {
+      const trialStarts = first && checkout.trialDays !== undefined && sub.trialEndsAt === undefined && sub.currentPeriodEnd === null;
       sub.status = "active"; period(sub, event.nextBillingAt); if (event.type === "active") sub.cancelAtPeriodEnd = event.cancelAtPeriodEnd; checkout.status = "completed";
+      // dodo sends subscription.active at checkout with next_billing_date at the trial's end: that first period is the trial
+      if (trialStarts && sub.currentPeriodEnd !== null) { sub.currentPeriodStart = now(); sub.trialEndsAt = sub.currentPeriodEnd; }
       refreshLicense(sub, checkout.email);
       if (sub.cloudId && sub.cart.desktop.kind !== "none") {
         if (first) cloudAction({ kind: checkout.revive && sub.cloudId === checkout.cloudId ? "revive" : "activate", cloudId: sub.cloudId, subscriptionId: sub.id, plan: desktopPlan(sub.cart) });
@@ -510,7 +523,7 @@ export function createBillingService(options: BillingServiceOptions) {
   }
   function receipt(invoice: (typeof state.invoices)[number], sub: StoredSubscription | null) {
     if (invoice.amountCents === 0) return;
-    const paidBefore = state.invoices.some(other => other !== invoice && other.status !== "failed" && other.checkoutId === invoice.checkoutId);
+    const paidBefore = state.invoices.some(other => other !== invoice && other.status !== "failed" && other.amountCents > 0 && other.checkoutId === invoice.checkoutId);
     notices.push({ kind: "receipt", accountId: invoice.accountId, invoiceId: invoice.id, amountCents: invoice.amountCents, currency: invoice.currency, description: invoice.description, paidAt: now(),
       periodStart: sub?.currentPeriodStart ?? null, periodEnd: sub?.currentPeriodEnd ?? null, renews: sub ? !sub.cancelAtPeriodEnd : false, first: !paidBefore, cloudId: sub?.cloudId ?? null,
       revived: !paidBefore && state.checkouts.some(checkout => checkout.id === invoice.checkoutId && checkout.revive === true) });
@@ -666,15 +679,16 @@ export function createBillingService(options: BillingServiceOptions) {
     const revive = revivableCloud(account.id, cart);
     if (cart.desktop.kind !== "none" && !revive) cap(account.id);
     const cloud = revive ?? (cart.desktop.kind !== "none" ? clouds.order({ ...desktopPlan(cart), ...teamOf(cart, account.id, account.email), accountId: account.id, name: item.name?.trim() ?? "My Cloud", color: item.color ?? null, region: cart.desktop.region! }) : null);
+    const trial = input.operator ? null : trialDays(account, cart);
     const entry: StoredCheckout = { id: id("chk"), accountId: account.id, email: emailOf(account.email), kind: "cart", cart,
-      cloudId: cloud?.id ?? null, ...(revive ? { revive: true } : {}), providerSessionId: null, url: null, status: "open", source, createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
+      cloudId: cloud?.id ?? null, ...(revive ? { revive: true } : {}), providerSessionId: null, url: null, status: "open", source, ...(trial ? { trialDays: trial } : {}), createdAt: now(), openUntil: now() + config.checkoutOpenMinutes * 60_000,
       subscriptionId: null, amountCents: amount(quote(cart, config).totalCents), lines: quote(cart, config).lines };
     state.checkouts.push(entry); const owner = customer(account.id, account.email);
     if (!input.operator) record(draft({ key: `checkout.started:${entry.id}`, at: entry.createdAt, type: "checkout.started", via: "app", accountId: account.id, providerRef: entry.id,
       amountCents: entry.amountCents, currency: config.currency, plan: quote(cart, config).bundle ?? "custom", interval: cart.interval, reason: source }));
     store.commit(); sendNotices();
     try {
-      const session = await provider.createCheckout({ checkoutId: entry.id, accountId: account.id, email: entry.email, customerId: owner.providerCustomerId, cart: lines, returnUrl: url,
+      const session = await provider.createCheckout({ checkoutId: entry.id, accountId: account.id, email: entry.email, customerId: owner.providerCustomerId, cart: lines, returnUrl: url, ...(trial ? { trialDays: trial } : {}),
         billing: { interval: cart.interval, amountCents: entry.amountCents, currency: config.currency } });
       entry.providerSessionId = session.sessionId;
       if (closureFor(account.id)) { entry.status = "expired"; entry.url = null; store.commit(); fail(409, "billing_active"); }
@@ -1057,7 +1071,8 @@ export function createBillingService(options: BillingServiceOptions) {
     funnel: guarded(funnel), markReview: guarded(markReview), grantReview: guarded(grantReview),
     deletionBlockers: guarded(deletionBlockers), closeAccount: guarded(closeAccount), accountDeleted: guarded(accountDeleted), scrubDeleted: guarded(scrubDeleted), destroyDeleted: guarded(destroyDeleted), drainProviderCancels: guarded(drainProviderCancels),
     expireLapsed: guarded(expireLapsed),
-    catalog: guarded(() => catalogView(now(), config)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),
+    catalog: guarded((account?: AccountRef | null) => { const trial = trialDays(account ?? null); return { ...catalogView(now(), config), ...(trial ? { trialDays: trial } : {}) }; }),
+    trialDays: guarded((account: AccountRef | null) => trialDays(account)), quote: guarded((input: unknown) => quote(parsed(input), config)), checkout: guarded(checkout), handleWebhook: guarded(handleWebhook),
     subscriptions: guarded((accountId: string) => state.subscriptions.filter(sub => sub.accountId === accountId).map(view)), licenses: guarded(licenses), licenseCheck: guarded(licenseCheck), addMember: guarded(addMember), removeMember: guarded(removeMember),
     cancel: guarded((account: AccountRef, subscriptionId: string, survey?: CancelSurvey) => setCancel(account, subscriptionId, true, survey)), keep: guarded((account: AccountRef, subscriptionId: string) => setCancel(account, subscriptionId, false)),
     feedback: guarded(feedback), retentionStep: guarded(retentionStep), retentionDiscount: guarded(retentionDiscount), previewChange: guarded(previewChange), change: guarded(change),

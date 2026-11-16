@@ -25,8 +25,8 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
       product_id: sub.input.cart[0].productId, addons: sub.input.cart[0].addons.map(addon => ({ addon_id: addon.addonId, quantity: addon.quantity })),
       next_billing_date: new Date(sub.nextBillingAt).toISOString(), cancel_at_next_billing_date: sub.cancel, status: "active" };
   }
-  function payment(input: CreateCheckoutInput, customerId: string, subscriptionId: string | null) {
-    const paymentId = id("pay_"), amount = input.billing?.amountCents ?? 0, currency = input.billing?.currency ?? "USD";
+  function payment(input: CreateCheckoutInput, customerId: string, subscriptionId: string | null, free = false) {
+    const paymentId = id("pay_"), amount = free ? 0 : input.billing?.amountCents ?? 0, currency = input.billing?.currency ?? "USD";
     payments.set(paymentId, { amount, currency });
     return delivery("payment.succeeded", { payment_id: paymentId, subscription_id: subscriptionId, customer: { customer_id: customerId }, metadata: { checkoutId: input.checkoutId, accountId: input.accountId }, total_amount: amount, currency });
   }
@@ -55,9 +55,9 @@ export function createFakeBillingProvider(options: { secret?: string; now?: () =
       const previous = completed.get(sessionId); if (previous) return previous.map(delivery => sign(delivery.headers["webhook-id"], delivery.body));
       const input = sessions.get(sessionId); if (!input) throw new BillingProviderError("refused");
       const customerId = input.customerId ?? id("cus_"), subscriptionId = id("dsub_");
-      const result = [payment(input, customerId, subscriptionId)];
+      const trial = input.trialDays ?? 0, result = [payment(input, customerId, subscriptionId, trial > 0)];
       const interval = input.billing?.interval ?? (input.cart[0].productId.endsWith(":year") ? "year" : "month");
-      subscriptions.set(subscriptionId, { input: structuredClone(input), customerId, nextBillingAt: next(now(), interval), cancel: false });
+      subscriptions.set(subscriptionId, { input: structuredClone(input), customerId, nextBillingAt: trial ? now() + trial * 86_400_000 : next(now(), interval), cancel: false });
       result.push(delivery("subscription.active", subscriptionData(subscriptionId)));
       completed.set(sessionId, result); return result;
     },

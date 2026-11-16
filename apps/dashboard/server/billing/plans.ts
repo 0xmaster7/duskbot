@@ -11,7 +11,8 @@ export interface BillingConfig {
   /** a managed cloud's internet upload a calendar month (UTC), in GB: the owner is alerted, then it is slowed, then paused */
   egressGb: Record<"shared_s" | "shared_m" | "dedicated", { alert: number; steps: Array<{ gb: number; mbit: number }>; pause: number }>;
   appAllowances: Record<"shared_s" | "shared_m" | "dedicated", { computerHours: number; voiceCharacters: number }>;
-  trial: null;
+  /** a free trial on a first cloud plan (DUSK_TRIAL_DAYS, 1 to 30); null sells every plan from the first day */
+  trial: { days: number } | null;
   bundles: Array<Pick<BundleView, "id" | "label" | "cart" | "highlights">>;
   regions: Region[]; defaultRegion: string; poolRegions: string[]; products: Record<string, string>;
 }
@@ -33,6 +34,11 @@ export function dodoProducts(env: Record<string, string | undefined>): Record<st
   const value: unknown = JSON.parse(env.DUSK_DODO_PRODUCTS);
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.values(value).some(id => typeof id !== "string" || !id.trim())) throw new Error("Invalid DUSK_DODO_PRODUCTS.");
   return value as Record<string, string>;
+}
+
+export function trialConfig(value: string | undefined): BillingConfig["trial"] {
+  const days = Number(value);
+  return value && Number.isInteger(days) && days >= 1 && days <= 30 ? { days } : null;
 }
 
 function freeWorkUntil(value: string | undefined) {

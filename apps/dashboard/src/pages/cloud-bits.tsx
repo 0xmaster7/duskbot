@@ -7,7 +7,7 @@ import { api } from "../lib/api";
 import type { CheckoutSource, CloudDesktop, PlanCatalog } from "../data/contracts";
 import { bundleOf, desktopOf, dollars, planSpecLine } from "../data/pricing";
 import { planSelection, type PaidPlan } from "./plan-sheet";
-import { useQuickCheckout } from "./cloud-offer";
+import { checkoutDone, trialAction, useQuickCheckout } from "./cloud-offer";
 import { useSession } from "../data/session";
 import { duration } from "../lib/format";
 import { Link, navigate } from "../lib/router";
@@ -112,7 +112,7 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
     setBusy(true); setError(null);
     try {
       if (await checkout({ source, kind: "plan", selection: planSelection(catalog, pick, { interval: "month", work: false }), bundle: null })) {
-        toast("paid. your dusk cloud is being set up.");
+        toast(checkoutDone(catalog));
         if (onDone) await onDone(); else navigate("/cloud");
       }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -133,7 +133,7 @@ export function QuickPick({ catalog, source, className, onDone, secondary }: { s
       {error && <p role="alert" className="mt-2 text-13 text-bad">{error}</p>}
       <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
         {secondary}
-        <Button variant="primary" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "opening checkout" : `continue, ${dollars(chosen?.monthly ?? 0)}/mo`}</Button>
+        <Button variant="primary" onClick={() => void go()} disabled={busy || !chosen}>{busy ? "opening checkout" : trialAction(catalog) ?? `continue, ${dollars(chosen?.monthly ?? 0)}/mo`}</Button>
       </div>
     </div>
   );

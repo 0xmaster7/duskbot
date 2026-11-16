@@ -27,7 +27,9 @@ export function createBillingRoutes(ctx: BillingContext) {
     try {
       if (path === "/v1/billing/catalog" && method === "GET") {
         const wake = ctx.wakeStats();
-        json(res, 200, { ...service.catalog(), ...(Object.keys(wake).length ? { wake } : {}), ...(ctx.checkoutOpen ? {} : { checkoutOpen: false }) }); return true;
+        // the trial is offered per account: a signed-in one that already had a plan sees the plain prices
+        const account = ctx.config.trial ? await Promise.resolve(ctx.accounts.fromCookie(req)).catch(() => null) : null;
+        json(res, 200, { ...service.catalog(account), ...(Object.keys(wake).length ? { wake } : {}), ...(ctx.checkoutOpen ? {} : { checkoutOpen: false }) }); return true;
       }
       if (path === "/v1/billing/quote" && method === "POST") { json(res, 200, service.quote(cartInput((await body(req)).cart))); return true; }
       if (path === "/v1/billing/ops/funnel" && method === "GET") {

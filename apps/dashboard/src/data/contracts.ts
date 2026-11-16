@@ -126,6 +126,8 @@ export interface PlanCatalog {
   yearlyDiscount: number;
   /** work use is free until then (an early grace period); null when it is over */
   workFreeUntil: number | null;
+  /** a first plan starts with this many free days; absent when there is no trial for this account */
+  trialDays?: number;
 }
 
 /** what the builder holds and checkout buys: one subscription with a line per part */

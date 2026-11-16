@@ -11,6 +11,8 @@ export interface CreateCheckoutInput {
   customerId: string | null;
   cart: ProviderCartLine[];
   returnUrl: string;
+  /** a free trial before the first charge (dodo subscription_data.trial_period_days) */
+  trialDays?: number;
   /** local quote for the fake provider; never sent to dodo */
   billing?: { interval: "month" | "year" | null; amountCents: number; currency: string };
 }

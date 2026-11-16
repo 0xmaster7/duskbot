@@ -95,6 +95,9 @@ export interface Catalog {
   freeWorkUntil: number | null;
   /** days a cancelled or ended cloud desktop is kept, stopped, before it is destroyed */
   graceDays: number;
+  /** a first cloud plan starts with this many free days (a card is taken, the first charge comes after); absent when
+   *  there is no trial or this account already had one */
+  trialDays?: number;
   /** measured wake times per desktop kind (wake request to the desktop answering again), only once enough wakes were seen */
   wake?: Partial<Record<Exclude<DesktopKind, "none">, WakeStat>>;
 }
@@ -149,6 +152,8 @@ export interface SubscriptionView {
   /** renewal is off: everything on it ends at currentPeriodEnd */
   cancelAtPeriodEnd: boolean;
   createdAt: number;
+  /** a free trial: nothing is charged until then, the first charge comes at this time unless cancelled */
+  trialEndsAt?: number;
 }
 
 export const LICENSE_STATUSES = ["active", "grace", "expired"] as const;

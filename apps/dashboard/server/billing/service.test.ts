@@ -771,3 +771,58 @@ describe("App Review's demo plan", () => {
     expect(clouds.get(answer.cloudId!)!.review).toBeUndefined();
   });
 });
+
+describe("free trial", () => {
+  beforeEach(() => {
+    service.close(); config = { ...structuredClone(BILLING_CONFIG), trial: { days: 3 } };
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+  });
+  it("is off without a trial config: no trial days in the catalog or the checkout", async () => {
+    service.close(); config = structuredClone(BILLING_CONFIG);
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+    expect(service.catalog(owner).trialDays).toBeUndefined(); expect(service.trialDays(null)).toBeNull();
+    const { checkout, sub } = await buy(desktopOnly());
+    expect(checkout.trialDays).toBeUndefined(); expect(provider.sessions.get(checkout.providerSessionId!)?.trialDays).toBeUndefined();
+    expect(sub.trialEndsAt).toBeUndefined(); expect(store.state.invoices[0].amountCents).toBeGreaterThan(0);
+  });
+  it("sends the trial on an account's first cloud checkout only, never on a license-only cart", async () => {
+    expect(service.catalog(owner).trialDays).toBe(3);
+    const license = await service.checkout(stranger, { kind: "cart", cart: { interval: "month", license: { kind: "solo" }, desktop: { kind: "none" } } });
+    expect(store.state.checkouts.find(row => row.id === license.checkoutId)!.trialDays).toBeUndefined();
+    const { checkout, sub } = await buy(desktopOnly());
+    expect(provider.sessions.get(checkout.providerSessionId!)?.trialDays).toBe(3);
+    expect(sub).toMatchObject({ status: "active", trialEndsAt: time + 3 * day, currentPeriodStart: time, currentPeriodEnd: time + 3 * day });
+    expect(service.subscriptions(owner.id)[0]).toMatchObject({ trialEndsAt: time + 3 * day });
+    expect(clouds.activate).toHaveBeenCalledWith(sub.cloudId, sub.id, expect.anything());
+    expect(service.catalog(owner).trialDays).toBeUndefined();
+    const second = await service.checkout(owner, { kind: "cart", cart: { ...preset(2), license: { kind: "none" } } });
+    const again = store.state.checkouts.find(row => row.id === second.checkoutId)!;
+    expect(again.trialDays).toBeUndefined(); expect(provider.sessions.get(again.providerSessionId!)?.trialDays).toBeUndefined();
+    const other = { id: "other", email: "OWNER@example.com" };
+    expect(service.trialDays(other)).toBeNull();
+  });
+  it("keeps a trialing subscription active through the never-paid rules and their heal on restart", async () => {
+    const { sub } = await buy(desktopOnly());
+    service.close(); service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+    expect(store.state.subscriptions[0]).toMatchObject({ id: sub.id, status: "active", trialEndsAt: time + 3 * day });
+    expect(clouds.get(sub.cloudId!)?.status).not.toBe("destroyed");
+  });
+  it("a trial ending without payment takes the failed-payment path, with the grace from the trial's end", async () => {
+    const { sub } = await buy(desktopOnly());
+    time += 3 * day; deliver(provider.fail(sub.providerSubscriptionId!));
+    const row = store.state.subscriptions[0];
+    expect(row.status).toBe("payment_problem");
+    expect(clouds.setPaymentProblem).toHaveBeenLastCalledWith(sub.cloudId, true);
+    expect(clouds.scheduleDestroy).toHaveBeenLastCalledWith(sub.cloudId, row.trialEndsAt! + 30 * day);
+  });
+  it("cancelling in the trial ends the plan at the trial's end and charges nothing", async () => {
+    const { sub } = await buy(desktopOnly());
+    await service.cancel(owner, sub.id, { answer: "price" });
+    expect(provider.cancelCalls.at(-1)).toEqual({ subscriptionId: sub.providerSubscriptionId, cancel: true });
+    expect(store.state.subscriptions[0]).toMatchObject({ status: "active", cancelAtPeriodEnd: true, currentPeriodEnd: time + 3 * day });
+    expect(clouds.scheduleDestroy).toHaveBeenLastCalledWith(sub.cloudId, time + 3 * day + 30 * day);
+    expect(store.state.invoices.every(invoice => invoice.amountCents === 0)).toBe(true);
+    time += 3 * day; deliver(provider.expire(sub.providerSubscriptionId!));
+    expect(store.state.subscriptions[0].status).toBe("ended");
+  });
+});

@@ -323,3 +323,39 @@ it("lets the desktop's Start fresh cancel its own plan, then delete its own acco
   // the stranger's account is untouched
   expect((await f.request("session", undefined, stranger)).status).toBe(200);
 });
+
+it("offers no trial without DUSK_TRIAL_DAYS", async () => {
+  const f = await fixture(); await f.signIn();
+  const publicConfig = await f.request("/api/public/config");
+  expect((publicConfig.data.plans as Array<Record<string, unknown>>).some(plan => "trialDays" in plan)).toBe(false);
+  expect(parseCloudOffer((await f.session()).offer)?.plans.some(plan => plan.trialDays)).toBe(false);
+  expect((await f.request("/v1/billing/catalog")).data.trialDays).toBeUndefined();
+  expect((await f.client.checkout("starter", "app_card")).outcome).toBe("opened");
+  expect(f.snapshot().checkouts[0].trialDays).toBeUndefined();
+});
+
+it("with DUSK_TRIAL_DAYS a first plan starts free, runs its cloud through the trial, and the trial is used once", async () => {
+  vi.stubEnv("DUSK_TRIAL_DAYS", "3");
+  const f = await fixture(); await f.client.start(); await f.signIn();
+  const publicConfig = await f.request("/api/public/config");
+  expect(parsePublicOffer(publicConfig.data)?.plans.map(plan => plan.trialDays)).toEqual([3, 3, 3]);
+  expect(parseCloudOffer((await f.session()).offer)?.plans.map(plan => plan.trialDays)).toEqual([3, 3, 3]);
+  expect((await f.request("/v1/billing/catalog")).data.trialDays).toBe(3);
+  expect((await f.client.checkout("starter", "app_card")).outcome).toBe("opened");
+  expect(f.snapshot().checkouts[0].trialDays).toBe(3);
+  expect(f.billing.fake!.sessions.get(f.snapshot().checkouts[0].providerSessionId!)?.trialDays).toBe(3);
+  const checkout = await f.complete();
+  const sub = f.snapshot().subscriptions[0];
+  expect(sub).toMatchObject({ status: "active", trialEndsAt: f.now() + 3 * 86_400_000, currentPeriodEnd: f.now() + 3 * 86_400_000, currentPeriodStart: f.now() });
+  expect(f.snapshot().invoices[0]).toMatchObject({ amountCents: 0, status: "paid" });
+  expect(f.mailer.outbox.some(mail => /receipt/i.test(mail.subject ?? ""))).toBe(false);
+  await f.reconcile(); await f.client.refresh();
+  expect(f.client.state()).toMatchObject({ entitlement: { plan: "pro", tier: "starter", status: "active" }, machine: { status: "ready" } });
+  const fields = await f.session();
+  expect(parseCloudRenewal(fields.clouds)).toMatchObject({ trial: true, cancelled: false, renewsAt: sub.trialEndsAt });
+  expect(fields.offer).toBeUndefined();
+  // the same account never gets a second trial, and the trial's state survives the billing service starting again
+  expect(f.billing.service.trialDays({ id: checkout.accountId, email: "owner@example.test" })).toBeNull();
+  expect(f.billing.service.trialDays({ id: "someone-else", email: "OWNER@example.test" })).toBeNull();
+  expect(f.billing.service.trialDays({ id: "someone-else", email: "new@example.test" })).toBe(3);
+});

@@ -10,7 +10,7 @@ import { navigate } from "../lib/router";
 import { Choice, Field, Select, Sheet, Toggle } from "../ui/controls";
 import { track } from "../lib/analytics";
 import { Button, cx, Skeleton } from "../ui/kit";
-import { CHECKOUT_SOON } from "./cloud-offer";
+import { CHECKOUT_SOON, checkoutDone, trialAction } from "./cloud-offer";
 import { EASE_OUT, m } from "../ui/motion";
 
 /** a submit in flight: the button keeps its color and shows a quiet spinner */
@@ -117,7 +117,7 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
         track({ name: "plan_chosen", props: { plan, period: interval } });
         if (catalog.checkoutOpen === false) { setError(CHECKOUT_SOON); return; }
         try { sessionStorage.setItem(CHECKOUT_PLAN_KEY, plan); } catch {}
-        if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast("paid. your dusk cloud is being set up."); onClose(); navigate("/cloud"); }
+        if (await checkout({ source, kind: "plan", selection: sel, bundle: null })) { toast(checkoutDone(catalog)); onClose(); navigate("/cloud"); }
         else setError("checkout didn't open. try again.");
       }
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -139,10 +139,10 @@ export function PlanSheet({ start, source, work = false, onClose }: { source: Ch
             <span className="text-14 text-ink-3">total</span>
             <span className="num"><span className="text-24 font-medium tracking-[-0.035em] text-ink">{cart ? money(interval === "year" ? cart.dueNow : cart.perMonth) : "..."}</span><span className="text-14 text-ink-3">{interval === "year" ? "/yr" : "/mo"}</span></span>
           </div>
-          <p className="num mt-0.5 text-end text-13 text-ink-4">{interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
+          <p className="num mt-0.5 text-end text-13 text-ink-4">{!owned && catalog.trialDays ? `free for ${catalog.trialDays} days, then ` : ""}{interval === "year" ? "billed yearly, + tax where applicable" : "billed monthly, + tax where applicable"}</p>
           {charge !== null && <ChargeLine charge={charge} cart={cart} interval={interval} from={billing?.subscription?.currentPeriodEnd} />}
           {(error ?? quoteError) && <p role="alert" className="mt-3 text-13 text-bad">{error ?? quoteError}</p>}
-          <Button variant="primary" className={cx("mt-4 w-full !h-11", busy && BUSY)} onClick={() => void go()} disabled={busy || unchanged} aria-busy={busy}>{busy ? <Working>{owned ? "switching" : "opening checkout"}</Working> : unchanged ? "your plan" : charge !== null ? `pay ${money(charge)} and switch` : owned ? "switch plan" : "checkout"}</Button>
+          <Button variant="primary" className={cx("mt-4 w-full !h-11", busy && BUSY)} onClick={() => void go()} disabled={busy || unchanged} aria-busy={busy}>{busy ? <Working>{owned ? "switching" : "opening checkout"}</Working> : unchanged ? "your plan" : charge !== null ? `pay ${money(charge)} and switch` : owned ? "switch plan" : trialAction(catalog) ?? "checkout"}</Button>
           <p className="mt-3 text-center text-12 text-ink-4">set up in about a minute.</p>
         </div>
       }
