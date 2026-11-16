@@ -35,7 +35,13 @@ if [ "${DRY_RUN:-}" = 1 ]; then echo "dry run: verified $TAG (run $run); nothing
 
 gh repo view "$DOWNLOADS" --json visibility --jq .visibility | grep -qx PUBLIC || { echo "$DOWNLOADS must exist and be public" >&2; exit 1; }
 gh release view "$TAG" --repo "$DOWNLOADS" >/dev/null 2>&1 || gh release create "$TAG" --repo "$DOWNLOADS" --title "dusk bot $VERSION" --notes "dusk bot $VERSION. Download from https://dusk.bot/download"
-gh release upload "$TAG" --repo "$DOWNLOADS" --clobber "$work"/assets/DuskBot* "$work/site/SHA256SUMS"
+# only what people and the apps fetch: the stable installer names the download page links to, the mac update zips and
+# browser parts the apps fetch by version, and the checksums; the versioned copies of the installers stay on the source release
+shopt -s nullglob
+keep=("$work"/assets/DuskBot{.dmg,-intel.dmg,-setup.exe,-amd64.deb,.AppImage} "$work"/assets/DuskBot-"$VERSION"-{arm64,x64}.zip "$work"/assets/DuskBot-"$VERSION"-browser-darwin-*.zip)
+shopt -u nullglob
+[ "${#keep[@]}" -ge 7 ] || { echo "missing installers in $TAG: ${keep[*]##*/}" >&2; exit 1; }
+gh release upload "$TAG" --repo "$DOWNLOADS" --clobber "${keep[@]}" "$work/site/SHA256SUMS"
 gh release edit "$TAG" --repo "$DOWNLOADS" --latest
 
 mkdir -p "$SITE/public/landing/releases/$VERSION"

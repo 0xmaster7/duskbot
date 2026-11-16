@@ -7,7 +7,6 @@
     "mac-arm64": "DuskBot.dmg",
     "mac-x64": "DuskBot-intel.dmg",
     "windows": "DuskBot-setup.exe",
-    "windows-zip": "DuskBot-windows.zip",
     "linux-deb": "DuskBot-amd64.deb",
     "linux-appimage": "DuskBot.AppImage"
   },
@@ -21,7 +20,6 @@
     "mac-arm64": 345995938,
     "mac-x64": 370169778,
     "windows": 215991026,
-    "windows-zip": 369446475,
     "linux-deb": 273125548,
     "linux-appimage": 322955750
   }
