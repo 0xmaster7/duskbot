@@ -265,9 +265,10 @@ if [ "$SKIP_BUILD" = 0 ]; then
     v="$(envget "$name")"; [ -n "$v" ] && export "$name=$v"
   done < <(node -e 'for (const c of require("./shared/native-connectors.json").connectors) for (const n of [c.clientIdEnv, c.clientSecretEnv]) if (n) console.log(n)')
   unset CSC_LINK CSC_KEY_PASSWORD
-  # both arches come from electron-builder.yml; a single --arch narrows it
+  # both arches come from electron-builder.yml; a single --arch narrows it. the yml's targets name their arches, which
+  # beat a bare --arm64, so the targets are named here too: electron-builder then builds only the arch asked for
   arch_flags=()
-  [ "${#ARCHES[@]}" = 1 ] && arch_flags=("--${ARCHES[0]}")
+  [ "${#ARCHES[@]}" = 1 ] && arch_flags=(--mac dmg --mac zip "--${ARCHES[0]}")
   export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}"
   # never let electron-builder notarize or open anything; notarization happens below
   if [ "$IDENTITY" != "-" ]; then
