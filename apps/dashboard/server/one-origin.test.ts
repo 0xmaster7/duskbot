@@ -70,6 +70,16 @@ describe("one origin: dashboard, admin and site", () => {
     expect(siteHits).toEqual(["/pricing"]);
   });
 
+  it("sends someone signed in from / to the dashboard; signed out, or /?home, still gets the home page", async () => {
+    const before = siteHits.length;
+    expect((await get("/")).status).toBe(404);
+    expect(siteHits.slice(before)).toEqual(["/"]);
+    const person = await login("home@dusk.test");
+    const answer = await get("/", { cookie: person.cookie });
+    expect([answer.status, answer.headers.get("location")]).toEqual([302, "/dashboard/"]);
+    expect((await get("/?home", { cookie: person.cookie })).status).toBe(404);
+  });
+
   it("answers the apps' @devs reports itself, never the site's 404", async () => {
     const report = { installId: "test-install-0001", source: "bot", description: "it broke", appVersion: "0.1.150", platform: "darwin arm64, desktop app", diagnostics: "" };
     const sent = await fetch(`${url}/api/bug-reports`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(report) });

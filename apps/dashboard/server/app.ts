@@ -690,6 +690,8 @@ export function createDashboardApp(options: DashboardAppOptions) {
         fail(404, "not_found", "Route not found.");
       }
     }
+    // someone signed in lands on their dashboard, not the marketing home; /?home still shows the home page
+    if (site && pageBase && (method === "GET" || method === "HEAD") && path === "/" && !url.searchParams.has("home") && auth.webSession(req)) return moved(res, 302, `${pageBase}/`);
     if (site && !ACCOUNT_PREFIXES.some(prefix => path.startsWith(prefix)) && !(path === pageBase || path.startsWith(`${pageBase}/`))
       && !(method === "GET" && PAGE_ROUTES.some(route => path === route || path.startsWith(`${route}/`)))) { analytics.crawlerVisit(req, new URL(publicUrl).hostname); return site(req, res); }
     if ((method === "GET" || method === "HEAD") && path === MCP_CLIENT_METADATA_PATH) {
