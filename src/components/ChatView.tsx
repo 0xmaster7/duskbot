@@ -1476,7 +1476,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       )}
       {/* grok's usage warning rides just above the composer, near or at a limit; a failed reply's card already says so, so it wins */}
       {canWrite !== false && !rescuing && !trailing?.failures.length && !(lastShownRow && codexUsageLimitReached(`${lastShownRow.text ?? ""} ${lastShownRow.tool?.name ?? ""}`)) && (
-        <div className="pointer-events-auto px-5 pb-2">
+        // empty, it takes no room: its padding coming and going with a turn moved the whole chat 8px
+        <div className="pointer-events-auto px-5 pb-2 empty:hidden">
           <WeeklyLimitLine onSeeUsage={() => dispatch(openSettings("usage"))} error={state.error} clearError={clearLimitError} />
           <UsageBanner engine={answering.instanceId} onSeeUsage={() => dispatch(openSettings("usage"))} />
         </div>
