@@ -48,10 +48,16 @@ async function withFixture(run: (helpers: {
       },
       control: (args) => runControlDusk([...args, "--url", fixture.info.url]),
       launched: async () => {
-        await expect.poll(() => existsSync(fixture.fixtureDumpPath), { timeout: 30_000 }).toBe(true);
-        const value = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")) as Launched;
-        rmSync(fixture.fixtureDumpPath, { force: true });
-        return value;
+        // a one-shot helper call (a usage note on a stopped chat since 8768dfd42) dumps too, with no MCP servers: not a turn
+        let value: Launched | null = null;
+        await expect.poll(() => {
+          if (!existsSync(fixture.fixtureDumpPath)) return false;
+          const dumped = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")) as Launched;
+          rmSync(fixture.fixtureDumpPath, { force: true });
+          if (dumped.mcpConfig) value = dumped;
+          return value !== null;
+        }, { timeout: 30_000 }).toBe(true);
+        return value!;
       },
     });
   } finally { await fixture.close(); }
