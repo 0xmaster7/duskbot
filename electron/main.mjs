@@ -93,6 +93,7 @@ import environmentsModule from "./environments.cjs";
 import localOriginModule from "./local-origin.cjs";
 import { aboutPanelOptions, buildApplicationMenu } from "./menu.mjs"; import { installDesktopBots } from "./desktop-bots.mjs"; import { installReloadKeys } from "./reload-keys.mjs"; import { startDesktopErrorReporting } from "./desktop-errors.mjs"; import { createUpdateNotice } from "./update-notice.mjs"; import { createAppUpdater, developerIdSigned, quietNow, squirrelInstaller, justUpdated } from "./app-update.mjs"; import { quietSignals } from "./update-when-quiet-main.mjs"; import { createDemoUpdater, demoUpdateFlag } from "./app-update-demo.mjs";
 import { acquireDataDirLease } from "./data-dir-lease.mjs";
+import { offerMoveToApplications } from "./move-to-applications.mjs";
 import { switchLocalEnvironment } from "./environment-switch.mjs";
 import { createManagedDesktopClient, createManagedDesktopRelay, createManagedDesktopStore } from "./managed-desktop.mjs";
 import { analyticsAllowed, createProductEvents } from "./product-events.mjs"; import { crashProps, createExperienceRelay, updateFailStage } from "./experience-relay.mjs"; import { createUsageNotes } from "./usage-notes.mjs";
@@ -3311,6 +3312,8 @@ setCuaStateListener((connection) => {
 });
 
 app.whenReady().then(async () => {
+  if (await offerMoveToApplications({ app, ask: options => dialog.showMessageBox(options), memory: jsonFile(path.join(app.getPath("userData"), "move-to-applications.json")), home: os.homedir(), execPath: process.execPath,
+    automated: process.env.DUSK_SMOKE_TEST === "1" || app.commandLine.hasSwitch("remote-debugging-port"), atLogin: loginItem.startedHidden(), log: slog })) return;
   if (startedFresh) await session.defaultSession.clearStorageData().catch(error => slog(`start fresh: window storage not cleared (${error?.message ?? error})`));
   app.setAboutPanelOptions(aboutPanelOptions(app.getVersion()));
   startupTrace.mark("ready");
