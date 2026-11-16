@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { writeFileAtomic } from "./atomic.ts";
+import { isToolFailureStop } from "./drivers/tool-failure.ts";
 import {
   MAX_REPORT_FRUSTRATIONS, MAX_REPORT_RUNS, cleanUsageDigest, MAX_REPORT_SESSIONS, SESSION_NOTE_MAX, cleanUsageSession, MAX_REPORT_SIGNALS, MAX_REPORT_TURNS, categorize, cleanUsageFrustration, cleanUsageRun, cleanUsageSnapshot, cleanUsageTurn, engineFamily, failureReason,
   appAction, modelFamily, runTrigger, scrubSummary, toolSignals, type RunEvery, type UsageSignal,
@@ -41,7 +42,9 @@ export function hashId(salt: string, id: string): string {
 /** a turn's facts as a usage record; the reason line and tool names are read here and only their words kept */
 export function turnRecord(facts: TurnFacts, place: UsagePlace, now: number): UsageTurn | null {
   const { tools, apps } = toolSignals(facts.toolNames);
-  const outcome: UsageOutcome = facts.status === "interrupted" ? "cancelled" : facts.status === "error" ? "failed" : "ok";
+  // the trace books the guard's "Stopped because the tool call ... failed" as interrupted; that is a failure, not the person's stop
+  const toolStop = facts.status === "interrupted" && isToolFailureStop(facts.reason);
+  const outcome: UsageOutcome = toolStop ? "failed" : facts.status === "interrupted" ? "cancelled" : facts.status === "error" ? "failed" : "ok";
   const from: UsageFrom = facts.trigger.kind === "routine" ? "routine" : facts.trigger.kind === "bot" ? "bot" : facts.trigger.kind === "helper" ? "helper"
     : facts.trigger.kind === "user" ? "remote" : "app";
   const end = facts.endedAt ?? now, start = facts.startedAt ?? end;
@@ -49,7 +52,7 @@ export function turnRecord(facts: TurnFacts, place: UsagePlace, now: number): Us
   const actions = [...new Set(facts.toolNames.map(appAction).filter((action): action is string => !!action))];
   const ms = Math.max(0, Math.min(7 * 86_400_000 - 1, Math.round(end - start)));
   const firstMs = facts.firstStepAt !== undefined ? Math.round(facts.firstStepAt - start) : undefined;
-  return cleanUsageTurn({ id: newId(), at: end, engine: engineFamily(facts.driverKind), outcome, ...(outcome === "ok" ? {} : { reason: outcome === "cancelled" ? "unknown" : failureReason(facts.reason) }),
+  return cleanUsageTurn({ id: newId(), at: end, engine: engineFamily(facts.driverKind), outcome, ...(outcome === "ok" ? {} : { reason: outcome === "cancelled" ? "unknown" : toolStop ? "tool" : failureReason(facts.reason) }),
     ms, tools, apps, category: categorize({ tools, apps }), from, place, room: facts.room, ...(firstMs !== undefined && firstMs >= 0 && firstMs <= ms ? { firstMs } : {}),
     ...(facts.model ? { model: modelFamily(facts.model) } : {}), failedTools: failed.tools, failedApps: failed.apps, actions, ...(facts.bot ? { bot: facts.bot } : {}), ...(facts.chat ? { chat: facts.chat } : {}) }, now);
 }

@@ -8,6 +8,7 @@ import {
   type UsageFrustration, type UsageSession,
 } from "../shared/usage-signals.ts";
 import { parseWorkspaceReport } from "../shared/dashboard-protocol.ts";
+import { toolFailureMessage } from "./drivers/tool-failure.ts";
 import {
   BIG_PER_DAY, BIG_SESSION_TURNS, SESSION_GAP_MS, MIN_WORKSPACE_TURNS, createFrustrationWatch, sessionPrompt, summaryPrompt, createUsageOutbox, digestPrompt, isCorrective, isShouting, isSwearing, sameRequest, turnRecord, weeklyAllowance, type FrustrationTurn,
 } from "./usage-signals.ts";
@@ -274,6 +275,20 @@ describe("frustration watch", () => {
     await flush();
     expect(reports).toHaveLength(1);
     expect(reports[0]!.signals).toEqual(["failed"]);
+  });
+
+  it("counts a turn the tool-failure guard stopped as a failure, not the person's stop", async () => {
+    const stop = toolFailureMessage(["agents_manage_room"], []);
+    const facts = { driverKind: "openaiChat", toolNames: ["agents_manage_room"], failedNames: ["agents_manage_room"], trigger: { kind: "owner" }, room: true, startedAt: NOW - 2000, endedAt: NOW };
+    const guarded = turnRecord({ ...facts, status: "interrupted", reason: stop }, "desktop", NOW)!;
+    expect(guarded).toMatchObject({ outcome: "failed", reason: "tool" });
+    expect(turnRecord({ ...facts, status: "interrupted", reason: "turn interrupted by the person" }, "desktop", NOW)).toMatchObject({ outcome: "cancelled", reason: "unknown" });
+    const { watch, reports, warm } = setup();
+    warm();
+    for (let i = 0; i < 3; i++) watch.turn("chat", "bot_1", { engine: guarded.engine, category: guarded.category, tools: guarded.tools, apps: guarded.apps, outcome: guarded.outcome });
+    await flush();
+    expect(reports).toHaveLength(1);
+    expect(reports[0]!.signals).toContain("failed");
   });
 
   it("waits for a second turn before it fires", async () => {

@@ -26,3 +26,8 @@ export function toolFailureMessage(failed: readonly string[], refused: readonly 
   const after = broke.length || !notAllowed.length ? "the failed step shows the error" : "that step didn't run";
   return `Stopped because ${why}. The bot's reply isn't proof the work was done; ${after}.`;
 }
+
+/** a turn's stop line came from `toolFailureMessage`: the guard stopped it on a failed or refused call, not the person */
+export function isToolFailureStop(text: unknown): boolean {
+  return typeof text === "string" && /^Stopped because (?:the tool calls? |a tool call failed)/.test(text.trimStart());
+}
