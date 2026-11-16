@@ -92,7 +92,7 @@ export function FeedbackDialog({ onClose, onSent, send = sendFeedback }: { onClo
           <Thumbs images={images} onRemove={remove} />
           {images.length < FEEDBACK_MAX_IMAGES && (
             <button type="button" data-feedback-add-images="" onClick={() => picker.current?.click()}
-              className={cn(smallButtonCls, "h-14 w-14 flex-col gap-0.5 rounded-[10px] px-0 text-[11px] text-ink-secondary")}>
+              className={cn(smallButtonCls, "h-14 min-w-14 flex-col gap-0.5 rounded-[10px] px-3 text-[11px] text-ink-secondary")}>
               <ImagePlus size={16} strokeWidth={1.75} aria-hidden="true" />{t("giveFeedback.addImages")}
             </button>
           )}
