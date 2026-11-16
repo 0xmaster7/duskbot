@@ -42,6 +42,40 @@ describe("a finished sign-in", () => {
   });
 });
 
+describe("how a sign-in went, for usage signals", () => {
+  it("tells a loopback sign-in's success from the AI's status, and a flow nobody finished as expired", async () => {
+    vi.useFakeTimers();
+    try {
+      const { instance } = fixture();
+      const outcomes: string[] = [];
+      let signedInNow = false;
+      const sessions = new ProviderAuthSessions({ outcome: (id, outcome, error) => outcomes.push(`${id} ${outcome}${error ? ` ${String(error)}` : ""}`), signedInNow: () => signedInNow });
+      // the browser came back to the engine's own loopback: the app watches the AI's status, never this flow's
+      await sessions.start(instance, "owner");
+      sessions.sawSignedIn("codex");
+      sessions.sawSignedIn("codex");
+      await sessions.status("codex", "owner", "random-flow");
+      expect(outcomes).toEqual(["codex started", "codex succeeded"]);
+
+      // the person gave up (chose an API key instead): told once, when it runs out
+      outcomes.length = 0;
+      const grok = { ...instance, instanceId: "grok", startAuthentication: vi.fn(async () => ({ ...await instance.startAuthentication(), flowId: "grok-flow" })) };
+      await sessions.start(grok, "owner");
+      await vi.advanceTimersByTimeAsync(61_000);
+      expect(outcomes).toEqual(["grok started", "grok expired sign-in timed out"]);
+
+      // a re-sign-in while already signed in: a signed-in status proves nothing about it
+      outcomes.length = 0;
+      signedInNow = true;
+      sessions.clearInstance("codex");
+      instance.startAuthentication.mockResolvedValueOnce({ phase: "waiting", flowId: "again", authorizationUrl: null, expiresAt: null });
+      await sessions.start(instance, "owner");
+      sessions.sawSignedIn("codex");
+      expect(outcomes).toEqual(["codex started"]);
+    } finally { vi.useRealTimers(); }
+  });
+});
+
 describe("provider login ownership", () => {
   it("forgets only the replaced provider's login reservation", async () => {
     const { sessions, instance } = fixture();

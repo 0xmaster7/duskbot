@@ -1390,11 +1390,12 @@ const attributeUsage = createUsageAttribution({ threadTrigger: (threadId) => tur
 
 const appSignIns = createAppSignIns();
 const providerAuthSessions = new ProviderAuthSessions({ signedIn: (instanceId) => limitTakeover.signedIn(instanceId),
+  signedInNow: (instanceId) => registry.knownSnapshot(instanceId)?.authenticated === true,
   outcome: (instanceId, outcome, error) => {
     const engine = engineFamily(registry.get(instanceId)?.driverKind), reason = failureReason(error instanceof Error ? error.message : typeof error === "string" ? error : "");
-    usageSignal("engine_sign_in", { engine, outcome, ...(outcome === "failed" ? { reason } : {}) });
+    usageSignal("engine_sign_in", { engine, outcome, ...(outcome === "failed" || outcome === "expired" ? { reason } : {}) });
     if (outcome === "failed") experience("engine_sign_in_failed", { engine, reason });
-  } }); const mcpServersHost = createMcpServersHost({ dataDir: DATA_DIR, cfg: () => cfg, persist: persistMcpServers, bots: () => store.bots, policy: (servers) => managedPolicy.filterMcp(servers), tell: (text, about) => notify(buildNoticeNotification(about, store.bot(about.id)?.threadId ?? "", text)), startsServers: (botId) => { const bot = store.bot(botId); return Boolean(bot && registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.customMcp === true); }, boxed: () => botBox.enabled(),
+  } }); registry.onSnapshot((instanceId, snapshot) => { if (snapshot.authenticated === true) providerAuthSessions.sawSignedIn(instanceId); }); const mcpServersHost = createMcpServersHost({ dataDir: DATA_DIR, cfg: () => cfg, persist: persistMcpServers, bots: () => store.bots, policy: (servers) => managedPolicy.filterMcp(servers), tell: (text, about) => notify(buildNoticeNotification(about, store.bot(about.id)?.threadId ?? "", text)), startsServers: (botId) => { const bot = store.bot(botId); return Boolean(bot && registry.get(bot.modelSelection.instanceId)?.adapter.capabilities.customMcp === true); }, boxed: () => botBox.enabled(),
   checksUrl: (name, server) => mcpOAuth.authState(name, server.url) === "none" && !teamConnections.personMcp().includes(name) });
 // made once MCP servers can be changed (createConnectorSync below); the private port asks for it through this
 let connectorSyncRef: ConnectorSync | null = null;

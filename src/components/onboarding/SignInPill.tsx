@@ -4,7 +4,7 @@ import { openExternalLink } from "@/lib/app-links";
 import { cloudAsleep, cloudWaking } from "@/lib/cloud-power";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
-import { engineSignedIn } from "@/lib/product-events";
+import { engineSignedIn, tileSignInEngine } from "@/lib/product-events";
 import { trail } from "@/lib/trail";
 import { api, useStore, type InstanceInfo } from "@/state/store";
 import { StageSwap } from "./ConnectMotion";
@@ -48,7 +48,7 @@ export function useConnectFlow() {
   useEffect(() => flow.subscribe((next) => {
     setState(next);
     if (next.stage === "connected" && !next.reused) {
-      engineSignedIn(flow.target?.tile === "claude" ? "claude" : flow.target?.tile ?? "", "browser");
+      engineSignedIn(tileSignInEngine(flow.target?.tile), "browser");
       void models.current(flow.instance).catch(() => {});
     }
   }), [flow]);

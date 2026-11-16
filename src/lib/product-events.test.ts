@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/state/store";
-import { keySaveFailure, keyTestResult, savedKeyResult } from "./product-events";
+import { engineSignedIn, keySaveFailure, keyTestResult, savedKeyResult, tileSignInEngine } from "./product-events";
 
 const ph = vi.hoisted(() => ({ captured: [] as Array<{ event: string; props: unknown }> }));
 vi.mock("./analytics", () => ({
@@ -87,5 +87,13 @@ describe("local event helper arguments", () => {
       { source: "preset" },
       { source: "blank" },
     ]);
+  });
+});
+
+describe("an AI sign-in from a connect card", () => {
+  it("names the engine, so ChatGPT and Gemini sign-ins are not counted as other", () => {
+    for (const tile of ["chatgpt", "grok", "gemini", "claude"]) engineSignedIn(tileSignInEngine(tile), "browser");
+    engineSignedIn(tileSignInEngine("openrouter"), "browser");
+    expect(ph.captured.map(({ props }) => (props as { engine: string }).engine)).toEqual(["codex", "grok", "gemini", "claude", "other"]);
   });
 });

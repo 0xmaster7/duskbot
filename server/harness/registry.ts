@@ -114,6 +114,7 @@ export class ProviderRegistry {
   /** Engines the start-up read has not probed yet; null outside that read. */
   private unread: Set<InstanceId> | null = null;
   private startupProgress: (() => void) | null = null;
+  private snapshotListeners: Array<(instanceId: InstanceId, snapshot: ProviderSnapshot) => void> = [];
   private snapshotGeneration = 0;
   /** Per instance object: settings that reload an engine make a new one, so its status is read afresh. */
   private readsOf = new WeakMap<ProviderInstance, { snapshot: ProviderSnapshot; at: number; generation: number }>();
@@ -301,6 +302,11 @@ export class ProviderRegistry {
     return this.unread !== null || Boolean(described?.some((instance) => this.seedObjects.has(instance.snapshot)));
   }
 
+  /** Hears every engine status read on the live instance, after it is kept. */
+  onSnapshot(listener: (instanceId: InstanceId, snapshot: ProviderSnapshot) => void): void {
+    this.snapshotListeners.push(listener);
+  }
+
   /** The status probed here, else the one the last run recorded: for reports, never for choosing where a turn runs. */
   knownSnapshot(instanceId: InstanceId): ProviderSnapshot | undefined {
     return this.lastSnapshot(instanceId) ?? (this.byId.get(instanceId)?.live ? this.seeds.get(instanceId) : undefined);
@@ -463,6 +469,7 @@ export class ProviderRegistry {
     // Only while this is still the live instance: a reload may have replaced it during the read.
     if (this.byId.get(instance.instanceId)?.live === instance) {
       this.lastSnapshots.set(instance.instanceId, snapshot);
+      for (const listener of this.snapshotListeners) try { listener(instance.instanceId, snapshot); } catch {}
       const firstRead = this.unread?.delete(instance.instanceId);
       this.saveStatus();
       if (firstRead) this.startupProgress?.();

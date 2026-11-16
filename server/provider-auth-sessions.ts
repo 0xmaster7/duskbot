@@ -10,6 +10,9 @@ type Flow = {
   busy: boolean;
   starting: boolean;
   revoked: boolean;
+  /** Signed in already when this flow began: a signed-in status then proves nothing about this sign-in. */
+  wasSignedIn: boolean;
+  expiry?: ReturnType<typeof setTimeout>;
 };
 
 const failure = (message: string, status: number) => Object.assign(new Error(message), { status });
@@ -21,10 +24,34 @@ export class ProviderAuthSessions {
   /** How a sign-in went, for usage signals; `error` is read only to pick a reason code. */
   private readonly outcome: (instanceId: string, outcome: "started" | "succeeded" | "failed" | "expired" | "cancelled", error?: unknown) => void;
   private readonly told = new Set<string>();
+  /** Whether this AI reads as signed in right now, from its last status. */
+  private readonly signedInNow: (instanceId: string) => boolean;
 
-  constructor(options: { signedIn?: (instanceId: string) => void; outcome?: ProviderAuthSessions["outcome"] } = {}) {
+  constructor(options: { signedIn?: (instanceId: string) => void; outcome?: ProviderAuthSessions["outcome"]; signedInNow?: (instanceId: string) => boolean } = {}) {
     this.signedIn = options.signedIn ?? (() => {});
     this.outcome = options.outcome ?? (() => {});
+    this.signedInNow = options.signedInNow ?? (() => false);
+  }
+
+  /** An AI's status now reads signed in. A browser sign-in that comes back to the engine's own loopback ends there, and
+   * the app then watches the AI's status instead of this flow's: without this its success would never be told. */
+  sawSignedIn(instanceId: string): void {
+    const flow = this.flows.get(instanceId);
+    if (!flow?.flowId || flow.revoked || flow.wasSignedIn) return;
+    this.tell(instanceId, flow.flowId, "succeeded");
+  }
+
+  /** A flow nobody finished or cancelled (the window closed, the person chose a key instead) is told as expired once it
+   * runs out; one that ended first was told then, and this is a no-op. */
+  private expireLater(flow: Flow): void {
+    if (flow.expiry) clearTimeout(flow.expiry);
+    const flowId = flow.flowId;
+    if (!flowId) return;
+    flow.expiry = setTimeout(() => {
+      flow.expiry = undefined;
+      if (flow.flowId === flowId) this.tell(flow.instance.instanceId, flowId, "expired", "sign-in timed out");
+    }, Math.max(0, Math.min(flow.expiresAt - Date.now(), 2 ** 31 - 1)));
+    flow.expiry.unref?.();
   }
 
   /** Each flow's end is told once, however often its status is read. */
@@ -47,7 +74,8 @@ export class ProviderAuthSessions {
       throw failure("A sign-in is already in progress. Finish or cancel it in the browser that started it, or wait for it to expire.", 409);
     }
     const resuming = existing && existing.owner === owner && existing.expiresAt > Date.now() && !existing.revoked;
-    const flow: Flow = resuming ? existing : { instance, owner, flowId: null, expiresAt: Date.now() + 15 * 60_000, busy: false, starting: false, revoked: false };
+    const flow: Flow = resuming ? existing : { instance, owner, flowId: null, expiresAt: Date.now() + 15 * 60_000, busy: false, starting: false, revoked: false,
+      wasSignedIn: (() => { try { return this.signedInNow(instance.instanceId); } catch { return false; } })() };
     flow.busy = true;
     flow.starting = true;
     this.flows.set(instance.instanceId, flow);
@@ -61,6 +89,7 @@ export class ProviderAuthSessions {
       const expiry = Date.parse(result.expiresAt ?? "");
       if (Number.isFinite(expiry)) flow.expiresAt = expiry;
       if (!resuming) this.tell(instance.instanceId, result.flowId, "started");
+      if (result.phase === "waiting") this.expireLater(flow);
       if (result.phase === "succeeded") {
         this.flows.delete(instance.instanceId);
         this.signedIn(instance.instanceId);
@@ -93,7 +122,7 @@ export class ProviderAuthSessions {
     if (flow.revoked) throw failure("This sign-in session ended.", 404);
     if (status.phase !== "waiting") flow.expiresAt = 0;
     if (status.phase === "succeeded") this.signedIn(instanceId);
-    if (status.phase !== "waiting") this.tell(instanceId, flowId, status.phase, (status as { error?: unknown }).error);
+    if (status.phase !== "waiting") this.tell(instanceId, flowId, status.phase, (status as { error?: unknown }).error ?? status.message);
     return status;
   }
 
@@ -125,7 +154,7 @@ export class ProviderAuthSessions {
     if (existing && (existing.busy || (existing.owner !== owner && existing.expiresAt > Date.now() && !existing.revoked))) {
       throw failure("A sign-in is in progress. Finish or cancel it in the browser that started it, or wait for it to expire.", 409);
     }
-    const flow: Flow = { instance, owner, flowId: null, expiresAt: Date.now() + 60_000, busy: true, starting: false, revoked: false };
+    const flow: Flow = { instance, owner, flowId: null, expiresAt: Date.now() + 60_000, busy: true, starting: false, revoked: false, wasSignedIn: true };
     this.flows.set(instance.instanceId, flow);
     try {
       if (existing) await existing.instance.cancelAuthentication?.();
