@@ -1,15 +1,12 @@
-// The first run's "bring what you already use": the shared bring in flow (BringIn) on its own step, with a still scene
-// above it and the funnel's buttons below. Continue never waits on it.
-import { useState, type ReactNode } from "react";
-import { motion } from "motion/react";
+// The first run's "bring what you already use": the prompt for AIs online (BringPrompt) on its own step, with a still
+// scene above it and Continue below. Its answer comes in later, into any chat or from Downloads; Continue never waits.
+import { type ReactNode } from "react";
 import { t } from "@/lib/i18n";
-import type { BringRun, LocalFind } from "@/lib/first-run-import";
 import { MausAvatar } from "../Avatar";
-import { BringIn, useBringChoice } from "../BringIn";
+import { BringPrompt } from "../BringIn";
 import { ClaudeMark, CodexMark, GeminiMark, GrokMark } from "../ProviderIcons";
-import { useMotionReduced } from "../ui/SheetMotion";
 import { cn } from "@/lib/cn";
-import { BRAND_LILAC, PRIMARY, QUIET, StepFrame } from "./FunnelSteps";
+import { BRAND_LILAC, PRIMARY, StepFrame } from "./FunnelSteps";
 
 /** The AI apps the prompt is for, as their own app icons: each logo in its colours on its own tile. */
 const ONLINE: { key: string; tile: string; mark: (size: number) => ReactNode }[] = [
@@ -19,17 +16,10 @@ const ONLINE: { key: string; tile: string; mark: (size: number) => ReactNode }[]
   { key: "grok", tile: "bg-[#141416]", mark: (size) => <GrokMark size={size} className="fill-[#fafafa]" /> },
 ];
 
-const PACKETS = 3;
-const PACKET_S = 2.8;
-/** The track between the two ends: the scene's 248px less both 52px ends and their 8px gaps, less a packet. */
-const TRACK_PX = 124;
-
-/** Your other AI apps on the left, in their own colours, dusk bot's mascot on the right as the welcome shows it.
- * Something travels between them only while something is being brought in. */
-function BringScene({ moving }: { moving: boolean }) {
-  const reduced = useMotionReduced();
+/** Your other AI apps on the left, in their own colours, dusk bot's mascot on the right as the welcome shows it. */
+function BringScene() {
   return (
-    <div data-bring-scene={moving ? "moving" : "still"} className="relative flex h-16 w-[248px] items-center justify-between">
+    <div data-bring-scene="" className="relative flex h-16 w-[248px] items-center justify-between">
       <span className="grid h-[52px] w-[52px] shrink-0 grid-cols-2 gap-1">
         {ONLINE.map((app) => (
           <span key={app.key} data-bring-logo={app.key} className={cn("grid size-6 place-items-center rounded-[7px]", app.tile)}>{app.mark(14)}</span>
@@ -39,55 +29,34 @@ function BringScene({ moving }: { moving: boolean }) {
         <span className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-between px-1">
           {Array.from({ length: 9 }, (_, index) => <span key={index} className="size-[3px] bg-ink/15" />)}
         </span>
-        {moving && !reduced && Array.from({ length: PACKETS }, (_, index) => (
-          <motion.span key={index} aria-hidden="true" className="absolute left-0 top-1/2 -mt-[2px] size-1 bg-ink/55 will-change-transform"
-            initial={{ x: 0, opacity: 0 }} animate={{ x: [0, TRACK_PX], opacity: [0, 1, 1, 0] }}
-            transition={{ duration: PACKET_S, ease: "linear", repeat: Infinity, delay: index * (PACKET_S / PACKETS), times: [0, 0.15, 0.85, 1] }} />
-        ))}
       </span>
-      <span className="shrink-0"><MausAvatar color="purple" gradient={BRAND_LILAC} size={52} state="happy" trackPointer={false} animated={moving && !reduced} label="" /></span>
+      <span className="shrink-0"><MausAvatar color="purple" gradient={BRAND_LILAC} size={52} state="happy" trackPointer={false} animated={false} label="" /></span>
     </div>
   );
 }
 
-export function BringStep({ finds, grokWaiting, run = { kind: "idle" }, onBring, onNext }: {
-  /** null while still looking. */
-  finds: readonly LocalFind[] | null;
+export function BringStep({ grokWaiting, onNext }: {
   /** Grok bot's bots on this computer, by name: they move through the prompt, like an AI online. */
   grokWaiting: readonly string[];
-  /** The bringing in, once started (useBringRun). */
-  run?: BringRun;
-  onBring: (chosen: LocalFind[]) => void;
   onNext: () => void;
 }) {
-  const choice = useBringChoice(finds);
-  // something came in (the app's memory, or the chat AI's answer): going on is the way forward now
-  const [notesIn, setNotesIn] = useState(false);
-  const started = run.kind !== "idle" || notesIn;
   return (
-    <StepFrame art={<BringScene moving={run.kind === "working"} />} title={t("bring.stepTitle")} sub={t("bring.stepSub")}
-      // the one primary action is in the step (Bring it in, or Copy the prompt); until something comes in, going on is a quiet Not now
-      footer={!started ? (
-        <button type="button" data-bring-skip="" onClick={onNext} className={QUIET}>{t("bring.notNow")}</button>
-      ) : (
-        <button type="button" data-primary="" data-bring-next="" autoFocus onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>
-      )}>
+    <StepFrame art={<BringScene />} title={t("bring.title")} sub={t("bring.subNone")}
+      footer={<button type="button" data-primary="" data-bring-next="" onClick={onNext} className={PRIMARY}>{t("funnel.next")}</button>}>
       <div className="w-full max-w-[440px]">
-        <BringIn finds={finds} choice={choice} grokWaiting={grokWaiting} run={run} mode="step" heroPrimary={!started}
-          onImport={(find) => onBring([find])} onNotes={() => setNotesIn(true)} />
+        <BringPrompt grokWaiting={grokWaiting} />
       </div>
     </StepFrame>
   );
 }
 
-/** The run's one quiet line at the foot of every step: bringing in, then what came in. */
-export function BringStatus({ line, working }: { line: string | null; working: boolean }) {
-  if (!line && !working) return null;
+/** The run's one quiet line at the foot of every step: notes from another AI pasted on a step, and what came in. */
+export function BringStatus({ line }: { line: string | null }) {
+  if (!line) return null;
   return (
-    <p role="status" aria-live="polite" data-bring-status={working ? "working" : "done"}
+    <p role="status" aria-live="polite" data-bring-status="done"
       className="pointer-events-none fixed right-0 bottom-4 left-[var(--rail-beside,0px)] z-10 mx-auto flex w-fit max-w-[min(520px,calc(100%-32px))] items-center gap-2 rounded-[14px] bg-ink/[0.05] px-3 py-1.5 text-[12px] leading-4 text-ink-secondary">
-      {working && <span aria-hidden="true" className="funnel-wait inline-block size-1.5 shrink-0 rounded-full bg-ink" />}
-      <span className="text-pretty">{working ? t("bring.working") : line}</span>
+      <span className="text-pretty">{line}</span>
     </p>
   );
 }

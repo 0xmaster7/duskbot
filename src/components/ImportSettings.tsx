@@ -1,7 +1,6 @@
-// Settings → general → bring in from other apps: the first run's bring step, any time. The same BringIn, without the
-// funnel around it: what this computer holds (bots from OpenClaw, Hermes Agent and Grok bot's saved files, and the AI
-// tools' skills, tools and instructions), the one prompt for AIs online, and what comes in when its answer is pasted or
-// dropped here.
+// Settings → general → bring in from other apps: what this computer holds (bots from OpenClaw, Hermes Agent and Grok
+// bot's saved files, and the AI tools' memory, skills, tools and instructions), each with its own Bring in, then the
+// first run's one prompt for AIs online, and what comes in when its answer is pasted or dropped here.
 import { useEffect, useMemo, useState } from "react";
 
 import { track } from "@/lib/analytics";
@@ -46,7 +45,7 @@ export function ImportSettings({ client = setupImportApi }: { client?: SetupImpo
   return (
     <section data-import-section="bring" className="flex flex-col gap-4 px-1 pt-1">
       <p className="m-0 text-pretty text-[13px] leading-[18px] text-ink-secondary">{choice.found ? t("bring.sub") : t("bring.subNone")}</p>
-      <BringIn finds={finds} choice={choice} grokWaiting={move.plan?.grokWaiting ?? []} run={run} mode="settings" onImport={(find) => bring([find])} />
+      <BringIn finds={finds} choice={choice} grokWaiting={move.plan?.grokWaiting ?? []} run={run} onImport={(find) => bring([find])} />
     </section>
   );
 }

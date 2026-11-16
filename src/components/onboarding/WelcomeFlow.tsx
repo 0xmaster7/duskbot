@@ -7,11 +7,9 @@ import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, us
 import { completionPatch, DEFAULT_ADMIN_ORIGIN, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { looksLikeNotes } from "@/lib/assistant-notes";
-import { bringChosen, localFinds, useBringRun } from "@/lib/first-run-import";
 import { openPlaceSetup, usePlaceSetupOpen } from "@/lib/place-setup";
-import { detectSetupWithin, localSetupImport, setupImportApi } from "@/lib/setup-import";
+import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
-import type { SetupDetection } from "../../../shared/setup-import";
 import { useBotMove } from "../BringBots";
 import { useNotesIntake } from "../NotesWaiting";
 import { WindowDragStrip } from "../DesktopCapabilities";
@@ -46,7 +44,7 @@ async function nameFromComputer(config: Config, done: (config: NonNullable<Confi
 
 export { cloudBought } from "./funnel";
 
-/** How long the first run looks for other AI apps here before it settles on what it has: the steps before the bring
+/** How long the first run looks for Grok bot's bots here before it settles on what it has: the steps before the bring
  * step take longer than this, so it is never waited on. */
 export const FIRST_RUN_LOOK_MS = 30_000;
 
@@ -115,20 +113,10 @@ export function WelcomeFlow({
   const [checkoutStart, setCheckoutStart] = useState(false);
   const cloud = path === "cloud";
 
-  // what other AI apps left on this computer: looked for from the welcome on, in the background, so the step is ready by
-  // the time it shows. The look has until then: a big home takes seconds to read, and a short time box used to drop
-  // everything found and leave only the prompt. The step itself is there either way, for the AIs that live online.
+  // the bring step is the prompt for AIs online; Grok bot's bots on this computer are looked for from the welcome on, in
+  // the background, so the step can name them. What else this computer holds waits in Settings' import page.
   const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
   const move = useBotMove({ look: offersMove, downloads: false, ms: FIRST_RUN_LOOK_MS });
-  const [detection, setDetection] = useState<SetupDetection | null | undefined>(offersMove ? undefined : null);
-  useEffect(() => {
-    if (!offersMove) return;
-    const look = detectSetupWithin(setupImportApi, FIRST_RUN_LOOK_MS);
-    void look.found.then(setDetection);
-    return look.cancel;
-  }, [offersMove]);
-  const finds = useMemo(() => (move.plan && detection !== undefined ? localFinds(move.plan, detection) : null), [move.plan, detection]);
-  const bringRun = useBringRun();
   const [notesLine, setNotesLine] = useState<string | null>(null);
 
   const saved = initialBeat ?? draft?.beat;
@@ -253,10 +241,6 @@ export function WelcomeFlow({
   };
   const chooseMac = () => { track("onboarding_place", { choice: "mac" }); toMac(); };
 
-  const bring = (chosen: Parameters<typeof bringChosen>[0]) => {
-    track("onboarding_bring", { apps: chosen.length });
-    void bringChosen(chosen, { dispatch, firstBotId: maus?.id ?? null, aboutMe: state.config?.profile?.aboutMe ?? "", team: Boolean(state.config?.team) });
-  };
   // notes from another AI pasted on any step come in from here too (the bring step takes them itself, and says so there)
   const takeNotes = useNotesIntake();
   const onPaste = (event: ReactClipboardEvent<HTMLDivElement>) => {
@@ -301,7 +285,7 @@ export function WelcomeFlow({
       body = <AiStep tested={tested} cloud={cloud} auto={from === "next"} onNext={(how) => { track("onboarding_ai", { action: how }); next(); }} />;
       break;
     case "bring":
-      body = <BringStep finds={finds} grokWaiting={move.plan?.grokWaiting ?? []} run={bringRun} onBring={bring} onNext={next} />;
+      body = <BringStep grokWaiting={move.plan?.grokWaiting ?? []} onNext={next} />;
       break;
     case "phone":
       body = <PhoneStep onNext={next} />;
@@ -331,8 +315,8 @@ export function WelcomeFlow({
       <div key={at} data-from={from} className="place-step relative flex min-h-full w-full flex-col">
         {body}
       </div>
-      {/* the bring step says how its own bringing in went; every later step keeps the line at its foot */}
-      <BringStatus working={at !== "bring" && bringRun.kind === "working"} line={notesLine ?? (at !== "bring" && bringRun.kind === "done" ? bringRun.line : null)} />
+      {/* notes pasted on a step say how they went at its foot (the bring step says so itself) */}
+      <BringStatus line={notesLine} />
     </div>
   );
 }

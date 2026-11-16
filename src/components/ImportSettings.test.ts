@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Settings → general → bring in from other apps: the first run's bring step (BringIn), without the funnel around it.
+// Settings → general → bring in from other apps: what this computer holds (BringIn), then the first run's prompt for AIs online.
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -63,7 +63,7 @@ afterEach(async () => {
 });
 
 describe("Settings → bring in from other apps", () => {
-  it("lists everything this computer holds, Grok bot's saved files included, beside the chat AI path", async () => {
+  it("lists everything this computer holds, Grok bot's saved files included, with the prompt for AIs online folded below", async () => {
     await show();
     expect(f.api.mock.calls.map(([path]) => path), "Settings may read Downloads, unlike the first run").toContain("/api/setup-import/grok");
     expect(host.querySelector("[data-bring-hero]"), "nothing here is really used: no memory source").toBeNull();
@@ -71,7 +71,13 @@ describe("Settings → bring in from other apps", () => {
       .toEqual(["bots:grok-bot", "bots:openclaw", "setup:claudeCode"]);
     expect(host.querySelector('[data-bring-import="bots:openclaw"]')?.getAttribute("aria-label")).toBe("Import from OpenClaw");
     expect(host.querySelector("[data-bring-more], [data-bring-memory]"), "no Show more, no notes checkbox").toBeNull();
-    expect(host.querySelector("[data-bring-prompt] h2")?.textContent).toBe("Ask the AI you chat with");
+    const online = host.querySelector<HTMLButtonElement>("[data-bring-online]")!;
+    expect(online.textContent, "below what is here, the prompt is one quiet line").toBe("From Grok bot, ChatGPT, Claude or Gemini");
+    expect(online.getAttribute("aria-expanded")).toBe("false");
+    await act(async () => { online.click(); });
+    expect(online.getAttribute("aria-expanded")).toBe("true");
+    expect(button("Copy the prompt")).toBeTruthy();
+    expect(host.querySelector("[data-bring-ai], [data-bring-paste], textarea"), "no AI to pick, no answer box").toBeNull();
     expect(host.querySelector("[data-bring-grok]")?.textContent, "a Grok bot bot with nothing saved yet goes through the prompt").toContain("Eggbot in Grok bot");
     for (const old of ["Move from Grok bot", "Start import", "Copy prompt", "Look for bots"]) expect(button(old), old).toBeUndefined();
     expect(host.querySelector("[data-import-section=grok], [data-import-section=notes], [data-import-section=apps], [data-import-section=bots]")).toBeNull();
