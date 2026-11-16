@@ -7,6 +7,7 @@ import { chiefFor, chiefStepFits, createChiefPatch, myDefaultBot, stageIntro, us
 import { completionPatch, DEFAULT_ADMIN_ORIGIN, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { looksLikeNotes } from "@/lib/assistant-notes";
+import { macPermissionsBridge, permissionsMissing, type MacPermissionStatus } from "@/lib/mac-permissions";
 import { openPlaceSetup, usePlaceSetupOpen } from "@/lib/place-setup";
 import { localSetupImport } from "@/lib/setup-import";
 import { api, useStore } from "@/state/store";
@@ -21,6 +22,7 @@ import { funnelSteps, nextStep, previousStep, type FunnelPath, type FunnelStep }
 import { funnelAccount, type FunnelAccountState } from "./funnel-account";
 import { FunnelBar, PhoneStep, PlaceStep, WelcomeStep } from "./FunnelSteps";
 import { MakingStep } from "./MakingStep";
+import { PermissionsStep } from "./PermissionsStep";
 import { useWelcomeAi } from "./welcome-ai";
 import { localDesktopPage } from "./WelcomeGate";
 import "../../styles/onboarding.css";
@@ -117,6 +119,16 @@ export function WelcomeFlow({
   // the background, so the step can name them. What else this computer holds waits in Settings' import page.
   const offersMove = !replay && desktop && localSetupImport(state.config?.cloudHome === true);
   const move = useBotMove({ look: offersMove, downloads: false, ms: FIRST_RUN_LOOK_MS });
+  // the Mac's permissions: read once, so the step stays put while the person grants them; offered until that read says
+  // nothing is missing, which lets a run reopened on this step (Screen Recording needs that) land back on it
+  const macAccess = useMemo(() => (desktop ? macPermissionsBridge() : null), [desktop]);
+  const [firstAccess, setFirstAccess] = useState<MacPermissionStatus | null | undefined>(macAccess ? undefined : null);
+  useEffect(() => {
+    if (!macAccess) return;
+    void macAccess.status().then((found) => setFirstAccess((known) => (known === undefined ? found : known)),
+      () => setFirstAccess((known) => (known === undefined ? null : known)));
+  }, [macAccess]);
+  const permissions = Boolean(macAccess) && (firstAccess === undefined || permissionsMissing(firstAccess));
   const [notesLine, setNotesLine] = useState<string | null>(null);
 
   const saved = initialBeat ?? draft?.beat;
@@ -124,7 +136,7 @@ export function WelcomeFlow({
   // requires one
   const accountStep = Boolean(account) && !firstKnown.current?.signedIn;
   const stepsFor = (picked: FunnelPath | null) => funnelSteps({ account: accountStep, desktop, bring: offersMove,
-    path: picked, hello: window.duskDesktop?.remoteClient?.active !== true, phone: phoneAppEnabled() });
+    path: picked, hello: window.duskDesktop?.remoteClient?.active !== true, phone: phoneAppEnabled(), permissions });
   const steps = stepsFor(path);
 
   const [at, setAt] = useState<FunnelStep>(() => resumeBeat(steps, saved));
@@ -293,6 +305,12 @@ export function WelcomeFlow({
     case "making":
       body = <MakingStep onOpened={() => void finish("completed", null)} />;
       break;
+    case "permissions": {
+      const relaunch = window.duskDesktop?.relaunch;
+      body = macAccess ? <PermissionsStep bridge={macAccess} relaunch={relaunch ? () => void relaunch().catch(() => {}) : null}
+        onNext={(how, granted) => { track("onboarding_permissions", { action: how, granted }); next(); }} /> : null;
+      break;
+    }
   }
 
   const index = steps.indexOf(at);

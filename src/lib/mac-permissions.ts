@@ -1,0 +1,33 @@
+export type MacPermission = "accessibility" | "screen" | "notifications";
+
+/** "asked": macOS showed its own prompt already, so only System Settings can grant it now. */
+export type MacPermissionState = "granted" | "asked" | "missing";
+
+export type MacPermissionStatus =
+  | { supported: false }
+  | { supported: true; accessibility: MacPermissionState; screen: MacPermissionState; notifications: MacPermissionState };
+
+export interface MacPermissionsBridge {
+  status(): Promise<MacPermissionStatus>;
+  /** Asks for one: macOS's prompt the first time, its System Settings pane after that. `note` is the first notification. */
+  request(kind: MacPermission, note?: { title: string; body: string }): Promise<MacPermissionStatus>;
+}
+
+export const MAC_PERMISSIONS: readonly MacPermission[] = ["accessibility", "screen", "notifications"];
+
+/** This computer's own desktop app on macOS, where bots can use the Mac. */
+export function macPermissionsBridge(): MacPermissionsBridge | null {
+  const desktop = typeof window === "undefined" ? undefined : window.duskDesktop;
+  if (!desktop || desktop.platform !== "darwin" || desktop.remoteClient?.active === true) return null;
+  return desktop.macPermissions ?? null;
+}
+
+export function permissionsMissing(status: MacPermissionStatus | null): boolean {
+  if (!status?.supported) return false;
+  return MAC_PERMISSIONS.some((kind) => status[kind] !== "granted");
+}
+
+/** Screen Recording granted in System Settings only takes effect once dusk bot reopens. */
+export function screenNeedsReopen(status: MacPermissionStatus | null): boolean {
+  return status?.supported === true && status.screen === "asked";
+}

@@ -21,10 +21,12 @@ export interface FunnelFacts {
   hello?: boolean;
   /** the phone app is offered (phoneAppEnabled) */
   phone?: boolean;
+  /** this Mac still lacks a permission a bot needs to use it (Accessibility, Screen Recording, Notifications) */
+  permissions?: boolean;
 }
 
 /** The screens this person gets, in order: the hello, then the account (when there is none yet), then on the desktop app
- * where the bots live. This Mac goes on to an AI and what to bring; dusk cloud goes to the browser for its plan and
+ * where the bots live. This Mac goes on to an AI, what to bring and, last, the Mac's permissions; dusk cloud goes to the browser for its plan and
  * checkout, then an AI while the cloud is made, then the cloud. */
 export function funnelSteps(facts: FunnelFacts): FunnelStep[] {
   const cloud = facts.desktop && facts.path === "cloud";
@@ -36,6 +38,7 @@ export function funnelSteps(facts: FunnelFacts): FunnelStep[] {
     if (step === "bring") return facts.desktop && Boolean(facts.bring) && !cloud;
     if (step === "phone") return Boolean(facts.phone) && facts.desktop && !cloud;
     if (step === "making") return cloud;
+    if (step === "permissions") return facts.desktop && Boolean(facts.permissions) && !cloud;
     return true;
   });
 }

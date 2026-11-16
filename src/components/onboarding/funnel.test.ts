@@ -54,6 +54,22 @@ describe("the funnel's steps", () => {
   });
 });
 
+describe("the Mac's permissions step", () => {
+  it("comes last on this Mac, after what to bring and the phone, only while a permission is missing", () => {
+    const steps = funnelSteps({ account: false, desktop: true, bring: true, phone: true, path: "mac", permissions: true });
+    expect(steps).toEqual(["welcome", "place", "ai", "bring", "phone", "permissions"]);
+    expect(nextStep(steps, "phone")).toBe("permissions");
+    expect(nextStep(steps, "permissions"), "the app comes after it").toBeNull();
+    expect(funnelSteps({ account: false, desktop: true, bring: true, path: "mac", permissions: false })).not.toContain("permissions");
+  });
+
+  it("shows before a place is picked (a resumed run) but never on dusk cloud or a window that isn't this Mac's own", () => {
+    expect(funnelSteps({ account: false, desktop: true, permissions: true })).toEqual(["welcome", "place", "ai", "permissions"]);
+    expect(funnelSteps({ account: false, desktop: true, path: "cloud", permissions: true })).not.toContain("permissions");
+    expect(funnelSteps({ account: false, desktop: false, permissions: true })).not.toContain("permissions");
+  });
+});
+
 describe("the AI grid", () => {
   it("names each AI as people know it, in a fixed order, with only the ones this app can connect", () => {
     const tiles = aiTiles([ai("claude", "claudeAgent"), ai("chatgpt", "codex"), ai("antigravity", "antigravityAgent"), ai("openrouter", "openai-compat")], ready);

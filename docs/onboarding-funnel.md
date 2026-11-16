@@ -72,6 +72,8 @@ app (an opt-out); its one line sits at the foot of the place step, and Settings 
 - `onboarding_cloud` `{ action: bought }`
 - `onboarding_account` `{ action: signed_in | skipped }`
 - `onboarding_ai` `{ action: connected | free | later }`
+- `onboarding_permissions` `{ action: continue | later, granted }`: the Mac permissions step, last on this Mac, and how
+  many of Accessibility, Screen Recording and Notifications were on when the person left it.
 - `onboarding_completed` `{ reason, at, path? }`
 
 The admin's Product page has a **desktop first run** table (`apps/dashboard/server/admin/product.ts` `appFirstRun`):

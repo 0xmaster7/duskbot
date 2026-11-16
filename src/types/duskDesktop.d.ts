@@ -397,6 +397,9 @@ const __APP_VERSION__: string;
       permRequestMic(): Promise<boolean>;
       /** Opens System Settings on a privacy pane: mic|screen|speech|accessibility. */
       permOpenSettings(pane: "mic" | "screen" | "speech" | "accessibility"): Promise<void>;
+      /** macOS permissions a bot needs to use this Mac, asked for from the first run. Absent in older builds and off
+       * this computer's own page. */
+      macPermissions?: import("../lib/mac-permissions").MacPermissionsBridge;
       /** Relaunch the local desktop app through its normal shutdown cleanup. */
       relaunch?(): Promise<boolean>;
       /** Copies an engine install command and opens a blank terminal. False

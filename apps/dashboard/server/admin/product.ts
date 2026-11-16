@@ -107,7 +107,7 @@ function onboarding(events: StoredEvent[], to: number) {
 /** the desktop app's first run (opt-in app_action onboarding_step / onboarding_completed): people who reached each screen,
  * per path (where the bots live), with the median time on the screen before, so drop-off shows per step */
 const APP_FIRST_RUN: Record<"all" | "mac" | "cloud", readonly string[]> = {
-  all: ["welcome", "place"], mac: ["account", "ai", "bring", "phone", "done"], cloud: ["checkout", "ai", "making", "done"],
+  all: ["welcome", "place"], mac: ["account", "ai", "bring", "phone", "permissions", "done"], cloud: ["checkout", "ai", "making", "done"],
 };
 export function appFirstRun(events: StoredEvent[]) {
   const pathOf = new Map<string, string>();

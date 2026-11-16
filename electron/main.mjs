@@ -104,6 +104,7 @@ import { cloudLinkOpensSheet, colorDotIcons, createCloudLook, createCloudReadyNo
 import { createAccountEnroll } from "./account-enroll.mjs"; import { cloudMoveLinkWorkspace, createServerEnroll } from "./server-enroll.mjs"; import { accountGateRequired, installAccountGate } from "./account-gate.mjs"; import { carryWelcomeToCloud } from "./cloud-welcome-carry.mjs";
 import { createTrialNotices } from "./cloud-trial-notice.mjs";
 import { createDesktopPrefs, DESKTOP_PORTS, jsonFile, registerDesktopPrefs, writeFileDurably } from "./desktop-prefs.mjs";
+import { installMacPermissions } from "./mac-permissions.mjs";
 import { createDesktopIncludedX } from "./included-x.mjs"; import { createDesktopIncludedPages } from "./included-pages.mjs";
 import { createLastSeenStore } from "./cloud-last-seen.mjs";
 import { createCloudFocus } from "./cloud-focus.mjs";
@@ -2736,6 +2737,7 @@ ipcMain.handle("perm:status", (event) => ({
 ipcMain.handle("perm:request-mic", localOnly("perm:request-mic", () => askForMicrophone({ available: nativeActions.appleMediaPermissions, systemPreferences })));
 const privacySettings = pane => openPrivacySettings(pane, { available: nativeActions.applePrivacySettings, openExternal: url => shell.openExternal(url) });
 ipcMain.handle("perm:open-settings", localOnly("perm:open-settings", (_event, pane) => privacySettings(pane)));
+installMacPermissions({ ipcMain, guard: localOnly, platform: process.platform, systemPreferences, desktopCapturer, Notification, store: jsonFile(path.join(app.getPath("userData"), "mac-permissions.json")), openSettings: privacySettings, computerUse: () => import("./cua.mjs").then((cua) => cua.requestComputerUse()), log: (line) => console.error(`[mac-permissions] ${line}`) });
 
 ipcMain.handle("desktop:relaunch", localOnly("desktop:relaunch", (event) => {
   requireMainWindowSender(event);

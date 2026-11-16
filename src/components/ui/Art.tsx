@@ -8,6 +8,7 @@ import bubbles from "../../assets/art/bubbles.webp";
 import button from "../../assets/art/button.webp";
 import cap from "../../assets/art/cap.webp";
 import chart from "../../assets/art/chart.webp";
+import click from "../../assets/art/click.webp";
 import clock from "../../assets/art/clock.webp";
 import coins from "../../assets/art/coins.webp";
 import computer from "../../assets/art/computer.webp";
@@ -16,6 +17,7 @@ import house from "../../assets/art/house.webp";
 import key from "../../assets/art/key.webp";
 import laptop from "../../assets/art/laptop.webp";
 import magnifier from "../../assets/art/magnifier.webp";
+import macKey from "../../assets/art/mac-key.webp";
 import mailbox from "../../assets/art/mailbox.webp";
 import map from "../../assets/art/map.webp";
 import megaphone from "../../assets/art/megaphone.webp";
@@ -32,8 +34,8 @@ import shield from "../../assets/art/shield.webp";
 import signpost from "../../assets/art/signpost.webp";
 
 const ART = {
-  bag, binoculars, books, briefcase, bubbles, button, cap, chart, clock, coins, computer, folder, house, key, laptop,
-  magnifier, mailbox, map, megaphone, mobile, mug, notebook, palette, parcel, phone, plug, receipt, server, shield, signpost,
+  bag, binoculars, books, briefcase, bubbles, button, cap, chart, click, clock, coins, computer, folder, house, key, laptop,
+  "mac-key": macKey, magnifier, mailbox, map, megaphone, mobile, mug, notebook, palette, parcel, phone, plug, receipt, server, shield, signpost,
 } as const;
 
 export type ArtName = keyof typeof ART;
