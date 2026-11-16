@@ -3673,7 +3673,11 @@ function startDemoUpdates() {
 }
 function startAppUpdates(notice) {
   const updateDir = path.join(app.getPath("userData"), "app-update");
-  if (justUpdated(jsonFile(path.join(app.getPath("userData"), "app-version.json")), app.getVersion(), () => fs.existsSync(path.join(updateDir, `DuskBot-${app.getVersion()}-${process.arch}.zip`)))) appUpdatedTo = app.getVersion();
+  const installedHere = () => fs.existsSync(path.join(updateDir, `DuskBot-${app.getVersion()}-${process.arch}.zip`));
+  if (justUpdated(jsonFile(path.join(app.getPath("userData"), "app-version.json")), app.getVersion(), installedHere)) {
+    appUpdatedTo = app.getVersion();
+    try { productEvents.action("app_updated", { how: installedHere() ? "self" : "manual" }); } catch {}
+  }
   if (process.platform !== "darwin") { notice.start(); return; }
   const bundle = path.resolve(path.dirname(app.getPath("exe")), "..", "..");
   const signals = quietSignals({ focused: () => Boolean(BrowserWindow.getFocusedWindow()), powerMonitor, window: () => mainWindow, lastInput: () => oneHome.lastInput(), local: localServerRequest, place: () => null,

@@ -31,6 +31,7 @@ const valid: Record<string, Record<string, string | number | boolean>> = {
   browser_download_failed: { reason: "checksum" },
   crash: { kind: "gpu", reason: "launch_failed" },
   update_failed: { stage: "download" },
+  app_updated: { how: "self" },
   settings_closed: { changed: false, ms: 12000 },
 };
 

@@ -85,6 +85,8 @@ export const SIGNALS = {
   crash: { source: "app", props: { kind: oneOf(...CRASH_KINDS), reason: code } },
   /** the app's own update failed at this stage */
   update_failed: { source: "app", props: { stage: oneOf(...UPDATE_FAIL_STAGES) } },
+  /** the first start of a newer version of the app: installed by its own updater, or by hand (a download, a reinstall) */
+  app_updated: { source: "app", props: { how: oneOf("self", "manual") } },
   /** Settings closed: whether anything changed while it was open, and for how long it was open */
   settings_closed: { source: "app", props: { changed: flag, ms: count } },
 } as const satisfies Record<string, { source: "app" | "workspace" | "any"; props: Record<string, Check> }>;
