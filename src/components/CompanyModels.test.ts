@@ -69,12 +69,12 @@ beforeEach(() => {
 });
 
 describe("Company models in the connected Organisation panel", () => {
-  it("lists each Company engine's readiness and reuses the engine install action without a personal sign-in", () => {
+  it("lists each Company engine's readiness and reuses the engine set-up card without a personal sign-in", () => {
     const html = render().html;
     expect(html).toContain("Approved models: 1");
     expect(html).toContain("Ready on this computer");
     expect(html).toContain("Set up Codex");
-    expect(html).toContain("npm i -g @openai/codex");
+    expect(html, "no install commands anywhere (012ba4d01)").not.toContain("npm i -g @openai/codex");
     expect(html).toContain("run through the Codex app on this computer");
     expect(html).toContain("you don’t need to sign in to a personal account");
     expect(html).not.toMatch(/sign in to Codex/);
