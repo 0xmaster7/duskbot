@@ -79,13 +79,16 @@ describe("triggerTarget", () => {
     a: { id: "bot-a", name: "A", section: "Ops" },
     b: { id: "bot-b", name: "B", section: "Ops" },
     c: { id: "bot-c", name: "C", section: "Sales" },
+    // on a Team Cloud ownership draws the line; sidebar sections grant nothing (5199eb9df)
+    d: { id: "bot-d", name: "D", section: "Ops", createdBy: "someone@else.test" },
   };
   const lookup = (id: string) => Object.values(bots).find((bot) => bot.id === id);
-  it("needs no target for the sender, names a teammate, and refuses one outside the section", () => {
+  it("needs no target for the sender, names any teammate whatever its section, and refuses one someone else owns", () => {
     expect(triggerTarget(bots.a, undefined, lookup)).toEqual({});
     expect(triggerTarget(bots.a, "bot-a", lookup)).toEqual({});
     expect(triggerTarget(bots.a, "bot-b", lookup)).toEqual({ forBot: { botId: "bot-b", name: "B" } });
-    expect(triggerTarget(bots.a, "bot-c", lookup)).toMatchObject({ status: 403 });
+    expect(triggerTarget(bots.a, "bot-c", lookup)).toEqual({ forBot: { botId: "bot-c", name: "C" } });
+    expect(triggerTarget(bots.a, "bot-d", lookup)).toMatchObject({ status: 403 });
     expect(triggerTarget(bots.a, "bot-zzz", lookup)).toMatchObject({ status: 404 });
     expect(triggerTarget(bots.a, "  ", lookup)).toMatchObject({ status: 400 });
     // a unique name it may reach resolves like its id
