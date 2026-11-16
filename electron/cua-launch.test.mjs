@@ -5,8 +5,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const fixture = vi.hoisted(() => ({ home: "", script: "", ps: "", gated: false, socketExists: false, socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map(), asked: [], checked: [] }));
-vi.mock("electron", () => ({ app: { isPackaged: false, getPath: () => fixture.home }, ipcMain: { handle: (name, handler) => fixture.handlers.set(name, handler) },
+const fixture = vi.hoisted(() => ({ home: "", script: "", ps: "", gated: false, socketExists: false, socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map(), asked: [], checked: [], packaged: false }));
+vi.mock("electron", () => ({ app: { get isPackaged() { return fixture.packaged; }, getPath: () => fixture.home }, ipcMain: { handle: (name, handler) => fixture.handlers.set(name, handler) },
   systemPreferences: { isTrustedAccessibilityClient: (prompt) => { fixture.checked.push(["accessibility", prompt]); return false; }, getMediaAccessStatus: (kind) => { fixture.checked.push([kind]); return "denied"; } } }));
 vi.mock("@trycua/cua-driver/embedded", () => ({
   EmbeddedCuaDriverHost: class {
@@ -85,6 +85,7 @@ beforeEach(async () => {
   fixture.hosts = [];
   fixture.asked = [];
   fixture.checked = [];
+  fixture.packaged = false;
   fixture.handlers.clear();
   vi.stubEnv("DUSK_CUA_EMBEDDED", "1");
   vi.stubEnv("CUA_DRIVER_PATH", "/fixture/cua-driver");
@@ -158,6 +159,14 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
     expect(fixture.checked).toEqual([["accessibility", false], ["screen"]]);
     await expect(cua.requestComputerUse()).resolves.toMatchObject({ enabled: true, status: "ready" });
     expect(fixture.asked).toEqual(["request"]);
+  });
+
+  it("never opens CuaDriver from the packaged app's launch, only when computer control is turned on", async () => {
+    fixture.packaged = true;
+    await expect(cua.startCua()).resolves.toMatchObject({ mode: "unavailable", reason: expect.stringContaining("embedded host failed") });
+    expect(fixture.calls.filter((call) => call.command === "/usr/bin/open")).toEqual([]);
+    await cua.requestComputerUse();
+    expect(fixture.calls.filter((call) => call.command === "/usr/bin/open")).toHaveLength(1);
   });
 
   it("keeps the event loop responsive and publishes the existing descriptor shape", async () => {

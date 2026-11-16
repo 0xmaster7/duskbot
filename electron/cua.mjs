@@ -197,12 +197,14 @@ async function loadEmbeddedSdk() {
   return import(pathToFileURL(path.join(process.resourcesPath, "cua-sdk", "cua-sdk.mjs")).href);
 }
 
-async function attachStandalone(signal) {
+async function attachStandalone(signal, { mayOpen = true } = {}) {
   // Windows must stay on the owned embedded host, never an unrelated daemon.
   if (process.platform !== "darwin") return null;
   const driver = fs.existsSync(INSTALLED_DRIVER) ? INSTALLED_DRIVER : null;
   if (!driver) return null;
   if (!(await socketAlive(STANDALONE_SOCKET))) {
+    // opening CuaDriver can put up its own permission panel, so the packaged app's fallback opens it only when asked
+    if (!mayOpen) return null;
     signal.throwIfAborted();
     // Through LaunchServices so Accessibility/Screen Recording stay on com.trycua.driver, the identity already granted.
     const launch = execFileAsync("/usr/bin/open", ["-a", "CuaDriver"], {
@@ -347,7 +349,7 @@ export async function startCua({ attempt = 0, ask = false } = {}) {
     } catch (err) {
       signal.throwIfAborted();
       try {
-        nextConnection = await attachStandalone(signal);
+        nextConnection = await attachStandalone(signal, { mayOpen: ask || !app.isPackaged });
       } catch (standaloneError) {
         signal.throwIfAborted();
         nextConnection = {
