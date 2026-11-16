@@ -1,5 +1,6 @@
 import { newId, type ModelSelection } from "./contracts.ts";
 import { botBodyId } from "../shared/bot-body.ts";
+import { chiefTaken } from "../shared/bot-owner.ts";
 import { takeImportName } from "../shared/import-name.ts";
 import { MAX_TEAM_BACKUP_BYTES, parseTeamBackup, type BackupTask, type TeamBackup } from "../shared/team-backup.ts";
 import { helperModelAllowed, type BotVisibility } from "../shared/wire.ts";
@@ -186,7 +187,8 @@ export function importTeamBackup(store: Store, routines: RoutineManager, input: 
       bots.push(bot);
       botIds.set(source.key, bot.id);
       store.patchBot(bot.id, { composio: false, computer: "off", browser: false, autoApprove: false,
-        connectorTools: {}, toolScope: source.toolScope, hidden: source.hidden, chiefOfStaff: source.chiefOfStaff, playbooks: source.playbooks,
+        // a Chief comes in as Chief only where its scope has none yet, so the import never demotes one already here
+        connectorTools: {}, toolScope: source.toolScope, hidden: source.hidden, chiefOfStaff: source.chiefOfStaff && !chiefTaken(store.bots, bot), playbooks: source.playbooks,
         ...(source.helperModel === false ? { helperModel: false } : {}) });
       if (source.memory) restoreMemory(bot.id, source.memory);
     }

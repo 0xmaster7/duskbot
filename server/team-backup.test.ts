@@ -177,9 +177,12 @@ describe("additive portable team backups", () => {
     expect(importedChief.soul).toBe(chief.soul);
     expect(importedChief.soulHash).toBe(soulHash(chief.soul!));
     expect(readFileSync(soulFile(importedChief.id), "utf8")).toBe(chief.soul);
-    expect(importedChief).toMatchObject({ section: "Engineering 2", chiefOfStaff: true, description: chief.description, computer: "off", composio: false, browser: false, resumeCursors: {}, playbooks: chief.playbooks });
+    // one Chief per workspace (5199eb9df): Ava stays it, and no imported bot takes the role from her
+    expect(importedChief).toMatchObject({ section: "Engineering 2", chiefOfStaff: false, description: chief.description, computer: "off", composio: false, browser: false, resumeCursors: {}, playbooks: chief.playbooks });
     expect(approvalModeFor(importedChief)).toBe("full");
-    expect(result.bots.find((bot) => bot.name === "Ava 2")).toMatchObject({ section: "Operations 2", chiefOfStaff: true });
+    expect(result.bots.find((bot) => bot.name === "Ava 2")).toMatchObject({ section: "Operations 2", chiefOfStaff: false });
+    expect(store.bots.filter((bot) => bot.chiefOfStaff).map((bot) => bot.id)).toEqual([otherChief.id]);
+    expect(new Store(selection).bots.filter((bot) => bot.chiefOfStaff).map((bot) => bot.id)).toEqual([otherChief.id]);
     expect(result.bots.find((bot) => bot.name === "Archived 2")).toMatchObject({ hidden: true });
     expect(importedChief).not.toHaveProperty("cwd");
     expect(importedChief).not.toHaveProperty("alwaysAllow");
@@ -218,7 +221,7 @@ describe("additive portable team backups", () => {
     expect(reloaded.bot(importedChief.id)?.tasks).toEqual(importedChief.tasks);
     expect(reloaded.messagesFor(chief.threadId)).toEqual(store.messagesFor(chief.threadId));
     const second = importTeamBackup(store, routines, backup, selection());
-    expect(second.bots.find((bot) => bot.name === "Mira 3")).toMatchObject({ section: "Engineering 3", chiefOfStaff: true });
+    expect(second.bots.find((bot) => bot.name === "Mira 3")).toMatchObject({ section: "Engineering 3", chiefOfStaff: false });
     expect(store.bot(importedChief.id)).toEqual(importedChief);
   });
 
@@ -305,7 +308,7 @@ describe("additive portable team backups", () => {
     if (corruption === "cycle") source.tasks[0].messages[0].parentId = source.tasks[0].messages[0].id;
     if (corruption === "dangling-room") backup.groups[0].memberIds.push("missing");
     if (corruption === "dangling-task") source.activeTask = "missing";
-    if (corruption === "duplicate-chief") backup.bots.find((bot) => bot.name === "Scout")!.chiefOfStaff = true;
+    if (corruption === "duplicate-chief") Object.assign(backup.bots.find((bot) => bot.name === "Scout")!, { chiefOfStaff: true, section: "Operations" });
     if (corruption === "oversized-soul") source.soul = "🐭".repeat(6_001);
     expect(() => importTeamBackup(store, routines, backup, selection())).toThrow("Invalid backup");
     expect(readFileSync(join(DATA_DIR, "bots.json"), "utf8")).toBe(before);
@@ -374,20 +377,17 @@ describe("additive portable team backups", () => {
     expect(new Store(selection).sections).toEqual(beforeSections);
   });
 
-  it("keeps case-distinct sections and their Chiefs separate", () => {
-    const { store, routines } = fixture();
-    const second = store.createBot({ name: "Another chief", section: "engineering" }, { seedMessages: false });
-    store.setChiefOfStaff(second.id);
-    const imported = importTeamBackup(store, routines, createTeamBackup(store, routines.listRoutines(), "My team"), selection());
-    const chief = imported.bots.find((bot) => bot.name === "Mira 2")!;
-    const other = imported.bots.find((bot) => bot.name === "Another chief 2")!;
-    expect(chief.chiefOfStaff).toBe(true);
-    expect(other.chiefOfStaff).toBe(true);
-    expect(chief.section?.toLowerCase()).not.toBe(other.section?.toLowerCase());
-    const reloaded = new Store(selection);
-    expect(reloaded.bot(chief.id)?.chiefOfStaff).toBe(true);
-    expect(reloaded.bot(other.id)?.chiefOfStaff).toBe(true);
+  it("brings a Chief in as Chief only into a workspace that has none", () => {
+    const { store, routines, otherChief } = fixture();
+    const backup = createTeamBackup(store, routines.listRoutines(), "My team");
+    store.setChiefOfStaff(null);
+    const imported = importTeamBackup(store, routines, backup, selection());
+    const ava = imported.bots.find((bot) => bot.name === "Ava 2")!;
+    expect(ava.chiefOfStaff).toBe(true);
+    expect(store.bot(otherChief.id)?.chiefOfStaff).toBe(false);
+    expect(new Store(selection).bots.filter((bot) => bot.chiefOfStaff).map((bot) => bot.id)).toEqual([ava.id]);
   });
+
 
   it("backs a widget up as its text fallback and restores it as plain text, with the answer still a reply to it", () => {
     const { store, routines, scout } = fixture();

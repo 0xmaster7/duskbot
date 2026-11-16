@@ -43,6 +43,12 @@ export function withOneChief<T extends OwnedBot & { id: string }>(bots: readonly
   return bots.map((bot) => (bot.id === chief.id || !bot.chiefOfStaff || chiefScope(bot) !== scope ? bot : { ...bot, chiefOfStaff: false }));
 }
 
+/** Whether `bot`'s scope already has a visible Chief other than it: an import or a package never takes the role from one. */
+export function chiefTaken(bots: readonly (OwnedBot & { id: string; hidden?: boolean })[], bot: OwnedBot & { id: string }): boolean {
+  const scope = chiefScope(bot);
+  return bots.some((other) => other.id !== bot.id && other.chiefOfStaff && !other.hidden && chiefScope(other) === scope);
+}
+
 /** A member's name until their profile has one: the address before the @, capitalised. */
 export function nameFromEmail(email: string): string {
   const local = email.split("@")[0]?.replace(/[._-]+/g, " ").trim() || email;

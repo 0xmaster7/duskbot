@@ -14,6 +14,7 @@ import type { SkillListing, SkillPackageStamp } from "./skills.ts";
 import type { BotRecord, GroupRecord, InstalledPackageMetadata, Store } from "./store.ts";
 import { importedMemberProfile, type ParsedTeamManifest, type TeamManifestMember } from "./team-manifest.ts";
 import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts";
+import { chiefTaken } from "../shared/bot-owner.ts";
 import { takeImportName } from "../shared/import-name.ts";
 import { decodeBase64, type PackageAgent, type PackageDocument, type PackageTrust } from "../shared/package-format.ts";
 import type { BotVisibility, ModelSelection } from "../shared/wire.ts";
@@ -444,7 +445,9 @@ function runImport(source: ImportSource, options: PackageImportOptions, deps: Pa
       }
     }
 
-    if (pkg?.team?.leader) store.setChiefOfStaff(botIds.get(pkg.team.leader)!);
+    // the leader leads as Chief only where nobody is Chief yet: one per workspace, and an import never demotes the person's
+    const leader = pkg?.team?.leader ? store.bot(botIds.get(pkg.team.leader)!) : undefined;
+    if (leader && !chiefTaken(store.bots, leader)) store.setChiefOfStaff(leader.id);
     if (org && pkg?.team) {
       orgIndex.section = section;
       orgIndex.team.parts = pairs(TEAM_PARTS, {
