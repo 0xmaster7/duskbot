@@ -61,7 +61,7 @@ test("desktop relaunch accepts every platform once, guards its sender, and prese
       localOnly: localOrigin.localOnly, mainWindow, desktopShutdownStarted: false,
       ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
       BrowserWindow: { fromWebContents: sender => sender === contents ? mainWindow : null },
-      process: { platform, argv },
+      process: { platform, argv, env: {} },
       app: { relaunch: options => calls.push(Array.from(options.args)), quit: () => calls.push("quit") },
       setTimeout: (callback, delay) => { assert.equal(delay, 250); timers.push(callback); return { unref() {} }; },
     });

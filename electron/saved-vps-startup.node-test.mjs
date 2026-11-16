@@ -136,7 +136,8 @@ test("local IPC waits the same startup and times out without cancelling its serv
 
 test("the actual local IPC bridge shares pending boot and gives a clear failure after unsuccessful boot", async () => {
   const from = main.indexOf("const localServerRequest = async");
-  const to = main.indexOf("\nconst teamProfileSeeds", from);
+  // the function ends at its own closing brace, whatever main.mjs declares after it
+  const to = main.indexOf("\n};", from) + 3;
   const source = main.slice(from, to);
   assert.ok(from > 0 && to > from);
   const startup = deferred(), fetched = [];

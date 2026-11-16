@@ -113,7 +113,7 @@ test("a consumed launch link is not replayed by the companion relaunch", () => {
   takeCloudDeepLink(argv);
   const calls = [];
   runInNewContext(`${between("function relaunchAfterDesktopRemoteChange()", 'ipcMain.handle("desktop-remote:state"')}\nrelaunchAfterDesktopRemoteChange();`, {
-    desktopShutdownStarted: false, process: { argv }, setTimeout: callback => { callback(); return {}; },
+    desktopShutdownStarted: false, process: { argv, env: {} }, setTimeout: callback => { callback(); return {}; },
     app: { relaunch: options => calls.push(options.args), quit: () => {} },
   });
   assert.deepEqual(calls, [["--fixture", "duskbot://cloud?ignored"]]);
@@ -122,10 +122,10 @@ test("a consumed launch link is not replayed by the companion relaunch", () => {
 test("main takes the link from launch arguments, open-url and a second instance", () => {
   assert.ok(main.indexOf("cloudEntry.fromLaunch(process.argv);") < main.indexOf("app.requestSingleInstanceLock()"),
     "the launch argument is consumed before anything can relaunch");
-  assert.match(between('app.on("open-url"', "});"), /!queueOrganizationEntry\(url\) && !cloudEntry\.fromUrl\(url\) && !queuePackageInstall\(url\)/);
+  assert.match(between('app.on("open-url"', "});"), /!queueOrganizationEntry\(url\) && !\(cloudEntry\.fromUrl\(url\) && cameBack\("cloud"\)\) && !queuePackageInstall\(url\)/);
   const secondInstance = between('app.on("second-instance"', "\n});");
-  assert.ok(secondInstance.indexOf("if (cloudEntry.fromArgs(commandLine)) return;") > secondInstance.indexOf("takeOrganizationDeepLink(commandLine)"));
-  assert.ok(secondInstance.indexOf("if (cloudEntry.fromArgs(commandLine)) return;") < secondInstance.indexOf("packageUrlFromCommandLine(commandLine)"));
+  assert.ok(secondInstance.indexOf("if (cloudEntry.fromArgs(commandLine)) { cameBack(\"cloud\"); return; }") > secondInstance.indexOf("takeOrganizationDeepLink(commandLine)"));
+  assert.ok(secondInstance.indexOf("if (cloudEntry.fromArgs(commandLine)) { cameBack(\"cloud\"); return; }") < secondInstance.indexOf("packageUrlFromCommandLine(commandLine)"));
 });
 
 test("startup delivers a pending Cloud link before default navigation", () => {
