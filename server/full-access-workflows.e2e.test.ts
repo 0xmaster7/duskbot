@@ -186,7 +186,8 @@ it("applies requested Full Access workflows through MCP without duplicate approv
       step("list_triggers", {}), step("manage_trigger", { action: "pause", trigger_id: routine.id }),
       step("propose_team_setup", { reason: "Requested Mira update", operations: [{ action: "update", botId: mira.id, fields: { title: "Verified research specialist" } }] }),
       step("propose_bot_deletion", { bot_id: mira.id, reason: "User explicitly requested removal after the fixture check" }),
-      step("propose_team_setup", { reason: "Out-of-scope fixture check", operations: [{ action: "update", botId: inverse.id, fields: { title: "Must not apply" } }] }, true),
+      // the Chief oversees every section since 5199eb9df, so the refusal checked here is a bot that is not there
+      step("propose_team_setup", { reason: "Out-of-scope fixture check", operations: [{ action: "update", botId: "no-such-bot", fields: { title: "Must not apply" } }] }, true),
     ]);
     expect((await bots()).some(bot => bot.id === mira.id)).toBe(false);
     expect((await api("GET", "/api/routines")).routines.find((item: any) => item.id === routine.id)).toMatchObject({ enabled: false, nextRunAt: null, schedule });
