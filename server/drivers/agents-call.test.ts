@@ -165,7 +165,7 @@ describe("propose_profile", () => {
     });
     const result = await callTool("propose_profile", { description: "Calmer replies.", notifications: "on" }, ctx);
     expect(result.isError).toBe(true);
-    expect(result.text).toContain("propose_profile notifications and speakReplies must be true or false.");
+    expect(result.text).toContain("propose_profile notifications, speakReplies and voiceNotes must be true or false.");
     expect(calls).toEqual([]);
   });
 

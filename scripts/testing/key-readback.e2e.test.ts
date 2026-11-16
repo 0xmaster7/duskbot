@@ -1,5 +1,5 @@
 // Every credential on the keys page, saved through a real server the way its row saves it, read back from GET
-// /api/config and shown masked. the services that check a key before it is kept (composio, elevenlabs, fish audio
+// /api/config and shown masked. the services that check a key before it is kept (composio, elevenlabs, fish audio, deepgram, cartesia, assemblyai
 // and the decision models) answer from one loopback stand-in, so nothing leaves this machine.
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -68,6 +68,9 @@ beforeAll(async () => {
     }
     if (url.startsWith("/eleven/voices")) return reply(200, { voices: [] });
     if (url.startsWith("/fish/model")) return reply(200, { items: [], total: 0 });
+    if (url.startsWith("/deepgram/auth/token")) return reply(200, { access_token: "fixture", expires_in: 30 });
+    if (url.startsWith("/cartesia/voices")) return reply(200, { data: [], has_more: false });
+    if (url.startsWith("/assemblyai/transcript")) return reply(200, { transcripts: [] });
     return reply(404, { error: "not in the stand-in" });
   });
   await new Promise<void>((resolve) => stub.listen(0, "127.0.0.1", resolve));
@@ -83,6 +86,7 @@ beforeAll(async () => {
     DUSK_COMPOSIO_API: `${origin}/composio`, DUSK_COMPOSIO_TOOLKITS_API: `${origin}/composio`,
     DUSK_GEMINI_TTS_API: `${origin}/gemini`,
     DUSK_ELEVENLABS_API: `${origin}/eleven`, DUSK_FISH_AUDIO_API: `${origin}/fish`,
+    DUSK_DEEPGRAM_API: `${origin}/deepgram`, DUSK_CARTESIA_API: `${origin}/cartesia`, DUSK_ASSEMBLYAI_API: `${origin}/assemblyai`,
   };
   const log = openSync(fixture.info.logPath, "a", 0o600);
   server = spawn(process.execPath, verificationServerArgs(env), { cwd: fileURLToPath(ROOT), env, stdio: ["ignore", log, log] });
@@ -107,7 +111,7 @@ it("saves every kind of credential, reads it back and shows it masked to its las
   setLocale("en");
   expect(saveds.map((entry) => entry.id)).toEqual([
     "openai", "anthropic", "xai", "openrouter", "mistral", "cerebras", "groq", "greenference", "meta", "deepseek", "opencodeGo", "openaiCompat",
-    "liveKey", "elevenlabs", "geminiTts", "fishAudio", "composio", "treg", "jev", "openrouterHelper", "gatewayHelper", "workersAi", "imageOpenai", "imageCustom",
+    "liveKey", "elevenlabs", "geminiTts", "fishAudio", "deepgram", "cartesia", "assemblyAi", "composio", "treg", "jev", "openrouterHelper", "gatewayHelper", "workersAi", "imageOpenai", "imageCustom",
   ]);
   for (const storage of ["", "?secretStorage=external"]) {
     for (const entry of saveds) {
