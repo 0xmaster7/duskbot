@@ -1,7 +1,7 @@
 // Packaged: an embedded cua-driver daemon, so macOS TCC grants attribute to dusk bot; dev attaches to CuaDriver.app.
 // Agents use the stdio MCP proxy, which executes nothing; the host-owned daemon does.
 
-import { app, ipcMain } from "electron";
+import { app, ipcMain, systemPreferences } from "electron";
 import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
 import { promisify } from "node:util";
@@ -271,13 +271,23 @@ function watchDriverGate(missing) {
   gateWatch.unref?.();
 }
 
-async function startEmbedded(binary, signal) {
+/** Accessibility and Screen Recording as they stand, without a prompt (AXIsProcessTrusted, CGPreflightScreenCaptureAccess). */
+export function currentMacPermissions(prefs = systemPreferences) {
+  return {
+    accessibility: prefs.isTrustedAccessibilityClient(false),
+    screenRecording: prefs.getMediaAccessStatus("screen") === "granted",
+  };
+}
+
+async function startEmbedded(binary, signal, { ask }) {
   // The packaged app ships no general node_modules, so a bare package import only works in dev.
   const sdk = await loadEmbeddedSdk();
   signal.throwIfAborted();
   // CUA's embedding contract needs grants before the daemon starts, asked from Electron main so macOS attributes them here.
+  // requestMacOSPermissions prompts (AXIsProcessTrustedWithOptions, CGRequestScreenCaptureAccess in cua-driver 0.28.2's
+  // SDK), so only a person turning computer control on asks; every other start only checks.
   if (process.platform === "darwin") {
-    const permissionStatus = sdk.requestMacOSPermissions();
+    const permissionStatus = ask ? sdk.requestMacOSPermissions() : currentMacPermissions();
     if (!sdk.hasRequiredMacOSPermissions(permissionStatus)) {
       const missing = [
         !permissionStatus.accessibility && "Accessibility",
@@ -309,7 +319,7 @@ async function startEmbedded(binary, signal) {
   }
 }
 
-export async function startCua({ attempt = 0 } = {}) {
+export async function startCua({ attempt = 0, ask = false } = {}) {
   if (process.platform === "linux") return ensureLinuxRuntime().initialize();
   clearTimeout(retryTimer);
   retryTimer = null;
@@ -333,7 +343,7 @@ export async function startCua({ attempt = 0 } = {}) {
 
   if (wantEmbedded) {
     try {
-      nextConnection = await startEmbedded(binary, signal);
+      nextConnection = await startEmbedded(binary, signal, { ask });
     } catch (err) {
       signal.throwIfAborted();
       try {
@@ -443,7 +453,7 @@ function restartCua() {
       const generation = lifecycleGeneration;
       await stopping;
       if (generation !== lifecycleGeneration) throw new Error("Computer use restart cancelled");
-      const connection = await startCua();
+      const connection = await startCua({ ask: true });
       const ready = connection?.mode === "embedded" || connection?.mode === "standalone";
       return {
         enabled: ready,

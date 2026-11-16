@@ -5,8 +5,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const fixture = vi.hoisted(() => ({ home: "", script: "", ps: "", gated: false, socketExists: false, socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map() }));
-vi.mock("electron", () => ({ app: { isPackaged: false, getPath: () => fixture.home }, ipcMain: { handle: (name, handler) => fixture.handlers.set(name, handler) } }));
+const fixture = vi.hoisted(() => ({ home: "", script: "", ps: "", gated: false, socketExists: false, socketReady: false, children: [], calls: [], embeddedDelays: [], hosts: [], handlers: new Map(), asked: [], checked: [] }));
+vi.mock("electron", () => ({ app: { isPackaged: false, getPath: () => fixture.home }, ipcMain: { handle: (name, handler) => fixture.handlers.set(name, handler) },
+  systemPreferences: { isTrustedAccessibilityClient: (prompt) => { fixture.checked.push(["accessibility", prompt]); return false; }, getMediaAccessStatus: (kind) => { fixture.checked.push([kind]); return "denied"; } } }));
 vi.mock("@trycua/cua-driver/embedded", () => ({
   EmbeddedCuaDriverHost: class {
     constructor() { this.delay = fixture.embeddedDelays.shift(); fixture.hosts.push(this); }
@@ -23,7 +24,7 @@ vi.mock("@trycua/cua-driver/embedded", () => ({
   },
 }));
 vi.mock("@trycua/cua-driver/electron", () => ({
-  requestMacOSPermissions: () => ({ accessibility: false, screenRecording: false }),
+  requestMacOSPermissions: () => { fixture.asked.push("request"); return { accessibility: false, screenRecording: false }; },
   hasRequiredMacOSPermissions: () => fixture.embeddedDelays.length > 0,
 }));
 vi.mock("node:fs", async (original) => {
@@ -82,6 +83,8 @@ beforeEach(async () => {
   fixture.calls = [];
   fixture.embeddedDelays = [];
   fixture.hosts = [];
+  fixture.asked = [];
+  fixture.checked = [];
   fixture.handlers.clear();
   vi.stubEnv("DUSK_CUA_EMBEDDED", "1");
   vi.stubEnv("CUA_DRIVER_PATH", "/fixture/cua-driver");
@@ -147,6 +150,15 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
     fixture.socketReady = true;
     await vi.waitFor(() => expect(states.at(-1)).toMatchObject({ mode: "standalone", mcpCommand: "/fixture/cua-driver" }), { timeout: 8_000, interval: 100 });
   }, 20_000);
+
+  it("only checks the macOS grants on a start nobody asked for; turning computer control on asks", async () => {
+    fixture.embeddedDelays = [1, 1];
+    await expect(cua.startCua()).resolves.toMatchObject({ mode: "embedded" });
+    expect(fixture.asked).toEqual([]);
+    expect(fixture.checked).toEqual([["accessibility", false], ["screen"]]);
+    await expect(cua.requestComputerUse()).resolves.toMatchObject({ enabled: true, status: "ready" });
+    expect(fixture.asked).toEqual(["request"]);
+  });
 
   it("keeps the event loop responsive and publishes the existing descriptor shape", async () => {
     let ticks = 0;
