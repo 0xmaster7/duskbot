@@ -238,7 +238,7 @@ export const macros = (html) => withBots(withLinks(withRelease(withParts(html).r
 const NAV = [['/download', 'download'], ['/docs', 'docs'], ['/pricing', 'pricing']];
 const MENU = [...NAV, ['/changelog', "what's new"], ['/about', 'about'], ['/contact', 'contact']];
 const FOOT = [
-  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [WAITLIST_HOME ? '/' : '/waitlist', 'join the waitlist'], [`${APP_URL}/`, 'sign in']]],
+  ['product', [['/download', 'download'], ['/pricing', 'pricing'], ['/changelog', "what's new"], [`${APP_URL}/`, 'sign in']]],
   ['learn', [['/docs', 'docs'], ['/docs/getting-started', 'get started'], ['/docs/your-own-server', 'your own server'], ['/docs/faq', 'questions']]],
   ['dusk bot', [['/about', 'about'], ['/contact', 'contact'], ['/brand', 'brand'], ['/security', 'security']]],
   ['legal', [['/terms', 'terms'], ['/privacy', 'privacy'], ['/cookies', 'cookies'], ['/refunds', 'refunds'], ['/acceptable-use', 'acceptable use'], ['/subprocessors', 'subprocessors'], ['/license', 'license']]],
