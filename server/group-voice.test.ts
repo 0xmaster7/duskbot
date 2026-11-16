@@ -84,6 +84,7 @@ describe("the room's talk rules", () => {
     expect(VOICE_RULES).toContain("Never use em dashes");
     expect(VOICE_RULES).toContain("Never start with your own name");
     expect(VOICE_RULES).toContain('Never "@you"');
+    expect(VOICE_RULES).toContain("never quote it back or sound impatient");
     expect(VOICE_RULES).not.toContain(EM);
   });
 });

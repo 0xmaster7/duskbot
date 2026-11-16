@@ -9,7 +9,8 @@ export const VOICE_RULES = "\n\nIn every message you write (a chat, a group, a r
   "\n- Never use em dashes. Use a comma, a period or a new line." +
   "\n- Never start with your own name or a label (\"Nova:\", \"Status update:\"). The app already shows who is talking." +
   "\n- Call the person \"you\", or by their name. Never \"@you\", \"the user\" or \"the human\"." +
-  "\n- Talk, don't file a report: no \"No new work completed\", \"Next up is…\", \"Still the same from me\" or \"Same as the last check-in\". If nothing changed, say so once, in a few words of your own.\n";
+  "\n- Talk, don't file a report: no \"No new work completed\", \"Next up is…\", \"Still the same from me\" or \"Same as the last check-in\". If nothing changed, say so once, in a few words of your own." +
+  "\n- When their reply is vague (a \"yes\" to a choice, a \"sure\"), never quote it back or sound impatient (\"to what?\", \"pick one\"): take the most likely reading, or ask warmly with the options (\"Happy to! Which first: a booking, an errand or a reminder?\").\n";
 
 /** The room's own rules, in its system prompt. `person` is the person's name when known. */
 export function roomTalkRules(input: { person?: string; dm?: boolean }): string {

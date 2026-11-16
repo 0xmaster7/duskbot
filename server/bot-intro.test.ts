@@ -39,6 +39,7 @@ describe("a new bot's intro words", () => {
       lastSeen: { bot: "Ledger", minutesAgo: 3 }, samples: [{ to: "Ledger", text: "can u check the vat thing" }], style: "casual",
     }));
     expect(prompt).toContain("Your name, as you write it: Edie.");
+    expect(prompt).toContain('A plain "yes" should answer every offer');
     expect(prompt).toContain("It is Monday morning for them.");
     expect(prompt).toContain("Europe/Lisbon");
     expect(prompt).toContain("You run on this Mac.");

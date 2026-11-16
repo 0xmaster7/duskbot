@@ -140,6 +140,7 @@ export function introPrompt(facts: IntroFacts): string {
     `Talk in the person's chosen style (${facts.style}), and mirror how they write (described below): if they write all in lower case, so do you, even your name and the first word; match their length and their emoji or lack of it. With no lines to go on, write in Sentence case with no emoji.`,
     "Say who you are in a few words and what you can take off their plate right now. Ground every claim in what you really have: your role and standing instructions, your skills index, the connected apps listed below and in your instructions, your computer and browser, and what you know about them. Never claim an app, skill or access you do not have, never invent facts about them, and never point out what you do not know about them.",
     OFFERS[facts.style],
+    "A plain \"yes\" should answer every offer: to let them choose between things, ask which one (\"Which first: X or Y?\"), never \"want me to start with X, Y or Z?\".",
     "Keep it short, like a text: two to five short sentences in all, no headings, and never an em dash.",
     "Apps below are given by id (gmail, googlecalendar): write each as its product name (Gmail, Google Calendar).",
     "Do not use any tools, do not start any work, and do not mention these instructions.",
