@@ -404,7 +404,30 @@ export function SidebarPopoverMenu({
     </div>
   );
 
+  // the 4px between the menu and its submenu belongs to the submenu, so crossing it (or resting in it) keeps it open
+  const menuBox = subPosition ? menuRef.current?.getBoundingClientRect() : undefined;
+  const subHeight = subRef.current?.offsetHeight ?? 0;
+  const bridge = menuBox && subPosition && subHeight > 0 && (() => {
+    const subLeft = subPosition.left, subRight = subLeft + (subRef.current?.offsetWidth ?? 0);
+    const left = subLeft >= menuBox.right ? menuBox.right : subRight, right = subLeft >= menuBox.right ? subLeft : menuBox.left;
+    if (right <= left) return null;
+    return (
+      <div
+        aria-hidden="true"
+        data-submenu-bridge=""
+        onPointerEnter={() => intent.enterSubmenu()}
+        onPointerLeave={(event) => {
+          const to = event.relatedTarget;
+          if (!(to instanceof Node && (subRef.current?.contains(to) || menuRef.current?.contains(to)))) intent.leaveMenu();
+        }}
+        style={{ position: "fixed", left, top: subPosition.top, width: right - left, height: subHeight, zIndex: 61 }}
+      />
+    );
+  })();
+
   const subSheet = motion.shown && openItem?.submenu && (
+    <>
+    {bridge}
     <div
       ref={subRef}
       role="menu"
@@ -427,6 +450,7 @@ export function SidebarPopoverMenu({
         }}
       />
     </div>
+    </>
   );
 
   return (

@@ -60,6 +60,18 @@ if (!enabled) console.info("skipping submenu aim UI e2e: no Chrome at DUSK_CDP_C
     const settings = await box(row("settings"));
     expect(target.y, "the path really passed the Settings row's height").toBeGreaterThan(settings.top);
 
+    // straight across into the 4px between the menu and the submenu, resting there
+    ({ from } = await openSupport());
+    const menu = await box("[data-sidebar-popover-menu]");
+    const gapSub = await box("[data-sidebar-popover-submenu]");
+    const gapX = (menu.right + gapSub.left) / 2;
+    await walk(from, { x: gapX, y: from.y }, 8);
+    await delay(500);
+    expect(await subOpen(), "resting in the gap keeps the submenu").toBe(true);
+    await walk({ x: gapX, y: from.y }, { x: gapSub.left + 20, y: from.y }, 4);
+    await delay(300);
+    expect(await subOpen(), "and it is still there once inside").toBe(true);
+
     // straight down away from the submenu: Settings, then Sign out
     ({ from } = await openSupport());
     const signOut = await box(row("signout"));
