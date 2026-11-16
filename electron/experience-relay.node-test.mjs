@@ -34,4 +34,11 @@ test("crashes and update failures become fixed words", () => {
   assert.equal(updateFailStage("the update did not match its checksum"), "checksum");
   assert.equal(updateFailStage("the release manifest is not signed by a pinned key"), "manifest");
   assert.equal(updateFailStage("fetch failed"), "download");
+  assert.equal(updateFailStage("the update download answered 404"), "download");
+  assert.equal(updateFailStage("https://dusk.bot/releases/0.2.13/SHA256SUMS answered 404"), "download");
+  assert.equal(updateFailStage("https://dusk.bot/releases/latest.json answered 503"), "download");
+  assert.equal(updateFailStage("the update could not install: Code signature at URL file:///x did not pass validation"), "install");
+  assert.equal(updateFailStage("the update could not install: the update did not unpack in time"), "install");
+  assert.equal(updateFailStage("SHA256SUMS does not match the signed manifest"), "manifest");
+  assert.equal(updateFailStage("release 0.2.13 has no zip for arm64"), "manifest");
 });

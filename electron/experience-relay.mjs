@@ -47,9 +47,11 @@ export function crashProps(type, reason) {
 /** the stage an app update failed at, from its error message */
 export function updateFailStage(message) {
   const text = String(message ?? "");
+  // installer and http failures first: their words (a signature, a SHA256SUMS url) would read as another stage
+  if (/install|squirrel|prepare/i.test(text)) return "install";
+  if (/ answered \d{3}$|download/i.test(text)) return "download";
   if (/manifest|signed|release .* has no zip/i.test(text)) return "manifest";
   if (/checksum|SHA256|sha-?256/i.test(text)) return "checksum";
-  if (/install|squirrel|prepare/i.test(text)) return "install";
   if (/fetch|network|HTTP|ENOTFOUND|ECONN|ETIMEDOUT|abort|socket/i.test(text)) return "download";
   return "other";
 }

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { createAppUpdater, DESKTOP_MANIFEST_URL, justUpdated, quietNow, RELEASE_KEYS, sumsUrl, verifiedRelease, zipIn, zipUrl } from "./app-update.mjs";
+import { updateFailStage } from "./experience-relay.mjs";
 
 const { privateKey } = generateKeyPairSync("ed25519");
 const keys = [{ kid: "test-desk", x: createPublicKey(privateKey).export({ format: "jwk" }).x }];
@@ -16,19 +17,20 @@ function manifest(version, sums, kid = "test-desk", key = privateKey) {
 }
 
 /** a release `version` on the network, its zip `zip`, and an updater around it */
-function world({ version = "1.1.0", current = "1.0.0", signed = true, zip = Buffer.from("zip bytes"), sumsZip = zip, manifestKey = privateKey, prepare = async () => {} } = {}) {
+function world({ version = "1.1.0", current = "1.0.0", signed = true, zip = Buffer.from("zip bytes"), sumsZip = zip, manifestKey = privateKey, prepare = async () => {}, drop = [] } = {}) {
   const sums = `${sha(sumsZip)}  DuskBot-${version}-arm64.zip\n${sha("x")}  DuskBot-${version}-x64.zip\n`;
   const routes = new Map([
     [DESKTOP_MANIFEST_URL, JSON.stringify(manifest(version, sums, "test-desk", manifestKey))],
     [sumsUrl(version), sums],
     [zipUrl(version, `DuskBot-${version}-arm64.zip`), zip],
   ]);
-  const w = { told: 0, prepared: [], installed: 0, states: [], fetched: [], dir: mkdtempSync(join(tmpdir(), "dusk-app-update-")), quiet: false, timers: [] };
+  for (const url of drop) routes.delete(url);
+  const w = { told: 0, prepared: [], installed: 0, states: [], fetched: [], failures: [], dir: mkdtempSync(join(tmpdir(), "dusk-app-update-")), quiet: false, timers: [] };
   w.updater = createAppUpdater({
     current, arch: "arm64", dir: w.dir, keys, signed: async () => signed,
     fetchImpl: async (url) => { w.fetched.push(url); const body = routes.get(url); return body === undefined ? new Response("no", { status: 404 }) : new Response(body, { headers: { "content-length": String(Buffer.byteLength(body)) } }); },
     installer: { prepare: async (file, v) => { w.prepared.push({ file, v, bytes: readFileSync(file) }); await prepare(); }, install: () => { w.installed += 1; } },
-    quiet: async () => w.quiet, fallback: { check: async () => { w.told += 1; return null; } }, onState: (s) => w.states.push(s),
+    quiet: async () => w.quiet, fallback: { check: async () => { w.told += 1; return null; } }, onState: (s) => w.states.push(s), onFailed: (m) => w.failures.push(m),
     timers: { setTimeout: (fn) => { w.timers.push(fn); return w.timers.length; }, clearTimeout: () => {} },
   });
   return w;
@@ -104,7 +106,13 @@ test("nothing newer, nothing done; an installer that fails falls back to the not
   assert.equal(broken.told, 1);
   assert.equal(broken.states.some((s) => s.ready), false);
   assert.deepEqual(broken.updater.state(), { ready: null, available: "1.1.0", progress: null, checking: false, failed: true });
+  assert.equal(updateFailStage(broken.failures[0]), "install", broken.failures[0]);
   done(broken);
+  const unpublished = world({ drop: [zipUrl("1.1.0", "DuskBot-1.1.0-arm64.zip")] });
+  assert.equal(await unpublished.updater.check(), null);
+  assert.equal(unpublished.told, 1);
+  assert.equal(updateFailStage(unpublished.failures[0]), "download", unpublished.failures[0]);
+  done(unpublished);
 });
 
 test("the download's progress reaches the window in whole percents, and a failed one can be tried again", async () => {

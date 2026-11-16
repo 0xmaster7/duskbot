@@ -187,7 +187,8 @@ export function createAppUpdater({ current, arch, dir, fetchImpl = fetch, keys =
     available = release.version; progress = 0; tell();
     try {
       await download(zipUrl(release.version, zip.name), file, zip.sha256);
-      await installer.prepare(file, release.version);
+      // squirrel's own words rarely say where it failed; this names the stage for the failure signal
+      try { await installer.prepare(file, release.version); } catch (error) { throw new Error(`the update could not install: ${error instanceof Error ? error.message : String(error)}`); }
     } finally { progress = null; }
     ready = release.version;
     log(`app update: ${ready} is ready; it installs on quit or at a quiet moment`);
