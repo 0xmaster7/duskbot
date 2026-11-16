@@ -12,7 +12,7 @@ and get a team of bots, each with its own memory and computer.</p>
 <a href="https://dusk.bot/docs">Docs</a>
 </p>
 
-<sub>v0.2.12 · free forever for personal use · source available</sub>
+<sub>v0.2.13 · free forever for personal use · source available</sub>
 
 </div>
 
