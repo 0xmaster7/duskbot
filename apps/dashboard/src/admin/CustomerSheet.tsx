@@ -1,21 +1,32 @@
-import { useCallback, useEffect, useId, useState, type MutableRefObject, type ReactNode } from "react";
-import { Check, Copy } from "@/icons";
+import { useCallback, useEffect, useId, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { ArrowUpRight, Check, Copy } from "@/icons";
 import { Button, cx, Segmented } from "../ui/kit";
 import { AnimatePresence, m } from "../ui/motion";
-import { CardLink } from "./sheet";
+import { ago } from "../lib/format";
+import { Link, useLocation } from "../lib/router";
+import { CardLink, closeCard, SidePanel } from "./sheet";
+import { useNow } from "../lib/now";
 import { toast } from "../lib/toast";
-import { AdminApiError, adminCall, type PlanChange, type PlanPreview, type PlanSubscription, type UserDetail } from "./api";
-import { usd } from "./kit";
+import { AdminApiError, adminCall, useAdmin, type PlanChange, type PlanPreview, type PlanSubscription, type UserDetail } from "./api";
+import { Avatar, usd } from "./kit";
+import { Failed, Loading, n, stamp } from "./ui";
 import { endLabel } from "./PlanEditor";
 import type { MoneyMode } from "./revenue-types";
 
 const DAY = 86_400_000;
+const LIVE = ["active", "payment_problem", "cancelled"];
+const PARAM = "customer" as const;
 const isoDay = (t: number) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const shortDay = (t: number) => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(new Date(t).getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}) }).toLowerCase();
 const endOfDay = (value: string) => new Date(`${value}T23:59:59`).getTime();
+const every = (interval: unknown) => interval === "year" ? "yearly" : "monthly";
+const AUDIT: Record<string, string> = { "plan.interval": "billing period", "plan.set_end": "end date moved", "plan.grant": "plan given", "plan.change": "plan changed",
+  "plan.cancel_now": "ended now", "plan.cancel_at_end": "set to end", "plan.keep": "kept going", "person.note": "note", "user.view": "viewed" };
 const addMonths = (t: number, months: number) => { const d = new Date(t); d.setMonth(d.getMonth() + months); return d.getTime(); };
 
 /** a row that opens the customer card here */
-export const CustomerLink = ({ accountId, ...rest }: { accountId: string; className?: string; children: ReactNode }) => <CardLink param="person" id={accountId} {...rest} />;
+export const CustomerLink = ({ accountId, ...rest }: { accountId: string; className?: string; children: ReactNode }) => <CardLink param="customer" id={accountId} {...rest} />;
 
 /** test money gets a small chip wherever it shows; live money needs none */
 export function ModeChip({ mode, live }: { mode: MoneyMode | undefined; live?: boolean }) {
@@ -24,13 +35,130 @@ export function ModeChip({ mode, live }: { mode: MoneyMode | undefined; live?: b
     title={mode === "test" ? "dodo test mode: no real money" : "live money"}>{mode === "test" ? "test" : "live"}</span>;
 }
 
-export function CopyEmail({ email }: { email: string }) {
+/** the customer card, on whatever admin page carries ?customer= */
+export function CustomerSheetHost() {
+  const { query } = useLocation();
+  const id = query.get(PARAM);
+  return createPortal(<AnimatePresence>{id && <Sheet key="customer" id={id} />}</AnimatePresence>, document.body);
+}
+
+function Sheet({ id }: { id: string }) {
+  const titleId = useId();
+  const pending = useRef<(() => void) | null>(null);
+  const close = useCallback(() => closeCard(PARAM), []);
+  const { data, error, reload, setData } = useAdmin<UserDetail>(`/users/${encodeURIComponent(id)}`);
+  return (
+    <SidePanel label="customer" titleId={titleId} onClose={close} pending={pending}>
+      {error && <div className="mt-4"><Failed error={error.status === 404 ? { message: "this account is gone. its payments stay in the revenue numbers." } : error} retry={reload} /></div>}
+      {!data && !error && <div className="mt-4"><Loading rows={6} /></div>}
+      {data && <Body detail={data} titleId={titleId} onChange={setData} pending={pending} />}
+    </SidePanel>
+  );
+}
+
+function CopyEmail({ email }: { email: string }) {
   const [done, setDone] = useState(false);
   const copy = () => void navigator.clipboard?.writeText(email).then(() => { setDone(true); setTimeout(() => setDone(false), 1400); }).catch(() => toast("couldn't copy. select the address instead.", "bad"));
   return (
     <button type="button" onClick={copy} aria-label={done ? "copied" : `copy ${email}`} className="press hover-ghost grid size-8 shrink-0 place-items-center rounded-full text-ink-3">
       {done ? <Check size={14} strokeWidth={1.75} /> : <Copy size={14} strokeWidth={1.75} />}
     </button>
+  );
+}
+
+function Cell({ label, value, note, money }: { label: string; value: ReactNode; note?: ReactNode; money?: boolean }) {
+  return (
+    <div className="min-w-0 px-3 py-2.5">
+      <div className="truncate text-12 text-ink-3">{label}</div>
+      <div className={cx("mt-0.5 truncate text-15 font-medium", money ? "font-mono text-money num" : "text-ink")}>{value}</div>
+      {note && <div className="truncate text-12 text-ink-4">{note}</div>}
+    </div>
+  );
+}
+
+function Body({ detail, titleId, onChange, pending }: { detail: UserDetail; titleId: string; onChange(next: UserDetail): void; pending: MutableRefObject<(() => void) | null> }) {
+  const now = useNow(60_000);
+  const a = detail.account;
+  const live = detail.subscriptions.filter((sub) => LIVE.includes(sub.status)).sort((x, y) => y.createdAt - x.createdAt)[0] ?? null;
+  const paid = detail.payments.filter((pay) => pay.status === "paid");
+  const lifetime = paid.reduce((sum, pay) => sum + pay.amountCents, 0);
+  const mrr = live && !live.comp ? (live.interval === "year" ? Math.round(live.totalCents / 12) : live.totalCents) : 0;
+  const [all, setAll] = useState(false);
+  const payments = all ? detail.payments : detail.payments.slice(0, 6);
+  return (
+    <>
+      <div className="mt-2 flex items-center gap-3.5">
+        <Avatar seed={a.id} size={48} customer={!!live && !live.comp} account={{ id: a.id }} />
+        <div className="min-w-0">
+          {a.name ? (
+            <>
+              <h2 id={titleId} className="truncate text-20 font-medium tracking-[-0.03em] text-ink">{a.name}</h2>
+              <div className="flex min-w-0 items-center gap-1">
+                <a href={`mailto:${a.email}`} className="text-link min-w-0 truncate text-14">{a.email}</a>
+                <CopyEmail email={a.email} />
+              </div>
+            </>
+          ) : (
+            <div className="flex min-w-0 items-center gap-1">
+              <h2 id={titleId} className="truncate text-20 font-medium tracking-[-0.03em] text-ink"><a href={`mailto:${a.email}`} className="hover-link">{a.email}</a></h2>
+              <CopyEmail email={a.email} />
+            </div>
+          )}
+        </div>
+      </div>
+      <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-12 text-ink-4">
+        <span>signed up {shortDay(a.createdAt)}</span>
+        <span>seen {ago(a.lastSeenAt, now).toLowerCase()}</span>
+        <span className="t-id">{a.id}</span>
+      </p>
+
+      <div className="mt-5 grid grid-cols-2 rounded-[18px] bg-card">
+        <Cell label="plan" value={<span className="inline-flex items-center gap-2">{live ? live.plan ?? "custom" : "free"}{live && <ModeChip mode={live.mode} live />}</span>}
+          note={live ? (live.comp && !live.dodo ? "comp, no billing" : `${live.comp ? "operator grant, " : ""}billed ${live.interval === "year" ? "yearly" : "monthly"}`) : "no plan right now"} />
+        <Cell label="mrr" value={usd(mrr)} money note={live && !live.comp ? `${usd(live.totalCents)} a ${live.interval}` : undefined} />
+        <Cell label="lifetime" value={usd(lifetime)} money note={`${n(paid.length)} payment${paid.length === 1 ? "" : "s"}`} />
+        <Cell label={live?.cancelAtPeriodEnd ? "ends" : live?.comp && !live.dodo ? "comp ends" : "renews"} value={live ? (live.openEnded ? "open-ended" : live.periodEnd ? shortDay(live.periodEnd) : "-") : "-"}
+          note={live ? live.status.replace(/_/g, " ") : undefined} />
+      </div>
+
+      <PlanLength detail={detail} live={live} onChange={onChange} pending={pending} />
+
+      <section aria-labelledby="sheet-payments" className="mt-5">
+        <h3 id="sheet-payments" className="px-1 text-13 font-medium text-ink">payments</h3>
+        {detail.payments.length ? (
+          <ul className="mt-1.5 rounded-[18px] bg-card p-1">
+            {payments.map((pay) => (
+              <li key={pay.id} className="grid grid-cols-[64px_minmax(0,1fr)_auto_auto] items-center gap-2.5 px-2 py-1.5 text-13">
+                <span className="font-mono text-12 text-ink-4 num">{shortDay(pay.createdAt)}</span>
+                <span className="flex min-w-0 items-center gap-1.5"><span className="truncate text-ink-2">{pay.description || "payment"}</span><ModeChip mode={pay.mode} /></span>
+                <span className="text-12 text-ink-3">{pay.status}</span>
+                <span className={cx("w-16 text-end font-mono num", pay.status === "paid" && pay.amountCents > 0 ? "font-medium text-money" : "text-ink-3")}>{usd(pay.amountCents)}</span>
+              </li>
+            ))}
+            {detail.payments.length > 6 && <li><button type="button" onClick={() => setAll((v) => !v)} className="text-link mx-auto block h-8 px-3 text-12">{all ? "show fewer" : `show all ${detail.payments.length}`}</button></li>}
+          </ul>
+        ) : <p className="mt-1.5 rounded-[18px] bg-card px-3 py-4 text-13 text-ink-3">no payments yet.</p>}
+      </section>
+
+      {detail.audit.length > 0 && (
+        <section aria-labelledby="sheet-changes" className="mt-5">
+          <h3 id="sheet-changes" className="px-1 text-13 font-medium text-ink">recent changes</h3>
+          <ol className="mt-1.5 rounded-[18px] bg-card p-1">
+            {detail.audit.slice(0, 5).map((entry) => (
+              <li key={entry.id} className="flex flex-wrap items-baseline gap-x-2 px-2 py-1.5 text-13">
+                <span className="text-ink">{AUDIT[entry.action] ?? entry.action.replace(/^plan\./, "").replace(/[._]/g, " ")}</span>
+                {entry.action === "plan.interval" && typeof entry.detail.interval === "string" ? <span className="min-w-0 text-ink-3">{every(entry.detail.from)} <span aria-hidden>→</span><span className="sr-only">to</span> {every(entry.detail.interval)}</span>
+                  : (typeof entry.detail.before === "string" || typeof entry.detail.after === "string") && <span className="min-w-0 text-ink-3">{String(entry.detail.before ?? "")} <span aria-hidden>→</span><span className="sr-only">to</span> {String(entry.detail.after ?? "")}</span>}
+                {entry.detail.ok === false && <span className="text-bad">failed</span>}
+                <span className="ms-auto shrink-0 text-12 text-ink-4" title={stamp(entry.at)}>{entry.actorEmail ?? "someone"} · {ago(entry.at, now).toLowerCase()}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <Link to={`/admin/users/${encodeURIComponent(a.id)}`} className="text-link mt-6 inline-flex items-center gap-1.5 self-start text-13">full page, with clouds, devices and every plan action <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden /></Link>
+    </>
   );
 }
 
@@ -47,7 +175,7 @@ const CODES: Record<string, string> = {
 const reason = (err: unknown) => err instanceof AdminApiError ? CODES[err.code ?? ""] ?? err.message.toLowerCase() : "that didn't work. try again.";
 
 /** how long they pay for: monthly or yearly, and when the period (or a comp) ends; every change is shown exactly, then confirmed */
-export function PlanLength({ detail, live, onChange, pending }: { detail: UserDetail; live: PlanSubscription | null; onChange(next: UserDetail): void; pending: MutableRefObject<(() => void) | null> }) {
+function PlanLength({ detail, live, onChange, pending }: { detail: UserDetail; live: PlanSubscription | null; onChange(next: UserDetail): void; pending: MutableRefObject<(() => void) | null> }) {
   const dateId = useId();
   const [change, setChange] = useState<PlanChange | null>(null);
   const [preview, setPreview] = useState<PlanPreview | null>(null);

@@ -1,7 +1,6 @@
 import { useEffect, useRef, type MouseEvent, type MutableRefObject, type ReactNode } from "react";
 import { X } from "@/icons";
-import { EASE_OUT, m } from "../ui/motion";
-import { SOFT } from "./motion";
+import { EASE_OUT, GLIDE, m } from "../ui/motion";
 import { withBase } from "../lib/router";
 
 /** which card a url param opens: the money card from revenue, or the person card from anywhere else */
@@ -70,7 +69,7 @@ export function SidePanel({ label, titleId, onClose, pending, wide, children }: 
       <m.div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId}
         className={`absolute inset-y-0 right-0 flex flex-col overflow-y-auto overscroll-contain rounded-s-[28px] bg-pop px-6 pb-8 pt-5 max-sm:rounded-none max-sm:px-4 ${wide ? "w-[min(720px,100vw)]" : "w-[min(540px,100vw)]"}`}
         style={{ boxShadow: "var(--pop-shadow)" }}
-        initial={{ x: 48, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 48, opacity: 0, transition: { duration: 0.16, ease: EASE_OUT } }} transition={{ x: SOFT, opacity: { duration: 0.16, ease: EASE_OUT } }}>
+        initial={{ x: 48, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 48, opacity: 0, transition: { duration: 0.16, ease: EASE_OUT } }} transition={GLIDE}>
         <div className="flex items-center justify-between gap-3">
           <span className="t-meta">{label}</span>
           <button data-close type="button" onClick={onClose} aria-label="close" className="press hover-ghost -me-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-3"><X size={18} strokeWidth={1.5} /></button>

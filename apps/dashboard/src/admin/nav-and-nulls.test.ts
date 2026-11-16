@@ -21,18 +21,15 @@ function textOf(element: ReactElement) {
 }
 
 describe("admin nav", () => {
-  it("lights the most specific view and its section, so a sub-page is not its parent", () => {
+  it("lights the most specific item, so a sub-page is not its parent", () => {
     expect(currentItem("/admin/ops/accounts")?.label).toBe("accounts usage");
-    expect(currentItem("/admin/ops")?.label).toBe("servers");
-    expect(currentItem("/admin/ops")?.section.id).toBe("ops");
-    expect(currentItem("/admin/users/acct_1")?.section.id).toBe("people");
-    expect(currentItem("/admin/people/visitors")?.label).toBe("visitors");
-    expect(currentItem("/admin/analytics/pages")?.label).toBe("traffic");
-    expect(currentItem("/admin/product/apps")?.label).toBe("usage");
-    expect(currentItem("/admin/product/apps")?.section.id).toBe("product");
-    expect(currentItem("/admin/waitlist")?.section.id).toBe("people");
-    expect(currentItem("/admin/bug-reports")?.section.id).toBe("product");
-    expect(currentItem("/admin")?.section.id).toBe("home");
+    expect(currentItem("/admin/ops")?.label).toBe("ops");
+    expect(currentItem("/admin/users/acct_1")?.label).toBe("people");
+    expect(currentItem("/admin/people/visitors")?.label).toBe("people");
+    expect(currentItem("/admin/analytics/pages")?.label).toBe("overview");
+    expect(currentItem("/admin/product/apps")?.label).toBe("product");
+    expect(currentItem("/admin/waitlist")?.label).toBe("waitlist");
+    expect(currentItem("/admin")?.label).toBe("overview");
     expect(currentItem("/admin/nothing-here")).toBeNull();
   });
 });

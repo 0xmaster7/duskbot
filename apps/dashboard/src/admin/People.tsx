@@ -1,13 +1,17 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { ArrowUpRight } from "@/icons";
 import { Segmented, cx } from "../ui/kit";
 import { ago } from "../lib/format";
-import { PersonLink } from "./sheet";
+import { Link, useLocation } from "../lib/router";
+import { closeCard, PersonLink, SidePanel } from "./sheet";
 import { useNow } from "../lib/now";
 import { useAdmin } from "./api";
-import { AdminHeader, Failed, Loading, n, SearchBox } from "./ui";
-import { Chip, RangePicker, duration, rangeOf, usd, where, type Range } from "./kit";
-import { identity, PersonFace } from "./identity";
-import { Platform, flagOf } from "./person";
+import { AdminHeader, Failed, Loading, n, SearchBox, stamp } from "./ui";
+import { AnimatePresence } from "../ui/motion";
+import { Avatar, CHANNEL, Chip, RangePicker, duration, personName, rangeOf, usd, where, type Range } from "./kit";
+import { Platform, deviceEmoji, flagOf } from "./person";
+import { BillingCard } from "./PersonBilling";
 import type { PersonBilling } from "./revenue-types";
 
 interface Person {
@@ -22,7 +26,7 @@ interface Step {
   taxCents?: number; ms?: number; scroll?: number; emoji?: string;
 }
 interface Session { start: number; end: number; ms: number; surface: Step["surface"]; source: string | null; channel: string | null; campaign: string | null; referrer: string | null; steps: Step[] }
-export interface Profile {
+interface Profile {
   id: string; seed: string; account: { id: string; email: string; name: string | null; createdAt: number; avatarUrl?: string; avatar?: string } | null; customer: boolean; paidAt: number | null; visitors: number; installs: number;
   where: { device: string | null; os: string | null; browser: string | null; country: string | null; region: string | null; city: string | null };
   firstSource: { at: number; source: string; channel: string; campaign: string | null; referrer: string | null; ref: string | null } | null;
@@ -57,10 +61,10 @@ export function PeoplePage({ tabs }: { tabs?: ReactNode }) {
             <li key={person.id}>
               <PersonLink id={person.id} className="hover-row -mx-3 grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_110px] items-center gap-4 rounded-[16px] px-3 py-3 max-md:grid-cols-[minmax(0,1fr)_auto]">
                 <span className="flex min-w-0 items-center gap-3">
-                  <PersonFace id={person.account?.id ?? person.seed} size={36} anonymous={!person.account} avatarUrl={person.account?.avatarUrl} avatar={person.account?.avatar} />
+                  <Avatar seed={person.seed} customer={person.customer} account={person.account} />
                   <span className="min-w-0">
                     <span className="flex items-center gap-2">
-                      <span className="truncate text-14 font-medium text-ink">{identity(person.account ? { id: person.account.id, name: person.account.name, email: person.account.email } : { id: person.seed }).name}</span>
+                      <span className="truncate text-14 font-medium text-ink">{personName(person.seed, person.account?.email)}</span>
                       {person.customer ? <span className="tag !h-[22px] !px-2 text-accent-ink">customer</span> : person.account ? <span className="tag !h-[22px] !px-2">signed up</span> : null}
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1.5">
@@ -144,11 +148,67 @@ function StepText({ step }: { step: Step }) {
   }
 }
 
-/** someone's visits and app use, grouped into sessions, newest first */
-export function Journey({ profile }: { profile: Profile }) {
+function Stat({ label, value, note, money }: { label: string; value: ReactNode; note?: ReactNode; money?: boolean }) {
   return (
-    <>
-            {profile.sessions.map((session) => {
+    <div className="min-w-0 rounded-[16px] bg-card px-3.5 py-3">
+      <div className="text-12 font-medium text-ink-3">{label}</div>
+      <div className={cx("mt-1 truncate text-[17px] font-medium leading-6", money ? "font-mono text-money num" : "text-ink")}>{value}</div>
+      <div className="mt-0.5 h-[18px] truncate text-12 leading-[18px] text-ink-4">{note}</div>
+    </div>
+  );
+}
+
+/** the person card, on whatever admin page carries ?person= */
+export function PersonSheetHost() {
+  const { query } = useLocation();
+  const id = query.get("person");
+  return createPortal(<AnimatePresence>{id && <PersonSheet key={id} id={id} />}</AnimatePresence>, document.body);
+}
+
+function PersonSheet({ id }: { id: string }) {
+  const titleId = useId();
+  const close = useCallback(() => closeCard("person"), []);
+  return <SidePanel label="person" titleId={titleId} onClose={close} wide><PersonCard id={id} titleId={titleId} /></SidePanel>;
+}
+
+function PersonCard({ id, titleId }: { id: string; titleId: string }) {
+  const { path } = useLocation();
+  const { data, error, reload } = useAdmin<Profile>(`/journeys/${encodeURIComponent(id)}`);
+  const first = data?.firstSource;
+  const place = data?.where;
+  if (error) return <div className="mt-4"><h2 id={titleId} className="sr-only">person</h2><Failed error={error} retry={reload} /></div>;
+  if (!data || !place) return <div className="mt-4"><h2 id={titleId} className="sr-only">loading</h2><Loading rows={5} /></div>;
+  return (
+        <div className="text-14 leading-[1.55] text-ink-2">
+          <div className="mt-2 flex items-center gap-3.5">
+            <Avatar seed={data.seed} size={48} customer={data.customer} account={data.account} />
+            <div className="min-w-0">
+              <h2 id={titleId} className="truncate text-20 font-medium tracking-[-0.03em] text-ink">{personName(data.seed, data.account?.email)}</h2>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {data.customer && <span className="inline-flex h-6 items-center rounded-full bg-coral-soft px-2.5 text-12 text-coral-deep">customer</span>}
+                {data.account ? <span className="tag">account</span> : <span className="tag">anonymous</span>}
+                {data.account?.name && <span className="text-13 text-ink-3">{data.account.name}</span>}
+                {data.installs > 0 && <span className="tag">{data.installs} app install{data.installs === 1 ? "" : "s"}</span>}
+              </div>
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-13">
+                <span>{place.country && <span aria-hidden>{flagOf(place.country)} </span>}{where(place.country, place.city)}</span>
+                {place.device && <span><span aria-hidden>{deviceEmoji(place.device)} </span>{place.device}</span>}
+                <Platform kind="os" value={place.os} />
+                <Platform kind="browser" value={place.browser} />
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-4 gap-2 max-md:grid-cols-2">
+            <Stat label="first source" value={first ? <><span aria-hidden>{CHANNEL_ICON[first.channel] ?? "🔗"} </span>{first.source}</> : "unknown"}
+              note={first ? first.campaign ?? (first.ref && first.ref !== first.source ? `ref ${first.ref}` : first.referrer ?? CHANNEL[first.channel] ?? first.channel) : "no site visit recorded"} />
+            <Stat label="visits" value={n(data.stats.visits)} note={`${n(data.stats.pageviews)} page${data.stats.pageviews === 1 ? "" : "s"}`} />
+            <Stat label="total spent" value={usd(data.stats.spentCents)} money
+              note={data.stats.refundedCents ? `after ${usd(data.stats.refundedCents)} refunded` : data.stats.payments ? `${n(data.stats.payments)} payment${data.stats.payments === 1 ? "" : "s"}` : "nothing yet"} />
+            <Stat label="time to first payment" value={data.stats.timeToPayMs !== null ? duration(data.stats.timeToPayMs) : "-"} note={data.stats.firstPaidAt ? `paid ${day(data.stats.firstPaidAt)}` : "not paid yet"} />
+          </div>
+          {data.billing && <BillingCard billing={data.billing} />}
+          <div className="mt-5">
+            {data.sessions.map((session) => {
               const label = sessionLabel(session);
               return (
                 <section key={session.start} className="mb-4">
@@ -170,7 +230,13 @@ export function Journey({ profile }: { profile: Profile }) {
                 </section>
               );
             })}
-            {!profile.sessions.length && <p className="text-13">nothing recorded.</p>}
-              </>
+            {!data.sessions.length && <p className="text-13">nothing recorded.</p>}
+          </div>
+          <p className="mt-3 text-12 text-ink-4">since {stamp(data.stats.firstSeen ?? data.account?.createdAt ?? null)}. a person's site visits join their account when they sign in on the same domain; app use joins when the app signs in. a new session starts after 30 quiet minutes.</p>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-13">
+            {data.account && <Link to={`/admin/users/${encodeURIComponent(data.account.id)}`} className="text-link inline-flex items-center gap-1.5">full account page <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden /></Link>}
+            {path !== "/admin/people/visitors" && <Link to={`/admin/people/visitors?person=${encodeURIComponent(id)}`} className="text-link inline-flex items-center gap-1.5">open in people <ArrowUpRight size={14} strokeWidth={1.75} aria-hidden /></Link>}
+          </div>
+        </div>
   );
 }
