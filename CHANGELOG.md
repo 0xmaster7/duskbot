@@ -3,6 +3,11 @@
 Notable changes to dusk bot, newest first. Installers and checksums for each version are on the
 [releases page](https://github.com/DuskBotAI/duskbot/releases) and at [dusk.bot/download](https://dusk.bot/download).
 
+## 0.2.14
+
+- A fresh install starts clean: nothing from other apps is copied in, and no keychain prompt asks for another app's key.
+- Sign-in shortcuts, a free trial option for dusk cloud where offered, clearer cloud screens and smaller fixes.
+
 ## 0.2.13
 
 - Chat is just chat: no tool steps or run receipts under replies.
