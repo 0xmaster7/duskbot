@@ -3,16 +3,14 @@ import { spawn } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   statSync,
-  unwatchFile,
-  watchFile,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { app } from "electron";
+import { tailFile } from "./speech-output.mjs";
 import { createSpeechTranscript } from "./speech-transcript.mjs";
 
 import {
@@ -160,26 +158,13 @@ export function startSpeech(target, options = {}) {
     return;
   }
 
-  let outputRead = 0;
   let feed = () => {};
-  const drain = () => {
-    let content;
-    try {
-      content = readFileSync(outputPath, "utf8");
-    } catch {
-      return;
-    }
-    if (content.length <= outputRead) return;
-    const fresh = content.slice(outputRead);
-    outputRead = content.length;
-    feed(fresh);
-  };
+  const output = tailFile(outputPath, (fresh) => feed(fresh));
   feed = trackSession(sink, proc, {
     stopPath, finishPath, sessionDir,
-    flush: drain,
-    release: () => unwatchFile(outputPath, drain),
+    flush: output.flush,
+    release: output.close,
   });
-  watchFile(outputPath, { interval: 50, persistent: false }, drain);
 }
 
 function startWindowsSpeech(sink, { endpointMs, locale }) {

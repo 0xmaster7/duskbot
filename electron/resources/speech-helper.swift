@@ -327,7 +327,8 @@ func analyzerLocale() async -> Locale? {
 func prepareTranscriber(live: Bool) async throws -> SpeechTranscriber? {
   guard SpeechTranscriber.isAvailable, let locale = await analyzerLocale() else { return nil }
   let transcriber = SpeechTranscriber(
-    locale: locale, transcriptionOptions: [], reportingOptions: live ? [.volatileResults] : [], attributeOptions: [])
+    locale: locale, transcriptionOptions: [], reportingOptions: live ? [.volatileResults, .fastResults] : [],
+    attributeOptions: [])
   // the language's model downloads once, the first time it is used
   if let install = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
     try await install.downloadAndInstall()

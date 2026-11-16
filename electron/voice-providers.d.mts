@@ -44,8 +44,10 @@ export declare function createPieceSession(options: {
   onText(text: string, partial: boolean): void;
   onError(error: unknown): void;
   sampleRate?: number;
-  /** Quiet this long after speech ends a piece. */
+  /** Quiet this long after speech ends a piece. Default 500 ms. */
   pauseMs?: number;
+  /** Past this length a short gap between words ends the piece. Default 8 s. */
+  softPieceMs?: number;
   /** A piece of unbroken speech is sent once it is this long. Default 25 s. */
   maxPieceMs?: number;
   /** Pieces heard at the same time. Default 3; whisper.cpp uses 1. */

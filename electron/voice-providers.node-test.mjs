@@ -200,6 +200,41 @@ test("long unbroken speech is cut at the cap", () => {
   h.session.stop();
 });
 
+test("half a second of quiet sends the piece", () => {
+  const h = pieces();
+  h.session.push(loud(500));
+  h.session.push(quiet(450));
+  assert.equal(h.sent.length, 0);
+  h.session.push(quiet(100));
+  assert.equal(h.sent.length, 1);
+  h.session.stop();
+});
+
+test("long speech with only short gaps between words goes out at a gap after 8 s, nothing heard twice", () => {
+  const h = pieces();
+  let pushed = 0;
+  for (let i = 0; i < 25; i += 1) {
+    h.session.push(loud(300));
+    h.session.push(quiet(100));
+    pushed += 400;
+  }
+  assert.equal(h.sent.length, 0, "a 100 ms dip inside speech never cuts");
+  h.session.push(loud(300));
+  h.session.push(quiet(200));
+  pushed += 500;
+  assert.equal(h.sent.length, 1, "the first word gap past 8 s sends the piece");
+  const first = (h.sent[0].piece.length - 44) / 2 / 16;
+  assert.ok(first >= 8_000 && first < 25_000, `piece is ${first} ms`);
+  h.session.push(loud(300));
+  h.session.push(quiet(600));
+  pushed += 900;
+  assert.equal(h.sent.length, 2);
+  const total = h.sent.reduce((sum, { piece }) => sum + (piece.length - 44) / 2 / 16, 0);
+  // the only audio left out is the quiet before the first word and after the last piece's tail
+  assert.ok(total <= pushed, `sent ${total} ms of ${pushed} ms`);
+  h.session.stop();
+});
+
 test("pieces return out of order but the words are reported in order, and the final comes once", async () => {
   const h = pieces();
   for (let i = 0; i < 3; i += 1) {

@@ -214,6 +214,9 @@ const SPEECH_FRAMES = 3;
 const LEAD_MS = 300;
 const TAIL_MS = 250;
 const PIECE_MAX_MS = 25_000;
+// past this, a gap between words is enough to send the piece, so a long run of speech still shows as it goes
+const PIECE_SOFT_MS = 8_000;
+const WORD_GAP_MS = 160;
 const PIECE_TIMEOUT_MS = 60_000;
 
 function levelOf(frame) {
@@ -236,10 +239,11 @@ const joinText = (texts) => texts.map((text) => text.trim()).filter(Boolean).joi
 
 /** Batch services heard while the person talks: each pause ends a piece that is sent at once, and the words so far are
  * reported in order as pieces come back. */
-export function createPieceSession({ transcribe, onText, onError, sampleRate = SAMPLE_RATE, pauseMs = 700, maxPieceMs = PIECE_MAX_MS, concurrency = 3, timeoutMs = PIECE_TIMEOUT_MS }) {
+export function createPieceSession({ transcribe, onText, onError, sampleRate = SAMPLE_RATE, pauseMs = 500, softPieceMs = PIECE_SOFT_MS, maxPieceMs = PIECE_MAX_MS, concurrency = 3, timeoutMs = PIECE_TIMEOUT_MS }) {
   const frameSamples = Math.max(1, Math.round((sampleRate * FRAME_MS) / 1000));
   const leadFrames = Math.ceil(LEAD_MS / FRAME_MS) + SPEECH_FRAMES;
   const tailFrames = Math.ceil(TAIL_MS / FRAME_MS);
+  const softFrames = Math.ceil(softPieceMs / FRAME_MS);
   const maxFrames = Math.ceil(maxPieceMs / FRAME_MS);
 
   let carry = new Int16Array(0);
@@ -334,6 +338,8 @@ export function createPieceSession({ transcribe, onText, onError, sampleRate = S
     }
     if (!spoke && frames.length > leadFrames) frames = frames.slice(-leadFrames);
     if (spoke && quietMs >= pauseMs) cut(true);
+    // without a lead-in: the frames just before a word gap are speech already in this piece
+    else if (spoke && frames.length >= softFrames && quietMs >= WORD_GAP_MS) cut(false);
     else if (spoke && frames.length >= maxFrames) {
       // one long run of speech: send what there is and keep listening without a lead-in, so nothing is heard twice
       lastLoud = frames.length - 1 - tailFrames;

@@ -192,7 +192,7 @@ while (-not $done) {
   if ($EndpointMs -gt 0 -and $lastText -ne "" -and $sinceChange.ElapsedMilliseconds -ge $EndpointMs) { Begin-Finish }
   # a recognizer that never confirms the stop must not hold the microphone
   if ($finishing -and $finishClock.ElapsedMilliseconds -ge 2000) { $done = $true }
-  if (-not $done) { Start-Sleep -Milliseconds 50 }
+  if (-not $done) { Start-Sleep -Milliseconds 20 }
 }
 
 try { $engine.RecognizeAsyncCancel() } catch {}
