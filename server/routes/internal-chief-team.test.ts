@@ -99,17 +99,19 @@ describe("what a Chief of Staff reads about its team", () => {
     expect((await demoted).status).toBe(403);
   });
 
-  it("lists the teams, reachable teammates and exact model choices a Chief plans team setup with", async () => {
+  it("lists every section, reachable teammate and exact model choice a Chief plans team setup with", async () => {
     const chief = bot("chief", { chiefOfStaff: true, section: "Work" });
     const { get } = await serve(chief, async () => TEAMS, {
       teams: ["", "Work", "Private"],
       bots: [chief, bot("writer", { section: "Work", title: "Writer" }), bot("gone", { section: "Work", hidden: true }), bot("other", { section: "Private" })],
     });
+    // the Chief oversees every section, not only its own (5199eb9df); a hidden bot stays out
     expect((await get("/api/internal/team-setup-catalog")).body).toMatchObject({
-      teams: ["Work"],
+      teams: ["", "Work", "Private"],
       bots: [
         { id: "chief", section: "Work", chiefOfStaff: true },
         { id: "writer", title: "Writer", section: "Work", chiefOfStaff: false, modelSelection: { instanceId: "claude", model: "sonnet" } },
+        { id: "other", section: "Private", chiefOfStaff: false },
       ],
       instances: [{ instanceId: "claude", driverKind: "claudeAgent", displayName: "Claude", state: "available", effortLevels: ["low", "high"] }],
     });
