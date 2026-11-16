@@ -89,8 +89,9 @@ export function subscriptionFromWire(subscription: SubscriptionView, catalog: Pl
   return { id: subscription.id, bundle: subscription.bundle, selection: selectionFromCart(subscription.cart, catalog), status: statuses[subscription.status], amountUsd: subscription.totalCents / 100, currentPeriodEnd: subscription.currentPeriodEnd ?? 0, cancelAt: subscription.cancelAtPeriodEnd ? subscription.currentPeriodEnd : null };
 }
 
+// a pending subscription has no paid period yet: it is not a plan until it turns active
 export function billingFromWire(overview: WireBillingOverview, catalog: PlanCatalog): BillingOverview {
-  const subscription = overview.subscriptions.filter((item) => item.status !== "ended").reduce<SubscriptionView | null>((newest, item) => !newest || item.createdAt > newest.createdAt ? item : newest, null);
+  const subscription = overview.subscriptions.filter((item) => item.status !== "ended" && item.status !== "pending").reduce<SubscriptionView | null>((newest, item) => !newest || item.createdAt > newest.createdAt ? item : newest, null);
   return {
     team: overview.license?.license?.kind === "team" ? overview.license.license.role : null,
     subscription: subscription ? subscriptionFromWire(subscription, catalog) : null,

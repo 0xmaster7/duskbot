@@ -249,6 +249,40 @@ describe("billing service isolated fixture", () => {
     const periodEnd = sub.currentPeriodEnd!; expect(periodEnd).toBeGreaterThan(time);
     expect(clouds.end).toHaveBeenLastCalledWith(cloudId, periodEnd + 30 * day, periodEnd); expect(sub.cloudId).toBeNull();
   });
+  it("a failed first payment is not a plan and never blocks the next checkout", async () => {
+    const first = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    const checkout = store.state.checkouts.find(row => row.id === first.checkoutId)!, input = provider.sessions.get(checkout.providerSessionId!)!;
+    const data = { subscription_id: "dsub_failed", customer: { customer_id: "cus_failed" }, metadata: { checkoutId: checkout.id, accountId: owner.id },
+      product_id: input.cart[0].productId, addons: input.cart[0].addons.map(addon => ({ addon_id: addon.addonId, quantity: addon.quantity })),
+      next_billing_date: new Date(time).toISOString(), cancel_at_next_billing_date: false, status: "failed" };
+    deliver([signed("payment.failed", { payment_id: "pay_failed", subscription_id: "dsub_failed", customer: { customer_id: "cus_failed" }, metadata: data.metadata, total_amount: 2360, currency: "USD" }, "pay_evt"), signed("subscription.failed", data, "sub_evt")]);
+    expect(service.subscriptions(owner.id).filter(sub => sub.status !== "ended")).toEqual([]);
+    expect(checkout.status).toBe("expired"); expect(clouds.get(first.cloudId!)?.status).toBe("destroyed");
+    expect(clouds.setPaymentProblem).not.toHaveBeenCalled();
+    const retry = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    expect(retry.checkoutUrl).toMatch(/^https:/); expect(retry.cloudId).not.toBe(first.cloudId);
+    const done = provider.complete(store.state.checkouts.find(row => row.id === retry.checkoutId)!.providerSessionId!); deliver(done);
+    expect(service.subscriptions(owner.id).filter(sub => sub.status === "active")).toHaveLength(1);
+  });
+  it("a first payment put on hold ends the never-paid subscription and cancels it at the provider", async () => {
+    const first = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    const checkout = store.state.checkouts.find(row => row.id === first.checkoutId)!, input = provider.sessions.get(checkout.providerSessionId!)!;
+    deliver([signed("subscription.on_hold", { subscription_id: "dsub_hold", customer: { customer_id: "cus_hold" }, metadata: { checkoutId: checkout.id, accountId: owner.id },
+      product_id: input.cart[0].productId, addons: input.cart[0].addons.map(addon => ({ addon_id: addon.addonId, quantity: addon.quantity })),
+      next_billing_date: new Date(time).toISOString(), cancel_at_next_billing_date: false, status: "on_hold" })]);
+    expect(store.state.subscriptions[0]?.status).toBe("ended"); expect(store.state.providerCancels).toEqual([expect.objectContaining({ id: "dsub_hold" })]);
+    await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).resolves.toMatchObject({ checkoutUrl: expect.any(String) });
+  });
+  it("heals a never-paid subscription an earlier build left in payment_problem", async () => {
+    const first = await service.checkout(owner, { kind: "cart", cart: desktopOnly() });
+    const checkout = store.state.checkouts.find(row => row.id === first.checkoutId)!;
+    store.state.subscriptions.push({ id: "sub_stuck", accountId: owner.id, providerSubscriptionId: "dsub_stuck", checkoutId: checkout.id, cart: desktopOnly(), totalCents: 2000, lines: checkout.lines,
+      status: "payment_problem", source: checkout.source, licenseId: null, cloudId: checkout.cloudId, currentPeriodStart: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, createdAt: time, updatedAt: time, version: 2, mode: "test" });
+    checkout.subscriptionId = "sub_stuck"; store.commit(); service.close();
+    service = createBillingService({ store, provider, clouds, config, publicUrl: "https://dashboard.test", now: () => time });
+    expect(store.state.subscriptions[0].status).toBe("ended"); expect(checkout.status).toBe("expired"); expect(clouds.get(first.cloudId!)?.status).toBe("destroyed");
+    await expect(service.checkout(owner, { kind: "cart", cart: desktopOnly() })).resolves.toMatchObject({ checkoutUrl: expect.any(String) });
+  });
   it("records failed invoices once and upgrades the same payment on success", async () => {
     await service.checkout(owner, { kind: "cart", cart: { interval: "month", license: { kind: "solo" }, desktop: { kind: "none" } } });
     const data = { payment_id: "pay_one", subscription_id: "dsub_one", customer: { customer_id: "cus_one" }, metadata: { checkoutId: store.state.checkouts[0].id, accountId: owner.id }, total_amount: 1200, currency: "USD" };

@@ -200,5 +200,6 @@ test("billing selects the newest non-ended subscription and maps invoices", () =
   assert.equal(result.paymentMethod, null);
   assert.deepEqual(result.invoices, [{ id: "invoice", number: "invoice", date: now, amountUsd: 12.5, status: "open", description: "Plan", url: "/invoice" }]);
   assert.equal(billingFromWire({ ...overview, subscriptions: [{ ...subscription, status: "ended" }] }, plans).subscription, null);
+  assert.equal(billingFromWire({ ...overview, subscriptions: [{ ...subscription, status: "pending", currentPeriodEnd: null }] }, plans).subscription, null, "unpaid is not a plan");
   assert.deepEqual(providersFromWire({ v: 1, signupOpen: true, providers: [{ id: "apple", enabled: false, comingSoon: true }] }), { providers: [{ id: "apple", enabled: false, comingSoon: true }] });
 });

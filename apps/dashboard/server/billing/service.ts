@@ -335,6 +335,13 @@ export function createBillingService(options: BillingServiceOptions) {
     }
     sub.currentPeriodEnd = next;
   }
+  /** a subscription whose first payment never landed: no period was ever paid */
+  function neverPaid(sub: StoredSubscription) { return (sub.status === "pending" || sub.status === "payment_problem") && sub.currentPeriodEnd === null; }
+  function dropNeverPaid(sub: StoredSubscription, checkout: StoredCheckout) {
+    sub.status = "ended"; refreshLicense(sub, checkout.email); delete sub.pendingChange;
+    if (checkout.status === "open") checkout.status = "expired";
+    if (sub.cloudId && !checkout.revive) clouds.abandon(sub.cloudId);
+  }
   function endSubscription(sub: StoredSubscription, email: string) {
     sub.status = "ended"; refreshLicense(sub, email);
     if (sub.cloudId) cloudAction({ kind: "end", cloudId: sub.cloudId, at: now() + config.graceDays * day });
@@ -449,6 +456,11 @@ export function createBillingService(options: BillingServiceOptions) {
         if (!sub.cancelAtPeriodEnd) cloudAction({ kind: "keep", cloudId: sub.cloudId });
         else if (sub.currentPeriodEnd !== null) cloudAction({ kind: "schedule", cloudId: sub.cloudId, at: sub.currentPeriodEnd + config.graceDays * day });
       }
+    } else if ((event.type === "on_hold" || event.type === "failed") && neverPaid(sub)) {
+      // the first payment never went through: a checkout that failed, not a plan. on_hold is cancelled at the provider
+      // so it can't charge later for a cloud we already let go
+      dropNeverPaid(sub, checkout);
+      if (event.type === "on_hold") queueProviderCancel(event.subscriptionId);
     } else if (event.type === "on_hold" || event.type === "failed") {
       if (sub.status !== "payment_problem") notices.push({ kind: "payment_failed", accountId: sub.accountId, amountCents: sub.totalCents, currency: config.currency, description: planLabel(sub),
         cloudId: sub.cloudId, fixBy: (sub.currentPeriodEnd ?? now()) + config.graceDays * day });
@@ -609,6 +621,18 @@ export function createBillingService(options: BillingServiceOptions) {
     store.commit();
     return lapsed.length;
   }
+  /** heals subscriptions an earlier build left in payment_problem after a failed first payment */
+  function healNeverPaid() {
+    const stuck = state.subscriptions.filter(sub => sub.status === "payment_problem" && neverPaid(sub));
+    for (const sub of stuck) {
+      const checkout = state.checkouts.find(row => row.id === sub.checkoutId);
+      if (!checkout) continue;
+      dropNeverPaid(sub, checkout);
+      console.log(`billing: ended never-paid subscription ${sub.id} (account ${sub.accountId}, checkout ${checkout.id})`);
+    }
+    if (stuck.length) store.commit();
+  }
+  try { healNeverPaid(); } catch (error) { console.warn(`billing: healing never-paid subscriptions failed (${(error as Error).message})`); }
   try { expireLapsed(); } catch {}
   const sweepLapsed = setInterval(() => { try { expireLapsed(); } catch {} }, 10 * 60_000);
   sweepLapsed.unref();
