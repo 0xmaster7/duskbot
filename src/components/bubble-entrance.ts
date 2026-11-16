@@ -1,7 +1,7 @@
 import { springTiming } from "@/hooks/use-arrival-flow";
 
 /** The person's words leave the field and settle into their bubble as its fill comes in. */
-export const SEND_MOVE = springTiming(300, 30);
+export const SEND_MOVE = { duration: 240, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" } as const;
 export const SEND_FILL = { duration: 220, delay: 40, easing: "cubic-bezier(0.22, 1, 0.36, 1)" } as const;
 /** A reply grows out of its top corner, by the mascot, then its words fade in whole. */
 export const REPLY_GROW = springTiming(420, 32);
@@ -58,8 +58,8 @@ export function morphFromComposer(bubble: HTMLElement, fill: HTMLElement | null,
   });
 }
 
-/** The reply grows out of its top start corner, the mascot's side, so its top edge never moves; its words fade in once
- * it is there. Under reduced motion it only fades. */
+/** The reply grows out of its top start corner, the mascot's side, so its top edge moves only with the conversation;
+ * its words fade in once it is there. Under reduced motion it only fades. */
 export function growFromMascot(bubble: HTMLElement, reduced: boolean): void {
   if (!canAnimate(bubble)) return;
   const rtl = getComputedStyle(bubble).direction === "rtl";

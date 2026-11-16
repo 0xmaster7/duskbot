@@ -101,7 +101,7 @@ it("carries a send out of the composer, grows the reply out of the mascot, and s
   await act(async () => new Promise((resolve) => setTimeout(resolve, 520)));
   const replyBubble = host.querySelector('[data-mid="reply"] [data-chat-bubble]')!;
   expect(played.find((one) => one.el === replyBubble)?.keyframes).toEqual([{ opacity: 0, transform: "scale(0.94)" }, { opacity: 1, transform: "scale(1)" }]);
-  expect((replyBubble as HTMLElement).style.transformOrigin, "it grows from its top corner, so its top edge never moves").toBe("0% 0%");
+  expect((replyBubble as HTMLElement).style.transformOrigin).toBe("0% 0%");
   expect(played.some((one) => one.el.parentElement === replyBubble && one.keyframes[0]?.opacity === 0), "its words fade in whole").toBe(true);
   expect(played.filter((one) => one.el === sent).length, "the send never plays again").toBe(1);
 

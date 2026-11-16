@@ -1156,10 +1156,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const paintedMessages = useFirstPaintRows(transcriptKey, windowedMessages, Boolean(focus && !focus.consumed) || laterCount > 0, scrollRef, following);
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const lastRowIsBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
-  // a reply that lands as the line leaves takes the line's place: the line goes at once instead of fading under it
-  const lineAbove = useRef<string | undefined>(undefined);
-  if (presenceVisible) lineAbove.current = lastShownRow?.id;
-  const lineShown = presenceVisible || (presenceShown && !(lastRowIsBubble && lastShownRow?.id !== lineAbove.current));
   const presenceUnderBubble = lastRowIsBubble;
   // grok keeps the status line's slot at the end of the conversation whether it shows or not, so it never moves a row
   const statusSlot = windowedMessages.length > 0 || busy;
@@ -1403,7 +1399,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               onSubmitEdit={submitEdit}
               onRegenerate={regenerate}
               onReply={selectReply}
-              seamId={lastRowIsBubble && lineShown ? lastShownRow?.id ?? null : null}
+              seamId={lastRowIsBubble && presenceShown ? lastShownRow?.id ?? null : null}
               landedReplyId={!turnBusy && !stopCut && !personStoppedLast(messages) ? lastBotTextId : null}
             />
           </FoldedNoticesContext></ChatBusyContext></LiveToolsContext></ChatRowsContext.Provider>
@@ -1432,7 +1428,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             </div>
           )}
           <div className={statusSlot ? cn("turn-status-slot h-9 shrink-0", presenceUnderBubble && SIMPLE_STACKED) : "contents"} onMouseEnter={() => setMarkEmphasized(true)} onMouseLeave={() => setMarkEmphasized(false)} onClick={() => markRef.current?.poke?.()}>
-          {lineShown && <TurnPresence
+          {(presenceVisible || presenceShown) && <TurnPresence
             avatar={
               <MarkCrossfade swap={presenceMarkState}>
                 <StatusMark

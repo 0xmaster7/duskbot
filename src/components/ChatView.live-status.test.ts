@@ -247,7 +247,7 @@ describe("each bubble's typing beat", () => {
     expect(rows()).toEqual(["ask", "one", "two"]);
   });
 
-  it("ends a turn with the last bubble taking the line's place: the line goes in the frame it lands", () => {
+  it("ends a turn with the last bubble landing in the frame the line starts leaving", () => {
     engine({ type: "turn.started" });
     render(busyBot([ask]));
     const last = fresh("last", "It's 441, so yes.");
@@ -256,8 +256,9 @@ describe("each bubble's typing beat", () => {
     expect(statusLine()).toBe("Typing…");
     expect(rows()).toEqual(["ask"]);
     act(() => void vi.advanceTimersByTime(TYPING_MIN_MS));
+    expect(host.querySelector(".turn-status-out"), "the line starts leaving").not.toBeNull();
     expect(rows()).toEqual(["ask", "last"]);
-    // it does not linger to fade out under the reply, which would move it down by the reply's height
+    act(() => void vi.advanceTimersByTime(140));
     expect(mascot()).toBeNull();
   });
 
