@@ -1,4 +1,5 @@
 import { OrganizationIdentity } from "./OrganizationIdentity";
+import { StartFreshHost } from "./bot-panel/StartFresh";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type Dispatch } from "react";
 import { motion, type MotionStyle } from "motion/react";
 import { createPortal } from "react-dom";
@@ -1422,6 +1423,7 @@ export function Sidebar({ open, onClose, collapseToIcons = false }: {
           document.body,
         )}
       {drawer.scrim && createPortal(drawer.scrim, document.body)}
+      <StartFreshHost />
     </Aside>
   );
 }

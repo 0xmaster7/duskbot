@@ -7,7 +7,6 @@ import { Icon } from "../Icon";
 import { Loader2 } from "../../icons";
 import { ModalLayer } from "../ui/ModalLayer";
 import { confirmCancelCls, formBodyCls, formFooterCls, formHeaderCls, formSheetCls, formTitleCls, mdDangerCls, mdPrimaryCls, rowHintCls, textFieldCls, useDialogKeys } from "../ui/GrokDialog";
-import { roundButtonCls } from "./rows";
 
 /** the words the person types; main checks them again (electron/start-fresh.mjs CONFIRM_PHRASE) */
 export const START_FRESH_PHRASE = "delete everything";
@@ -16,27 +15,20 @@ export const startFreshTyped = (typed: string) => typed.trim().toLowerCase() ===
 type Bridge = NonNullable<NonNullable<Window["duskDesktop"]>["startFresh"]>;
 const bridge = (): Bridge | null => (typeof window === "undefined" ? null : window.duskDesktop?.startFresh ?? null);
 
-/** The bot panel header's Start fresh: a trash button beside Share, only in this app's own window (main says where). */
-export function StartFreshButton() {
-  const [available, setAvailable] = useState(false);
+const OPEN_EVENT = "dusk:start-fresh";
+/** Support's dev row opens the reset; the host lives in the sidebar so it opens from any page */
+export const openStartFresh = () => window.dispatchEvent(new Event(OPEN_EVENT));
+
+export function StartFreshHost() {
   const [open, setOpen] = useState(false);
   useEffect(() => {
-    let live = true;
-    const startFresh = bridge();
-    if (!startFresh) return;
-    void startFresh.available().then((yes) => { if (live) setAvailable(yes === true); }, () => {});
-    return () => { live = false; };
+    const show = () => setOpen(true);
+    window.addEventListener(OPEN_EVENT, show);
+    return () => window.removeEventListener(OPEN_EVENT, show);
   }, []);
   const startFresh = bridge();
-  if (!available || !startFresh) return null;
-  return (
-    <>
-      <button type="button" data-start-fresh="" aria-label={t("startFresh.button")} title={t("startFresh.button")} aria-haspopup="dialog" onClick={() => setOpen(true)} className={roundButtonCls}>
-        <Icon name="trash" size={16} />
-      </button>
-      {open && <StartFreshDialog bridge={startFresh} onClose={() => setOpen(false)} />}
-    </>
-  );
+  if (!open || !startFresh) return null;
+  return <StartFreshDialog bridge={startFresh} onClose={() => setOpen(false)} />;
 }
 
 function stepTitle(step: StartFreshStep) {

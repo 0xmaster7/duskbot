@@ -23,7 +23,8 @@ import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts, type Accou
 import { openSignIn } from "@/lib/sign-in-sheet";
 import { Icon, type IconName } from "./Icon";
 import { exportUsageLog, trailAvailable } from "@/lib/trail";
-import { devToolsShown, setSimulatedFreshInstall } from "@/lib/bots-elsewhere";
+import { devToolsShown } from "@/lib/bots-elsewhere";
+import { openStartFresh } from "./bot-panel/StartFresh";
 import { GROK_FOCUS } from "./SidebarSimpleTop";
 import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
@@ -491,9 +492,9 @@ export function profileMenuItems({
   return groups.flatMap((group, at) => group.map((item, index) => (at > 0 && index === 0 ? { ...item, separatorBefore: true } : item)));
 }
 
-/** Dev builds only (devToolsShown): Support's last row shows the fresh-install screen for an account with a VPS. */
+/** Dev builds only (devToolsShown): Support's last row deletes everything for a fresh install (the Start fresh reset). */
 function devItems(icon: ReactNode): SidebarMenuItem[] {
-  return devToolsShown() ? [{ key: "dev-fresh-install", label: t("elsewhere.dev.simulate"), icon, separatorBefore: true, onSelect: () => setSimulatedFreshInstall(true) }] : [];
+  return devToolsShown() ? [{ key: "dev-fresh-install", label: t("startFresh.devMenu"), icon, separatorBefore: true, onSelect: openStartFresh }] : [];
 }
 
 /** Grok's profile menu, word for word: the phone app, Support (help, shortcuts, feedback, about) and Settings, then the

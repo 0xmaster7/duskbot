@@ -7,7 +7,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StartFreshView } from "../../../electron/start-fresh.mjs";
 
-const { StartFreshButton, StartFreshDialog, startFreshTyped } = await import("./StartFresh");
+const { StartFreshHost, StartFreshDialog, openStartFresh, startFreshTyped } = await import("./StartFresh");
 
 const pending: StartFreshView = { phase: "idle", steps: [
   { id: "server:s1", kind: "server", label: "Box", status: "pending" },
@@ -65,18 +65,21 @@ describe("Start fresh", () => {
     for (const typed of ["", "delete", "delete everything!", "delete  everything", "everything"]) expect(startFreshTyped(typed)).toBe(false);
   });
 
-  it("shows its button only when main says this page may", async () => {
-    const yes = fakeBridge();
-    (window as { duskDesktop?: unknown }).duskDesktop = { startFresh: yes };
-    act(() => root.render(createElement(StartFreshButton)));
+  it("opens the reset dialog from the dev menu's event, and only in the desktop app", async () => {
+    (window as { duskDesktop?: unknown }).duskDesktop = { startFresh: fakeBridge() };
+    act(() => root.render(createElement(StartFreshHost)));
     await settle();
-    expect($("[data-start-fresh]")?.getAttribute("aria-label")).toBe("Start fresh");
+    expect($("[role=alertdialog]")).toBeNull();
+    act(() => openStartFresh());
+    await settle();
+    expect($("[role=alertdialog]")?.textContent).toContain("This deletes everything and cannot be undone");
     act(() => root.unmount());
     root = createRoot(host);
-    (window as { duskDesktop?: unknown }).duskDesktop = { startFresh: { ...yes, available: async () => false } };
-    act(() => root.render(createElement(StartFreshButton)));
+    (window as { duskDesktop?: unknown }).duskDesktop = {};
+    act(() => root.render(createElement(StartFreshHost)));
+    act(() => openStartFresh());
     await settle();
-    expect($("[data-start-fresh]")).toBeNull();
+    expect($("[role=alertdialog]")).toBeNull();
   });
 
   it("keeps the red button disabled until the words match, and sends exactly what was typed", async () => {
