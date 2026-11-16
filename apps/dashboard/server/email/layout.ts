@@ -113,7 +113,7 @@ const rowsHtml = (rows: Array<[string, string, Mark?]>) => T(rows.map(([label, v
 <td valign="top" align="right" class="ink" style="padding:9px 0 9px 12px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:500;color:${C.ink};font-variant-numeric:tabular-nums;word-break:break-word">${mark ? `<span style="color:${markColor[mark]};font-size:13px">&#9679;</span>&nbsp;` : ""}${esc(value)}</td></tr>`).join("\n"));
 
 function blockHtml(cfg: EmailConfig, block: Block, accent: Accent): string {
-  const p = (inner: string, style = "") => `<p class="soft" style="margin:0 0 18px;font-family:${SANS};font-size:16px;line-height:25px;font-weight:500;color:${C.body};${style}">${inner}</p>`;
+  const p = (inner: string, style = "") => `<p class="soft" style="margin:0 0 18px;font-family:${SANS};font-size:15.5px;line-height:24px;font-weight:500;color:${C.body};${style}">${inner}</p>`;
   switch (block.t) {
     case "h1": return `<h1 class="ink h1" style="margin:0 0 10px;font-family:${SANS};font-size:26px;line-height:32px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}">${esc(block.text)}</h1>`;
     case "h2": return `<h2 class="ink" style="margin:14px 0 12px;font-family:${SANS};font-size:19px;line-height:26px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.text)}</h2>`;
@@ -144,7 +144,7 @@ function blockHtml(cfg: EmailConfig, block: Block, accent: Accent): string {
     case "list": return T(block.items.map(item => `<tr><td valign="top" width="22" style="padding:9px 0 0"><div style="width:6px;height:6px;background:${C.ink}" class="dot"></div></td><td class="soft" style="font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body};padding:0 0 6px;word-break:break-word">${prose(item)}</td></tr>`).join("\n"), "margin:0 0 18px");
     case "tips": return T(block.items.map(item => `<tr><td valign="top" width="88" style="padding:0 0 20px"><img src="${esc(img(cfg, item.image))}" width="72" height="72" alt="${esc(item.alt)}" style="display:block;width:72px;height:72px;border:0"></td>
 <td valign="top" style="padding:4px 0 20px"><div class="ink" style="font-family:${SANS};font-size:16.5px;line-height:23px;font-weight:600;letter-spacing:-0.01em;color:${C.ink}">${esc(item.title)}</div>
-<div class="soft" style="font-family:${SANS};font-size:15px;line-height:23px;font-weight:500;color:${C.body};padding-top:4px">${prose(item.text)}</div></td></tr>`).join("\n"), "margin:0 0 10px");
+<div class="soft" style="font-family:${SANS};font-size:14.5px;line-height:22px;font-weight:500;color:${C.body};padding-top:4px">${prose(item.text)}</div></td></tr>`).join("\n"), "margin:0 0 10px");
     case "note": {
       const tone = tones[block.tone ?? "info"];
       return stepped(`<span class="ink" style="font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.ink}">${prose(block.text)}</span>`,
