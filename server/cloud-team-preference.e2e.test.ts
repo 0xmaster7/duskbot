@@ -1,7 +1,7 @@
 // One preference for all of a person's bots on a Team Cloud, end to end. Bob tells Scout, in his private chat, that his
 // reminders go to his task app: Scout saves that once in Bob's About me with memory_update action prefer and hands one
-// piece of work to Quill, which saves another preference of Bob's from the work Bob's message handed on. Every bot reads
-// both lines in Bob's work, nothing goes to each bot, and Olive's About me never changes. The engine is the synthetic
+// piece of work to Quill, whose try at saving another preference from that hand-off is refused (another bot's words).
+// Every bot reads Bob's line in his work, nothing goes to each bot, and Olive's About me never changes. The engine is the synthetic
 // Claude CLI playing a scripted plan through the real agents tools, so it proves where things land, not a model's judgement.
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -73,7 +73,7 @@ afterAll(async () => {
   await fx?.close();
 });
 
-it("saves a preference once in Bob's About me, from his own chat and from work his message handed on, for every bot to read", async () => {
+it("saves a preference once in Bob's About me from his own chat for every bot to read, never from work another bot handed on", async () => {
   const before = await aboutMe(olive);
   const sent = await team.as(bob, "POST", `/api/bots/${scout.id}/messages`, { text: ASK, threadId: bobsChat });
   expect(sent.status, JSON.stringify(sent.body)).toBe(202);
@@ -83,17 +83,20 @@ it("saves a preference once in Bob's About me, from his own chat and from work h
 
   const asked = turns().find((turn) => turn.botId === scout.id && turn.turnIndex === 0)!;
   expect(preferResults(asked)).toEqual(["Saved in Bob's About me, which every bot reads in their work. Don't pass it on to other bots or save it in your own notes too."]);
+  // work another bot handed on is outside words since the trusted writes (0b350b0bb): it cannot change About me
   const handed = turns().find((turn) => turn.botId === quill.id)!;
-  expect(preferResults(handed)).toEqual(["Saved in Bob's About me, which every bot reads in their work. Don't pass it on to other bots or save it in your own notes too."]);
+  expect(preferResults(handed)).toEqual(["This turn read content from outside (a page, a tool, an email or another bot), so it cannot change About me. If the person said it, ask them to confirm in their own words."]);
 
   const bobs = await aboutMe(bob);
   expect(bobs).toMatch(new RegExp(`· learned by Scout · ${REMINDERS}`));
-  expect(bobs).toMatch(new RegExp(`· learned by Quill · ${STYLE}`));
+  expect(bobs).not.toContain(STYLE);
   expect(await aboutMe(olive), "Olive's About me is hers alone").toBe(before);
 
-  // The next turn in Bob's work reads both lines, with no bot told them one by one.
+  // The next turn in Bob's work reads his line, with no bot told it one by one (saved mid-chat, it comes in the turn's
+  // message since About me is held for the conversation, 25a49f3ca).
   const next = turns().find((turn) => turn.botId === scout.id && turn.turnIndex === 1)!;
-  expect(next.system).toContain(REMINDERS);
-  expect(next.system).toContain(STYLE);
+  const given = `${next.system}\n${JSON.stringify(next.prompt)}`;
+  expect(given).toContain(REMINDERS);
+  expect(given).not.toContain(STYLE);
   expect(turns().filter((turn) => turn.botId === quill.id)).toHaveLength(1);
 }, hostTimeout(120_000));
