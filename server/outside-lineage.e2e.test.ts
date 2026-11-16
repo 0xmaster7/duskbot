@@ -339,7 +339,7 @@ describe("a Team Cloud", () => {
   }, hostTimeout(120_000));
 
   it("saves nothing from a confined conversation into a bot's memory or log on its own, where a person's own chat is saved", async () => {
-    writeFileSync(notes, JSON.stringify({ facts: [{ text: "fact-from-a-chat", kind: "decision" }] }));
+    writeFileSync(notes, JSON.stringify({ facts: [{ text: "fact-from-a-chat", kind: "decision", evidence: "I like my answers short" }] }));
     expect((await team.as(ada, "PUT", "/api/config", { memory: { captureQuietMs: 1_000 } })).status).toBe(200);
     const saved = (botId: string) => {
       const root = join(team.home, ".duskbot", "workspaces");
