@@ -117,8 +117,8 @@ test("small dedicated quote keeps its service price below the default desktop pr
 
 const cloud: CloudDesktopView = { id: "cloud", name: "My Cloud", color: null, kind: "shared_m", placement: "pool", status: "provisioning", setupStep: "reserving", region: "eu", machine: { vcpu: 4, ramGb: 8, diskGb: 80 }, botComputers: 5, origin: null, workspaceId: "workspace", lastReportAt: null, destroyAt: null, error: null, subscriptionId: "sub", createdAt: 123 };
 
-test("cloud statuses, progress, errors and destroyed desktops map to the view", () => {
-  const expected = ["provisioning", "provisioning", "running", "sleeping", "stopped", "error", "error", "error", null, null];
+test("cloud statuses, progress, errors and destroyed or unpaid desktops map to the view", () => {
+  const expected = [null, "provisioning", "running", "sleeping", "stopped", "error", "error", "error", null, null];
   CLOUD_STATUSES.forEach((status, index) => {
     const result = cloudFromWire({ ...cloud, status });
     assert.equal(result?.status ?? null, expected[index]);
