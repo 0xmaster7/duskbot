@@ -750,9 +750,12 @@ describe("the Computer tab", () => {
     expect(rendered.html).not.toContain('data-asleep-mascot=""');
     expect(rendered.html).not.toContain('data-panel-screen-of=""');
     expect(rendered.nodes.some((node) => node.props.inline === true)).toBe(false);
-    expect(rendered.html).toContain('data-panel-card="dusk-cloud"');
+    // the card follows the bot's browser section once its first answer is in (5f1035a31), so it is handed over, not drawn yet
+    const after = rendered.nodes.map((node) => node.props.after).find(isValidElement) as Node | undefined;
+    expect(after?.type).toBe(CloudCtaCard);
     expect(rendered.html).not.toContain('data-panel-card="runs-on"');
     const card = cta(cloudBot(), null);
+    expect(card.html).toContain('data-panel-card="dusk-cloud"');
     expect(card.html).toContain('data-cloud-cta="get"');
     expect(card.html).toContain('data-cloud-hop="laptop"');
     expect(card.html).toContain(">Keep Scout working<");
