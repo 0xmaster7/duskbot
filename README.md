@@ -2,24 +2,23 @@
 
 <h1>dusk bot</h1>
 
-<p><b>Your own team of AI bots that remember you and work on their own computer.</b><br>
-Text them like contacts. They browse, click, run routines on a schedule and ask before anything risky,<br>
-on the Claude, ChatGPT, Gemini or Grok you already use.</p>
+<p><b>The free Grok bot alternative that runs on your own models.</b><br>
+Use the ChatGPT, Claude or Grok subscription you already pay for,<br>
+and get a team of bots, each with its own memory and computer.</p>
 
 <p>
-<a href="https://dusk.bot/download"><b>Download for Mac</b></a> &nbsp;·&nbsp;
-Windows and Linux coming soon &nbsp;·&nbsp;
+<a href="https://dusk.bot/download"><b>Download for Mac, Windows and Linux</b></a> &nbsp;·&nbsp;
 <a href="https://dusk.bot">dusk.bot</a> &nbsp;·&nbsp;
 <a href="https://dusk.bot/docs">Docs</a>
 </p>
 
-<sub>v0.2.6 · free forever for personal use · source available · a free Grok bot alternative</sub>
+<sub>v0.2.12 · free forever for personal use · source available</sub>
 
 </div>
 
 <br>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.webp"><img src="docs/readme/hero-light.webp" alt="The dusk bot app on a pixel sky: a list of bots, Nova's chat with a price table and a CSV file, and Nova's live screen" width="100%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/app-dark.webp"><img src="docs/readme/app-light.webp" alt="The dusk bot app: Dusk, Nova, Echo and Quill in the sidebar, and Nova's chat with a three-day Lisbon plan in a table" width="100%"></picture>
 
 ## What it is
 
