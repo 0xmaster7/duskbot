@@ -53,7 +53,7 @@ it("restores a managed Cloud's backup into a fresh home that opens every Vault i
   delete process.env.DUSK_SAVED_SECRETS_KEY_FILE;
   // the platform's own folders, which a backup leaves out
   mkdirSync(join(volume, "config"));
-  writeFileSync(join(volume, "config", "instabox.json"), "{}");
+  writeFileSync(join(volume, "config", "platform.json"), "{}");
   writeFileSync(join(volume, ".omb-cloud-home.json"), JSON.stringify({ version: 1, machine: "c0123456789abcdef01234567" }), { mode: 0o600 });
 
   const password = `fake-backup-Passw0rd-${Date.now()}`, token = "ops_fake-backup-token", secret = "sk_test_fake_backup_value";

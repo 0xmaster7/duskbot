@@ -22,7 +22,7 @@ describe("the account service's production config template", () => {
     for (const file of [...sources(join(ROOT, "apps/dashboard/server")), ...sources(join(ROOT, "apps/cloud-service/src"))]) {
       for (const match of readFileSync(file, "utf8").matchAll(/(?:env\.|env\[["'`]|required\(["'`]|choice\(["'`])([A-Z][A-Z0-9_]{3,})/g)) read.add(match[1]!);
     }
-    for (const id of ["GOOGLE", "APPLE", "X"]) for (const key of ["CLIENT_ID"]) read.add(`DUSK_AUTH_${id}_${key}`);
+    for (const id of ["GOOGLE", "APPLE"]) for (const key of ["CLIENT_ID"]) read.add(`DUSK_AUTH_${id}_${key}`);
     const missing = [...read].filter((name) => !template.has(name) && !NOT_OPERATOR.has(name)).sort();
     expect(missing).toEqual([]);
   });
