@@ -64,7 +64,7 @@ describe("Preset bots in the real renderer", () => {
     await openTemplatesWhenFree(ui);
     await click("Import");
     await evaluate(`(() => { const input = document.querySelector('[role=dialog] input[type=file]'); const transfer = new DataTransfer(); transfer.items.add(new File([${JSON.stringify(presetText)}], 'sky-1.0.0.dusk.json', { type: 'application/json' })); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Preset bots and skills · no department");
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Preset bots and skills · no section");
     const preview = await snapshot();
     expect(preview).toContain("Preset bots: 1 · appear in new bot");
     expect(preview).not.toContain("Team members");
