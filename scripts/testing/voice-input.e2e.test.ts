@@ -186,7 +186,6 @@ if (!enabled) console.log("skipping voice input screenshots: set DUSK_UI_E2E=1 f
     await request("Runtime.enable");
     await request("Page.addScriptToEvaluateOnNewDocument", { source: `try { for (const notice of ${JSON.stringify(NOTICES)}) localStorage.setItem(notice, "1"); } catch {}` });
     const wait = (ms: number) => evaluate(`new Promise((done) => setTimeout(done, ${ms}))`);
-    const click = (label: string) => evaluate(`(() => { const b = document.querySelector('button[aria-label=${JSON.stringify(label)}]'); if (!b) throw new Error('no button ${label}'); b.click(); return true; })()`);
     const shot = async (name: string) => {
       const { data } = await request("Page.captureScreenshot", { format: "png" });
       writeFileSync(join(evidence, `${name}.png`), Buffer.from(data, "base64"));

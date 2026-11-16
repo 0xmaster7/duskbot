@@ -27,8 +27,8 @@ export function createTurnClock(now = Date.now) {
       if (!turn || (bot.status !== "done" && bot.status !== "error") || turn.at !== bot.at) { ran.delete(bot.id); return bot; }
       return { ...bot, ran: turn.ms };
     });
-    for (const id of [...started.keys()]) if (!ids.has(id)) started.delete(id);
-    for (const id of [...ran.keys()]) if (!ids.has(id)) ran.delete(id);
+    for (const id of started.keys()) if (!ids.has(id)) started.delete(id);
+    for (const id of ran.keys()) if (!ids.has(id)) ran.delete(id);
     return { ...snapshot, bots };
   };
 }

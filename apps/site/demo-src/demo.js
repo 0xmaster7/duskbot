@@ -170,7 +170,7 @@ function start() {
     log().append(s);
     return s;
   }
-  function paintChat(first = false) {
+  function paintChat() {
     const key = S.bot, d = data.bots[key], c = chat[key];
     const head = $('[data-chathead-identity]');
     head.replaceWith(el(d.head));
@@ -567,7 +567,7 @@ function start() {
   }
   function menuClick(t) {
     const show = t.closest('[data-simple-show-all]');
-    if (show) { const p = show.dataset.simpleShowAll; picker.open.has(p) ? picker.open.delete(p) : picker.open.add(p); return paintMenu(); }
+    if (show) { const p = show.dataset.simpleShowAll; if (picker.open.has(p)) picker.open.delete(p); else picker.open.add(p); return paintMenu(); }
     const pill = t.closest('[data-scope-pill]');
     if (pill) { picker.scope = pill.dataset.scopePill; return paintMenu(); }
     const r = t.closest('[data-menu-row][data-model]');
@@ -706,7 +706,7 @@ function start() {
     wrapRows.forEach((r) => r.remove());
     paintSidebar();
     for (const r of $$('[data-sidebar-bot-row]')) r.tabIndex = r.closest('[data-dw-bot]').dataset.dwBot === S.bot ? 0 : -1;
-    paintChat(true);
+    paintChat();
     const s = slot();
     if (s) { s.style.width = `${PANEL_W}px`; }
     paintPanel();

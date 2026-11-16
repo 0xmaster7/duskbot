@@ -224,7 +224,7 @@ release.sums = release.version && fs.existsSync(path.join(site, 'releases', rele
 const withRelease = (html) => {
   // pieces can sit inside each other, so this runs until nothing is left to decide
   for (let before; before !== html;) { before = html; html = html.replace(/\{\{([#^])([\w]+)\}\}((?:(?!\{\{[#^])[\s\S])*?)\{\{\/\2\}\}/g, (_, mark, key, inner) => (Boolean(release[key]) === (mark === '#') ? inner : '')); }
-  return html.replace(/\{\{dl ([\w-]+)\}\}/g, (_, key) => { if (!rel.files[key]) throw new Error(`releases.json has no file ${key}`); return /^https:\/\//.test(rel.files[key]) ? rel.files[key] : rel.base + rel.files[key]; })
+  return html.replace(/\{\{dl ([\w-]+)\}\}/g, (_, key) => { if (!rel.files[key]) throw new Error(`releases.json has no file ${key}`); return rel.files[key].startsWith('https://') ? rel.files[key] : rel.base + rel.files[key]; })
     .replace(/\{\{file ([\w-]+)\}\}/g, (_, key) => rel.files[key].split('/').pop()).replace(/\{\{(ios|android)-link\}\}/g, (_, key) => rel[key])
     .replace(/\{\{size ([\w-]+)\}\}/g, (_, key) => (rel.sizes?.[key] ? `${Math.round(rel.sizes[key] / 1e6)} mb` : '')).replace(/\{\{version\}\}/g, release.version).replace(/\{\{released-on\}\}/g, release.date).replace(/\{\{sums\}\}/g, release.sums);
 };

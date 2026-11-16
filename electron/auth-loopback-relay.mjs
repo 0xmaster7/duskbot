@@ -88,5 +88,5 @@ export function createLoopbackRelay({ lifetimeMs = 15 * 60_000, answerMs = 90_00
     close(port);
   }
 
-  return { open, next, done, close, closeAll: () => { for (const port of [...relays.keys()]) close(port); } };
+  return { open, next, done, close, closeAll: () => { for (const port of relays.keys()) close(port); } };
 }

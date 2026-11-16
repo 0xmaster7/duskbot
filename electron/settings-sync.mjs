@@ -72,7 +72,7 @@ export function localSettingsPlace(request, handoff, { saveSecret } = {}) {
     },
     values: async (keys) => {
       const secret = keys.filter((key) => secretKeys.has(key)), plain = keys.filter((key) => !secretKeys.has(key));
-      const out = plain.length ? { ...(must(await call("POST", "/api/settings-sync/values", { keys: plain }), "values").values ?? {}) } : {};
+      const out = plain.length ? { ...must(await call("POST", "/api/settings-sync/values", { keys: plain }), "values").values } : {};
       if (secret.length) {
         const got = await handoff({ kind: "settings", op: "values", keys: secret });
         if (!record(got?.settings?.values)) throw new Error("this computer did not answer");
