@@ -268,10 +268,12 @@ it("a member's upload is hers alone; a team file is everyone's; About you is per
   // About you: hers in her turns, nobody's elsewhere.
   expect((await team.as(ada, "PUT", "/api/me", { aboutMe: "I run the design team and prefer short answers." })).status).toBe(200);
   expect((await team.as(cleo, "GET", "/api/me")).body.aboutMe).toBe("");
+  // About me is held for the conversation since 25a49f3ca: saved mid-chat, it reaches the next turn's own message
+  const given = (dumped: ReturnType<typeof dump>) => `${dumped.systemPrompt}\n${JSON.stringify(dumped.prompt)}`;
   const seen = await turn(ada, adaThread, "What do you know about me?");
-  expect(seen.systemPrompt).toContain("prefer short answers");
+  expect(given(seen)).toContain("prefer short answers");
   const room = await turn(cleo, roomThread, "@Scout anything about Ada?", roomId);
-  expect(room.systemPrompt).not.toContain("prefer short answers");
+  expect(given(room)).not.toContain("prefer short answers");
   expect((await fx.onCloud("GET", "/api/me")).status).toBe(404);
 }, hostTimeout(120_000));
 
