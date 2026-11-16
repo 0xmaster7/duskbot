@@ -1,5 +1,5 @@
 // the waitlist in mongodb, same two calls as waitlist-store.js:
-//   add(email, meta) -> Promise<{ position, existing }>   count() -> Promise<number>
+//   add(email, meta) -> Promise<{ position, existing }>   count() -> Promise<number>   unsubscribe(email) -> Promise<{ found }>
 // collection `waitlist`: { email (unique), position (unique), createdAt, source, ref, ua }.
 // positions come from one counter doc (`counters`, _id 'waitlist') bumped with $inc, so two signups never share one.
 // a signup that loses a race on the same email burns its number, so positions can skip; they never repeat.
@@ -43,6 +43,12 @@ export function openMongoStore(uri, dbName = 'dusk') {
     async count() {
       const { list } = await connect();
       return list.countDocuments({});
+    },
+    // the entry stays; unsubscribedAt keeps its first value when a link is used twice
+    async unsubscribe(email) {
+      const { list } = await connect();
+      const { matchedCount } = await list.updateOne({ email }, [{ $set: { unsubscribedAt: { $ifNull: ['$unsubscribedAt', '$$NOW'] } } }]);
+      return { found: matchedCount === 1 };
     },
   };
 }

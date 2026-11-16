@@ -8,6 +8,7 @@ import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { openStore } from './waitlist-store.js';
 import { openMongoStore } from './waitlist-mongo.js';
+import { emailFromToken } from './unsubscribe.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = process.argv[2] || 'landing';
@@ -187,6 +188,46 @@ function waitlist(req, res, urlPath) {
   req.on('error', () => { done = true; });
 }
 
+// /unsubscribe?t=<token> from the news emails: GET shows a page, POST is the one-click answer to List-Unsubscribe-Post
+// (rfc 8058). both mark the waitlist entry unsubscribed; nothing is deleted
+const UNSUB_SECRET = process.env.DUSK_UNSUBSCRIBE_SECRET || '';
+if (store && !UNSUB_SECRET) console.warn('unsubscribe: DUSK_UNSUBSCRIBE_SECRET is not set, every link reads as invalid');
+const htmlEsc = (v) => String(v).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+function unsubscribePage(title, text) {
+  const shell = resolveFile('/404.html');
+  const section = `<section class="lost wrap">\n  <h1>${htmlEsc(title)}</h1>\n  <p>${htmlEsc(text)}</p>\n  <p class="actions"><a class="btn dark" href="/">go home</a></p>\n</section>`;
+  if (shell) {
+    const page = fs.readFileSync(shell, 'utf8');
+    const out = page.replace(/<title>[^<]*<\/title>/, `<title>${htmlEsc(title)} / dusk bot</title>`)
+      .replace(/<section class="lost wrap">[\s\S]*?<\/section>/, section);
+    if (out !== page) return out;
+  }
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${htmlEsc(title)} / dusk bot</title><link rel="stylesheet" href="/site.css"></head><body><main id="main" class="inner">${section}</main></body></html>`;
+}
+async function unsubscribe(req, res) {
+  const post = req.method === 'POST';
+  if (!post && req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { Allow: 'GET, HEAD, POST', 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('method not allowed\n'); }
+  if (post) req.resume();
+  const answer = (status, title, text) => {
+    const body = post ? `${title}\n` : unsubscribePage(title, text);
+    res.writeHead(status, { 'Content-Type': post ? 'text/plain; charset=utf-8' : 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Content-Length': Buffer.byteLength(body) });
+    res.end(req.method === 'HEAD' ? undefined : body);
+  };
+  const email = emailFromToken(UNSUB_SECRET, new URL(req.url || '/', 'http://x').searchParams.get('t'));
+  const invalid = () => answer(400, "This unsubscribe link doesn't work.", "It may have been cut short. Open it again from the email, or write to hello@dusk.bot and we'll take you off the list.");
+  if (!email) return invalid();
+  if (req.method === 'HEAD') return answer(200, "You're unsubscribed from dusk bot news.", '');
+  try {
+    const { found } = await store.unsubscribe(email);
+    if (!found) return invalid();
+    console.log('unsubscribe: one entry marked');
+    answer(200, "You're unsubscribed from dusk bot news.", "We won't send you any more news emails.");
+  } catch (err) {
+    console.error(`unsubscribe: could not save (${err.code || err.name})`);
+    answer(500, "We couldn't do that just now.", 'Try the link again in a minute, or write to hello@dusk.bot.');
+  }
+}
+
 // text is gzipped once per file version and kept in memory
 const zips = new Map();
 function zipped(file, body) {
@@ -221,6 +262,7 @@ const server = http.createServer((req, res) => {
     : `default-src 'self'; ${beacon}; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'`);
   res.setHeader('X-Frame-Options', 'DENY');
   if (store && /^\/api\/waitlist(\/count)?$/.test((req.url || '/').split('?')[0])) return waitlist(req, res, (req.url || '/').split('?')[0]);
+  if (store && (req.url || '/').split('?')[0] === '/unsubscribe') return unsubscribe(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('method not allowed\n');

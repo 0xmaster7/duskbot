@@ -8,10 +8,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { unsubscribeToken, emailFromToken } from './unsubscribe.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const freePort = () => new Promise((ok) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => ok(p)); }); });
 const results = [];
+const SECRET = 'test-unsubscribe-secret';
 async function check(name, fn) {
   try { await fn(); results.push(`ok   ${name}`); } catch (err) { results.push(`FAIL ${name}: ${err.message}`); process.exitCode = 1; }
 }
@@ -19,7 +21,7 @@ async function check(name, fn) {
 async function startServer(env) {
   const port = await freePort();
   const server = spawn(process.execPath, ['server.js', 'landing'], {
-    cwd: here, env: { ...process.env, MONGODB_URI: '', DUSK_WAITLIST_FILE: '', ...env, PORT: String(port), BREVO_API_KEY: '' }, stdio: ['ignore', 'pipe', 'inherit'],
+    cwd: here, env: { ...process.env, MONGODB_URI: '', DUSK_WAITLIST_FILE: '', DUSK_UNSUBSCRIBE_SECRET: SECRET, ...env, PORT: String(port), BREVO_API_KEY: '' }, stdio: ['ignore', 'pipe', 'inherit'],
   });
   const s = { server, port, logs: '' };
   server.stdout.on('data', (c) => { s.logs += c; });
@@ -28,7 +30,7 @@ async function startServer(env) {
 }
 
 // the shared checks; saved() returns what the store kept as [{ email, source, at }] in signup order
-async function suite(label, { port, logs }, saved) {
+async function suite(label, { port, logs }, saved, unsubscribedAt) {
   const url = `http://127.0.0.1:${port}/api/waitlist`;
   const post = (body, ip, headers = {}) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-real-ip': ip, ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) })
     .then(async (r) => ({ status: r.status, data: await r.json() }));
@@ -80,6 +82,32 @@ async function suite(label, { port, logs }, saved) {
     assert.equal(new Set(same.map((r) => r.data.position)).size, 1, 'one email, one position');
     assert.equal((await saved()).filter((x) => x.email === 'same@par.dev').length, 1);
   });
+  await t('unsubscribe link marks the entry and keeps it', async () => {
+    const link = `http://127.0.0.1:${port}/unsubscribe?t=${unsubscribeToken(SECRET, 'grace@hopper.dev')}`;
+    const r = await fetch(link);
+    assert.equal(r.status, 200);
+    assert.match(await r.text(), /You&#39;re unsubscribed from dusk bot news\./);
+    const first = await unsubscribedAt('grace@hopper.dev');
+    assert.ok(first, 'marked');
+    assert.equal((await fetch(link)).status, 200, 'a second click is fine');
+    assert.equal(String(await unsubscribedAt('grace@hopper.dev')), String(first), 'first time kept');
+    assert.ok((await saved()).some((x) => x.email === 'grace@hopper.dev'), 'entry kept');
+    assert.equal(await unsubscribedAt('ada@lovelace.dev'), null, 'others untouched');
+  });
+  await t('one-click POST unsubscribes (rfc 8058)', async () => {
+    const r = await fetch(`http://127.0.0.1:${port}/unsubscribe?t=${unsubscribeToken(SECRET, 'ada@lovelace.dev')}`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=One-Click' });
+    assert.equal(r.status, 200);
+    assert.ok(await unsubscribedAt('ada@lovelace.dev'));
+  });
+  await t('bad unsubscribe links get a friendly 400', async () => {
+    const forged = unsubscribeToken('another-secret', 'p0@par.dev');
+    const unknown = unsubscribeToken(SECRET, 'nobody@nowhere.dev');
+    for (const q of ['', '?t=bad', `?t=${forged}`, `?t=${forged.slice(0, -2)}`, `?t=${unknown}`]) {
+      const r = await fetch(`http://127.0.0.1:${port}/unsubscribe${q}`);
+      assert.equal(r.status, 400, q); assert.match(await r.text(), /link doesn&#39;t work/);
+    }
+    assert.equal(await unsubscribedAt('p0@par.dev'), null);
+  });
   await t('no full email in the log', async () => {
     assert.ok(!/@/.test(logs()), 'an email reached stdout');
   });
@@ -91,7 +119,8 @@ async function fileRun() {
   const s = await startServer({ DUSK_WAITLIST_FILE: file });
   try {
     await suite('file', { port: s.port, logs: () => s.logs }, async () => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean) : [])
-      .map((l) => JSON.parse(l)).map((x) => ({ email: x.email, source: x.source, at: x.ts })));
+      .map((l) => JSON.parse(l)).filter((x) => !x.unsubscribedAt).map((x) => ({ email: x.email, source: x.source, at: x.ts })),
+    async (email) => fs.readFileSync(file, 'utf8').trim().split('\n').map((l) => JSON.parse(l)).find((x) => x.email === email && x.unsubscribedAt)?.unsubscribedAt ?? null);
   } finally { s.server.kill(); fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
@@ -138,7 +167,8 @@ async function mongoRun(bin) {
     const db = client.db('dusk_test');
     s = await startServer({ MONGODB_URI: uri, MONGODB_DB: 'dusk_test' });
     await suite('mongo', { port: s.port, logs: () => s.logs }, async () => (await db.collection('waitlist').find().sort({ position: 1 }).toArray())
-      .map((x) => ({ email: x.email, source: x.source, at: x.createdAt })));
+      .map((x) => ({ email: x.email, source: x.source, at: x.createdAt })),
+    async (email) => (await db.collection('waitlist').findOne({ email }))?.unsubscribedAt ?? null);
     await check('[mongo] unique indexes on email and position', async () => {
       const names = (await db.collection('waitlist').indexes()).map((i) => i.name);
       assert.ok(names.includes('email_unique') && names.includes('position_unique'), names.join(','));
@@ -162,6 +192,16 @@ async function mongoRun(bin) {
   }
 }
 
+await check('[token] round trip, tamper and wrong secret', async () => {
+  const t = unsubscribeToken(SECRET, ' Ada@Lovelace.dev ');
+  assert.equal(emailFromToken(SECRET, t), 'ada@lovelace.dev');
+  assert.equal(emailFromToken('other', t), null);
+  assert.equal(emailFromToken('', t), null);
+  const [head, mac] = t.split('.');
+  assert.equal(emailFromToken(SECRET, `${Buffer.from('eve@evil.dev').toString('base64url')}.${mac}`), null);
+  assert.equal(emailFromToken(SECRET, `${head}.${mac.slice(0, -1)}${mac.endsWith('A') ? 'B' : 'A'}`), null);
+  for (const bad of [null, '', 'x', `${head}`, `${head}.`, `${t}x`, 'a'.repeat(700)]) assert.equal(emailFromToken(SECRET, bad), null);
+});
 await fileRun();
 await capRun();
 const bin = findMongod();
