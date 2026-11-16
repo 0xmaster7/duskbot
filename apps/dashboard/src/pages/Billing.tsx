@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { APP_CLOUD_LINK, fromApp, markFromApp } from "../lib/from-app";
 import { setFlowNote } from "../lib/flow-note";
-import { APP_LINK } from "./DeviceApproval";
 import { Check, ChevronDown, Download } from "@/icons";
 import { useCloud } from "../data/cloud";
 import { LoadError } from "./common";
@@ -97,14 +96,14 @@ const BACK_POLL_MS = 10_000, BACK_POLLS = 18;
 
 /** having come from the app: the website stops here and never opens the app by itself; this is the quiet way back.
  * after paying the app picks the purchase up on its own (its link opens the cloud sheet), so there is nothing to do first */
-function OpenApp({ paid }: { paid: boolean }) {
+function OpenApp() {
   return (
     <div role="status" data-open-app="" className="surface mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-card bg-card px-6 py-4">
       <div className="min-w-0">
-        <p className="text-14 text-ink">{paid ? "you're all set" : "you're signed in to dusk bot"}</p>
-        <p className="mt-0.5 text-13 text-ink-3">{paid ? "your cloud is getting ready. dusk bot picks it up by itself, so open it now or later." : "pick a plan below any time. dusk bot is signed in already, so open it whenever you like."}</p>
+        <p className="text-14 text-ink">you're all set</p>
+        <p className="mt-0.5 text-13 text-ink-3">your cloud is getting ready. dusk bot picks it up by itself, so open it now or later.</p>
       </div>
-      <a href={paid ? APP_CLOUD_LINK : APP_LINK} data-open-app-link="" className="press hover-btn inline-flex h-10 shrink-0 items-center rounded-full bg-btn px-4.5 text-14 font-medium text-ink">open dusk bot</a>
+      <a href={APP_CLOUD_LINK} data-open-app-link="" className="press hover-btn inline-flex h-10 shrink-0 items-center rounded-full bg-btn px-4.5 text-14 font-medium text-ink">open dusk bot</a>
     </div>
   );
 }
@@ -352,7 +351,7 @@ export function BillingPage() {
   return (
     <div>
       <PageHeader title="plans and billing" sub="keep your bots working, laptop open or shut." action={<IntervalToggle value={interval} onChange={setIv} catalog={catalog} />} />
-      {fromApp() && back !== "failed" && <OpenApp paid={paid || returned} />}
+      {fromApp() && back !== "failed" && (paid || returned) && <OpenApp />}
       {back && !paid && <CheckoutBack back={back} onCheck={refresh} onRetry={retry} />}
       <div className="grid gap-3 lg:grid-cols-3">
         {tiersFor(onCloud).map(card)}
