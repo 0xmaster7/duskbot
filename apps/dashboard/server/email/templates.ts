@@ -44,7 +44,7 @@ const SAY = {
   confirm: { say: "is this you?", accent: "pink" },
   cloudGone: { say: "bye, little cloud!", accent: "lav" },
   bye: { say: "bye for now!", accent: "lav" },
-  promo: { say: "something new!", accent: "lime" },
+  promo: { say: "Something new!", accent: "lime" },
   invite: { say: "you're invited!", accent: "sky" },
 } as const;
 /** the plain way to the billing page: no plan buttons in email, and nothing that opens the payment provider */
@@ -278,7 +278,7 @@ export function promoEmail(cfg: EmailConfig, input: PromoInput): Rendered {
       { t: "button", label: input.cta.label, href: input.cta.href },
       ...input.features.map(feature => ({ t: "feature", image: feature.image ?? null, alt: feature.alt ?? "", title: feature.title, text: feature.text }) as Block),
     ],
-    reason: "you got this because you signed up for dusk bot news.", unsubscribe: input.unsubscribe,
+    reason: "You got this because you signed up for dusk bot news.", unsubscribe: input.unsubscribe,
   });
 }
 

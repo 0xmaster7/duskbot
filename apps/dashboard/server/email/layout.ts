@@ -220,8 +220,8 @@ const darkCss = `
 export function render(cfg: EmailConfig, email: Email): Rendered {
   const fonts = `@font-face { font-family: 'General Sans'; src: url(${cfg.assets}/fonts/general-sans.woff2) format('woff2'); font-weight: 200 700; }
 @font-face { font-family: 'Geist Mono'; src: url(${cfg.assets}/fonts/geist-mono.woff2) format('woff2'); font-weight: 100 900; }`;
-  const links: Array<[string, string]> = [["help", `${cfg.site}/docs`], ["privacy", `${cfg.site}/privacy`]];
-  if (email.unsubscribe) links.push(["unsubscribe", email.unsubscribe]);
+  const links: Array<[string, string]> = [["Help", `${cfg.site}/docs`], ["Privacy", `${cfg.site}/privacy`]];
+  if (email.unsubscribe) links.push(["Unsubscribe", email.unsubscribe]);
   if (email.transactional) links.length = 0;
   const html = `<!doctype html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>
