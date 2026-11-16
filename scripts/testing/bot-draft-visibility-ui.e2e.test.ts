@@ -32,13 +32,13 @@ if (!enabled) console.log("skipping draft visibility UI: set DUSK_UI_E2E=1 to in
     const bots = async () => (await fetch(`${info.url}/api/bots?messages=0`).then(response => response.json())).bots as Array<{ id: string; name: string; visibility?: string }>;
     const before = await bots();
     await openTemplatesWhenFree(ui);
-    await expect.poll(snapshot, { timeout: 20_000 }).toContain("Add Scout, Researcher");
+    await expect.poll(snapshot, { timeout: 20_000 }).toContain("Add Quinn, Researcher");
     // since the one create flow (89d92585f) Add makes the bot at once: there is no review, and so no audience to pick
-    await ui("click", "--name", "Add Scout, Researcher");
+    await ui("click", "--name", "Add Quinn, Researcher");
     await expect.poll(async () => (await bots()).length, { timeout: 15_000 }).toBe(before.length + 1);
     const created = (await bots()).filter(bot => !before.some(old => old.id === bot.id));
     expect(created).toHaveLength(1);
-    expect(created[0]).toMatchObject({ name: "Scout" });
+    expect(created[0]).toMatchObject({ name: "Quinn" });
     expect(await snapshot()).not.toContain("Who can see it");
   } finally { await waitForExit(child, { signal: "SIGINT", graceMs: 30_000 }); }
 }, 720_000);
