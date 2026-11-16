@@ -141,6 +141,8 @@ export type UsageOutbox = ReturnType<typeof createUsageOutbox>;
 const CORRECTIVE = [
   "that'?s (?:wrong|not (?:it|right|what i (?:asked|wanted|said)))", "not what i (?:asked|wanted|meant|said)", "wrong", "no+(?: no+)*(?! (?:worries|problem|thanks|need|rush|idea|way|doubt))", "nope", "stop(?: it)?",
   "you (?:didn'?t|did not|don'?t) (?:listen|understand|get it)", "try again", "again\\??", "doesn'?t work", "still (?:wrong|broken|not working)", "ugh+",
+  "but i (?:\\w+ )?(?:already |just )?(?:did|have|connected|added|set|gave|told|said|signed)", "i (?:already|just) (?:did|connected|added|set|gave|told|said|signed)",
+  "(?:it'?s|its|it is) (?:already )?(?:connected|signed in|set up)", "(?:it )?(?:isn'?t|is not|aint|ain'?t|not) working",
   "falsch", "nein", "das ist falsch", "faux", "non", "c'?est faux", "pas (?:ça|ca)", "mal", "incorrecto", "eso no", "no es (?:eso|lo que pedí)", "errado", "não", "sbagliato",
   "galat", "nahi", "ye galat hai", "ちがう", "違う", "不对", "错了", "아니야", "неправильно", "нет",
 ].join("|");
@@ -176,16 +178,17 @@ export function sameRequest(a: string, b: string): boolean {
 }
 
 /** how much each signal says; one swear or one shout alone never reaches FRUSTRATION_SCORE */
-export const SIGNAL_WEIGHT: Readonly<Record<FrustrationSignal, number>> = { thumbs_down: 3, retried: 3, stopped: 2, failed: 2, corrective: 2, shouting: 1, swearing: 1 };
+export const SIGNAL_WEIGHT: Readonly<Record<FrustrationSignal, number>> = { thumbs_down: 3, retried: 3, stopped: 2, failed: 2, corrective: 3, shouting: 1, swearing: 1 };
 export const FRUSTRATION_SCORE = 4;
-/** only after real use: this many turns on the workspace, and this many in the chat */
-export const MIN_WORKSPACE_TURNS = 20, MIN_CHAT_TURNS = 3;
+/** a chat needs this many turns, and the workspace this many in all; low on purpose, since a new person's first bad chat
+ * is the one most worth hearing about */
+export const MIN_WORKSPACE_TURNS = 2, MIN_CHAT_TURNS = 2;
 /** the same chat is not summarised again this soon */
 export const CHAT_COOLDOWN_MS = 6 * 3_600_000;
-/** reports a week grow with use: one per TURNS_PER_REPORT turns in the last 7 days, at least one, and never more than
+/** reports a week grow with use: one per TURNS_PER_REPORT turns in the last 7 days, at least three, and never more than
  * MAX_PER_DAY in a day, so a heavy user's own AI quota is not spent on this */
 export const TURNS_PER_REPORT = 40, MAX_PER_DAY = 4;
-export function weeklyAllowance(turns7d: number): number { return Math.max(1, Math.floor(turns7d / TURNS_PER_REPORT)); }
+export function weeklyAllowance(turns7d: number): number { return Math.max(3, Math.floor(turns7d / TURNS_PER_REPORT)); }
 /** this many failed turns in FAIL_WINDOW_MS make a chat's note on their own */
 const FAIL_STREAK = 3;
 const RETRY_WINDOW_MS = 5 * 60_000, FAIL_WINDOW_MS = 10 * 60_000, WEEK_MS = 7 * 86_400_000, DAY_MS = 86_400_000;

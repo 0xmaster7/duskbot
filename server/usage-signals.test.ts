@@ -251,7 +251,7 @@ describe("frustration watch", () => {
     const { watch, reports, warm } = setup();
     warm();
     for (let i = 0; i < 3; i++) watch.turn("chat", "bot_1", turn());
-    watch.message("chat", "ugh this is stupid");
+    watch.message("chat", "this is stupid");
     await flush();
     expect(reports).toHaveLength(0);
     watch.thumbsDown("chat");
@@ -276,12 +276,25 @@ describe("frustration watch", () => {
     expect(reports[0]!.signals).toEqual(["failed"]);
   });
 
-  it("waits for real use before it fires", async () => {
+  it("waits for a second turn before it fires", async () => {
     const { watch, reports } = setup();
-    for (let i = 0; i < 3; i++) watch.turn("chat", "bot_1", turn("cancelled"));
+    watch.turn("chat", "bot_1", turn("cancelled"));
     watch.thumbsDown("chat");
     await flush();
     expect(reports).toHaveLength(0);
+  });
+
+  it("hears a new person pushing back on their second turn", async () => {
+    const { watch, reports } = setup();
+    watch.turn("chat", "bot_1", turn());
+    expect(isCorrective("but i fucking connected chatgpt")).toBe(true);
+    expect(isCorrective("chatgpt connection aint working bro")).toBe(true);
+    expect(isCorrective("it's not working")).toBe(true);
+    watch.message("chat", "but i fucking connected chatgpt");
+    watch.turn("chat", "bot_1", turn());
+    await flush();
+    expect(reports).toHaveLength(1);
+    expect(reports[0]!.signals).toEqual(expect.arrayContaining(["corrective", "swearing"]));
   });
 
   it("fires on retries and stops, once per chat per cooldown, with a scrubbed summary and no raw text", async () => {
@@ -307,7 +320,7 @@ describe("frustration watch", () => {
   });
 
   it("scales the weekly allowance with use", async () => {
-    expect(weeklyAllowance(10)).toBe(1);
+    expect(weeklyAllowance(10)).toBe(3);
     expect(weeklyAllowance(200)).toBe(5);
     const { watch, reports, warm, tick } = setup();
     warm();
@@ -317,7 +330,7 @@ describe("frustration watch", () => {
       tick(60_000);
     }
     await flush();
-    expect(reports).toHaveLength(1);
+    expect(reports).toHaveLength(3);
   });
 
   it("asks for a digest once a week from people who use it enough", () => {
