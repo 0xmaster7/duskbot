@@ -28,19 +28,17 @@ test("old env names count as the new ones, and a new name already set wins", () 
   assert.deepEqual(lower, { DUSK_cloud_ready_token: "t" }, "windows spells env names in any case");
 });
 
-test("an old data folder moves to the new name once, its bots readable by both paths", (t) => {
-  const dir = home(t);
-  const old = path.join(dir, LEGACY.dataDirName);
-  write(path.join(old, "config.json"), "{}");
-  write(path.join(old, "bots.json"), JSON.stringify([{ id: "b1", name: "Kept" }]));
-  const lines = [];
-  const used = defaultDataDir(dir, { log: (line) => lines.push(line) });
-  assert.equal(used, path.join(dir, ".duskbot"));
-  assert.equal(JSON.parse(fs.readFileSync(path.join(used, "bots.json"), "utf8"))[0].name, "Kept");
-  assert.ok(fs.lstatSync(old).isSymbolicLink());
-  assert.equal(JSON.parse(fs.readFileSync(path.join(old, "bots.json"), "utf8"))[0].name, "Kept", "absolute paths saved inside still resolve");
-  assert.equal(defaultDataDir(dir), used, "a second start changes nothing");
-  assert.equal(lines.length, 1);
+test("never adopts OpenMausBot's folders: the data and companion folders are always dusk bot's own", (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "legacy-off-"));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(home, LEGACY.dataDirName));
+  fs.writeFileSync(path.join(home, LEGACY.dataDirName, "bots.json"), "[]");
+  fs.mkdirSync(path.join(home, LEGACY.companionDirName));
+  assert.equal(defaultDataDir(home), path.join(home, ".duskbot"));
+  assert.equal(dataDirFor(undefined, home), path.join(home, ".duskbot"));
+  assert.equal(defaultCompanionDir(home), path.join(home, ".duskbot-companion"));
+  assert.ok(fs.existsSync(path.join(home, LEGACY.dataDirName, "bots.json")), "the old folder is left as it was");
+  assert.ok(!fs.existsSync(path.join(home, ".duskbot")), "nothing is copied in");
 });
 
 test("a new folder that already holds data wins, and the old one is left as it was", (t) => {
@@ -52,19 +50,6 @@ test("a new folder that already holds data wins, and the old one is left as it w
   assert.ok(!fs.lstatSync(path.join(dir, LEGACY.dataDirName)).isSymbolicLink());
 });
 
-test("a new folder holding only what was written before the move (no config, bots or messages) is set aside, never deleted", (t) => {
-  const dir = home(t);
-  write(path.join(dir, LEGACY.dataDirName, "config.json"), "old");
-  write(path.join(dir, ".duskbot", "logs", "early.log"), "early");
-  const used = defaultDataDir(dir, { now: () => 7 });
-  assert.equal(fs.readFileSync(path.join(used, "config.json"), "utf8"), "old");
-  assert.equal(fs.readFileSync(path.join(dir, ".duskbot.before-move-7", "logs", "early.log"), "utf8"), "early");
-  const other = home(t);
-  write(path.join(other, LEGACY.dataDirName, "bots.json"), "[]");
-  write(path.join(other, ".duskbot", "logs", "early.log"), "early");
-  assert.equal(fs.readFileSync(path.join(defaultDataDir(other, { now: () => 8 }), "bots.json"), "utf8"), "[]", "an install that never saved settings");
-});
-
 test("a move that fails keeps using the old folder where it is", (t) => {
   const dir = home(t);
   const old = path.join(dir, LEGACY.dataDirName);
@@ -72,21 +57,6 @@ test("a move that fails keeps using the old folder where it is", (t) => {
   const refusing = { ...fs, renameSync: () => { throw Object.assign(new Error("busy"), { code: "EBUSY" }); } };
   assert.equal(migrateLegacyDir(path.join(dir, ".duskbot"), old, { fs: refusing }), old);
   assert.ok(fs.existsSync(path.join(old, "config.json")));
-});
-
-test("a data folder setting naming the default moves the old folder too; any other is used as it is", (t) => {
-  const dir = home(t);
-  write(path.join(dir, LEGACY.dataDirName, "config.json"), "{}");
-  assert.equal(dataDirFor("/somewhere/else", dir), "/somewhere/else");
-  assert.ok(!fs.existsSync(path.join(dir, ".duskbot")));
-  assert.equal(dataDirFor(path.join(dir, ".duskbot"), dir), path.join(dir, ".duskbot"));
-  assert.ok(fs.existsSync(path.join(dir, ".duskbot", "config.json")));
-});
-
-test("the companion's folder moves the same way", (t) => {
-  const dir = home(t);
-  write(path.join(dir, LEGACY.companionDirName, "devices.json"), "[]");
-  assert.equal(fs.readFileSync(path.join(defaultCompanionDir(dir), "devices.json"), "utf8"), "[]");
 });
 
 test("electron's own folder is copied, not moved, without chromium's locks", (t) => {

@@ -219,8 +219,9 @@ export function migrateLegacyDir(next, old, { fs = node("node:fs"), markers = []
 }
 
 /** the data folder in `home`, moved from its old name on first use */
-export function defaultDataDir(home, options = {}) {
-  return migrateLegacyDir(join(home, ".duskbot"), join(home, LEGACY.dataDirName), { markers: ["config.json", "bots.json", "messages.db"], ...options });
+// never adopts another app's folder (OpenMausBot's ~/.openmausbot): its chats are brought in only when the person asks
+export function defaultDataDir(home, _options = {}) {
+  return join(home, ".duskbot");
 }
 
 /** the data folder a setting names, or the default; a setting naming the default (a container image's) moves the old one too */
@@ -229,8 +230,8 @@ export function dataDirFor(configured, home, options = {}) {
 }
 
 /** the companion's folder in `home`, moved from its old name on first use */
-export function defaultCompanionDir(home, options = {}) {
-  return migrateLegacyDir(join(home, ".duskbot-companion"), join(home, LEGACY.companionDirName), options);
+export function defaultCompanionDir(home, _options = {}) {
+  return join(home, ".duskbot-companion");
 }
 
 /** a data folder's name, old or new, for lists that keep the bots and syncs out of it */
