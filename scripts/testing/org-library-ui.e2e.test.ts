@@ -75,7 +75,8 @@ describe("the organization library in the real renderer", () => {
     const evidence = (name: string) => ui("screenshot", "--out", join(ROOT, ".dusk-scratch", "verify-evidence", name));
 
     await openTemplatesWhenFree(ui);
-    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Community templates");
+    // the library is open on its ready bots (the community list went in 317f92713), with no organization shelf yet
+    await expect.poll(snapshot, { timeout: 10_000 }).toContain("Add Quinn, Researcher");
     expect(await snapshot()).not.toContain("From Customer Co");
     await press("Escape");
 
