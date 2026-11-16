@@ -255,7 +255,7 @@ describe("control-dusk ui drives the real renderer", () => {
     expect(existsSync(info.dataDir)).toBe(false);
   }, LAUNCH_TIMEOUT_MS + 180_000);
 
-  run("sends a turn from the composer and shows the reply and the scripted tool chip", async () => {
+  run("sends a turn from the composer and shows the reply, never the tool steps", async () => {
     launched = await launch(["--tool-calls", TOOL_CALLS]);
     const { info } = launched;
     expect(info.ui).toBe(join(info.dataDir, "ui.json"));
@@ -267,7 +267,7 @@ describe("control-dusk ui drives the real renderer", () => {
     const dry = await ui("flag", info.ui, "--set", "features.showToolCalls=true", "--dry-run");
     expect(dry).toMatchObject({ ok: true, dryRun: true, patch: { features: { showToolCalls: true } } });
     const flagged = await ui("flag", info.ui, "--set", "features.showToolCalls=true");
-    expect(flagged).toMatchObject({ ok: true, features: { showToolCalls: true } });
+    expect(flagged).toMatchObject({ ok: true, features: { showToolCalls: false } }); // saved, but the app never turns it on
     expect(flagged.features).toMatchObject({ skillAuthoring: true });
 
     const savedBot = async () => (await fetch(`${info.url}/api/bots`).then((response) => response.json())).bots.find((bot: any) => bot.id === info.botId);
@@ -330,15 +330,9 @@ describe("control-dusk ui drives the real renderer", () => {
     expect(transcript).toContain(`StaticText "${REPLY}"`);
     expect(tree).not.toContain("Not logged in");
     expect(tree).not.toContain("Execution timeline");
-    // Simple chat folds the steps under "Worked" and names each command the way a person reads it.
-    await ui("click", info.ui, "--name", "Worked");
-    const chips = async () => Object.values((await ui("snapshot", info.ui)).refs as Record<string, { name: string; role: string }>)
-      .filter((element) => element.role === "button" && element.name.startsWith("Run a command · ")).map((element) => element.name).sort();
-    await expect.poll(chips, { timeout: 10_000 }).toEqual([
-      "Run a command · Completed · tool details",
-      "Run a command · Completed · tool details",
-      "Run a command · Failed · tool details",
-    ]);
+    // chat is chat only: even with the old flag on, no "Worked" fold, tool chips or run receipt show
+    const shown = Object.values((await ui("snapshot", info.ui)).refs as Record<string, { name: string; role: string }>).map((element) => element.name);
+    expect(shown.some((name) => /^Worked\b|^Run a command · |View trace/.test(name))).toBe(false);
 
     const composerHit = await ui("eval", info.ui, "--js", `(() => {
       const composer = ${COMPOSER};

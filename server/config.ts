@@ -650,8 +650,9 @@ export function quickUpdatesEnabled(cfg: Pick<AppConfig, "features">): boolean {
   return cfg.features?.quickUpdates !== false;
 }
 
-export function showToolCallsEnabled(cfg: AppConfig): boolean {
-  return cfg.features?.showToolCalls === true;
+/** chat is chat only: the app never gets tool steps, "Worked for" folds or run receipts to show, whatever the config says */
+export function showToolCallsEnabled(_cfg: AppConfig): boolean {
+  return false;
 }
 
 export function builtInBrowserEnabled(cfg: AppConfig, _env: NodeJS.ProcessEnv = process.env): boolean {

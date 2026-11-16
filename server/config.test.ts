@@ -651,7 +651,7 @@ describe("configuration boundaries", () => {
     expect(parseConfigPatch({ features: { showToolCalls: true } })).toEqual({
       features: { showToolCalls: true },
     });
-    expect(showToolCallsEnabled({ features: { showToolCalls: true } })).toBe(true);
+    expect(showToolCallsEnabled({ features: { showToolCalls: true } })).toBe(false);
   });
 
   it.each([0, 1.5, 9, "2", null])("rejects an invalid per-bot VM limit: %j", (maxInstances) => {
