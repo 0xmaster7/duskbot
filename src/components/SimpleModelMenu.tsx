@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronRight, ChevronUp, Loader2, LogIn, Plus, Refr
 import type { Bot, InstanceInfo } from "@/state/store";
 import type { EffortLevel } from "../../shared/wire";
 import type { MenuGroup, MenuModelRow, NotConnectedRow, SimpleMenu } from "@/lib/simple-model-menu";
+import { modelBlurb } from "@/lib/model-friendly";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { BotAvatar } from "./Avatar";
@@ -78,6 +79,7 @@ function MenuModel({ instance, row, onPick, onToggleStar }: { instance: Instance
         disabled={row.blocked}
         aria-pressed={row.current}
         aria-label={[option.label, option.provider, reason].filter(Boolean).join(" · ")}
+        title={[option.label, option.provider, reason ?? modelBlurb(option)].filter(Boolean).join(" · ")}
         tabIndex={-1}
         onClick={() => onPick(instance, row.model ?? option.id, row.variant)}
         className={cn(SIMPLE_MENU_ROW, !row.blocked && onToggleStar && "pr-8")}
