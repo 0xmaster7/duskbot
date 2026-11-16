@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { StartFreshStep, StartFreshView } from "../../../electron/start-fresh.mjs";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { friendlyError } from "@/lib/plain-error";
 import { Icon } from "../Icon";
 import { Loader2 } from "../../icons";
 import { ModalLayer } from "../ui/ModalLayer";
@@ -103,7 +104,7 @@ export function StartFreshDialog({ bridge, onClose }: { bridge: Bridge; onClose:
     setAsking(true);
     setError("");
     try { setView(await work()); }
-    catch (cause) { setError(t("startFresh.failed", { error: cause instanceof Error ? cause.message : String(cause) })); }
+    catch (cause) { setError(t("startFresh.failed", { error: friendlyError(cause) })); }
     finally { setAsking(false); }
   };
   const ready = startFreshTyped(typed);

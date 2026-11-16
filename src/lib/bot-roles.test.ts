@@ -16,7 +16,7 @@ describe("bot roles", () => {
 
   it("turns a role into the profile patch a blank bot needs", () => {
     const patch = roleProfilePatch(botRole("research")!);
-    expect(patch).toMatchObject({ name: "Scout", title: "Researcher" });
+    expect(patch).toMatchObject({ name: "Quinn", title: "Researcher" });
     expect(patch.soul).toContain("brief");
     for (const role of BOT_ROLES) {
       expect(Object.keys(roleProfilePatch(role)).sort()).toEqual(["description", "name", "soul", "title"]);
