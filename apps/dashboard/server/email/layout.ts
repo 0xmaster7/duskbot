@@ -57,7 +57,7 @@ export interface Email {
 export interface Rendered { subject: string; html: string; text: string; transactional?: boolean }
 
 const C = {
-  page: "#fdfdfd", off: "#f6f6f4", ink: "#1b1b1f", body: "#2c2c33", muted: "#73737c", kit: "#894ef0", log: "#232328",
+  page: "#fdfdfd", off: "#f6f6f4", ink: "#1b1b1f", body: "#222228", muted: "#73737c", kit: "#894ef0", log: "#232328",
   skyWash: "#e9f7fd", lemon: "#fff3a0", lime: "#c9f63f", pink: "#ffc4dd", lav: "#d0cefb", sky: "#c2ecfc", green: "#14864f", amber: "#a86a00", red: "#c8325f",
 };
 const SANS = "'General Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
@@ -113,7 +113,7 @@ const rowsHtml = (rows: Array<[string, string, Mark?]>) => T(rows.map(([label, v
 <td valign="top" align="right" class="ink" style="padding:9px 0 9px 12px;font-family:${SANS};font-size:15px;line-height:20px;font-weight:500;color:${C.ink};font-variant-numeric:tabular-nums;word-break:break-word">${mark ? `<span style="color:${markColor[mark]};font-size:13px">&#9679;</span>&nbsp;` : ""}${esc(value)}</td></tr>`).join("\n"));
 
 function blockHtml(cfg: EmailConfig, block: Block, accent: Accent): string {
-  const p = (inner: string, style = "") => `<p class="soft" style="margin:0 0 18px;font-family:${SANS};font-size:16px;line-height:25px;color:${C.body};${style}">${inner}</p>`;
+  const p = (inner: string, style = "") => `<p class="soft" style="margin:0 0 18px;font-family:${SANS};font-size:16px;line-height:25px;font-weight:500;color:${C.body};${style}">${inner}</p>`;
   switch (block.t) {
     case "h1": return `<h1 class="ink h1" style="margin:0 0 10px;font-family:${SANS};font-size:26px;line-height:32px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}">${esc(block.text)}</h1>`;
     case "h2": return `<h2 class="ink" style="margin:14px 0 12px;font-family:${SANS};font-size:19px;line-height:26px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.text)}</h2>`;
@@ -140,11 +140,11 @@ function blockHtml(cfg: EmailConfig, block: Block, accent: Accent): string {
     case "log": return stepped(`<div style="font-family:${MONO};font-size:12.5px;line-height:19px;color:#e9e9ee;white-space:pre-wrap;word-break:break-word">${esc(block.text)}</div>`, { fill: C.log, cls: "", pad: "12px 14px", margin: "0 0 22px" });
     case "steps": return T(block.items.map((item, i) => `<tr><td valign="top" width="40" style="padding:0 0 16px"><div style="width:28px;height:28px;line-height:28px;text-align:center;background:${C.lime};font-family:${MONO};font-size:13px;font-weight:600;color:${C.ink}">${i + 1}</div></td>
 <td valign="top" style="padding:3px 0 16px"><div class="ink" style="font-family:${SANS};font-size:16px;line-height:22px;font-weight:600;color:${C.ink}">${esc(item.title)}</div>
-<div class="soft" style="font-family:${SANS};font-size:15px;line-height:23px;color:${C.body};padding-top:3px">${prose(item.text)}</div></td></tr>`).join("\n"), "margin:0 0 14px");
+<div class="soft" style="font-family:${SANS};font-size:15px;line-height:23px;font-weight:500;color:${C.body};padding-top:3px">${prose(item.text)}</div></td></tr>`).join("\n"), "margin:0 0 14px");
     case "list": return T(block.items.map(item => `<tr><td valign="top" width="22" style="padding:9px 0 0"><div style="width:6px;height:6px;background:${C.ink}" class="dot"></div></td><td class="soft" style="font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body};padding:0 0 6px;word-break:break-word">${prose(item)}</td></tr>`).join("\n"), "margin:0 0 18px");
     case "tips": return T(block.items.map(item => `<tr><td valign="top" width="88" style="padding:0 0 20px"><img src="${esc(img(cfg, item.image))}" width="72" height="72" alt="${esc(item.alt)}" style="display:block;width:72px;height:72px;border:0"></td>
 <td valign="top" style="padding:4px 0 20px"><div class="ink" style="font-family:${SANS};font-size:16.5px;line-height:23px;font-weight:600;letter-spacing:-0.01em;color:${C.ink}">${esc(item.title)}</div>
-<div class="soft" style="font-family:${SANS};font-size:15px;line-height:23px;color:${C.body};padding-top:4px">${prose(item.text)}</div></td></tr>`).join("\n"), "margin:0 0 10px");
+<div class="soft" style="font-family:${SANS};font-size:15px;line-height:23px;font-weight:500;color:${C.body};padding-top:4px">${prose(item.text)}</div></td></tr>`).join("\n"), "margin:0 0 10px");
     case "note": {
       const tone = tones[block.tone ?? "info"];
       return stepped(`<span class="ink" style="font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.ink}">${prose(block.text)}</span>`,
@@ -153,14 +153,14 @@ function blockHtml(cfg: EmailConfig, block: Block, accent: Accent): string {
     case "cloud": return stepped(stepped(`<img src="${esc(img(cfg, block.image))}" width="472" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:472px;height:auto;border:0">
 <div class="muted" style="padding-top:18px;font-family:${MONO};font-size:12.5px;line-height:18px;letter-spacing:0.02em;color:${C.muted}">${esc(block.eyebrow)}</div>
 <div class="ink" style="padding-top:6px;font-family:${SANS};font-size:22px;line-height:28px;font-weight:600;letter-spacing:-0.02em;color:${C.ink}">${esc(block.title)}</div>
-<div class="soft" style="padding-top:8px;font-family:${SANS};font-size:14.5px;line-height:22px;color:${C.body}">${prose(block.text)}</div>
+<div class="soft" style="padding-top:8px;font-family:${SANS};font-size:14.5px;line-height:22px;font-weight:500;color:${C.body}">${prose(block.text)}</div>
 ${T(block.points.map(point => `<tr><td valign="top" width="20" style="padding:9px 0 0"><div class="dot" style="width:6px;height:6px;background:${C.ink}"></div></td><td class="ink" style="font-family:${SANS};font-size:15px;line-height:24px;color:${C.ink};padding:0 0 4px">${esc(point)}</td></tr>`).join("\n"), "margin:14px 0 0")}
 ${T(`<tr><td>${button(block.cta.label, block.cta.href, C.lime)}</td>
 <td class="ink" style="padding-left:16px;font-family:${SANS};font-size:15px;line-height:20px;color:${C.ink}"><b style="font-weight:600">${esc(block.price)}</b><br><span class="muted" style="font-size:13px;color:${C.muted}">${esc(block.fine)}</span></td></tr>`, "margin:18px 0 4px", "")}`,
       { fill: "#ffffff", cls: "box", pad: "18px 18px 20px" }), { fill: C.skyWash, cls: "cloud-frame", under: C.sky, pad: "6px", margin: "8px 0 28px" });
     case "feature": return T(`${block.image ? `<tr><td style="padding:0 0 14px"><img src="${esc(img(cfg, block.image))}" width="504" alt="${esc(block.alt)}" style="display:block;width:100%;max-width:504px;height:auto;border:0"></td></tr>` : ""}
 <tr><td><div class="ink" style="font-family:${SANS};font-size:18px;line-height:25px;font-weight:600;letter-spacing:-0.015em;color:${C.ink}">${esc(block.title)}</div>
-<div class="soft" style="font-family:${SANS};font-size:15.5px;line-height:24px;color:${C.body};padding-top:5px">${prose(block.text)}</div></td></tr>`, "margin:0 0 22px");
+<div class="soft" style="font-family:${SANS};font-size:15.5px;line-height:24px;font-weight:500;color:${C.body};padding-top:5px">${prose(block.text)}</div></td></tr>`, "margin:0 0 22px");
   }
 }
 
