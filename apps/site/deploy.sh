@@ -6,7 +6,7 @@
 #   apps/site/deploy.sh landing    # dusk-landing, reached through dusk.bot
 #   apps/site/deploy.sh preview    # dusk-preview, reached through preview.dusk.bot: the full site, never indexed
 #   apps/site/deploy.sh [all]      # both
-# before launch dusk.bot is the waitlist and nothing else: the landing build runs with DUSK_WAITLIST_HOME=1, its stage
+# launched 2026-11-16: landing deploys ship the full site; DUSK_WAITLIST_HOME=1 brings back the waitlist-only stage, which
 # keeps only the waitlist at /, its files, the privacy, terms and cookies pages (sign-in links to them), help and
 # account deletion (the app stores link to them), the download page (unlisted, handed to invited people), the license
 # page (the LICENSE notice links to it) and the own server guide (the installer prints its address), and the server sends every other page to / (DUSK_HOME_ONLY). at launch deploy it with DUSK_WAITLIST_HOME=0 for the full site.
@@ -24,7 +24,7 @@ DUSK_ENV="${DUSK_ENV:-$HOME/.config/duskbot/dusk.env}"
 DEPLOY="${DEPLOY:-deploy}"
 WHICH="${1:-all}"
 
-WAITLIST="${DUSK_WAITLIST_HOME:-1}"
+WAITLIST="${DUSK_WAITLIST_HOME:-0}"
 
 # which, app name, domain, waitlist home (1 = dusk.bot before launch), env from dusk.env
 SITES=(
