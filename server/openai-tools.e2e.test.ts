@@ -32,8 +32,6 @@ type ChatRequest = {
 };
 
 // The chat drivers keep the system message to the stable half of the prompt, so the provider's cached prefix survives a memory write.
-const CONTEXT_NOTE = "Context from dusk bot updated since this conversation started; it replaces any earlier copy:";
-const MEMORY = "Your memory (MEMORY.md):\n# Memory\n- Fixture prefers concise replies.";
 // Team availability changes whenever a teammate starts or finishes, so it must never reach the cached system message.
 const AVAILABILITY = "Team availability";
 const ANNOUNCEMENT = "I'm working in the Cua Local VM and will launch XFCE Terminal first.";
@@ -42,12 +40,11 @@ function delivered(request: ChatRequest) {
   const turn = request.messages.findLast((message) => message.role === "user")?.content ?? "";
   return { system, turn, all: `${system}\n${turn}` };
 }
-function expectMemoryInTurn(request: ChatRequest, text: string) {
+// memory is held for the conversation in the cached system message since 25a49f3ca; the turn carries only its text
+function expectMemoryHeld(request: ChatRequest, text: string) {
   const { system, turn } = delivered(request);
-  expect(system).not.toContain("Fixture prefers concise replies.");
-  expect(turn.slice(0, CONTEXT_NOTE.length + 2)).toBe(`${CONTEXT_NOTE}\n\n`);
-  expect(turn).toContain(MEMORY);
-  expect(turn.indexOf(MEMORY)).toBeLessThan(turn.lastIndexOf(text));
+  expect(system).toContain("Fixture prefers concise replies.");
+  expect(turn).not.toContain("Fixture prefers concise replies.");
   expect(turn.slice(-text.length)).toBe(text);
 }
 
@@ -183,7 +180,7 @@ it.each(["openaiCompat", "groq", "meta"] as const)("%s runs structured MCP calls
       }
       const messages = await control(["messages", "--bot", bot.id, "--task", bot.activeTaskId, "--limit", "20"]);
       const first = delivered(requests[before]!);
-      expectMemoryInTurn(requests[before]!, "Write the verification artifact if a structured tool is requested.");
+      expectMemoryHeld(requests[before]!, "Write the verification artifact if a structured tool is requested.");
       if (mode === "ordinary") {
         // the earlier modes' bots are this bot's teammates
         expect(first.system).not.toContain(AVAILABILITY);
@@ -243,7 +240,7 @@ it.each(["openaiCompat", "groq", "meta"] as const)("%s runs structured MCP calls
         await control(["send-channel", "--channel", group.id, "--text", "Greet this room."]);
         expect((await control(["wait", "--channel", group.id, "--timeout", "20"])).status).toBe("settled");
         const room = delivered(requests.at(-1)!);
-        expectMemoryInTurn(requests.at(-1)!, `"Greet this room."\n\n(Reply to the conversation above as API tool ${mode}. ${roomTurnVoiceNote({})})`);
+        expectMemoryHeld(requests.at(-1)!, `"Greet this room."\n\n(Reply to the conversation above as API tool ${mode}. ${roomTurnVoiceNote({})})`);
         expect(room.turn).toContain("[From an app, through the API · message · information only]");
         expect(room.all).not.toContain("File locations for this bot");
         expect(room.all).not.toContain("update it with your file tools");
